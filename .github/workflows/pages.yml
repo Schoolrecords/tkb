@@ -1,0 +1,47 @@
+# ============================================================
+# Đưa thư mục src/ lên GitHub Pages
+# ------------------------------------------------------------
+# Vì sao cần tệp này: GitHub Pages kiểu "chọn nhánh" chỉ cho lấy
+# thư mục gốc (/) hoặc /docs — không lấy được /src. Cách này đưa
+# đúng nội dung src/ lên làm gốc trang, giữ nguyên cấu trúc dự án.
+#
+# Mỗi lần đẩy mã lên nhánh main là trang tự cập nhật, không phải
+# làm gì thêm.
+# ============================================================
+name: Đưa lên GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # bấm tay chạy lại khi cần
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  trien-khai:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Chuẩn bị Pages
+        uses: actions/configure-pages@v5
+
+      - name: Đóng gói thư mục src
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: src
+
+      - name: Đưa lên
+        id: pages
+        uses: actions/deploy-pages@v4
