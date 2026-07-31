@@ -95,7 +95,10 @@ main{min-width:0;padding:20px 24px 70px;display:flex;flex-direction:column}
   display:grid;place-items:center;font-size:22px;font-weight:800;color:var(--nav)}
 .thanh-t{font-size:16.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;line-height:1.15}
 .thanh-p{font-size:12px;color:var(--nav-mo)}
-.chuong{margin-left:auto;width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.09);
+/* Đăng nhập phải luôn nhìn thấy, kể cả trên điện thoại — thanh trên cùng
+   không bao giờ bị giấu, khác hẳn khối cuối thanh bên. */
+.thanh-phai{margin-left:auto;display:flex;align-items:center;gap:11px;flex:0 0 auto}
+.chuong{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.09);
   display:grid;place-items:center;position:relative;border:none;cursor:pointer;color:#fff}
 .chuong:hover{background:rgba(255,255,255,.16)}
 .chuong svg{width:20px;height:20px;stroke-width:1.9}
@@ -346,8 +349,18 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
     overflow-x:auto;overflow-y:hidden;padding:10px 12px;gap:6px;align-items:center}
   .mi{margin-bottom:0}
   .mi.on::before{display:none}
+  /* Thanh bên thu thành dải ngang cuộn được, chỉ còn các mục điều hướng.
+     Khối cuối (tài khoản, nhập Excel) giấu đi cho gọn — nhưng ĐĂNG NHẬP thì
+     không nằm ở đó nữa, nó ở thanh trên cùng, luôn nhìn thấy. */
   .hieu,.nhom,.duoi{display:none}
   .mi{width:auto;white-space:nowrap;margin:0}
+  .thanh{padding:11px 14px;gap:11px}
+  .thanh-bt{width:38px;height:38px;flex:0 0 38px;font-size:18px;border-radius:10px}
+  .thanh-t{font-size:13px}
+  .thanh-p{font-size:11px}
+  .thanh-phai{gap:8px}
+  .chuong{width:38px;height:38px}
+  #btDangNhapTren{padding:9px 13px;font-size:13px}
   main{padding:16px 14px 50px}
   .tuan{grid-template-columns:1fr}
   .gv-so{width:100%;margin:0;justify-content:space-around}
@@ -446,7 +459,10 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
   <div class="thanh">
     <div class="thanh-bt">T</div>
     <div><div class="thanh-t" id="tenTruong">TRƯỜNG TIỂU HỌC DIỄN LIÊN</div><div class="thanh-p" id="diaChi">Xã Quảng Châu · Tỉnh Nghệ An</div></div>
-    <button class="chuong" id="btChuong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8.5a6 6 0 10-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="sl" id="slChuong">0</span></button>
+    <div class="thanh-phai">
+      <button class="b b-vang" id="btDangNhapTren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span id="chuDangNhap">Đăng nhập</span></button>
+      <button class="chuong" id="btChuong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8.5a6 6 0 10-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="sl" id="slChuong">0</span></button>
+    </div>
   </div>
 
   <div id="noiDung"></div>
@@ -2912,6 +2928,17 @@ function capNhatTaiKhoan(){
   const n=KHO.nguoiDung;
   $('#chamMC').classList.toggle('on', coMayChu());
   $('#tenMayChu').textContent = coMayChu()?'Đã nối máy chủ':'Máy chủ dữ liệu';
+  /* Nút trên thanh đầu trang: chưa vào thì mời đăng nhập, vào rồi thì hiện tên */
+  const nut=$('#btDangNhapTren');
+  if(coMayChu()){
+    $('#chuDangNhap').textContent = tenTat(n.hoTen);
+    nut.className='b b-vien';
+    nut.title = n.hoTen+' — bấm để đăng xuất';
+  }else{
+    $('#chuDangNhap').textContent = 'Đăng nhập';
+    nut.className='b b-vang';
+    nut.title = 'Đăng nhập để xem thời khóa biểu của trường';
+  }
   if(!coMayChu()) return;
   const q=quyen();
   $('#tkAv').textContent = chuCai(n.hoTen);
@@ -3316,6 +3343,7 @@ async function hopLichSu(){
   });
 }
 $('#btMayChu').onclick=hopMayChu;
+$('#btDangNhapTren').onclick=hopMayChu;   /* cùng một hộp, hai lối vào */
 
 /* Đổi vai trò xem thử — thử được cả ba mức quyền khi chưa dựng xong máy chủ */
 $('#btVaiTro').onclick=()=>{
