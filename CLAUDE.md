@@ -346,6 +346,13 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [x] Màn hình tự đăng ký trường mới — `db/dang-ky-truong.sql`
 - [x] Mời thành viên qua giao diện — `db/edge-function-tai-khoan.ts`
 - [x] Hướng dẫn sử dụng theo vai trò trong app
+- [ ] **ĐANG DỞ — làm đầu tiên phiên sau:** giáo viên đăng nhập vẫn thấy
+      "Chưa có thời khóa biểu". Đã truy ra nguyên nhân: cả 5 phiên bản trên
+      máy chủ đều `cong_bo = false`, mà quy tắc `p_tkb_doc` chỉ cho giáo viên
+      đọc bản đã công bố. Mã và quy tắc UPDATE đã xong, chỉ còn **bấm nút
+      "Công bố cho giáo viên"** trong phần mềm, hoặc chạy `db/cong-bo-ngay.sql`.
+      Bằng chứng: thông báo *"Đã tải dữ liệu 25 lớp. Chưa có phiên bản thời
+      khóa biểu nào"* — kết nối và phân quyền đều tốt, chỉ thiếu bản công bố.
 - [ ] Nhập lớp và giáo viên của Diễn Đồng, Diễn Thái (đang thiếu dữ liệu thật)
 - [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức
 
