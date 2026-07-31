@@ -1063,7 +1063,10 @@ async function dangNhap(email, matKhau){
     const nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
     if(!nd?.length){
       KHO.phien = null;
-      return {ok:false, loi:'Đăng nhập được nhưng tài khoản chưa gắn vào trường nào. Nhờ quản trị thêm một dòng trong bảng nguoi_dung.'};
+      /* Nói bằng tiếng của thầy cô, không phải tiếng của người viết phần mềm.
+         Người đọc câu này thường không biết bảng nguoi_dung là gì. */
+      return {ok:false, loi:'Mật khẩu đúng, nhưng tài khoản này chưa được nhà trường cấp quyền vào phần mềm. '
+        +'Báo người quản trị để họ cấp tài khoản cho thầy cô ở mục Giáo viên.'};
     }
     const u = nd[0];
     /* Nếu là giáo viên thì nối tiếp về bản ghi giao_vien để mở thẳng lịch cá nhân */
@@ -2837,9 +2840,12 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
         Giáo viên đăng nhập sẽ mở thẳng màn hình thời khóa biểu của mình.</p>
        <div class="on-l"><label>Email</label><input class="ip" id="dnEmail" type="email" autocomplete="username" placeholder="ten@truong.edu.vn"></div>
        <div class="on-l"><label>Mật khẩu</label><input class="ip" id="dnMK" type="password" autocomplete="current-password"></div>
-       ${KHO.loiCuoi?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}`,
-      [{ten:'Trường mới',phu:1,lam:hopDangKyTruong},
-       {ten:'Huỷ',phu:1,lam:dong},
+       ${KHO.loiCuoi?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
+       <div class="gy" style="margin-top:15px;padding-top:13px;border-top:1px solid var(--ke)">
+         Trường chưa có trong hệ thống?
+         <a href="#" id="dnTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
+         — chỉ dùng một lần khi mở tài khoản cho một trường, không phải việc của thầy cô.</div>`,
+      [{ten:'Huỷ',phu:1,lam:dong},
        {ten:'Đăng nhập',lam:async e=>{
         const em=$('#dnEmail').value.trim(), mk=$('#dnMK').value;
         if(!em||!mk) return bao('Nhập email và mật khẩu',true);
@@ -2853,6 +2859,8 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
       }}]);
     const mk=$('#dnMK');
     if(mk) mk.onkeydown=e=>{ if(e.key==='Enter') $('#hopC').lastChild.click(); };
+    const lk=$('#dnTruongMoi');
+    if(lk) lk.onclick=e=>{ e.preventDefault(); hopDangKyTruong(); };
     return;
   }
 
