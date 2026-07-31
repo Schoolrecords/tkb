@@ -61,8 +61,11 @@ cập dữ liệu qua một tầng 4–6 hàm để Pha 2 chỉ cần viết l�
 **Không dùng Google Sheets làm CSDL** — không cô lập được dữ liệu giữa các
 trường, và hai phó hiệu trưởng lưu cùng lúc sẽ ghi đè nhau.
 
-**Không dùng localStorage/sessionStorage** trong bản demo chạy trong khung
-artifact. Bản thật lưu ở Supabase.
+**Không dùng localStorage/sessionStorage để lưu DỮ LIỆU nhà trường** — dữ liệu
+nằm ở Supabase. Ngoại lệ duy nhất: **vé đăng nhập** (`tkb_phien`), để giáo viên
+mở trang lên là thấy lịch, không phải gõ lại email mỗi sáng. Không lưu mật khẩu,
+chỉ lưu vé làm mới — đúng cách thư viện chính thức của Supabase vẫn làm. Bấm
+Đăng xuất là xoá hẳn.
 
 ---
 
@@ -355,3 +358,40 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
   Đây là lợi thế lớn về pháp lý, giữ nguyên nguyên tắc này.
 - Chưa thu tiền của trường công cho tới khi có ý kiến pháp lý về việc cán bộ
   quản lý đơn vị sự nghiệp công lập kinh doanh trong lĩnh vực mình quản lý.
+
+---
+
+## 11. Ba nhóm người dùng — thiết kế cho ai
+
+Đây là thứ quyết định nhiều lựa chọn kỹ thuật ở trên. Ba nhóm dùng phần mềm
+theo ba cách hoàn toàn khác nhau.
+
+### Giáo viên — "chỉ vào xem, không muốn làm gì hết"
+
+Câu này là của chủ dự án, và nó là ràng buộc thiết kế chứ không phải mong muốn.
+
+- **Không xác minh email.** Quản trị tạo tài khoản với `email_confirm: true`,
+  đưa email và mật khẩu. Không mở hộp thư, không bấm liên kết. Nhiều thầy cô
+  còn không nhớ mật khẩu gmail của mình.
+- **Không đăng nhập lại mỗi lần.** Vé làm mới lưu ở `localStorage`; mở trang là
+  vào thẳng màn hình *Thời khóa biểu của tôi*.
+- **Thanh bên chỉ 3 mục** (`MUC_GIAO_VIEN`), giấu luôn chuông cảnh báo. Bày 12
+  mục trước mặt người chỉ cần một mục là làm khó họ.
+- Gõ tay địa chỉ trang khác cũng bị `apDungQuyen()` đẩy về lịch cá nhân.
+
+### Hiệu trưởng, phó hiệu trưởng — người dựng thời khóa biểu
+
+- **Bắt buộc xác minh email.** Quyền càng lớn thì cửa vào càng phải chắc.
+  Edge Function dùng `generateLink({type:'signup'})` và **trả liên kết xác minh
+  về cho quản trị** — gửi qua Zalo cũng được, nên không phụ thuộc việc dự án đã
+  cấu hình máy chủ gửi thư hay chưa.
+- PHT phụ trách điểm trường bị bó phạm vi, xem mục phân quyền ở trên.
+
+### Quản trị — người cài đặt ban đầu
+
+Chỉ làm vài lần: dựng cơ sở dữ liệu, nhập bảng phân công, cấp tài khoản.
+Chấp nhận được vài bước phức tạp, miễn là có hướng dẫn từng bước.
+
+**Bài học đã trả giá:** nút *Đăng ký trường mới* từng đặt ngang hàng với nút
+*Đăng nhập*, cùng kích cỡ. Chủ dự án bấm nhầm, tạo ra một tài khoản mồ côi.
+Việc cả đời một trường làm một lần thì đừng để cạnh việc làm hằng ngày.

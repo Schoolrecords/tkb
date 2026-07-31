@@ -79,12 +79,44 @@ Deno.serve(async (req) => {
       if (!["quan_tri", "hieu_truong", "pho_hieu_truong", "giao_vien"].includes(vaiTro))
         return traLoi(400, { loi: "Vai trò không hợp lệ." });
 
-      const { data: moi, error: eTao } = await quanTri.auth.admin.createUser({
-        email, password: matKhau, email_confirm: true,
-      });
-      if (eTao || !moi?.user)
-        return traLoi(400, { loi: /already/i.test(eTao?.message || "")
-          ? "Email này đã có tài khoản." : (eTao?.message || "Không tạo được tài khoản.") });
+      // ------------------------------------------------------------
+      // HAI CHẾ ĐỘ, CỐ Ý KHÁC NHAU
+      //
+      //   Giáo viên  — chỉ VÀO XEM lịch của mình, không sửa được gì.
+      //                Bỏ qua xác minh email: quản trị đưa email và mật
+      //                khẩu, thầy cô gõ vào là vào. Không phải mở hộp thư,
+      //                không phải bấm liên kết. Nhiều thầy cô còn không
+      //                nhớ mật khẩu gmail của mình.
+      //
+      //   Hiệu trưởng, phó hiệu trưởng, quản trị — DỰNG VÀ SỬA thời khóa
+      //                biểu của cả trường. Bắt buộc xác minh email: phải
+      //                mở đúng hộp thư đó, bấm liên kết, rồi mới đăng nhập
+      //                được. Quyền càng lớn thì cửa vào càng phải chắc.
+      // ------------------------------------------------------------
+      const laGiaoVien = vaiTro === "giao_vien";
+      let moi: any = null, lienKet: string | null = null;
+
+      if (laGiaoVien) {
+        const { data, error } = await quanTri.auth.admin.createUser({
+          email, password: matKhau, email_confirm: true,
+        });
+        if (error || !data?.user)
+          return traLoi(400, { loi: /already/i.test(error?.message || "")
+            ? "Email này đã có tài khoản." : (error?.message || "Không tạo được tài khoản.") });
+        moi = data;
+      } else {
+        // Tạo kèm liên kết xác minh. Trả liên kết về cho quản trị để gửi
+        // qua Zalo hay đọc cho người ta — chạy được cả khi dự án chưa cấu
+        // hình máy chủ gửi thư, nên không phụ thuộc chuyện thư có tới hay không.
+        const { data, error } = await quanTri.auth.admin.generateLink({
+          type: "signup", email, password: matKhau,
+        });
+        if (error || !data?.user)
+          return traLoi(400, { loi: /already/i.test(error?.message || "")
+            ? "Email này đã có tài khoản." : (error?.message || "Không tạo được tài khoản.") });
+        moi = data;
+        lienKet = data.properties?.action_link || null;
+      }
 
       const { error: eHoSo } = await quanTri.from("nguoi_dung").insert({
         id: moi.user.id, truong_id: truong, ho_ten: hoTen, email,
@@ -102,7 +134,12 @@ Deno.serve(async (req) => {
         await quanTri.from("giao_vien").update({ nguoi_dung_id: moi.user.id })
           .eq("id", than.giao_vien_id).eq("truong_id", truong);
 
-      return traLoi(200, { ok: true, id: moi.user.id, thong_bao: `Đã tạo tài khoản cho ${hoTen}.` });
+      return traLoi(200, {
+        ok: true, id: moi.user.id, can_xac_minh: !laGiaoVien, lien_ket: lienKet,
+        thong_bao: laGiaoVien
+          ? `Đã tạo tài khoản cho ${hoTen}. Đưa email và mật khẩu là thầy cô dùng được ngay.`
+          : `Đã tạo tài khoản cho ${hoTen}. Người này phải xác minh email trước khi đăng nhập.`,
+      });
     }
 
     // ---------- Đặt lại mật khẩu ----------

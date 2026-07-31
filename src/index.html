@@ -954,8 +954,29 @@ function kiemTra(){
      Mọi màn hình dùng được đầy đủ, chỉ không ghi lên máy chủ.
    ================================================================== */
 
-/* Trạng thái kết nối. Cố ý không dùng localStorage (quy ước dự án),
-   nên đóng trình duyệt là phải đăng nhập lại. */
+/* ---------- Ghi nhớ đăng nhập ----------
+   Bản đầu cố ý không lưu phiên, nên mỗi lần mở là gõ lại email và mật khẩu.
+   Với giáo viên xem lịch bằng điện thoại mỗi sáng thì đó là cực hình — gõ
+   một địa chỉ gmail dài trên bàn phím điện thoại, ngày nào cũng vậy.
+
+   Nay lưu VÉ LÀM MỚI (không lưu mật khẩu) vào localStorage. Quy ước "không
+   dùng localStorage" trong bản giao việc là nói về DỮ LIỆU nhà trường — dữ
+   liệu vẫn nằm nguyên ở Supabase, đây chỉ là vé đăng nhập, đúng cách thư
+   viện chính thức của Supabase vẫn làm.
+
+   Máy dùng chung thì bỏ tích "Ghi nhớ tôi trên máy này", hoặc bấm Đăng xuất. */
+const KHOA_NHO = 'tkb_phien';
+function nhoPhien(){
+  try{ localStorage.setItem(KHOA_NHO, JSON.stringify(
+    {lamMoi:KHO.phien?.lamMoi||'', email:KHO.phien?.email||''})); }catch(e){}
+}
+function quenPhien(){ try{ localStorage.removeItem(KHOA_NHO); }catch(e){} }
+function docPhienNho(){
+  try{ return JSON.parse(localStorage.getItem(KHOA_NHO)||'null'); }catch(e){ return null; }
+}
+const emailDaNho = () => docPhienNho()?.email || '';
+
+/* Trạng thái kết nối. */
 let KHO = {
   cauHinh:null,      /* {url, khoa} đọc từ src/cauhinh.js */
   daDocCauHinh:false,
@@ -1049,7 +1070,7 @@ function dienGiaiLoi(e){
 }
 
 /* ---------- 1. Đăng nhập ---------- */
-async function dangNhap(email, matKhau){
+async function dangNhap(email, matKhau, nho){
   await taiCauHinh();
   if(!KHO.cauHinh) return {ok:false,
     loi:'Chưa có tệp src/cauhinh.js nên chưa biết địa chỉ máy chủ. Tạo tệp theo mẫu src/cauhinh.mau.js rồi tải lại trang.'};
@@ -1058,36 +1079,66 @@ async function dangNhap(email, matKhau){
       {method:'POST', body:JSON.stringify({email:String(email).trim(), password:matKhau})});
     if(!p?.access_token) throw new Error('Máy chủ không trả vé đăng nhập');
     KHO.phien = {token:p.access_token, lamMoi:p.refresh_token, uid:p.user?.id, email:p.user?.email};
-
-    /* Dò về hồ sơ trong trường: vai trò, trường nào, phụ trách điểm trường nào */
-    const nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
-    if(!nd?.length){
-      KHO.phien = null;
-      /* Nói bằng tiếng của thầy cô, không phải tiếng của người viết phần mềm.
-         Người đọc câu này thường không biết bảng nguoi_dung là gì. */
-      return {ok:false, loi:'Mật khẩu đúng, nhưng tài khoản này chưa được nhà trường cấp quyền vào phần mềm. '
-        +'Báo người quản trị để họ cấp tài khoản cho thầy cô ở mục Giáo viên.'};
-    }
-    const u = nd[0];
-    /* Nếu là giáo viên thì nối tiếp về bản ghi giao_vien để mở thẳng lịch cá nhân */
-    let gv = null;
-    try{
-      const g = await goiAPI(`/rest/v1/giao_vien?nguoi_dung_id=eq.${u.id}&select=id,ho_ten&limit=1`);
-      gv = g?.[0] || null;
-    }catch(e){ /* không tra được thì thôi, vẫn đăng nhập bình thường */ }
-
-    KHO.nguoiDung = {
-      id:u.id, hoTen:u.ho_ten, email:u.email||KHO.phien.email,
-      vaiTro:u.vai_tro, truongId:u.truong_id, tenTruong:u.truong?.ten||'',
-      diemTruongId:u.diem_truong_id||null, gvId:gv?.id||null
-    };
-    /* diem_truong_id là thứ quyết định PHT thấy toàn trường hay chỉ một điểm trường */
-    S.nguoiDung = {vaiTro:VAI_TRO_XEM[u.vai_tro]||'qt', gvId:gv?.id||null,
-                   diemTruongId:u.diem_truong_id||null};
+    const ho = await napHoSo();
+    if(!ho.ok){ KHO.phien = null; return ho; }
+    if(nho!==false) nhoPhien();
     return {ok:true, nguoiDung:KHO.nguoiDung};
   }catch(e){
     KHO.phien = null; KHO.nguoiDung = null;
     return {ok:false, loi:dienGiaiLoi(e)};
+  }
+}
+
+/* Dò hồ sơ trong trường: vai trò, trường nào, phụ trách điểm trường nào.
+   Tách riêng để cả đăng nhập bằng mật khẩu lẫn vào lại bằng vé đã nhớ
+   đều đi chung một đường. */
+async function napHoSo(){
+  const nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
+  if(!nd?.length)
+    /* Nói bằng tiếng của thầy cô, không phải tiếng của người viết phần mềm.
+       Người đọc câu này thường không biết bảng nguoi_dung là gì. */
+    return {ok:false, loi:'Mật khẩu đúng, nhưng tài khoản này chưa được nhà trường cấp quyền vào phần mềm. '
+      +'Báo người quản trị để họ cấp tài khoản cho thầy cô ở mục Giáo viên.'};
+  const u = nd[0];
+  /* Nếu là giáo viên thì nối tiếp về bản ghi giao_vien để mở thẳng lịch cá nhân */
+  let gv = null;
+  try{
+    const g = await goiAPI(`/rest/v1/giao_vien?nguoi_dung_id=eq.${u.id}&select=id,ho_ten&limit=1`);
+    gv = g?.[0] || null;
+  }catch(e){ /* không tra được thì thôi, vẫn đăng nhập bình thường */ }
+
+  KHO.nguoiDung = {
+    id:u.id, hoTen:u.ho_ten, email:u.email||KHO.phien.email,
+    vaiTro:u.vai_tro, truongId:u.truong_id, tenTruong:u.truong?.ten||'',
+    diemTruongId:u.diem_truong_id||null, gvId:gv?.id||null
+  };
+  /* diem_truong_id là thứ quyết định PHT thấy toàn trường hay chỉ một điểm trường */
+  S.nguoiDung = {vaiTro:VAI_TRO_XEM[u.vai_tro]||'qt', gvId:gv?.id||null,
+                 diemTruongId:u.diem_truong_id||null};
+  return {ok:true, nguoiDung:KHO.nguoiDung};
+}
+
+/* Vào lại bằng vé đã nhớ — không hỏi mật khẩu. Chạy lúc mở trang.
+   Đây chính là thứ biến "mỗi sáng gõ lại email và mật khẩu" thành
+   "mở ra là thấy lịch". */
+async function vaoLaiBangVeNho(){
+  await taiCauHinh();
+  if(!KHO.cauHinh) return false;
+  const n = docPhienNho();
+  if(!n?.lamMoi) return false;
+  try{
+    const p = await goiAPI('/auth/v1/token?grant_type=refresh_token',
+      {method:'POST', body:JSON.stringify({refresh_token:n.lamMoi})}, false);
+    if(!p?.access_token) throw new Error('Vé đã hết hạn');
+    KHO.phien = {token:p.access_token, lamMoi:p.refresh_token||n.lamMoi,
+                 uid:p.user?.id, email:p.user?.email||n.email};
+    const ho = await napHoSo();
+    if(!ho.ok){ KHO.phien=null; quenPhien(); return false; }
+    nhoPhien();
+    return true;
+  }catch(e){
+    /* Vé hỏng hoặc quá hạn thì xoá đi, lần sau hỏi mật khẩu như thường */
+    KHO.phien = null; quenPhien(); return false;
   }
 }
 
@@ -1149,6 +1200,7 @@ function dangXuat(){
   KHO.phien = null; KHO.nguoiDung = null; KHO.nguon = 'nhung';
   KHO.version = 0; KHO.loiCuoi = '';
   S.nguoiDung = {vaiTro:'qt', gvId:null, diemTruongId:null};
+  quenPhien();          /* đăng xuất là quên hẳn, máy dùng chung mới an toàn */
 }
 
 /* ---------- Đổi hàng PostgreSQL sang hình dạng dùng trong ứng dụng ----------
@@ -1616,11 +1668,19 @@ function duocSuaLop(id){
 }
 const duocLuu = () => quyen().laQuanLy;
 
-/* Ép phạm vi xem về đúng quyền. Gọi ở đầu mỗi lần vẽ lại màn hình. */
+/* Mục nào giáo viên được thấy. Họ vào đây chỉ để xem lịch dạy, không
+   muốn làm gì khác — bày 12 mục trước mặt là làm khó họ. */
+const MUC_GIAO_VIEN = ['cuatoi','tkblop','huongdan'];
+const thayDuocMuc = t => !quyen().laGV || MUC_GIAO_VIEN.includes(t);
+
+/* Ép phạm vi xem và trang đang mở về đúng quyền.
+   Gọi ở đầu mỗi lần vẽ lại màn hình. */
 function apDungQuyen(){
   const q = quyen();
   if(q.boHep) S.phamVi = q.diemTruongId;
   else if(S.phamVi && !S.diemTruong.some(d=>d.id===S.phamVi)) S.phamVi = '';
+  /* Gõ tay địa chỉ hay bấm nút cũ cũng không lạc sang trang ngoài quyền */
+  if(!thayDuocMuc(S.trangHienTai)) S.trangHienTai = 'cuatoi';
   return q;
 }
 
@@ -1798,6 +1858,15 @@ function capNhatDem(){
   $('#nPC').textContent=S.phanCong.filter(trongPV).length;
   $('#slChuong').textContent=KT.vm.filter(v=>v.muc!=='goi').length;
   $('#tenTruong').textContent=S.tenTruong.toUpperCase();
+  /* Giáo viên chỉ thấy vài mục; nhãn nhóm nào không còn mục nào thì giấu luôn */
+  $$('.mi').forEach(m=>{ m.style.display = thayDuocMuc(m.dataset.t)?'':'none'; });
+  $$('.nhom').forEach(n=>{
+    let x=n.nextElementSibling, co=false;
+    while(x && x.classList.contains('mi')){ if(x.style.display!=='none') co=true; x=x.nextElementSibling; }
+    n.style.display = co?'':'none';
+  });
+  /* Chuông cảnh báo là việc của người xếp, giáo viên không cần */
+  $('#btChuong').style.display = quyen().laGV?'none':'';
   $('#diaChi').textContent=[S.xa?'Xã '+S.xa:'', S.tinh?'Tỉnh '+S.tinh:''].filter(Boolean).join(' · ');
 }
 
@@ -2838,8 +2907,11 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
     hop('Đăng nhập máy chủ',
       `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Dùng tài khoản nhà trường cấp.
         Giáo viên đăng nhập sẽ mở thẳng màn hình thời khóa biểu của mình.</p>
-       <div class="on-l"><label>Email</label><input class="ip" id="dnEmail" type="email" autocomplete="username" placeholder="ten@truong.edu.vn"></div>
+       <div class="on-l"><label>Email</label><input class="ip" id="dnEmail" type="email" autocomplete="username" placeholder="ten@truong.edu.vn" value="${esc(emailDaNho())}"></div>
        <div class="on-l"><label>Mật khẩu</label><input class="ip" id="dnMK" type="password" autocomplete="current-password"></div>
+       <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px;font-weight:600">
+         <input type="checkbox" id="dnNho" checked> Ghi nhớ tôi trên máy này</label>
+       <div class="gy">Lần sau mở là vào thẳng, không phải gõ lại. Máy dùng chung thì bỏ tích này.</div>
        ${KHO.loiCuoi?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
        <div class="gy" style="margin-top:15px;padding-top:13px;border-top:1px solid var(--ke)">
          Trường chưa có trong hệ thống?
@@ -2850,7 +2922,7 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
         const em=$('#dnEmail').value.trim(), mk=$('#dnMK').value;
         if(!em||!mk) return bao('Nhập email và mật khẩu',true);
         const b=e.currentTarget; b.disabled=true; b.textContent='Đang đăng nhập…';
-        const kq=await dangNhap(em,mk);
+        const kq=await dangNhap(em, mk, $('#dnNho')?.checked!==false);
         if(!kq.ok){ b.disabled=false; b.textContent='Đăng nhập'; return bao(kq.loi,true); }
         const t=await taiDuLieu();
         KQ_XEP=null; dong(); capNhatTaiKhoan();
@@ -2966,6 +3038,7 @@ function veHopTaiKhoan(ds){
       gvId: gv||null});
     b.disabled=false; b.textContent=cu;
     if(!kq.ok) return bao(kq.loi,true);
+    if(kq.can_xac_minh) return hopXacMinh(hoTen, email, mk, kq.lien_ket);
     bao(kq.thong_bao||'Đã cấp tài khoản');
     const lai=await dsThanhVien(); if(lai.ok) veHopTaiKhoan(lai.data||[]);
   }}].forEach(x=>{const b=document.createElement('button');
@@ -2978,6 +3051,34 @@ function veHopTaiKhoan(ds){
 
   $$('[data-doimk]').forEach(b=>b.onclick=()=>hopDoiMatKhau(b.dataset.doimk, b.dataset.ten));
   $$('[data-xoatk]').forEach(b=>b.onclick=()=>hopXoaTaiKhoan(b.dataset.xoatk, b.dataset.ten));
+}
+
+/* Tài khoản quản lý vừa tạo — bày liên kết xác minh để quản trị gửi đi */
+function hopXacMinh(ten, email, matKhau, lienKet){
+  hop('Đã tạo tài khoản cho '+ten,
+    `<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
+      <b>Tài khoản quản lý phải xác minh email trước khi đăng nhập</b>
+      <div class="cb-g">Người này dựng và sửa được thời khóa biểu của cả trường, nên cửa vào
+        phải chắc: họ phải mở đúng hộp thư đó và bấm liên kết. Giáo viên thì không cần bước này.</div></div></div>
+
+     <div class="hang" style="margin-top:14px">Email <b>${esc(email)}</b></div>
+     <div class="hang">Mật khẩu <b>${esc(matKhau)}</b></div>
+
+     ${lienKet?`<div style="margin-top:15px">
+       <div style="font-weight:700;font-size:13.5px;margin-bottom:7px">Liên kết xác minh — gửi cho người này</div>
+       <textarea class="ip" id="xmLK" readonly rows="3"
+         style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;resize:vertical">${esc(lienKet)}</textarea>
+       <div class="gy">Gửi qua Zalo hay tin nhắn cũng được, không nhất thiết phải qua thư điện tử.
+         Họ bấm liên kết là xác minh xong, rồi đăng nhập bằng email và mật khẩu ở trên.</div>
+     </div>`:`<div class="gy" style="margin-top:13px">Máy chủ đã gửi thư xác minh tới ${esc(email)}.
+       Nhắc người này mở hộp thư, kể cả thư mục Spam.</div>`}`,
+    [{ten:'Xong',phu:1,lam:async()=>{ dong();
+        const lai=await dsThanhVien(); if(lai.ok){ hopTaiKhoan(); } }},
+     ...(lienKet?[{ten:'Chép liên kết',lam:()=>{
+        const o=$('#xmLK'); o.select(); o.setSelectionRange(0,99999);
+        try{ document.execCommand('copy'); bao('Đã chép liên kết'); }
+        catch(e){ bao('Bôi đen rồi bấm Ctrl+C',true); }
+     }}]:[])]);
 }
 
 function hopDoiMatKhau(id, ten){
@@ -3221,13 +3322,19 @@ $('#btChuong').onclick=()=>chuyen('kiemtra');
    không có thì chạy bằng dữ liệu mẫu và xếp thử ngay cho có cái nhìn.
    ================================================================== */
 async function khoiDong(){
-  let kq;
+  let kq, vaoLai=false;
+  /* Vào lại bằng vé đã nhớ TRƯỚC khi tải dữ liệu — nhờ vậy giáo viên mở
+     trang lên là thấy ngay lịch của mình, không qua màn hình đăng nhập nào. */
+  try{ vaoLai = await vaoLaiBangVeNho(); }catch(e){}
   try{ kq = await taiDuLieu(); }
   catch(e){ kq = {ok:false, thongBao:'Không tải được dữ liệu — '+dienGiaiLoi(e)}; }
   capNhatTaiKhoan();
-  if(!soTietDaXep()) KQ_XEP = xepTuDong();
+  /* Giáo viên thì mở thẳng lịch cá nhân, không phải tìm menu */
+  if(vaoLai && quyen().laGV) S.trangHienTai='cuatoi';
+  if(!soTietDaXep() && !quyen().laGV) KQ_XEP = xepTuDong();
   ve();
-  if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);
+  if(vaoLai) bao(`Chào ${KHO.nguoiDung.hoTen}`);
+  else if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);
 }
 khoiDong();
 </script>
