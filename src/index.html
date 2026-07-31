@@ -2879,7 +2879,19 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
 
 /* Quản lý tài khoản đăng nhập của trường */
 async function hopTaiKhoan(){
-  if(!coMayChu()) return hopMayChu();
+  /* Chưa đăng nhập mà nhảy thẳng sang hộp đăng nhập thì người dùng hụt hẫng:
+     bấm một đằng hiện ra một nẻo. Nói rõ vì sao trước đã. */
+  if(!coMayChu()) return hop('Cần đăng nhập trước',
+    `<p style="font-size:13px;margin-bottom:13px">Danh sách tài khoản nằm trên máy chủ của trường,
+      nên phải đăng nhập mới xem và cấp được.</p>
+     <div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
+       <b>Đăng nhập bằng tài khoản quản trị của nhà trường</b>
+       <div class="cb-g">Không phải tài khoản định cấp cho thầy cô — tài khoản đó chưa tồn tại,
+         mình sắp tạo nó. Dùng email và mật khẩu quản trị đã có.</div></div></div>
+     <div class="gy" style="margin-top:11px">Phần mềm đang chạy bằng ${esc(TEN_NGUON[KHO.nguon])},
+       nên số liệu trên màn hình chưa phải của trường.</div>`,
+    [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đăng nhập',lam:hopMayChu}]);
+
   hop('Tài khoản đăng nhập','<div class="trong-hop">Đang tải danh sách…</div>',[{ten:'Đóng',lam:dong}]);
   const kq=await dsThanhVien();
   if(!kq.ok) return void($('#hopN').innerHTML=
