@@ -444,7 +444,7 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
   <button class="mi" data-t="phancong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3h8l3 4v14H5V7l3-4z"/><path d="M9 12h6M9 16h6"/></svg>Phân công <span class="n" id="nPC">0</span></button>
   <button class="mi" data-t="khunggio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Khung giờ</button>
 
-  <div class="duoi">
+  <div class="duoi" id="duoiTB">
     <div class="tk">
       <div class="tk-av" id="tkAv">QT</div>
       <div><div class="tk-t" id="tkTen">Quản trị nhà trường</div><div class="tk-p" id="tkVT">Toàn trường</div></div>
@@ -1728,7 +1728,18 @@ const duocLuu = () => quyen().laQuanLy;
 /* Mục nào giáo viên được thấy. Họ vào đây chỉ để xem lịch dạy, không
    muốn làm gì khác — bày 12 mục trước mặt là làm khó họ. */
 const MUC_GIAO_VIEN = ['cuatoi','tkblop','huongdan'];
-const thayDuocMuc = t => !quyen().laGV || MUC_GIAO_VIEN.includes(t);
+
+/* Đã cấu hình máy chủ mà chưa đăng nhập → phải đăng nhập đã.
+   Trước đây khách lạ mở trang lên là xem được cả trường bằng dữ liệu mẫu,
+   trong khi giáo viên đăng nhập vào chỉ thấy lịch của mình — đăng nhập
+   xong lại thấy ÍT HƠN, phi lý. Nay đăng nhập luôn cho thấy nhiều hơn.
+
+   Mở tệp trực tiếp không qua máy chủ (lúc phát triển, hoặc chưa tạo
+   cauhinh.js) thì vẫn chạy bằng dữ liệu mẫu như cũ. */
+const canDangNhap = () => !!KHO.cauHinh && !coMayChu();
+
+const thayDuocMuc = t =>
+  canDangNhap() ? false : (!quyen().laGV || MUC_GIAO_VIEN.includes(t));
 
 /* Ép phạm vi xem và trang đang mở về đúng quyền.
    Gọi ở đầu mỗi lần vẽ lại màn hình. */
@@ -1737,7 +1748,9 @@ function apDungQuyen(){
   if(q.boHep) S.phamVi = q.diemTruongId;
   else if(S.phamVi && !S.diemTruong.some(d=>d.id===S.phamVi)) S.phamVi = '';
   /* Gõ tay địa chỉ hay bấm nút cũ cũng không lạc sang trang ngoài quyền */
-  if(!thayDuocMuc(S.trangHienTai)) S.trangHienTai = 'cuatoi';
+  if(canDangNhap()) S.trangHienTai = 'chao';
+  else if(S.trangHienTai==='chao') S.trangHienTai = q.laGV?'cuatoi':'dieuhanh';
+  else if(!thayDuocMuc(S.trangHienTai)) S.trangHienTai = 'cuatoi';
   return q;
 }
 
@@ -1911,7 +1924,8 @@ function ve(){
   tinhLai();
   const t=S.trangHienTai;
   $('#noiDung').innerHTML =
-      t==='dieuhanh'  ? mDieuHanh()
+      t==='chao'      ? mChao()
+    : t==='dieuhanh'  ? mDieuHanh()
     : t==='xep'       ? mXep()
     : t==='kiemtra'   ? mKiemTra()
     : t==='tkblop'    ? mTKBLop()
@@ -1939,8 +1953,13 @@ function capNhatDem(){
   $('#nDT').textContent=dtTrongPV().length;
   $('#nPC').textContent=S.phanCong.filter(trongPV).length;
   $('#slChuong').textContent=KT.vm.filter(v=>v.muc!=='goi').length;
-  $('#tenTruong').textContent=S.tenTruong.toUpperCase();
-  /* Giáo viên chỉ thấy vài mục; nhãn nhóm nào không còn mục nào thì giấu luôn */
+  /* Chưa đăng nhập thì không hé lộ tên trường hay bất kỳ số liệu nào */
+  const chuaVao=canDangNhap();
+  $('#tenTruong').textContent = chuaVao?'THỜI KHÓA BIỂU':S.tenTruong.toUpperCase();
+  $('#diaChi').textContent = chuaVao ? 'Đăng nhập để xem thời khóa biểu'
+    : [S.xa?'Xã '+S.xa:'', S.tinh?'Tỉnh '+S.tinh:''].filter(Boolean).join(' · ');
+  /* Giáo viên chỉ thấy vài mục; chưa đăng nhập thì không mục nào.
+     Nhãn nhóm nào không còn mục nào thì giấu luôn. */
   $$('.mi').forEach(m=>{ m.style.display = thayDuocMuc(m.dataset.t)?'':'none'; });
   $$('.nhom').forEach(n=>{
     let x=n.nextElementSibling, co=false;
@@ -1948,8 +1967,8 @@ function capNhatDem(){
     n.style.display = co?'':'none';
   });
   /* Chuông cảnh báo là việc của người xếp, giáo viên không cần */
-  $('#btChuong').style.display = quyen().laGV?'none':'';
-  $('#diaChi').textContent=[S.xa?'Xã '+S.xa:'', S.tinh?'Tỉnh '+S.tinh:''].filter(Boolean).join(' · ');
+  $('#btChuong').style.display = (chuaVao||quyen().laGV)?'none':'';
+  $('#duoiTB').style.display = chuaVao?'none':'';
 }
 
 /* ---------- Thanh đầu trang dùng chung ---------- */
@@ -1964,6 +1983,44 @@ function dauTrang(tieu,phu,pv){
         ${S.diemTruong.map(d=>`<option value="${d.id}" ${S.phamVi===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}
         </select></div>`;
   return `<div class="dau-trang"><div><h1>${tieu}</h1><div class="dau-p">${phu}</div></div>${chon}</div>`;
+}
+
+/* ---------- 3.0 Màn hình chào — chưa đăng nhập ----------
+   Không bày một chữ nào về dữ liệu nhà trường. Ai mở địa chỉ này cũng chỉ
+   thấy đúng lời mời đăng nhập. */
+function mChao(){
+  return `<div class="hd-dau" style="text-align:center;padding:34px 26px">
+    <div class="hd-eb">✦ NĂM HỌC ${esc(S.namHoc||'2026-2027')}</div>
+    <h2 style="font-size:26px">Thời khóa biểu nhà trường</h2>
+    <p style="margin:9px auto 0">Đăng nhập để xem thời khóa biểu.
+      Thầy cô đăng nhập là mở thẳng lịch dạy của mình.</p>
+  </div>
+
+  <div class="the" style="max-width:560px;margin:0 auto">
+    <div class="the-t" style="text-align:center;padding:30px 26px">
+      <div style="width:62px;height:62px;margin:0 auto 16px;border-radius:18px;
+        background:linear-gradient(145deg,#F7D36B,#E9A91F);display:grid;place-items:center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1B2559" stroke-width="2" style="width:29px;height:29px">
+          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+      </div>
+      <div style="font-size:17px;font-weight:800;letter-spacing:-.02em">Mời đăng nhập</div>
+      <div style="font-size:13.5px;color:var(--chu-mo);margin:8px auto 20px;max-width:400px;line-height:1.7">
+        Dùng tài khoản nhà trường cấp. Chưa có tài khoản thì báo người quản trị —
+        không phải tự đăng ký, không phải xác minh thư điện tử.</div>
+      <button class="b b-vang" id="btChaoVao" style="padding:13px 28px;font-size:15px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+        Đăng nhập</button>
+      ${KHO.loiCuoi?`<div class="canhbao do" style="margin-top:18px;text-align:left">
+        <div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được máy chủ</b>
+        <div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
+    </div>
+  </div>
+
+  <div style="max-width:560px;margin:16px auto 0;text-align:center">
+    <div class="gy">Trường chưa có trong hệ thống?
+      <a href="#" id="btChaoTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
+      — chỉ dùng một lần khi mở tài khoản cho một trường.</div>
+  </div>`;
 }
 
 /* ---------- 3.1 Bảng điều hành ---------- */
@@ -2750,6 +2807,10 @@ function noiSuKien(){
   $('#selGV')&&($('#selGV').onchange=e=>{S.gvXem=e.target.value;ve();});
   $('#selToi')&&($('#selToi').onchange=e=>{S.nguoiDung.gvId=e.target.value;ve();});
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
+
+  /* màn hình chào */
+  $('#btChaoVao')&&($('#btChaoVao').onclick=hopMayChu);
+  $('#btChaoTruongMoi')&&($('#btChaoTruongMoi').onclick=e=>{e.preventDefault();hopDangKyTruong();});
 
   /* hướng dẫn */
   $$('[data-hdvai]').forEach(b=>b.onclick=()=>{ HD_VAI=b.dataset.hdvai; ve(); });
@@ -3554,7 +3615,9 @@ async function khoiDong(){
   capNhatTaiKhoan();
   /* Giáo viên thì mở thẳng lịch cá nhân, không phải tìm menu */
   if(vaoLai && quyen().laGV) S.trangHienTai='cuatoi';
-  if(!soTietDaXep() && !quyen().laGV) KQ_XEP = xepTuDong();
+  /* Chỉ xếp thử khi đang chạy dữ liệu mẫu ngoại tuyến — có máy chủ mà chưa
+     đăng nhập thì không bày gì cả, xếp làm gì cho tốn công */
+  if(!canDangNhap() && !soTietDaXep() && !quyen().laGV) KQ_XEP = xepTuDong();
   ve();
   if(vaoLai) bao(`Chào ${KHO.nguoiDung.hoTen}`);
   else if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);

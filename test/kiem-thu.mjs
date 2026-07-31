@@ -39,7 +39,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat,
   tuMayChu, napVaoS, dongGoiTKB, docTKB,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
-  apDungQuyen, dtTrongPV, gvTrongPV,
+  apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
   khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio,
@@ -55,7 +55,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         taiDuLieu, luuTKB, lichSuPhienBan, dangNhap,
         tuMayChu, napVaoS, dongGoiTKB, docTKB,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
-        apDungQuyen, dtTrongPV, gvTrongPV,
+        apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
         khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio,
@@ -448,6 +448,27 @@ vao('gv', null, 'g1');
 kt('Giáo viên: chỉ xem, không sửa lớp nào và không lưu được',
    quyen().laGV && duocSuaLop('l1') === false && duocSuaLop('l2') === false &&
    duocLuu() === false && duocXep() === false);
+
+/* Lỗi logic thật đã gặp: khách chưa đăng nhập xem được cả trường bằng dữ liệu
+   mẫu — cả 25 lớp và họ tên 35 giáo viên — trong khi giáo viên đăng nhập vào
+   chỉ thấy lịch của mình. Đăng nhập xong lại thấy ÍT HƠN, như bị bịt mắt.
+   Nguyên tắc: đăng nhập luôn cho thấy NHIỀU HƠN, không bao giờ ít hơn. */
+vao('qt');
+kt('Chưa cấu hình máy chủ thì vẫn chạy được bằng dữ liệu mẫu',
+   canDangNhap() === false && thayDuocMuc('dieuhanh') === true,
+   'mở tệp trực tiếp lúc phát triển vẫn dùng được');
+
+KHO.cauHinh = {url:'https://gia.supabase.co', khoa:'k'};   /* giả bộ đã cấu hình */
+kt('Có máy chủ mà chưa đăng nhập thì phải đăng nhập đã',
+   canDangNhap() === true);
+kt('Chưa đăng nhập thì không mục nào mở được',
+   ['dieuhanh','xep','tkblop','tkbgv','cuatoi','giaovien','phancong','huongdan']
+     .every(t => thayDuocMuc(t) === false));
+S.trangHienTai = 'dieuhanh';
+apDungQuyen();
+kt('Gõ tay sang trang khác cũng bị đưa về màn hình chào',
+   S.trangHienTai === 'chao');
+KHO.cauHinh = null;                                        /* trả lại như cũ */
 
 vao('qt');   /* trả lại trạng thái sạch */
 
