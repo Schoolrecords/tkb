@@ -18,6 +18,20 @@ Excel, không quen phần mềm phức tạp.
 **Chủ dự án:** Phó Hiệu trưởng Trường Tiểu học Diễn Liên, xã Quảng Châu,
 tỉnh Nghệ An. Vừa là người dùng thật, vừa là người phát triển.
 
+### Sáp nhập ba trường — trạng thái hiện tại
+
+Theo kế hoạch, **Tiểu học Diễn Liên + Diễn Đồng + Diễn Thái** nhập thành một
+đơn vị, thành ba điểm trường.
+
+⚠️ **Tên đơn vị mới CHƯA có quyết định.** Phần mềm tạm ghi `Trường Tiểu học
+mới`. Đừng bịa tên chính thức — khi có quyết định thì sửa một dòng trong
+`db/sap-nhap.sql` rồi chạy lại.
+
+⚠️ **Lớp và giáo viên của Diễn Đồng, Diễn Thái CHƯA có.** 25 lớp và 35 giáo
+viên hiện tại đều là của Diễn Liên. Con số trên màn hình chỉ đúng cho một
+trường. Muốn đủ thì gộp bảng phân công ba trường vào một tệp Excel rồi nhập
+qua nút *Nhập dữ liệu Excel* — cột `Diem_truong` ghi đúng tên là tự gán.
+
 ### Mục tiêu sản phẩm
 1. Cán bộ quản lý xếp xong thời khóa biểu **nhanh, gọn**.
 2. Giáo viên đăng nhập tài khoản cá nhân là **thấy ngay lịch dạy trực quan**.
@@ -326,10 +340,11 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [x] Khung giờ theo khối — `khung_gio.so_tiet_khoi`, khối nhỏ tan sớm hơn
 - [x] Tối ưu ràng buộc mềm bằng hoán đổi cục bộ sau bước xếp tham lam
 - [ ] Đưa thuật toán vào Web Worker khi số lớp > 60
-- [ ] Màn hình tự đăng ký trường mới (Pha 2) — cần hàm Postgres
-      `dang_ky_truong()` kiểu `security definer`, vì tài khoản mới chưa có
-      dòng `nguoi_dung` nên RLS chặn cả việc tạo trường lẫn tạo hồ sơ.
-      Nhập Excel lên máy chủ đã xong, đây là mảnh cuối còn thiếu.
+- [x] Màn hình tự đăng ký trường mới — `db/dang-ky-truong.sql`
+- [x] Mời thành viên qua giao diện — `db/edge-function-tai-khoan.ts`
+- [x] Hướng dẫn sử dụng theo vai trò trong app
+- [ ] Nhập lớp và giáo viên của Diễn Đồng, Diễn Thái (đang thiếu dữ liệu thật)
+- [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức
 
 ## 10. Việc KHÔNG làm
 

@@ -257,3 +257,76 @@ công thì xoá sạch rồi ghi lại, vì đó mới là thứ thay đổi m�
 Lớp hay giáo viên có trên máy chủ mà tệp không nhắc tới thì **không tự xoá**,
 chỉ báo số lượng — xoá một lớp là kéo theo cả phân công và làm hỏng phiên bản
 đã lưu.
+
+---
+
+## Đưa lên GitHub Pages
+
+Đưa lên mạng để **thầy cô mở được bằng điện thoại**, và để có bản sao ngoài ổ
+cứng. Kho mã đã tạo sẵn và lưu bản đầu tiên.
+
+```bash
+git branch -M main
+git remote add origin https://github.com/<tài-khoản>/tkb-app.git
+git push -u origin main
+```
+
+Rồi vào **Settings → Pages**, mục *Source* chọn **Deploy from a branch**,
+nhánh `main`, thư mục **`/src`**. Chờ vài phút là có địa chỉ dạng
+`https://<tài-khoản>.github.io/tkb-app/`.
+
+### Vì sao `src/cauhinh.js` được đưa lên kho mã
+
+Ban đầu tệp này nằm trong `.gitignore` theo thói quen. Với kiến trúc ở đây thì
+đó là **cẩn thận nhầm chỗ**:
+
+- Khoá trong tệp là **khoá công khai** — Supabase ghi rõ *"Publishable keys can
+  be safely shared publicly"*. Nó nằm sẵn trong trình duyệt của mọi người truy
+  cập, giấu trong kho mã không đổi được điều đó.
+- Hàng rào thật là **Row Level Security** trong `db/schema.sql`, mặc định
+  không ai đọc được gì.
+- Thiếu tệp này thì trang trên GitHub Pages không biết địa chỉ máy chủ, không
+  đăng nhập được.
+
+**Thứ tuyệt đối không được đưa lên** là khoá `sb_secret_…` hoặc `service_role`.
+Chúng bỏ qua mọi hàng rào. Trong dự án này chúng chỉ nằm ở Edge Function trên
+máy chủ Supabase, không có trong tệp nào.
+
+---
+
+## Quản lý tài khoản
+
+Mục **Giáo viên** → nút **Tài khoản đăng nhập**. Cấp tài khoản cho thầy cô,
+đặt lại mật khẩu, xoá tài khoản. Chọn tên từ danh sách giáo viên là phần mềm
+tự nối tài khoản với bản ghi giáo viên, đăng nhập vào thấy ngay lịch của mình.
+
+Chức năng này cần **Edge Function** cài một lần:
+
+1. Supabase → **Edge Functions** → *Deploy a new function*
+2. Đặt tên đúng là **`tai-khoan`**
+3. Dán toàn bộ `db/edge-function-tai-khoan.ts`, bấm Deploy
+
+Tạo tài khoản cần khoá `service_role` — khoá bỏ qua mọi hàng rào. Khoá đó
+**không bao giờ được nằm trong trình duyệt**, nên việc này chạy trên máy chủ
+Supabase: trình duyệt gửi vé đăng nhập lên, hàm kiểm tra người gọi có phải quản
+trị của trường đó không, rồi mới thao tác. Trường A không chạm được tài khoản
+trường B.
+
+---
+
+## Đăng ký trường mới
+
+Trường thứ hai trở đi tự đăng ký được, không phải vào SQL. Cần chạy một lần:
+
+```
+db/dang-ky-truong.sql   →   dán vào SQL Editor, bấm Run
+```
+
+Sau đó ở hộp đăng nhập có nút **Trường mới**: điền tên trường, mã trường, họ
+tên người đăng ký là xong — người đó thành quản trị của trường mới, kèm khung
+giờ mặc định đúng chuẩn CT GDPT 2018.
+
+Hàm đó phải là `security definer` vì Row Level Security khoá chặt: muốn thêm
+dòng vào `nguoi_dung` thì phải đã là quản trị của trường, nhưng người đầu tiên
+của một trường mới thì chưa là gì cả. Vòng luẩn quẩn đó được phá đúng một chỗ,
+có kiểm soát.
