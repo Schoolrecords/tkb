@@ -388,6 +388,14 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
   #inAn .hd-b b{display:block;font-size:10.5pt;margin-bottom:2px}
   #inAn .hd-b span{font-size:9.5pt;color:#333}
   #inAn .hd-phim{border:1px solid #999;border-radius:3px;padding:0 4px;font-family:monospace;font-size:9.5pt}
+  /* phiếu tài khoản — cắt theo đường kẻ đứt, phát cho từng thầy cô */
+  #inAn .phieu{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:10px}
+  #inAn .ph{border:1px dashed #666;padding:10px 12px;break-inside:avoid;page-break-inside:avoid;min-height:112px}
+  #inAn .ph-t{font-size:11pt;font-weight:800;margin-bottom:6px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  #inAn .ph-d{font-size:8pt;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+  #inAn .ph-v{font-family:ui-monospace,Consolas,monospace;font-size:10pt;word-break:break-all}
+  #inAn .ph-v b{font-size:11pt}
+  #inAn .ph-g{font-size:8pt;color:#555;font-style:italic;margin-top:6px}
   .in-ky{display:flex;justify-content:space-between;margin-top:15px;font-size:10.5pt}
   .in-ky>div{width:46%;text-align:center;min-height:76px}
   .in-ky i{display:block;font-style:italic}
@@ -1810,6 +1818,31 @@ function khongDau(s){
     .replace(/đ/g,'d').replace(/Đ/g,'D')
     .replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 }
+/* ---------- Sinh tài khoản hàng loạt cho giáo viên ----------
+   Tên đăng nhập lấy chữ CUỐI của họ tên, bỏ dấu, viết thường — ngắn để gõ
+   trên điện thoại. Trùng thì thêm số: trường có bốn cặp trùng tên gọi nên
+   chuyện này chắc chắn xảy ra, không phải trường hợp hiếm. */
+function tenDangNhapGV(ds, mien){
+  const daDung=new Set(), r=[];
+  ds.forEach(g=>{
+    const chu=khongDau(g.hoTen).split('-').filter(Boolean);
+    const goc=(chu[chu.length-1]||'gv').toLowerCase();
+    let ten=goc, i=1;
+    while(daDung.has(ten)) ten=goc+(++i);
+    daDung.add(ten);
+    r.push({gv:g, ten, email:ten+'@'+mien});
+  });
+  return r;
+}
+
+/* Mật khẩu ngắn, dễ đọc dễ gõ. Bỏ i l o 0 1 vì in ra giấy hay nhìn nhầm. */
+function matKhauNgauNhien(n=6){
+  const bang='abcdefghjkmnpqrstuvwxyz23456789';
+  let s='';
+  for(let i=0;i<n;i++) s+=bang[Math.floor(Math.random()*bang.length)];
+  return s;
+}
+
 function tenTepXuat(duoi){
   const n=new Date(), s=x=>String(x).padStart(2,'0');
   return `TKB-${khongDau(S.tenTruong)}-${n.getFullYear()}${s(n.getMonth()+1)}${s(n.getDate())}.${duoi}`;
@@ -3026,7 +3059,9 @@ function veHopTaiKhoan(ds){
         và dặn đổi lại sau lần đăng nhập đầu.</div>
     </div>`;
   $('#hopC').innerHTML='';
-  [{ten:'Đóng',phu:1,lam:dong},{ten:'Cấp tài khoản',lam:async e=>{
+  [{ten:'Đóng',phu:1,lam:dong},
+   {ten:`Cấp hàng loạt cho giáo viên`,phu:1,lam:()=>hopCapHangLoat(ds)},
+   {ten:'Cấp tài khoản',lam:async e=>{
     const gv=$('#tkGV').value, vai=$('#tkVai').value;
     const hoTen = gv ? (gvId(gv)?.hoTen||'') : $('#tkTen').value.trim();
     const email=$('#tkEmail').value.trim(), mk=$('#tkMK').value;
@@ -3051,6 +3086,105 @@ function veHopTaiKhoan(ds){
 
   $$('[data-doimk]').forEach(b=>b.onclick=()=>hopDoiMatKhau(b.dataset.doimk, b.dataset.ten));
   $$('[data-xoatk]').forEach(b=>b.onclick=()=>hopXoaTaiKhoan(b.dataset.xoatk, b.dataset.ten));
+}
+
+/* ---------- Cấp tài khoản hàng loạt cho giáo viên ----------
+   Gõ tay 35 lần thì không ai làm. Máy sinh sẵn tên đăng nhập và mật khẩu,
+   tạo một loạt, rồi in phiếu cắt phát cho từng thầy cô. */
+function hopCapHangLoat(daCo){
+  const coRoi=new Set((daCo||[]).map(x=>String(x.ho_ten||'').trim()));
+  const chuaCo=S.giaoVien.filter(g=>!coRoi.has(g.hoTen.trim()));
+  if(!chuaCo.length) return hop('Cấp hàng loạt',
+    `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
+      <b>Cả ${S.giaoVien.length} giáo viên đều đã có tài khoản</b>
+      <div class="cb-g">Không còn ai để cấp thêm.</div></div></div>`,
+    [{ten:'Đóng',lam:()=>hopTaiKhoan()}]);
+
+  const mienMD='tkb.local';
+  const ds=tenDangNhapGV(chuaCo, mienMD).map(x=>({...x, matKhau:matKhauNgauNhien()}));
+  hop(`Cấp tài khoản cho ${chuaCo.length} giáo viên`,
+    `<p style="font-size:13px;margin-bottom:13px">Máy sinh sẵn tên đăng nhập và mật khẩu cho
+      ${chuaCo.length} thầy cô chưa có tài khoản. Xong thì in phiếu cắt phát cho từng người.</p>
+
+     <div class="on-l"><label>Đuôi tên đăng nhập</label>
+       <input class="ip" id="hlMien" value="${mienMD}" style="width:100%">
+       <div class="gy"><b>Không cần hộp thư thật.</b> Máy chủ không gửi thư nào tới địa chỉ này —
+         nó chỉ là tên đăng nhập cho gọn. Thầy cô không phải mở Gmail, không phải xác minh gì.</div></div>
+
+     <div class="bang" style="max-height:38vh"><table class="dl"><thead><tr>
+       <th>Giáo viên</th><th>Tên đăng nhập</th><th>Mật khẩu</th></tr></thead><tbody>
+       ${ds.map(x=>`<tr><td>${esc(x.gv.hoTen)}${x.gv.cn?` <span style="color:var(--chu-mo)">· CN ${esc(x.gv.cn)}</span>`:''}</td>
+         <td style="font-family:ui-monospace,Consolas,monospace">${esc(x.email)}</td>
+         <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(x.matKhau)}</b></td></tr>`).join('')}
+     </tbody></table></div>
+
+     <div class="canhbao" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t">
+       <b>In phiếu ngay sau khi cấp</b>
+       <div class="cb-g">Mật khẩu chỉ hiện một lần này. Quên thì phải đặt lại từng người,
+         không xem lại được — máy chủ không lưu mật khẩu dạng đọc được.</div></div></div>
+
+     <div id="hlTien" style="display:none;margin-top:13px">
+       <div class="tien"><i id="hlThanh" style="width:0%"></i></div>
+       <div class="gy" id="hlChu" style="margin-top:7px"></div>
+     </div>`,
+    [{ten:'Huỷ',phu:1,lam:()=>hopTaiKhoan()},
+     {ten:`Cấp ${chuaCo.length} tài khoản`,lam:async e=>{
+       const mien=($('#hlMien').value||mienMD).trim().replace(/^@/,'');
+       const b=e.currentTarget; b.disabled=true;
+       $('#hlTien').style.display='block';
+       const xong=[], hong=[];
+       for(let i=0;i<ds.length;i++){
+         const x=ds[i], email=x.ten+'@'+mien;
+         $('#hlThanh').style.width=Math.round(i/ds.length*100)+'%';
+         $('#hlChu').textContent=`Đang cấp ${i+1}/${ds.length} — ${x.gv.hoTen}`;
+         b.textContent=`Đang cấp ${i+1}/${ds.length}…`;
+         const kq=await themThanhVien({email, matKhau:x.matKhau, hoTen:x.gv.hoTen,
+           vaiTro:'giao_vien', gvId:x.gv.id});
+         if(kq.ok) xong.push({hoTen:x.gv.hoTen, cn:x.gv.cn, email, matKhau:x.matKhau});
+         else hong.push({hoTen:x.gv.hoTen, loi:kq.loi});
+       }
+       $('#hlThanh').style.width='100%';
+       hopKetQuaHangLoat(xong, hong);
+     }}]);
+}
+
+function hopKetQuaHangLoat(xong, hong){
+  PHIEU=xong;
+  hop('Đã cấp xong',
+    `<div class="canhbao ${hong.length?'':'ok'}"><div class="cb-ic">${hong.length?'!':'✓'}</div><div class="cb-t">
+      <b>Cấp được ${xong.length} tài khoản${hong.length?`, hỏng ${hong.length}`:''}</b>
+      <div class="cb-g">${xong.length?'Bấm <b>In phiếu</b> ngay bây giờ — mật khẩu chỉ hiện lần này.'
+        :'Không cấp được tài khoản nào.'}</div></div></div>
+     ${hong.length?`<div class="bang" style="max-height:20vh;margin-top:12px"><table class="dl"><tbody>
+       ${hong.map(x=>`<tr><td><b>${esc(x.hoTen)}</b></td><td>${esc(x.loi)}</td></tr>`).join('')}
+     </tbody></table></div>`:''}
+     ${xong.length?`<div class="bang" style="max-height:34vh;margin-top:12px"><table class="dl"><thead><tr>
+       <th>Giáo viên</th><th>Tên đăng nhập</th><th>Mật khẩu</th></tr></thead><tbody>
+       ${xong.map(x=>`<tr><td>${esc(x.hoTen)}</td>
+         <td style="font-family:ui-monospace,Consolas,monospace">${esc(x.email)}</td>
+         <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(x.matKhau)}</b></td></tr>`).join('')}
+     </tbody></table></div>`:''}`,
+    [{ten:'Đóng',phu:1,lam:dong},
+     ...(xong.length?[{ten:'In phiếu',lam:()=>inRa(trangInPhieu(xong), `${xong.length} phiếu tài khoản`)}]:[])]);
+}
+
+let PHIEU=[];
+/* Phiếu cắt phát: mỗi thầy cô một ô, 2 cột trên khổ A4 dọc */
+function trangInPhieu(ds){
+  const dc=(typeof location!=='undefined'&&location.origin!=='null')
+    ? location.origin+location.pathname.replace(/\/[^/]*$/,'/') : '';
+  return `<div class="tr-in"><div class="in-d">
+      <div class="in-d1">${esc(S.tenTruong)}</div>
+      <div class="in-d2">Phiếu tài khoản xem thời khóa biểu</div>
+      <div class="in-d3">Năm học ${esc(S.namHoc||'')} · cắt theo đường kẻ, phát cho từng thầy cô</div>
+    </div>
+    <div class="phieu">${ds.map(x=>`<div class="ph">
+      <div class="ph-t">${esc(x.hoTen)}${x.cn?` · Chủ nhiệm ${esc(x.cn)}`:''}</div>
+      <div class="ph-d">Mở địa chỉ</div><div class="ph-v">${esc(dc)}</div>
+      <div class="ph-d">Tên đăng nhập</div><div class="ph-v"><b>${esc(x.email)}</b></div>
+      <div class="ph-d">Mật khẩu</div><div class="ph-v"><b>${esc(x.matKhau)}</b></div>
+      <div class="ph-g">Đăng nhập một lần, lần sau mở là thấy lịch ngay.</div>
+    </div>`).join('')}</div></div>`;
 }
 
 /* Tài khoản quản lý vừa tạo — bày liên kết xác minh để quản trị gửi đi */

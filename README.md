@@ -333,3 +333,25 @@ Hàm đó phải là `security definer` vì Row Level Security khoá chặt: mu�
 dòng vào `nguoi_dung` thì phải đã là quản trị của trường, nhưng người đầu tiên
 của một trường mới thì chưa là gì cả. Vòng luẩn quẩn đó được phá đúng một chỗ,
 có kiểm soát.
+
+---
+
+## Cấp tài khoản hàng loạt cho giáo viên
+
+Gõ tay 35 lần thì không ai làm. Mục **Giáo viên** → **Tài khoản đăng nhập** →
+**Cấp hàng loạt cho giáo viên**.
+
+Máy sinh sẵn tên đăng nhập và mật khẩu cho những thầy cô chưa có tài khoản, tạo
+một loạt, rồi **in phiếu cắt phát** — mỗi thầy cô một ô trên khổ A4, có địa chỉ
+trang, tên đăng nhập và mật khẩu.
+
+**Tên đăng nhập không cần hộp thư thật.** Dạng `trinh@tkb.local` — máy chủ không
+gửi thư nào tới đó, nó chỉ là tên đăng nhập cho gọn. Thầy cô không phải mở Gmail,
+không phải xác minh gì. Lấy chữ cuối của họ tên, bỏ dấu, viết thường; trùng thì
+thêm số — trường có bốn cặp trùng tên gọi nên chuyện này chắc chắn xảy ra
+(*Bùi Thị Dung* → `dung`, *Đặng Thị Dung* → `dung2`).
+
+**Mật khẩu bỏ các ký tự `i l o 0 1`** vì in ra giấy hay nhìn nhầm.
+
+⚠️ **In phiếu ngay sau khi cấp.** Mật khẩu chỉ hiện một lần; quên thì phải đặt
+lại từng người, máy chủ không lưu mật khẩu dạng đọc được.

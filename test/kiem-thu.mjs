@@ -41,7 +41,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
-  khongDau, tenTepXuat,
+  khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
   duLieuTuBang, ghiDuLieuNguon };`;
@@ -57,7 +57,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
         apDungQuyen, dtTrongPV, gvTrongPV,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
-        khongDau, tenTepXuat,
+        khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio,
         diemToanCuc, toiUuHoanDoi, laGhim,
         duLieuTuBang, ghiDuLieuNguon } = taoUngDung(documentGia);
@@ -600,6 +600,44 @@ kt('Phân công xoá sạch rồi ghi lại, mọi dòng nối đúng mã',
 kt('Tổng số tiết ghi lên đúng bằng tệp Excel',
    GHI.phanCong.reduce((s, p) => s + p.so_tiet, 0) === tep.tongTiet,
    `${tep.tongTiet} tiết`);
+
+/* ---------- 12. Cấp tài khoản hàng loạt ---------- */
+console.log('\n12. Cấp tài khoản hàng loạt cho giáo viên');
+
+await taiDuLieu();          /* về lại 35 giáo viên thật */
+const tk = tenDangNhapGV(S.giaoVien, 'tkb.local');
+
+kt('Sinh đủ tên đăng nhập cho mọi giáo viên', tk.length === S.giaoVien.length,
+   `${tk.length} tài khoản`);
+kt('Không tên đăng nhập nào trùng nhau',
+   new Set(tk.map(x => x.ten)).size === tk.length,
+   `${new Set(tk.map(x => x.ten)).size} tên khác nhau`);
+kt('Tên đăng nhập không dấu, không khoảng trắng',
+   tk.every(x => /^[a-z][a-z0-9]*$/.test(x.ten)),
+   tk.slice(0, 4).map(x => x.ten).join(', ') + '…');
+
+/* Bốn cặp trùng tên gọi là chỗ dễ vỡ nhất — hai cô Dung phải ra hai tên khác nhau */
+const dung = tk.filter(x => /Dung$/.test(x.gv.hoTen));
+kt('Hai cô cùng tên "Dung" ra hai tên đăng nhập khác nhau',
+   dung.length === 2 && dung[0].ten !== dung[1].ten,
+   dung.map(x => `${x.gv.hoTen} → ${x.ten}`).join(' · '));
+
+const trungTen = {};
+S.giaoVien.forEach(g => {
+  const cuoi = g.hoTen.trim().split(/\s+/).pop();
+  (trungTen[cuoi] = trungTen[cuoi] || []).push(g.hoTen);
+});
+const soCapTrung = Object.values(trungTen).filter(a => a.length > 1).length;
+kt('Cả bốn cặp trùng tên đều tách được',
+   soCapTrung === 4 && new Set(tk.map(x => x.ten)).size === tk.length,
+   `${soCapTrung} cặp trùng, vẫn ra ${tk.length} tên riêng biệt`);
+
+const mk = Array.from({ length: 200 }, () => matKhauNgauNhien());
+kt('Mật khẩu đủ dài và không có ký tự dễ nhìn nhầm',
+   mk.every(x => x.length === 6 && !/[ilo01]/.test(x)),
+   'bỏ i · l · o · 0 · 1');
+kt('Mật khẩu không lặp lại nhau', new Set(mk).size > 190,
+   `${new Set(mk).size}/200 khác nhau`);
 
 /* ---------- Tổng kết ---------- */
 console.log(`\n\x1b[1mKết quả: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
