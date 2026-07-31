@@ -1392,7 +1392,7 @@ async function taiDuLieu(){
 async function taiTuMayChu(){
   const t = KHO.nguoiDung.truongId;
   const bang = (b, them='') => goiAPI(`/rest/v1/${b}?truong_id=eq.${t}&select=*${them}`);
-  const [truong, diem_truong, khung_gio, giao_vien, lop, phan_cong, gv_nghi, pb] = await Promise.all([
+  const [truong, diem_truong, khung_gio, giao_vien, lop, phan_cong, gv_nghi, pb, cb] = await Promise.all([
     goiAPI(`/rest/v1/truong?id=eq.${t}&select=*`),
     bang('diem_truong','&order=thu_tu.asc,ten.asc'),
     bang('khung_gio','&order=thu.asc,buoi.asc'),
@@ -1400,13 +1400,16 @@ async function taiTuMayChu(){
     bang('lop','&order=ten.asc'),
     bang('phan_cong'),
     bang('gv_nghi'),
-    goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&select=version,du_lieu,tao_luc&order=version.desc&limit=1`)
+    goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&select=version,du_lieu,tao_luc,cong_bo&order=version.desc&limit=1`),
+    /* Bản đang công bố — để màn hình nói rõ giáo viên đang xem bản nào */
+    goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true&select=version&limit=1`).catch(()=>[])
   ]);
   if(!lop?.length)
     throw new Error('Trường chưa có lớp nào trong cơ sở dữ liệu. Nhập bảng phân công trước đã.');
 
   napVaoS(tuMayChu({truong:truong?.[0], diem_truong, khung_gio, giao_vien, lop, phan_cong, gv_nghi}));
   KHO.version = +pb?.[0]?.version || 0;
+  KHO.banCongBo = +cb?.[0]?.version || 0;
   const d = pb?.[0]?.du_lieu ? docTKB(pb[0].du_lieu) : {nap:0, boQua:0};
   return {
     ok:true, nguon:'may-chu', version:KHO.version, soTiet:d.nap, boQua:d.boQua,
@@ -1456,6 +1459,36 @@ async function lichSuPhienBan(gioiHan=20){
       luc:dinhDangLuc(v.tao_luc)
     }))};
   }catch(e){ return {ok:false, ds:[], thongBao:dienGiaiLoi(e)}; }
+}
+
+/* ---------- Công bố cho giáo viên ----------
+   Giáo viên chỉ đọc được phiên bản đã công bố (quy tắc p_tkb_doc trong
+   db/schema.sql). Nhà trường chốt xong mới bật, không để thầy cô thấy
+   bản đang xếp dở. Bật một bản là tự tắt các bản khác — mỗi lúc chỉ có
+   MỘT thời khóa biểu đang hiệu lực, tránh mỗi người xem một bản. */
+async function congBoTKB(version, bat=true){
+  if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
+  if(!duocLuu()) return {ok:false, thongBao:'Thầy cô chỉ xem, không công bố được.'};
+  const t=KHO.nguoiDung.truongId;
+  try{
+    if(bat)
+      await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true`,
+        {method:'PATCH', body:JSON.stringify({cong_bo:false}),
+         headers:{Prefer:'return=minimal'}});
+    await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&version=eq.${+version}`,
+      {method:'PATCH', body:JSON.stringify({cong_bo:!!bat}),
+       headers:{Prefer:'return=minimal'}});
+    KHO.banCongBo = bat ? +version : 0;
+    ghiNhatKy(bat?'cong_bo':'rut_cong_bo', {version:+version});
+    return {ok:true, thongBao: bat
+      ? `Đã công bố phiên bản ${version}. Giáo viên đăng nhập là thấy lịch của mình.`
+      : `Đã rút công bố. Giáo viên tạm thời không xem được nữa.`};
+  }catch(e){
+    const m=String(e?.message||'');
+    if(/permission denied|row-level security/i.test(m))
+      return {ok:false, thongBao:'Máy chủ chưa cho phép công bố. Quản trị cần chạy db/cong-bo.sql một lần trong SQL Editor.'};
+    return {ok:false, thongBao:dienGiaiLoi(e)};
+  }
 }
 
 /* Lấy nội dung một phiên bản cũ để xem lại hoặc khôi phục */
@@ -2066,11 +2099,21 @@ function mXep(){
         :coMayChu()?'Chưa lưu được — đang dùng dữ liệu mẫu':'Chỉ nằm trên máy này'}</b></div>
       <div class="hang">Người đăng nhập <b>${coMayChu()?esc(KHO.nguoiDung.hoTen):'Chưa đăng nhập'}</b></div>
       <div class="hang">Phiên bản trên máy chủ <b>${KHO.version||'—'}</b></div>
+      <div class="hang">Giáo viên đang xem <b class="${KHO.banCongBo?'xanh':'cam'}">${
+        KHO.banCongBo?('phiên bản '+KHO.banCongBo):'chưa công bố bản nào'}</b></div>
       <div style="margin-top:17px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="b b-ch" id="btLuu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg>Lưu lên máy chủ</button>
+        ${luuDuoc&&KHO.version?`<button class="b ${KHO.banCongBo===KHO.version?'b-vien':'b-vang'}" id="btCongBo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>
+          ${KHO.banCongBo===KHO.version?'Rút công bố':'Công bố cho giáo viên'}</button>`:''}
         <button class="b b-vien" id="btLichSu">Lịch sử phiên bản</button>
         ${coMayChu()?'':'<button class="b b-vien" id="btNoiMayChu">Kết nối máy chủ</button>'}
       </div>
+      ${luuDuoc&&KHO.version&&KHO.banCongBo!==KHO.version?`<div class="canhbao" style="margin-top:13px">
+        <div class="cb-ic">!</div><div class="cb-t">
+        <b>Giáo viên chưa xem được thời khóa biểu này</b>
+        <div class="cb-g">Lưu xong mới là bản nháp. Bấm <b>Công bố cho giáo viên</b> thì thầy cô
+          đăng nhập mới thấy lịch của mình. Làm vậy để không ai nhìn thấy bản đang xếp dở.</div></div></div>`:''}
       ${luuDuoc?`<div class="gy" style="margin-top:12px">Máy chủ từ chối ghi nếu có người khác đã lưu bản mới hơn — tải lại rồi lưu tiếp, không ai ghi đè ai.</div>`
         :coMayChu()?`<div class="canhbao" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t">
           <b>Thời khóa biểu này dựng trên dữ liệu mẫu</b>
@@ -2802,6 +2845,13 @@ function noiSuKien(){
   /* lưu và phiên bản */
   $('#btNoiMayChu')&&($('#btNoiMayChu').onclick=hopMayChu);
   $('#btLichSu')&&($('#btLichSu').onclick=hopLichSu);
+  $('#btCongBo')&&($('#btCongBo').onclick=async e=>{
+    const b=e.currentTarget, cu=b.innerHTML, rut=KHO.banCongBo===KHO.version;
+    b.disabled=true; b.textContent=rut?'Đang rút…':'Đang công bố…';
+    const kq=await congBoTKB(KHO.version, !rut);
+    b.disabled=false; b.innerHTML=cu;
+    bao(kq.thongBao, !kq.ok); ve();
+  });
   $('#btLuu')&&($('#btLuu').onclick=async e=>{
     if(!duocLuu()) return bao('Thầy cô chỉ xem, không lưu được thời khóa biểu',true);
     if(!coMayChu()) return hopMayChu();
@@ -3327,11 +3377,22 @@ async function hopLichSu(){
       Bản trên máy chủ giữ nguyên cho tới khi bấm “Lưu lên máy chủ”.</p>
      <div class="bang" style="max-height:52vh"><table class="dl"><thead><tr>
        <th>Bản</th><th>Lưu lúc</th><th>Ghi chú</th><th></th></tr></thead><tbody>
-     ${kq.ds.map(v=>`<tr><td><b>${v.version}</b>${v.congBo?' <span class="tag ok">Đã công bố</span>':''}</td>
+     ${kq.ds.map(v=>`<tr><td><b>${v.version}</b>${v.congBo?' <span class="tag ok">Giáo viên đang xem</span>':''}</td>
        <td>${esc(v.luc)}</td><td>${esc(v.ghiChu||'—')}</td>
-       <td class="phai">${v.version===KHO.version?'<span class="tag">Đang xem</span>'
-         :`<button class="b b-vien b-nho" data-khoiphuc="${v.version}">Khôi phục</button>`}</td></tr>`).join('')}
-     </tbody></table></div>`;
+       <td class="phai" style="white-space:nowrap">
+         ${v.congBo?'':`<button class="b b-vien b-nho" data-congbo="${v.version}">Công bố</button>`}
+         ${v.version===KHO.version?'<span class="tag">Đang mở</span>'
+           :`<button class="b b-vien b-nho" data-khoiphuc="${v.version}">Khôi phục</button>`}</td></tr>`).join('')}
+     </tbody></table></div>
+     <div class="gy" style="margin-top:11px"><b>Công bố</b> quyết định giáo viên xem bản nào —
+       mỗi lúc chỉ một bản. <b>Khôi phục</b> chỉ nạp bản cũ lên màn hình của thầy cô để xem lại.</div>`;
+  $$('[data-congbo]').forEach(b=>b.onclick=async()=>{
+    const v=+b.dataset.congbo;
+    b.disabled=true; b.textContent='Đang công bố…';
+    const kq=await congBoTKB(v,true);
+    if(!kq.ok){ b.disabled=false; b.textContent='Công bố'; return bao(kq.thongBao,true); }
+    dong(); bao(kq.thongBao); ve();
+  });
   $$('[data-khoiphuc]').forEach(b=>b.onclick=async()=>{
     const v=+b.dataset.khoiphuc;
     b.disabled=true; b.textContent='Đang tải…';

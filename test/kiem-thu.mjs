@@ -44,7 +44,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
-  duLieuTuBang, ghiDuLieuNguon };`;
+  duLieuTuBang, ghiDuLieuNguon, congBoTKB };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -248,7 +248,8 @@ console.log('\n6. Nói chuyện với máy chủ (máy chủ giả)');
    Trên máy chủ đang có phiên bản 3. */
 let veHienHanh = 'VE1', soLanRPC = 0, daLamMoiVe = false;
 /* Ghi lại mọi thứ máy chủ giả nhận được, để phép thử soi lại đúng sai */
-const GHI = { diemTruong: [], khungGio: null, giaoVien: null, lop: null, phanCong: null, xoaPhanCong: 0 };
+const GHI = { diemTruong: [], khungGio: null, giaoVien: null, lop: null, phanCong: null,
+              xoaPhanCong: 0, congBo: [] };
 const dap = (du, ma = 200) => ({ ok: ma < 400, status: ma, text: async () => JSON.stringify(du) });
 const BAN_LUU = {
   3: { version: 3, ghi_chu: '5/5 tiết', tao_luc: '2026-07-30T02:15:00Z',
@@ -310,6 +311,17 @@ async function mangGia(url, opt = {}) {
       : [{ ok: true, version_moi: 4, thong_bao: 'Đã lưu' }]);
   }
   if (co('/tkb_phien_ban?')) {
+    /* Công bố: bật cong_bo cho một bản, tắt các bản khác */
+    if (opt.method === 'PATCH') {
+      if (co('cong_bo=eq.true')) { Object.values(BAN_LUU).forEach(v => v.cong_bo = false); }
+      else {
+        const v = (url.match(/version=eq\.(\d+)/) || [])[1];
+        if (v && BAN_LUU[v]) BAN_LUU[v].cong_bo = !!than.cong_bo;
+      }
+      GHI.congBo = Object.values(BAN_LUU).filter(v => v.cong_bo).map(v => v.version);
+      return dap(null, 204);
+    }
+    if (co('cong_bo=eq.true')) return dap(Object.values(BAN_LUU).filter(v => v.cong_bo));
     if (co('version=eq.2')) return dap([BAN_LUU[2]]);
     if (co('limit=1')) return dap([BAN_LUU[3]]);
     return dap([BAN_LUU[3], BAN_LUU[2]]);
@@ -357,6 +369,22 @@ const banCu = await MC.taiPhienBan(2);
 const napCu = MC.docTKB(banCu.duLieu);
 kt('Khôi phục được bản cũ vào lưới đang xem',
    banCu.ok === true && napCu.nap === 1 && Object.keys(MC.S.tkb.l2).length === 1);
+
+/* Lỗi thật đã gặp: xếp xong, lưu xong, mà giáo viên đăng nhập vẫn thấy trống.
+   Nguyên nhân: quy tắc đọc chỉ cho giáo viên xem bản ĐÃ CÔNG BỐ, mà phần mềm
+   chưa có nút công bố nào — hàng rào dựng xong mà quên làm cửa. */
+kt('Trước khi công bố thì chưa bản nào tới tay giáo viên',
+   GHI.congBo.length === 0 && MC.KHO.banCongBo === 0);
+const cb1 = await MC.congBoTKB(3, true);
+kt('Công bố được một phiên bản', cb1.ok === true && MC.KHO.banCongBo === 3, cb1.thongBao);
+kt('Máy chủ ghi nhận đúng một bản đang công bố',
+   GHI.congBo.length === 1 && GHI.congBo[0] === 3, 'bản '+GHI.congBo.join(','));
+await MC.congBoTKB(2, true);
+kt('Công bố bản khác thì bản cũ tự tắt — mỗi lúc chỉ một thời khóa biểu hiệu lực',
+   GHI.congBo.length === 1 && GHI.congBo[0] === 2, 'bản '+GHI.congBo.join(','));
+const cb0 = await MC.congBoTKB(2, false);
+kt('Rút công bố được khi cần sửa giữa năm',
+   cb0.ok === true && GHI.congBo.length === 0, cb0.thongBao);
 
 /* Tình huống thật đã gặp: đăng nhập được nhưng trường trên máy chủ chưa có lớp
    nên phần mềm quay về dữ liệu mẫu. Lưới lúc đó dựng trên mã lớp và mã giáo
