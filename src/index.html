@@ -2874,6 +2874,9 @@ function capNhatDem(){
   });
   /* Chuông cảnh báo là việc của người xếp, giáo viên không cần */
   $('#btChuong').style.display = (chuaVao||quyen().laGV)?'none':'';
+  /* Chưa đăng nhập thì không mục nào hiện — giấu luôn cả khung chứa, không thì
+     trên điện thoại còn trơ một dải navy trống ở ngay màn hình đầu tiên. */
+  $('#dsMuc').style.display = $$('.mi').some(m=>m.style.display!=='none') ? '' : 'none';
   $('#duoiTB').style.display = chuaVao?'none':'';
 }
 
