@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.DS_Store
+*.log
+desktop.ini
+
+# src/cauhinh.js CỐ Ý KHÔNG bị bỏ qua.
+# Khoá trong đó là khoá CÔNG KHAI (sb_publishable_… hoặc anon eyJ…) —
+# nó nằm sẵn trong trình duyệt của mọi người truy cập, giấu trong kho mã
+# là vô nghĩa. Hàng rào thật là Row Level Security trong db/schema.sql.
+# Đưa lên GitHub Pages mà thiếu tệp này thì trang không đăng nhập được.
+#
+# TUYỆT ĐỐI không đưa khoá sb_secret_… hay service_role vào tệp nào.

@@ -1,0 +1,11 @@
+{
+  "name": "tkb-truong-tieu-hoc",
+  "version": "0.1.0",
+  "description": "Hệ thống Thời khóa biểu cho trường tiểu học nhiều điểm trường",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve src -l 5173",
+    "test": "node test/kiem-thu.mjs"
+  }
+}
