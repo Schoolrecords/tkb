@@ -30,12 +30,29 @@ mốc đã kiểm chứng:
 | 1 điểm trường | 710/710 tiết · 0 xung đột · dưới 3 giây |
 | 3 điểm trường | ≥ 690/710 tiết · 0 xung đột · 0 vi phạm ràng buộc điểm trường |
 | Hoán đổi cục bộ | không mất tiết · không sinh xung đột · điểm phạt giảm ≥ 20% |
+| Ghim tiết | xếp lại vẫn đủ 710 tiết và tiết ghim đứng yên |
+| Ba lớp cùng tên "1A" | nhập được, mỗi lớp nối đúng chủ nhiệm của mình |
 
 Bộ kiểm thử còn dựng một **máy chủ giả** để chạy thử tầng truy cập dữ liệu —
 đăng nhập, tải, lưu, khóa lạc quan, khôi phục bản cũ — nên không cần mạng và
 không cần tài khoản Supabase.
 
-Sửa thuật toán hoặc tầng dữ liệu xong thì chạy lại lệnh này trước khi commit.
+### Soi giao diện thật
+
+```bash
+npm install --no-save jsdom     # một lần
+npm run soi
+```
+
+`npm test` chỉ cắt phần mã thuần ra chạy nên không nhìn thấy màn hình. Lệnh
+`npm run soi` mở nguyên `src/index.html` trong một trình duyệt giả, vẽ đủ 13
+màn hình rồi **bấm thật** vào các nút: chạm chọn tiết, chuyển tiết, bỏ ghim,
+hoàn tác, đánh dấu buổi bận. Chính nó đã bắt được lỗi tiết chào cờ vẫn bị ghim
+vào buổi giáo viên đã báo bận.
+
+Chưa cài `jsdom` thì lệnh tự bỏ qua, `npm test` không phụ thuộc gì cả.
+
+Sửa thuật toán hoặc tầng dữ liệu xong thì chạy lại cả hai lệnh trước khi commit.
 
 ---
 
@@ -62,8 +79,12 @@ db/schema.sql                 PostgreSQL cho Supabase, đa trường, có RLS
 db/khoi-tao.sql               tạo trường + nối tài khoản đăng nhập, chạy một lần
 db/du-lieu-dien-lien.sql      nạp 25 lớp · 35 GV · 265 dòng lên máy chủ
                               (sinh từ data/truong-dien-lien.json, đừng sửa tay)
+db/ma-lop.sql                 thêm cột ma_lop — cho phép ba điểm trường cùng có
+                              lớp "1A". Chạy một lần trên CSDL dựng trước 1/8/2026
+db/cong-bo.sql                mở quy tắc UPDATE để bấm được nút Công bố
 
-test/kiem-thu.mjs             bộ kiểm thử thuật toán
+test/kiem-thu.mjs             bộ kiểm thử thuật toán và tầng dữ liệu
+test/soi-giao-dien.mjs        bấm thử giao diện trong trình duyệt giả (npm run soi)
 
 docs/thuat-toan.md            cách thuật toán xếp hoạt động
 docs/quy-tac-kiem-tra.md      10 quy tắc kiểm tra khả thi
@@ -136,8 +157,8 @@ Phiên đăng nhập không lưu xuống máy, tải lại trang là phải đă
 |---|---|---|---|
 | Đổi phạm vi xem | được | khoá vào điểm của mình | — |
 | Xếp tự động | được | không | không |
-| Sửa điểm trường · phân công · khung giờ | được | không | không |
-| Kéo thả chỉnh tiết | mọi lớp | chỉ lớp trong điểm của mình | không |
+| Sửa điểm trường · phân công · khung giờ · buổi bận | được | không | không |
+| Chỉnh tiết (chạm hoặc kéo thả) | mọi lớp | chỉ lớp trong điểm của mình | không |
 | Lưu lên máy chủ | được | được | không |
 | Xem lịch cá nhân | mọi người | mọi người trong điểm mình | chỉ của mình |
 
@@ -243,6 +264,17 @@ Nút **Nhập dữ liệu Excel** ở góc dưới thanh bên. Tệp cần ba tr
 
 `Ma_GV` và `Ma_lop` phải là **duy nhất** — đó là thứ nối ba trang tính với
 nhau, và là lý do phần mềm không bao giờ nhầm hai giáo viên trùng tên.
+
+**Tên lớp thì được phép trùng nhau** giữa các điểm trường. Sau sáp nhập, cả ba
+nơi đều có lớp *1A* và đó là ba lớp khác nhau — bắt nhà trường đổi tên lớp chỉ
+để chiều phần mềm là làm ngược. Chỉ cần mã riêng: `DL-1A`, `DD-1A`, `DT-1A`.
+Trên màn hình và trong bản xuất, lớp trùng tên tự hiện kèm điểm trường
+(*“1A · Diễn Đồng”*).
+
+Cột `Chu_nhiem` nên ghi **`Ma_lop`**. Vẫn nhận `Ten_lop` nếu tên đó chỉ trỏ tới
+một lớp; trùng tên thì máy báo rõ dòng nào và bảo ghi `Ma_lop`.
+
+Cơ sở dữ liệu dựng trước ngày 1/8/2026 cần chạy một lần `db/ma-lop.sql`.
 
 **Máy soát tệp trước khi nhập** và chỉ rõ *sai ở dòng nào*: mã lặp, khối ngoài
 1–5, thiếu môn, số tiết bằng 0, chủ nhiệm trỏ tới lớp không có, phân công trỏ

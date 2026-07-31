@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "npx --yes serve src -l 5173",
-    "test": "node test/kiem-thu.mjs"
+    "test": "node test/kiem-thu.mjs",
+    "soi": "node test/soi-giao-dien.mjs"
   }
 }

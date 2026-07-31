@@ -13,11 +13,22 @@ chiếm hết chỗ và chặn đường của tiết khó.
 
 ## Bốn bước
 
+### 0. Giữ lại tiết người xếp đã ghim
+
+Mỗi tiết chỉnh tay đều mang cờ `ghim`. Bước xếp lại **không xoá** những ô này:
+chúng được giữ nguyên, trừ vào số tiết phải xếp, và bước hoán đổi cục bộ cũng
+không đụng tới. Chỉnh tay cả buổi rồi bấm *Bắt đầu xếp* mà mất sạch thì không
+ai dám bấm nút đó lần thứ hai.
+
 ### 1. Ghim tiết cố định
 - Chào cờ: thứ Hai, sáng, tiết 1 — HDTN của giáo viên chủ nhiệm
 - Sinh hoạt lớp: thứ Sáu, sáng, tiết cuối — HDTN của giáo viên chủ nhiệm
 
 Hai tiết này có ở mọi trường tiểu học, ghim sẵn giúp thu hẹp không gian tìm kiếm.
+
+Hai ngoại lệ: ô đã có tiết người xếp ghim tay thì để yên, và **buổi giáo viên
+đã báo bận thì không ghim** — ràng buộc cứng phải cứng với cả tiết theo quy
+định. Trường hợp sau được quy tắc R11 nêu rõ để nhà trường cắt cử người khác.
 
 ### 2. Sắp thứ tự theo độ khó
 
@@ -53,8 +64,20 @@ Trả về: số tiết đã xếp, thời gian chạy, và danh sách từng tr
 | 1 | Một giáo viên không dạy hai lớp cùng một ô |
 | 2 | Một lớp không học hai môn cùng một ô |
 | 3 | **Một giáo viên, một buổi, một điểm trường** |
-| 4 | Phòng chức năng phải cùng điểm trường với lớp |
-| 5 | Tôn trọng buổi nghỉ đã đăng ký của giáo viên |
+| 4 | **Một phòng chức năng, một tiết, một lớp** — và phòng phải cùng điểm trường với lớp |
+| 5 | Tôn trọng buổi bận đã đăng ký của giáo viên — kể cả với tiết ghim sẵn |
+
+Buổi bận nhập ở mục **Buổi bận** trên thanh bên, lưu xuống bảng `gv_nghi`.
+
+Ràng buộc số 4 chỉ bật khi trường **đã khai bảng phòng** ở mục *Bước 1 · Phòng
+học*. Bảng phòng rỗng thì phần mềm chỉ cảnh báo R10 như trước — nâng cấp không
+được làm một trường đang xếp tốt bỗng xếp hỏng. Khai rồi thì `datDuoc()`,
+`doiChoDuoc()` và `kiemTraChuyen()` đều chặn, và R12 báo trước nếu số tiết cần
+phòng vượt sức chứa.
+
+Đo trên dữ liệu thật: khai một phòng Tin học vẫn xếp **710/710 tiết**, 15 tiết
+Tin học rải trên 15 ô giờ khác nhau. Bước tham lam 229ms, khai phòng hay không
+đều vậy.
 
 Ràng buộc số 3 là điểm khác biệt của bài toán sau sáp nhập. Nó thay cho việc
 tính thời gian di chuyển giữa từng tiết — vừa đơn giản hơn nhiều về thuật toán,

@@ -69,15 +69,20 @@ create table if not exists giao_vien (
   unique (truong_id, ma_gv)
 );
 
+-- ma_lop = khoá tự nhiên do nhà trường đặt (cột Ma_lop trong tệp Excel).
+--          Tên lớp KHÔNG dùng làm khoá: sau sáp nhập, ba điểm trường đều có
+--          lớp mang tên "1A" và đó là ba lớp khác nhau.
 create table if not exists lop (
   id               uuid primary key default gen_random_uuid(),
   truong_id        uuid not null references truong(id) on delete cascade,
   diem_truong_id   uuid not null references diem_truong(id) on delete restrict,
+  ma_lop           text not null,
   ten              text not null,
   khoi             smallint not null check (khoi between 1 and 5),
   gvcn_id          uuid references giao_vien(id) on delete set null,
-  unique (truong_id, ten)
+  unique (truong_id, ma_lop)
 );
+-- Nâng cấp cơ sở dữ liệu đã dựng trước khi có cột này: chạy db/ma-lop.sql
 
 create table if not exists phan_cong (
   id             uuid primary key default gen_random_uuid(),
