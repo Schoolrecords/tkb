@@ -271,9 +271,12 @@ git remote add origin https://github.com/<tài-khoản>/tkb-app.git
 git push -u origin main
 ```
 
-Rồi vào **Settings → Pages**, mục *Source* chọn **Deploy from a branch**,
-nhánh `main`, thư mục **`/src`**. Chờ vài phút là có địa chỉ dạng
-`https://<tài-khoản>.github.io/tkb-app/`.
+GitHub Pages kiểu *Deploy from a branch* **chỉ lấy được thư mục gốc hoặc
+`/docs`** — không lấy được `/src`. Nên dự án dùng `.github/workflows/pages.yml`:
+mỗi lần đẩy lên nhánh `main`, GitHub Actions tự đưa nội dung `src/` lên làm gốc
+trang. Không phải chỉnh gì trong Settings, cũng không phải xáo cấu trúc dự án.
+
+Trang chạy tại `https://<tài-khoản>.github.io/tkb/`.
 
 ### Vì sao `src/cauhinh.js` được đưa lên kho mã
 
