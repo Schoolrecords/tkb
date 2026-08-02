@@ -734,7 +734,12 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       lần* thành *mỗi tuần một lần*, và ràng buộc điểm trường khiến gợi ý người
       dạy thay ở đây chính xác hơn hẳn làm tay.
 - [x] Màn hình nhật ký thao tác *(2/8/2026 — xem mục 9 ở trên)*
-- [x] In tổng hợp toàn trường một tờ *(1/8/2026)* · [ ] xuất `.ics` cho lịch điện thoại
+- [x] In tổng hợp toàn trường một tờ *(1/8/2026)* · [x] xuất `.ics` cho lịch
+      điện thoại *(2/8/2026 — `taoICS()` trong vùng XUAT, RFC 5545 chuẩn:
+      gấp dòng 75 byte, múi giờ Asia/Ho_Chi_Minh, mỗi tiết lặp hằng tuần tới
+      31/5 của năm học. Giờ tiết là GIỜ GẦN ĐÚNG theo hằng `GIO_ICS` — sáng
+      7:30, chiều 14:00, tiết 35′ nghỉ 5′ — vì mô hình dữ liệu không có giờ
+      đồng hồ. Nút "Đưa vào lịch điện thoại" ở màn Của tôi và Theo giáo viên)*
 - [ ] Bảng tra cập nhật tăng dần trong `xepTuDong()` trước, rồi mới Web Worker
 - [ ] **Chạy `db/mon-hoc-phong.sql`** một lần trong Supabase SQL Editor. Chưa
       chạy thì app vẫn chạy bằng danh mục mặc định, chỉ là màn hình Môn học và

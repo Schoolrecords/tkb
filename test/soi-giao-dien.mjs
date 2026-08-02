@@ -436,6 +436,22 @@ kt('Mã hành động dịch thành câu tiếng Việt đọc được', (() =>
     && d.cong_bo({version: 2}).includes('giáo viên');
 })());
 w.eval('dong()');
+
+console.log('\n15c. Xuất .ics cho lịch điện thoại');
+w.chuyen('tkbgv');
+kt('Màn hình Theo giáo viên có nút Đưa vào lịch điện thoại',
+   !!w.document.querySelector('#btICSGV'));
+w.chuyen('cuatoi');
+kt('Màn hình Của tôi cũng có nút ấy',
+   !!w.document.querySelector('#btICSToi'));
+kt('taoICS chạy ngay trong trang, dựng được sự kiện có múi giờ Việt Nam', (() => {
+  const t = w.eval(`(() => {
+    const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];
+    return co ? taoICS(co.gvId, {tuNgay:'2026-09-07'}) : '';
+  })()`);
+  return t.includes('BEGIN:VEVENT') && t.includes('TZID:Asia/Ho_Chi_Minh')
+    && t.includes('RRULE:FREQ=WEEKLY');
+})());
 w.chuyen('xuatin');
 kt('Mỗi thẻ in đều có nút Tải Word đi kèm',
    !!w.document.querySelector('#btWordRong') && !!w.document.querySelector('#btWordLop') &&

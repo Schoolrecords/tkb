@@ -41,7 +41,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
-  khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
+  khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien, taoICS, gapDongICS,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
   duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan,
@@ -63,7 +63,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
         apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
-        khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien,
+        khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien, taoICS, gapDongICS,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay,
         diemToanCuc, toiUuHoanDoi, laGhim,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
@@ -562,6 +562,35 @@ kt('Bỏ dấu tiếng Việt để đặt tên tệp',
    khongDau('Trường Tiểu học Diễn Liên'));
 kt('Tên tệp không dấu, không khoảng trắng, đúng đuôi',
    /^TKB-[A-Za-z0-9-]+-\d{8}\.xlsx$/.test(tenTepXuat('xlsx')), tenTepXuat('xlsx'));
+
+/* ---------- Xuất .ics cho lịch điện thoại ----------
+   Cô Đạo Đức dạy 23 lớp, mỗi lớp 1 tiết → đúng 23 sự kiện. 7/9/2026 là
+   thứ Hai, truyền tuNgay cố định để phép thử tất định. */
+const ics = taoICS('gv_phan_thi_thuong', { tuNgay: '2026-09-07' });
+kt('Tệp .ics đúng khung: lịch + múi giờ Việt Nam + đủ 23 sự kiện',
+   ics.startsWith('BEGIN:VCALENDAR') && ics.trimEnd().endsWith('END:VCALENDAR') &&
+   ics.includes('TZID:Asia/Ho_Chi_Minh') &&
+   (ics.match(/BEGIN:VEVENT/g) || []).length === 23,
+   `${(ics.match(/BEGIN:VEVENT/g) || []).length} sự kiện`);
+kt('Mỗi tiết lặp hằng tuần tới hết năm học 2026-2027',
+   (ics.match(/RRULE:FREQ=WEEKLY;UNTIL=20270531T165959Z/g) || []).length === 23);
+kt('Ngày bắt đầu rơi đúng tuần được chọn, không lệch thứ',
+   ics.includes(';TZID=Asia/Ho_Chi_Minh:202609') &&
+   !/DTSTART;TZID=Asia\/Ho_Chi_Minh:(?!2026090[7-9]|2026091[01])/.test(ics));
+kt('Giờ tiết 1 buổi sáng là 7:30, tiết dài 35 phút',
+   /DTSTART;TZID=Asia\/Ho_Chi_Minh:\d{8}T073000/.test(ics) &&
+   /DTEND;TZID=Asia\/Ho_Chi_Minh:\d{8}T080500/.test(ics));
+kt('Không dòng nào vượt 75 byte — đúng chuẩn RFC 5545', (() => {
+  const byte = s => encodeURIComponent(s).replace(/%[0-9A-F]{2}/gi, 'x').length;
+  return ics.split('\r\n').every(d => byte(d) <= 75);
+})());
+kt('Gấp dòng dài rồi mở lại ra đúng chuỗi ban đầu', (() => {
+  const dai = 'SUMMARY:' + 'Tiếng Việt, Toán; Đạo Đức '.repeat(8);
+  const gap = gapDongICS(dai);
+  return gap.includes('\r\n ') && gap.split('\r\n ').join('') === dai;
+})());
+kt('Giáo viên không có tiết thì trả chuỗi rỗng, không tạo tệp rác',
+   taoICS('khong-ai-ca') === '' && taoICS(S.giaoVien[0].id, { tuNgay: '2026-09-07' }).length > 0);
 
 /* ---------- 9. Tối ưu bằng hoán đổi cục bộ ---------- */
 console.log('\n9. Tối ưu bằng hoán đổi cục bộ');

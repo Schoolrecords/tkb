@@ -2837,6 +2837,88 @@ function tenTepXuat(duoi){
   const n=new Date(), s=x=>String(x).padStart(2,'0');
   return `TKB-${khongDau(S.tenTruong)}-${n.getFullYear()}${s(n.getMonth()+1)}${s(n.getDate())}.${duoi}`;
 }
+
+/* ---------- Xuất .ics — đưa lịch dạy vào ứng dụng Lịch trên điện thoại ----------
+   Chuẩn RFC 5545, Google Calendar và Lịch iPhone đều nhận. Mỗi tiết là một
+   sự kiện lặp HẰNG TUẦN tới hết năm học (31/5 của năm sau trong S.namHoc).
+
+   Giờ từng tiết là GIỜ GẦN ĐÚNG theo khung phổ biến của tiểu học: tiết 35
+   phút + nghỉ 5 phút, sáng từ 7:30, chiều từ 14:00 — mô hình dữ liệu không
+   có giờ đồng hồ của từng trường. Trường khác giờ thì sửa GIO_ICS dưới đây. */
+const GIO_ICS = {S:[7,30], C:[14,0], phutTiet:35, phutNghi:5};
+
+/* Thoát ký tự theo RFC 5545: dấu phẩy, chấm phẩy, gạch chéo ngược, xuống dòng */
+const escICS = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;')
+  .replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+
+/* Đếm byte UTF-8 không cần TextEncoder — chạy được cả Node lẫn trình duyệt cũ:
+   mỗi %XX trong encodeURIComponent là đúng một byte */
+const soByteICS = s => encodeURIComponent(s).replace(/%[0-9A-F]{2}/gi,'x').length;
+
+/* Gấp dòng đúng chuẩn: dòng đầu ≤75 byte, dòng nối bắt đầu bằng một dấu cách */
+function gapDongICS(dong){
+  const ra=[]; let hien='';
+  for(const ch of dong){
+    if(soByteICS(hien+ch) > (ra.length?74:75)){ ra.push(hien); hien=ch; }
+    else hien+=ch;
+  }
+  ra.push(hien);
+  return ra.join('\r\n ');
+}
+
+function taoICS(idGV, tuyChon={}){
+  const g=gvId(idGV); if(!g) return '';
+  const tiet=[];
+  Object.entries(S.tkb).forEach(([lp,o])=>Object.entries(o).forEach(([k,v])=>{
+    if(v.gvId===idGV){ const [t,b,i]=k.split('-'); tiet.push({thu:+t, buoi:b, i:+i, lp, mon:v.mon}); }
+  }));
+  if(!tiet.length) return '';
+  tiet.sort((a,b)=>a.thu-b.thu || (a.buoi===b.buoi ? a.i-b.i : a.buoi==='S'?-1:1));
+
+  /* Tuần bắt đầu: từ tuyChon.tuNgay (YYYY-MM-DD, để kiểm thử tất định) hoặc hôm nay */
+  const goc = tuyChon.tuNgay ? new Date(tuyChon.tuNgay+'T00:00:00') : new Date();
+  const s2 = n=>String(n).padStart(2,'0');
+  const ngayThu = t => {                 /* ngày đầu tiên >= goc rơi đúng thứ t (2 = Thứ Hai) */
+    const d=new Date(goc);
+    while(d.getDay() !== (t-1)%7) d.setDate(d.getDate()+1);
+    return `${d.getFullYear()}${s2(d.getMonth()+1)}${s2(d.getDate())}`;
+  };
+  const gioTiet = (buoi,i) => {
+    const dau = GIO_ICS[buoi][0]*60 + GIO_ICS[buoi][1] + i*(GIO_ICS.phutTiet+GIO_ICS.phutNghi);
+    const hm = x=>`${s2(Math.floor(x/60))}${s2(x%60)}00`;
+    return [hm(dau), hm(dau+GIO_ICS.phutTiet)];
+  };
+  /* UNTIL phải ghi giờ UTC: 23:59:59 ngày 31/5 giờ Việt Nam = 16:59:59Z */
+  const nam = String(S.namHoc||'').match(/(\d{4})\D+(\d{4})/);
+  const namCuoi = nam ? +nam[2] : goc.getFullYear()+1;
+
+  const dong = [
+    'BEGIN:VCALENDAR','VERSION:2.0',
+    'PRODID:-//TKB truong tieu hoc//VI','CALSCALE:GREGORIAN',
+    `X-WR-CALNAME:${escICS('Lịch dạy — '+g.hoTen)}`,
+    'BEGIN:VTIMEZONE','TZID:Asia/Ho_Chi_Minh','BEGIN:STANDARD',
+    'DTSTART:19700101T000000','TZOFFSETFROM:+0700','TZOFFSETTO:+0700',
+    'TZNAME:+07','END:STANDARD','END:VTIMEZONE'
+  ];
+  tiet.forEach(x=>{
+    const [batDau,ketThuc]=gioTiet(x.buoi,x.i), ngay=ngayThu(x.thu);
+    const dt=dtId(S.lopDT[x.lp]);
+    dong.push(
+      'BEGIN:VEVENT',
+      `UID:tkb-${idGV}-${x.thu}-${x.buoi}-${x.i}@tkb`,
+      `DTSTAMP:${ngayThu(2)}T000000Z`,
+      `DTSTART;TZID=Asia/Ho_Chi_Minh:${ngay}T${batDau}`,
+      `DTEND;TZID=Asia/Ho_Chi_Minh:${ngay}T${ketThuc}`,
+      `RRULE:FREQ=WEEKLY;UNTIL=${namCuoi}0531T165959Z`,
+      `SUMMARY:${escICS(x.mon+' — Lớp '+tenLopDay(x.lp))}`);
+    if(dt) dong.push(`LOCATION:${escICS(dt.ten)}`);
+    dong.push(
+      `DESCRIPTION:${escICS(`Tiết ${x.i+1} buổi ${x.buoi==='S'?'sáng':'chiều'}`)}`,
+      'END:VEVENT');
+  });
+  dong.push('END:VCALENDAR');
+  return dong.map(gapDongICS).join('\r\n')+'\r\n';
+}
 /*#endregion XUAT*/
 
 /* ==================================================================
@@ -3350,7 +3432,8 @@ function mTKBGV(){
     <span class="tag">${Object.keys(lich).length} tiết/tuần</span>
     <span class="tag ${soBuoi>=8?'canh':'ok'}">${soBuoi} buổi có mặt</span>
     ${g?.cn?`<span class="tag ok">Chủ nhiệm ${esc(tenCN(g))}</span>`:''}
-    <button class="b b-vien b-nho" id="btInGVNay" style="margin-left:auto">In / lưu PDF</button>
+    <button class="b b-vien b-nho" id="btICSGV" style="margin-left:auto">Đưa vào lịch điện thoại</button>
+    <button class="b b-vien b-nho" id="btInGVNay">In / lưu PDF</button>
   </div>${bang}`;
 }
 
@@ -3396,7 +3479,9 @@ function mCuaToi(){
       <div><b>${dts.length}</b><span>điểm trường</span></div>
     </div>
   </div>
-  ${tong?`<div class="tuan">${THU.map(t=>{
+  ${tong?`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="b b-vien b-nho" id="btICSToi">Đưa vào lịch điện thoại</button></div>
+  <div class="tuan">${THU.map(t=>{
     const a=lich[t]||[];
     return `<div class="ngay ${t===thuNay?'homnay':''}">
       <div class="ngay-d"><b>${TEN_THU[t]}</b><span>${a.length} tiết${t===thuNay?' · hôm nay':''}</span></div>
@@ -4019,6 +4104,22 @@ ${kieu}
   bao('Đã tải '+tenTep);
 }
 
+/* Tải lịch dạy của một giáo viên thành tệp .ics — mở tệp là ứng dụng Lịch
+   trên điện thoại tự nhận. Nội dung dựng ở taoICS() trong vùng XUAT. */
+function taiICS(idGV){
+  const g=gvId(idGV);
+  if(!g) return bao('Chưa chọn giáo viên nào.', true);
+  const nd=taoICS(idGV);
+  if(!nd) return bao(`Chưa có tiết nào trong lịch của ${g.hoTen} — xếp thời khóa biểu trước đã.`, true);
+  const ten=`TKB-${khongDau(g.hoTen)}.ics`;
+  const b=new Blob([nd], {type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download=ten;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  bao(`Đã tải ${ten} — mở tệp là ứng dụng Lịch tự nhận, các tiết lặp hằng tuần tới hết năm học.`);
+}
+
 /* Bảng lưới: cột = thứ, dòng = buổi/tiết. lay(thu,buoi,tiet) trả nội dung ô. */
 /* Truyền `khoi` để bản in của một lớp chỉ hiện đúng số tiết khối đó học;
    bỏ trống (bản in giáo viên) thì lấy toàn lưới vì họ dạy nhiều khối. */
@@ -4265,6 +4366,14 @@ const HD_ND = {
       {t:'In lịch của mình', n:`
         <p>Vào <b>Xuất và in</b>, thẻ <b>In theo giáo viên</b>, chọn tên mình rồi bấm <b>In / lưu PDF</b>.</p>
         <p>Muốn lưu vào điện thoại thì trong hộp in chọn <b>Lưu dưới dạng PDF</b>.</p>`},
+      {t:'Đưa vào lịch điện thoại', n:`
+        <p>Ngay trên màn hình <b>Thời khóa biểu của tôi</b> có nút <b>Đưa vào lịch điện thoại</b>.
+          Bấm là tải về một tệp nhỏ; mở tệp đó là ứng dụng <b>Lịch</b> trên máy
+          (Google Calendar hay Lịch iPhone) tự nhận, các tiết dạy hiện đúng ngày giờ
+          và tự lặp hằng tuần tới hết năm học.</p>
+        <p>Giờ từng tiết tính theo khung chung — sáng bắt đầu 7:30, chiều 14:00, mỗi tiết 35 phút —
+          nếu trường đổi giờ thì lịch trên điện thoại chỉ lệch vài phút, thứ tự tiết vẫn đúng.</p>
+        <p>Khi nhà trường công bố thời khóa biểu mới, xoá lịch cũ trong máy rồi tải lại tệp mới.</p>`},
       {t:'Không sửa được thời khóa biểu', n:`
         <p>Thầy cô chỉ xem. Muốn đổi tiết thì báo người xếp thời khóa biểu hoặc phó hiệu trưởng
           phụ trách điểm trường — họ chỉnh rồi lưu, thầy cô tải lại là thấy bản mới.</p>`}
@@ -4768,6 +4877,8 @@ function noiSuKien(){
     inRa(trangInLop(S.lopXem), 'lớp '+(lopId(S.lopXem)?.ten||'')));
   $('#btInGVNay')&&($('#btInGVNay').onclick=()=>
     inRa(trangInGV(S.gvXem), gvId(S.gvXem)?.hoTen||''));
+  $('#btICSGV')&&($('#btICSGV').onclick=()=>taiICS(S.gvXem));
+  $('#btICSToi')&&($('#btICSToi').onclick=()=>taiICS(S.nguoiDung.gvId||S.giaoVien[0]?.id));
 
   /* chạm chọn — chạm đặt: lối chỉnh tay dùng được trên điện thoại */
   $$('[data-cham]').forEach(el=>{
