@@ -186,10 +186,15 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .the-t{padding:18px 20px}
 
 .vong{display:flex;align-items:center;gap:22px}
-.donut{width:112px;height:112px;flex:0 0 112px;border-radius:50%;display:grid;place-items:center;position:relative}
-.donut::before{content:'';position:absolute;inset:15px;background:var(--the);border-radius:50%}
-.donut b{position:relative;font-size:23px;font-weight:800;letter-spacing:-.03em}
-.donut span{position:relative;font-size:10.5px;color:var(--chu-mo);display:block;text-align:center;margin-top:-3px}
+/* Cụm chữ phải nằm GIỮA lỗ tròn. Bản cũ dùng `display:grid` với hai con:
+   lưới chia đôi chiều cao rồi căn giữa TỪNG Ô, nên "100%" bị đẩy lên chạm
+   vành trên còn "đã xếp" tụt xuống chạm vành dưới. Flex một cột căn giữa
+   cả cụm mới đúng. */
+.donut{width:112px;height:112px;flex:0 0 112px;border-radius:50%;position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut::before{content:'';position:absolute;inset:14px;background:var(--the);border-radius:50%}
+.donut b{position:relative;font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.donut span{position:relative;font-size:10px;color:var(--chu-mo);line-height:1;margin-top:5px}
 .hang{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--ke);font-size:13.5px}
 .hang:last-child{border-bottom:none}
 .hang b{font-weight:700;font-size:15px}
@@ -3624,8 +3629,38 @@ function mDieuHanh(){
   /* Thẻ cảnh báo tự cuộn bên trong nên bày hết, không cắt bớt còn 4 mục */
   const canhBao=KT.vm.filter(v=>v.muc!=='goi');
 
-  return dauTrang('Bảng điều hành','Toàn cảnh công tác xếp thời khóa biểu',true)+
-  thanhBuoc(0)+`
+  /* ---------- Sản phẩm lên trước, quy trình lùi sau ----------
+     Chủ dự án chỉ ra: người mới vào không biết có ba bước, họ tưởng đây là
+     một trang web và không thấy thứ mình cần — thời khóa biểu. Nay hễ đã
+     xếp được tiết nào thì Bảng điều hành mở đầu bằng CHÍNH cái lưới ấy,
+     kèm lối đi thẳng tới bốn sản phẩm. Chưa xếp gì thì mới bày ba bước
+     hướng dẫn lên trước, vì lúc đó người dùng thật sự cần được dẫn đường. */
+  const coSanPham = daXep>0 && ds.length>0;
+  const kheSanPham = !coSanPham ? '' : `
+  <div class="the" style="margin-bottom:18px">
+    <div class="the-d"><h2>Thời khóa biểu ${esc(S.tenTruong)}</h2>
+      <span class="meta">${ds.length} lớp · ${daXep}/${tongCan} tiết${KHO.version?` · phiên bản ${KHO.version}`:''}</span></div>
+    <div class="the-t">
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="b b-ch" data-di="toantruong">Xem toàn trường</button>
+        <button class="b b-vien" data-di="tkblop">Theo lớp</button>
+        <button class="b b-vien" data-di="tkbgv">Theo giáo viên</button>
+        <button class="b b-vien" data-di="tkbkhoi">Theo khối</button>
+        <button class="b b-vang" data-di="xuatin">Xuất và in</button>
+      </div>
+      <div style="max-height:46vh;overflow:auto;border:1px solid var(--ke);border-radius:var(--r2)">
+        ${luoiRongHTML(ds,true)}
+      </div>
+      <div class="gy" style="margin-top:10px">Cuộn trong khung để xem hết.
+        ${KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
+          :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.':''}</div>
+    </div>
+  </div>`;
+
+  return dauTrang('Bảng điều hành',
+    coSanPham?'Thời khóa biểu đang dùng và toàn cảnh công tác xếp'
+             :'Toàn cảnh công tác xếp thời khóa biểu',true)+
+  kheSanPham+thanhBuoc(0)+`
   <div class="dh">
   <div class="bang-ron">
     <div>

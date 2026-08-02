@@ -285,6 +285,27 @@ nguyên ảnh gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px.
 cho **Thông tin trường · Môn học · Phòng học** — tệp Excel không chứa ba thứ đó,
 bày nút nhập ở đấy là hứa hão.
 
+#### Sản phẩm lên trước, quy trình lùi sau *(2/8/2026)*
+
+Chủ dự án nêu đúng chỗ hổng của quy trình ba bước: *"sản phẩm đầu ra quan
+trọng nhất là Thời khóa biểu nằm ẩn dưới thanh điều hướng… người dùng mới
+vào chưa biết, nghĩ đây là trang web"*. Thanh bên xếp theo trình tự làm việc
+là đúng cho người **đang xếp**, nhưng người mở phần mềm ra lần đầu — hay mở
+lại sau khi đã xếp xong — chỉ muốn thấy **cái lưới**.
+
+Nay `mDieuHanh()` **đổi vai theo trạng thái**:
+- **Đã xếp được tiết nào** → mở đầu bằng chính thời khóa biểu (lưới toàn
+  trường cuộn trong khung cao 46vh) + năm nút đi thẳng: Toàn trường · Theo
+  lớp · Theo giáo viên · Theo khối · Xuất và in. Ba thẻ bước lùi xuống dưới.
+  Có nhắc luôn *"Chưa công bố — thầy cô chưa xem được bản này"* khi cần.
+- **Chưa xếp gì** → giữ nguyên ba bước lên trước, vì lúc đó người dùng thật
+  sự cần được dẫn đường.
+
+Nguyên tắc rút ra: **bảng điều hành phải trả lời "phần mềm này cho tôi cái
+gì", không phải "tôi đã làm tới đâu"** — tiến độ chỉ có nghĩa với người đang
+làm dở. Có phép thử canh cả hai trạng thái và canh thứ tự (khối sản phẩm
+phải đứng trước ba thẻ bước).
+
 Ba hàm giữ quy trình này:
 
 | Hàm | Việc |

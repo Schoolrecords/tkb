@@ -502,6 +502,38 @@ kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của t
     `${r.tongTiet} tiết = chuẩn đang khai (${mong})`];
 })()));
 
+console.log('\n15h. Sản phẩm lên đầu Bảng điều hành');
+w.eval('KQ_XEP = xepTuDong(0)');
+w.chuyen('dieuhanh');
+kt('Xếp xong thì Bảng điều hành mở đầu bằng chính thời khóa biểu', (() => {
+  const nd = w.document.querySelector('#noiDung');
+  const the = nd.querySelector('.the');
+  return /Thời khóa biểu/.test(the.textContent) && !!the.querySelector('.tt');
+})());
+kt('Có đủ lối đi thẳng tới bốn sản phẩm và Xuất/in', (() => {
+  const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
+  return ['toantruong','tkblop','tkbgv','tkbkhoi','xuatin'].every(x => di.includes(x));
+})());
+kt('Khối sản phẩm đứng TRƯỚC ba thẻ bước — sản phẩm trước, quy trình sau', (() => {
+  const html = w.document.querySelector('#noiDung').innerHTML;
+  return html.indexOf('Thời khóa biểu') < html.indexOf('Khai báo dữ liệu');
+})());
+kt('Chưa xếp tiết nào thì không bày khối sản phẩm rỗng, ba bước lên trước', (() => {
+  const luu = JSON.parse(JSON.stringify(w.eval('S.tkb')));
+  w.eval('S.lop.forEach(l=>S.tkb[l.id]={}); KQ_XEP=null; ve()');
+  const html = w.document.querySelector('#noiDung').innerHTML;
+  const khong = !w.document.querySelector('#noiDung .the .tt');
+  w.eval(`S.tkb = ${JSON.stringify(luu)}; ve()`);
+  return khong && /Khai báo dữ liệu/.test(html);
+})());
+kt('Vòng tròn phần trăm căn giữa bằng flex một cột, không phải lưới hai hàng', (() => {
+  const css = w.document.documentElement.innerHTML;
+  const i = css.indexOf('.donut{');
+  const kh = css.slice(i, i + 220);
+  return /flex-direction:column/.test(kh) && /justify-content:center/.test(kh)
+    && !/display:grid/.test(kh);
+})());
+
 console.log('\n15g. Ngăn kéo điều hướng trên điện thoại');
 kt('Có nút ☰ và nền mờ; mặc định ngăn kéo đóng',
    !!w.document.querySelector('#btMenu') && !!w.document.querySelector('#manMenu') &&
