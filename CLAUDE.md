@@ -661,6 +661,14 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [x] Màn hình **Buổi bận** — ràng buộc cứng số 7 nay nhập được từ giao diện
       *(1/8/2026 — `mBuoiBan()`, `luuBuoiBan()`, ghi thẳng vào `gv_nghi`)*
 - [x] Phép thử giao diện thật `npm run soi` (jsdom)
+- [x] CI trên GitHub Actions: mỗi lần đẩy mã chạy đủ `npm test` (192) +
+      `npm run soi` (95) *(2/8/2026 — `.github/workflows/kiem-thu.yml`;
+      kiểm thử đỏ thì đừng triển khai)*
+      ⚠️ Thư mục dự án nằm trong vùng đồng bộ đám mây: dịch vụ đồng bộ từng
+      chèn 117 tệp `desktop.ini` vào `.git/` làm git báo `bad object
+      refs/desktop.ini`, không fetch/push được. Cách chữa: xoá hết
+      `desktop.ini` trong `.git/` (an toàn, chỉ là tệp hiển thị của Windows).
+      Gặp lại lỗi ấy thì làm đúng vậy, đừng `git init` lại.
 - [x] **Quy trình ba bước** — thanh bên xếp theo trình tự làm việc, thanh tiến
       trình ở Bảng điều hành, dải điều hướng trên từng màn hình *(1/8/2026)*
 - [x] Năm màn hình khai báo còn thiếu: Thông tin trường · Lớp học · Môn học ·
