@@ -755,21 +755,25 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .chuong.gap{background:rgba(192,57,43,.24)}
 .chuong.gap:hover{background:rgba(192,57,43,.36)}
 
-/* ---------- Dải bốn chỉ số trên lưới (3/8/2026) ----------
-   Thay bốn thẻ .ts cao 102px rời nhau bằng MỘT dải liền — cùng thông tin,
-   một phần ba chiều cao, và đọc được cùng lúc với thời khóa biểu ngay dưới. */
-.dai-so{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:1px;background:var(--ke);border:1px solid var(--ke);border-radius:var(--r);
-  overflow:hidden;margin-bottom:18px;box-shadow:var(--bong)}
-.ds-o{background:var(--the);border:0;padding:12px 16px;text-align:left;cursor:pointer;
-  border-left:3px solid var(--dsm,#4A6FB5);transition:background .16s}
-.ds-o:hover{background:var(--nen)}
-.ds-o:active{transform:translateY(-2px)}
-.ds-o b{display:block;font-size:23px;font-weight:800;letter-spacing:-.04em;
-  line-height:1.1;color:var(--dsm,#4A6FB5)}
-.ds-o span{display:block;font-size:11.5px;color:var(--chu-mo);margin-top:2px}
-.ds-o.cam{--dsm:#C4823A}.ds-o.luc{--dsm:var(--xanh)}.ds-o.lam{--dsm:#4A6FB5}
-.ds-o.tim{--dsm:#6E52BC}.ds-o.canh{--dsm:var(--canh)}
+/* ---------- Cột chỉ số DỌC, trong thẻ Tiến độ xếp (3/8/2026) ----------
+   Xếp dọc trong khoảng trống sẵn có dưới vòng tròn tiến độ, thay cho dải
+   ngang cũ vốn chiếm một dòng riêng ngay cạnh lưới. */
+.cot-so{display:grid;gap:1px;background:var(--ke);border:1px solid var(--ke);
+  border-radius:var(--r2);overflow:hidden;margin-top:16px}
+.cs-d{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;cursor:pointer;
+  background:var(--the);border:0;border-left:3px solid var(--ke-2);
+  padding:9px 13px;transition:background .16s}
+.cs-d:hover{background:var(--nen)}
+.cs-d:active{transform:translateY(-2px)}
+.cs-d b{font-size:17px;font-weight:800;letter-spacing:-.03em;min-width:46px;color:var(--chu)}
+.cs-d span{font-size:12.5px;color:var(--chu-mo)}
+/* Ba dòng đầu chỉ tô màu KHI KHÁC 0 — số 0 tô đỏ là báo động giả */
+.cs-d.do{border-left-color:var(--do);background:var(--do-nen)}
+.cs-d.do b{color:var(--do)}
+.cs-d.canh{border-left-color:var(--canh)}
+.cs-d.canh b{color:var(--canh)}
+.cs-d.ok{border-left-color:var(--xanh)}
+.cs-d.ok b{color:var(--xanh)}
 
 /* ---------- Thẻ chuyển cách xem, ngay trong Bảng điều hành ----------
    Là THẺ chuyển tại chỗ, không phải nút điều hướng: bấm xong vẫn đứng đây,
@@ -790,9 +794,11 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .xem-nut:hover{background:var(--nav-nhat-2)}
 .xem-nut:active{transform:translateY(-2px)}
 .xem-nut.on{background:var(--nav);font-weight:700;box-shadow:0 2px 0 rgba(0,0,0,.22)}
-/* Nút Xuất và in ngang hàng với bốn thẻ chuyển — không giãn theo, giữ
-   nguyên bề ngang để mắt tách được nó khỏi nhóm thẻ. */
-.xem-xuat{flex:0 0 auto;min-height:40px;margin-left:4px}
+/* Nút Xuất và in ngang hàng với bốn thẻ chuyển. CÙNG MÀU với chúng
+   (3/8/2026) — màu vàng cũ hét to hơn cả bốn thẻ chính. Phân biệt bằng
+   BIỂU TƯỢNG máy in và bằng việc không giãn theo, chứ không bằng màu. */
+.xem-xuat{flex:0 0 auto;margin-left:4px;display:flex;align-items:center;gap:8px}
+.xem-xuat svg{width:16px;height:16px;stroke-width:1.9}
 /* Hàng phụ: dải chọn (điểm trường / khối / lớp / giáo viên) + nhãn số liệu */
 .dai-phu{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:34px}
 .dai-phu .meta{margin-left:auto;font-size:12px;color:var(--chu-mo);white-space:nowrap}
@@ -5033,21 +5039,8 @@ function mDieuHanh(){
      nên không ai bỏ sót; xem `bangRon()`. */
   return daiViecGap(vc)
   + kheSanPham
-  + kheVieccanXuLy(vc, canhBao)
-  + kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV.size)
   + (coSanPham?'':thanhBuoc(0))+`
   <div class="dh">
-  <div class="the-so" hidden>
-    <div class="ts cam" data-di="lop"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2"/></svg></div>
-      <div class="ts-so">${ds.length}</div><div class="ts-n">Lớp học</div></div>
-    <div class="ts luc" data-di="xep"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg></div>
-      <div class="ts-so">${pt}%</div><div class="ts-n">Đã xếp · ${daXep}/${tongCan} tiết</div></div>
-    <div class="ts lam" data-di="giaovien"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></svg></div>
-      <div class="ts-so">${gvTrongPV.size}</div><div class="ts-n">Giáo viên</div></div>
-    <div class="ts tim" data-di="diemtruong"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V9l7-5 7 5v12"/></svg></div>
-      <div class="ts-so">${dtTrongPV().length}</div><div class="ts-n">Điểm trường</div></div>
-  </div>
-
   <div class="dh-duoi">
     <div class="the">
       <div class="the-d"><h2>Tiến độ xếp</h2><span class="meta">${daXep}/${tongCan} tiết</span></div>
@@ -5062,12 +5055,14 @@ function mDieuHanh(){
           </div>
         </div>
         <div class="tien" style="margin-top:16px"><i style="width:${pt}%"></i></div>
+        ${kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV.size, vc)}
         <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap">
           ${duocXep()?`<button class="b b-vien b-nho" data-di="xep">Xếp thời khóa biểu</button>`:''}
           <button class="b b-vien b-nho" data-di="tkblop">Xem theo lớp</button>
         </div>
       </div>
     </div>
+    ${kheVieccanXuLy(vc, canhBao)}
 
     <div class="the">
       <div class="the-d"><h2>Cảnh báo điều hành</h2><span class="meta">${KT.vm.length} mục</span></div>
@@ -5158,15 +5153,31 @@ function luoiTuanLop(id){
    con số. Nay gộp thành MỘT dải liền, cao bằng một phần ba, đặt ngay trên
    thời khóa biểu để đọc được cùng lúc với lưới. Bấm được, đi thẳng tới màn
    hình tương ứng. */
-function kheSoLieu(soLop, pt, daXep, tongCan, soGV){
+function kheSoLieu(soLop, pt, daXep, tongCan, soGV, vc){
+  /* DỌC theo THỨ TỰ ƯU TIÊN (3/8/2026), nằm trong thẻ Tiến độ xếp.
+
+     Trước đó là một dải NGANG bốn ô, và trước nữa là bốn tấm thẻ cao 102px.
+     Cả hai đều nằm ở dải đất đắt nhất — ngay trên hoặc ngay dưới lưới — để
+     nói những con số mà người dùng chỉ liếc qua. Nay xếp dọc trong khoảng
+     trống sẵn có dưới vòng tròn tiến độ: không tốn thêm một dòng nào của
+     trang, mà lại đọc được theo thứ tự.
+
+     Thứ tự là ƯU TIÊN THẬT, không phải thứ tự dữ liệu:
+       việc gấp trong ngày → cảnh báo → tiến độ → quy mô trường.
+     Ba dòng đầu tô màu khi khác 0; bốn dòng sau chỉ là bối cảnh. */
+  const hn=ngayISO(new Date());
+  const dsThay=(S.dayThay||[]).filter(x=>x.ngay>=hn).length;
   const o=[
-    ['lop',      soLop,    'Lớp học',      'cam'],
-    ['xep',      pt+'%',   `Đã xếp · ${daXep}/${tongCan} tiết`, pt>=100?'luc':'canh'],
-    ['giaovien', soGV,     'Giáo viên',    'lam'],
-    ['diemtruong', dtTrongPV().length, 'Điểm trường', 'tim'],
+    ['daythay',  vc.soNghi,  'giáo viên báo nghỉ chưa xử lý', vc.soNghi?'do':''],
+    ['daythay',  dsThay,     'tiết dạy thay sắp tới',         dsThay?'canh':''],
+    ['kiemtra',  vc.soCanhBao,'cảnh báo thời khóa biểu',      vc.soCanhBao?'canh':''],
+    ['xep',      pt+'%',     `đã xếp · ${daXep}/${tongCan} tiết`, pt>=100?'ok':'canh'],
+    ['lop',      soLop,      'lớp học',       ''],
+    ['giaovien', soGV,       'giáo viên',     ''],
+    ['diemtruong', dtTrongPV().length, 'điểm trường', ''],
   ];
-  return `<div class="dai-so">${o.map(([di,v,t,m])=>
-    `<button class="ds-o ${m}" data-di="${di}"><b>${v}</b><span>${t}</span></button>`).join('')}</div>`;
+  return `<div class="cot-so">${o.map(([di,v,t,m])=>
+    `<button class="cs-d ${m}" data-di="${di}"><b>${v}</b><span>${t}</span></button>`).join('')}</div>`;
 }
 
 /* ---------- Khối SẢN PHẨM: bốn cách xem, chuyển TẠI CHỖ ----------
@@ -5183,6 +5194,11 @@ function kheSoLieu(soLop, pt, daXep, tongCan, soGV){
    Ở đây CHỈ ĐỌC. */
 const THE_XEM = [['toantruong','Toàn trường'],['tkbkhoi','Theo khối'],
                  ['tkblop','Theo lớp'],['tkbgv','Theo giáo viên']];
+/* Chiều cao khung lưới trên Bảng điều hành. 52vh còn hụt — sau khi dọn hết
+   băng rôn và dòng tiêu đề thì lưới bắt đầu ngay dòng đầu trang, nên cho nó
+   ăn gần trọn màn hình. Vẫn để lại một khoảng để người dùng thấy còn nội
+   dung bên dưới mà cuộn tiếp. */
+const CAO_LUOI_DH = '72vh';
 
 function kheSanPhamHTML(ds, daXep, tongCan){
   if(!THE_XEM.some(x=>x[0]===S.dhXem)) S.dhXem='toantruong';
@@ -5192,7 +5208,7 @@ function kheSanPhamHTML(ds, daXep, tongCan){
   let dai='', luoi='', meta='';
   if(xem==='toantruong'){
     dai=daiDiemLuoi();
-    luoi=luoiRongHTML(xepTheoKhoi(lopChoLuoi()),true,'52vh');
+    luoi=luoiRongHTML(xepTheoKhoi(lopChoLuoi()),true,CAO_LUOI_DH);
     meta=`${ds.length} lớp · ${daXep}/${tongCan} tiết`;
   }else if(xem==='tkbkhoi'){
     const khoi=khoiDangCo(ds);
@@ -5200,7 +5216,7 @@ function kheSanPhamHTML(ds, daXep, tongCan){
     const lop=ds.filter(l=>khoiCuaLop(l)===S.khoiXem);
     dai=`<div class="dai-dt">${khoi.map(k=>`<button class="dt-nut${k===S.khoiXem?' on':''}"
       data-dhkhoi="${k}">Khối ${k}<span>${ds.filter(l=>khoiCuaLop(l)===k).length}</span></button>`).join('')}</div>`;
-    luoi=luoiRongHTML(xepTheoKhoi(lop),false,'52vh');
+    luoi=luoiRongHTML(xepTheoKhoi(lop),false,CAO_LUOI_DH);
     meta=`Khối ${S.khoiXem} · ${lop.length} lớp`;
   }else if(xem==='tkblop'){
     if(!ds.some(l=>l.id===S.lopXem)) S.lopXem=ds[0]?.id;
@@ -5238,7 +5254,9 @@ function kheSanPhamHTML(ds, daXep, tongCan){
       <div class="dai-xem">
         ${THE_XEM.map(([v,t])=>
           `<button class="xem-nut${v===xem?' on':''}" data-dhxem="${v}">${t}</button>`).join('')}
-        <button class="b b-vang xem-xuat" data-di="xuatin">Xuất và in</button>
+        <button class="xem-nut xem-xuat" data-di="xuatin"><svg viewBox="0 0 24 24" fill="none"
+          stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/>
+          <path d="M7 16h10v5H7z"/></svg>Xuất và in</button>
       </div>
       <div class="dai-phu">
         ${dai}
@@ -5319,13 +5337,7 @@ function kheVieccanXuLy(vc, canhBao){
         <b>Hôm nay không có giáo viên báo nghỉ.</b>
         <div class="cb-g">${vc.daXuLy.length
           ? `${vc.daXuLy.length} thông báo nghỉ sắp tới đã được bố trí dạy thay xong.`
-          : 'Thầy cô gửi thông báo từ mục Báo nghỉ; có ai báo là hiện ngay ở đây.'}</div></div></div>
-      <div class="viec-so" style="margin-top:14px">
-        <div class="lam"><b>${String(vc.nghiHomNay).padStart(2,'0')}</b><span>giáo viên nghỉ hôm nay</span></div>
-        <div class="ok"><b>${String(vc.daXuLy.length).padStart(2,'0')}</b><span>trường hợp đã xử lý</span></div>
-        <div class="${cb?'canh':'ok'}"><b>${String(vc.soCanhBao).padStart(2,'0')}</b><span>cảnh báo thời khóa biểu</span></div>
-        <div class="lam"><b>${String((S.dayThay||[]).filter(x=>x.ngay>=ngayISO(new Date())).length).padStart(2,'0')}</b><span>tiết dạy thay sắp tới</span></div>
-      </div>`}
+          : 'Thầy cô gửi thông báo từ mục Báo nghỉ; có ai báo là hiện ngay ở đây.'}</div></div></div>`}
     </div>
   </div>`;
 }

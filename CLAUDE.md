@@ -499,11 +499,29 @@ nhau, mà **băng rôn mang tên trường** — thứ neo cả trang — lại 
 
 ```
 1. dải đỏ việc gấp  CHỈ hiện khi có giáo viên báo nghỉ chưa xử lý
-2. THỜI KHÓA BIỂU   bốn thẻ chuyển + nút Xuất và in cùng một hàng, rồi lưới
-3. việc cần xử lý
-4. dải bốn chỉ số   lớp · % đã xếp · giáo viên · điểm trường
-5. tiến độ · cảnh báo · điểm trường
+2. THỜI KHÓA BIỂU   bốn thẻ chuyển + nút Xuất và in cùng hàng, rồi lưới (72vh)
+3. ba cột dưới      [tiến độ + chỉ số dọc + việc cần xử lý] · cảnh báo · điểm trường
 ```
+
+**Mọi con số dồn vào MỘT cột dọc trong thẻ Tiến độ xếp** *(3/8/2026)*. Trước
+đó chúng nằm ở ba chỗ và **lặp nhau**: dải `.dai-so` ngang, dãy `.viec-so`
+trong khối Việc cần xử lý, và `.the-so` cũ. Nay chỉ còn `.cot-so` — bảy dòng
+xếp **theo thứ tự ưu tiên thật**: việc gấp trong ngày → cảnh báo → tiến độ →
+quy mô trường. Nó nằm trong khoảng trống sẵn có dưới vòng tròn tiến độ nên
+**không tốn thêm một dòng nào** của trang.
+
+⚠️ **Số 0 không được tô đỏ.** Ba dòng đầu chỉ lên màu khi khác 0 — báo động
+giả còn tệ hơn không báo. Có phép thử canh.
+
+⚠️ **Bẫy đã dính: `hidden` bị `display:grid` đè.** Khi dồn các dải chỉ số về
+một chỗ, khối `.the-so` cũ được vô hiệu bằng thuộc tính `hidden` cho nhanh —
+nhưng quy tắc tác giả `.the-so{display:grid}` thắng `[hidden]{display:none}`
+của trình duyệt, nên nó **vẫn hiện**, và Bảng điều hành bày hai dải số giống
+hệt nhau. Chủ dự án phát hiện qua ảnh chụp, không phải phép thử. Bỏ một khối
+thì **xoá hẳn mã**, đừng dùng `hidden`.
+
+**Nút Xuất và in cùng màu với bốn thẻ chuyển**, phân biệt bằng **biểu tượng
+máy in** chứ không bằng màu — màu vàng cũ hét to hơn cả bốn thẻ chính.
 
 **Băng rôn navy đã BỎ HẲN, và thẻ lưới KHÔNG có dòng tiêu đề** *(3/8/2026)*.
 Cả hai chỉ lặp lại thứ đã nói ở chỗ khác — tên trường có sẵn ở thanh trên

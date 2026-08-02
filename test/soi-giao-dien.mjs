@@ -833,11 +833,31 @@ kt('Ô tìm kiếm chung nay nằm ở mục Giáo viên', (() => {
   w.chuyen('dieuhanh');
   return co;
 })());
-kt('Dải bốn chỉ số nay nằm DƯỚI lưới thời khóa biểu', ...((() => {
-  const html = w.document.querySelector('#noiDung').innerHTML;
-  const iSo = html.indexOf('class="dai-so'), iLuoi = html.indexOf('class="tt');
-  return [iSo > 0 && iLuoi > 0 && iLuoi < iSo, `lưới ${iLuoi} · số ${iSo}`];
+kt('Chỉ số nay xếp DỌC theo ưu tiên, nằm trong thẻ Tiến độ xếp', ...((() => {
+  /* 3/8/2026: dải ngang bốn ô chiếm một dòng riêng cạnh lưới, nay dồn vào
+     khoảng trống sẵn có dưới vòng tròn tiến độ. */
+  const cot = w.document.querySelector('#noiDung .cot-so');
+  const trong = cot && cot.closest('.the');
+  const dong = cot ? [...cot.querySelectorAll('.cs-d span')].map(x => x.textContent) : [];
+  return [!!cot && !!trong && /Tiến độ xếp/.test(trong.textContent) && dong.length === 7,
+    dong.slice(0, 3).join(' · ')];
 })()));
+kt('Thứ tự là ƯU TIÊN THẬT: việc gấp trước, quy mô trường sau', (() => {
+  const d = [...w.document.querySelectorAll('#noiDung .cot-so .cs-d span')]
+    .map(x => x.textContent);
+  return /báo nghỉ/.test(d[0]) && /dạy thay/.test(d[1]) && /cảnh báo/.test(d[2])
+    && /đã xếp/.test(d[3]) && /điểm trường/.test(d[6]);
+})());
+kt('Số 0 KHÔNG bị tô đỏ — báo động giả còn tệ hơn không báo', (() => {
+  const d = [...w.document.querySelectorAll('#noiDung .cot-so .cs-d')];
+  return d.every(x => x.querySelector('b').textContent.trim() !== '0'
+    || !x.classList.contains('do'));
+})());
+kt('Không còn dải chỉ số nào khác lặp lại cùng mấy con số ấy', (() => {
+  const nd = w.document.querySelector('#noiDung');
+  return !nd.querySelector('.dai-so') && !nd.querySelector('.the-so')
+    && !nd.querySelector('.viec-so');
+})());
 
 console.log('\n15h2. Bốn cách xem, chuyển TẠI CHỖ trên Bảng điều hành');
 kt('Thẻ chuyển và nút điểm trường cùng một hệ navy, không còn nền trắng', (() => {
