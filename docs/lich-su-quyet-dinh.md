@@ -458,3 +458,176 @@ thấy. Chín chỗ kia đổi, chỗ thứ mười giữ nguyên biểu thức 
 khác nhau trông y như một. Thay hàng loạt xong phải **đếm lại**: số chỗ thay
 được có khớp số mẫu đưa vào không. Từ nay có phép thử soi thẳng dải nút, dựng
 sẵn cả hai kiểu tên.
+
+---
+
+## 3/8/2026 — Báo nghỉ, dạy thay, và thanh bên năm nhóm
+
+Bản giao việc lớn nhất từ trước tới nay (25 mục). Trọng tâm: chuyển app từ
+*công cụ xếp lịch dùng vài tuần tháng 8* thành *công cụ điều hành dùng suốt
+năm học*. Ghi lại những chỗ có trả giá hoặc có lý do không hiển nhiên.
+
+### Bảng `bao_nghi` — và một lỗi bộ soát bắt được TRƯỚC khi dán vào máy chủ
+
+Cột buổi nghỉ ban đầu đặt tên `buoi`, kiểu `text` có `check in ('S','C','CN')`.
+Cú pháp hoàn toàn hợp lệ. `npm run soat` vẫn báo đỏ: nó thấy một cột tên `buoi`
+so sánh với `'CN'`, mà trong schema `buoi` là cột kiểu enum `buoi_t` chỉ nhận
+`S` và `C`.
+
+Thoạt nhìn là báo nhầm — cột này là `text` cơ mà. Nhưng bộ soát **đúng về
+tinh thần**: đặt tên cột trùng với một enum đã có nghĩa khác là để lại bẫy cho
+người sửa sau, người sẽ đọc `buoi` rồi giả định `buoi_t`. Nay là `buoi_nghi`.
+Đây đúng là loại lỗi bộ soát sinh ra để bắt — sai vì **ĐOÁN TÊN**, không phải
+sai dấu phẩy.
+
+Bài học chung: bộ soát báo đỏ ở chỗ mình tin là đúng thì trước khi tắt nó đi,
+hãy hỏi *"nó đang cảnh báo điều gì mà mình chưa nghĩ tới"*.
+
+### Vì sao KHÔNG dùng lại `gv_nghi`
+
+`gv_nghi` là buổi bận **lặp lại hằng tuần** — dữ liệu nguồn để xếp lịch.
+`bao_nghi` là việc của **một ngày**. Nhét chung một bảng thì cô A ốm sáng thứ
+Ba 15/9 sẽ thành "cô A không dạy được sáng thứ Ba của mọi tuần", và một lần
+ốm làm hỏng cả khuôn thời khóa biểu. Đúng cặp đôi của `bao_nghi` là
+`day_thay`: một bên sinh ra việc, một bên là kết quả xử lý việc ấy.
+
+### Bảng DUY NHẤT giáo viên được ghi vào
+
+Mọi bảng nguồn vẫn khoá kín với vai trò giáo viên. `bao_nghi` là ngoại lệ
+được thiết kế: quy tắc INSERT nối qua `giao_vien.nguoi_dung_id = auth.uid()`
+nên không ai báo nghỉ hộ người khác được; quy tắc DELETE thêm điều kiện
+`trang_thai = 'cho'` nên huỷ được chừng nào Ban Giám hiệu chưa bố trí.
+
+Thêm một quy tắc UPDATE **hẹp** trên `day_thay` (`p_day_thay_daxem`) để giáo
+viên tự bấm "Đã xem" — quy tắc của quản lý giữ nguyên, không nới ra.
+
+### LỌC trước, CHẤM ĐIỂM sau
+
+Quyết định thiết kế quan trọng nhất của `ungVienThay()`. Cách làm sai mà rất
+dễ rơi vào: cho mọi giáo viên vào danh sách rồi trừ điểm nặng người đang bận.
+Kết quả là người đang dạy lớp khác **vẫn hiện ra**, chỉ nằm cuối — và sớm muộn
+có người bấm nhầm. Người vướng ràng buộc cứng phải BIẾN MẤT.
+
+Bảy điều kiện loại, mỗi cái một dòng `return` riêng, cố ý không gộp: sửa một
+điều kiện thì không đụng vào sáu điều kiện kia.
+
+### Kiểm tra xung đột chạy HAI lần
+
+Một lần lúc vẽ màn hình (nút *Xác nhận phân công* khoá luôn nếu có xung đột,
+người dùng thấy vấn đề trong khi đang chọn), một lần nữa **ngay trước khi ghi**.
+
+Lý do cho lần thứ hai: danh sách gợi ý dựng lúc mở màn hình có thể đã cũ —
+người quản lý bên tab kia vừa lưu một phân công khác, hoặc một giáo viên vừa
+báo nghỉ. Cùng một tinh thần với khoá lạc quan của `luuTKB()`.
+
+Có xung đột thì **không dòng nào được lưu**, và hộp thoại nói rõ ai · khi nào ·
+vì sao. Không lưu một phần rồi báo lỗi phần còn lại.
+
+### Tham số `boQua` — chỗ dễ sót nhất
+
+Khi người quản lý ĐỔI phương án đã chọn, tiết cũ đang được dời đi nên không
+được tính là "người này đã bận". Thiếu tham số này thì đổi phương án lần thứ
+hai là app tự báo xung đột với chính nó. Đúng khuôn `dangChiemPhong(…, boLop)`
+đã dùng cho phòng chức năng — cùng một bài toán, nên dùng cùng một lối giải.
+
+### Ba phương án, không bày điểm số
+
+Người dùng là hiệu trưởng. Họ cần biết *"vì sao người này"*, không cần biết
+137 hơn 129. Điểm phạt là ngôn ngữ của thuật toán, không phải của người quyết.
+
+Cùng lý do ấy, bảng so sánh phương án ở màn hình *Xếp kỹ* đã **bỏ cột "Điểm
+phạt"** và thay bằng năm con số nói thẳng: tiết đã xếp · chưa xếp · xung đột ·
+tiết trống giữa buổi · lượt đổi điểm trường (`chiSoPhuongAn()`).
+
+### KHÔNG dựng bảng thông báo riêng
+
+Mọi dòng thông báo đều suy ra được từ `bao_nghi` và `day_thay`. Thêm một bảng
+nữa là thêm một chỗ để lệch dữ liệu mà không có thêm một thông tin nào — và
+thêm một quy tắc RLS phải nuôi.
+
+Ba chỗ hiện huy hiệu (chuông · mục Dạy thay · khối Việc cần xử lý) đều gọi
+`vieccanXuLy()`. Ba chỗ đếm bằng ba đoạn mã riêng thì sớm muộn lệch nhau.
+
+### ⚠️ CSS mới chèn SAU media query thì mọi quy tắc điện thoại thành vô hiệu
+
+Bẫy đã dính thật. Khối CSS của các thành phần mới được chèn ngay trước
+`</style>` — tức là **sau** các `@media(max-width:900px)` vốn nằm giữa tệp.
+Cùng độ ưu tiên thì quy tắc đứng sau thắng, nên `.viec-so{grid-template-columns:
+repeat(2,1fr)}` trong media query bị `.viec-so{...auto-fit...}` ở khối mới đè
+lên. Toàn bộ phần tối ưu điện thoại nằm đó mà không chạy, và **không có lỗi
+nào** — chỉ là bố cục không đúng ý.
+
+Bắt được nhờ chụp ảnh thật ở 360px rồi so với ý định, không phải nhờ phép thử.
+Nay khối mới nằm trước mọi media query. Quy tắc chung: **CSS đáp ứng luôn phải
+là phần cuối cùng của bảng kiểu.**
+
+### ⚠️ `dsMonDung()` trả mảng CHUỖI, không phải mảng đối tượng
+
+Ô tìm kiếm chung viết `m.ten` trên kết quả của `dsMonDung()` — ra `undefined`,
+nên mục *Môn học* lặng lẽ biến mất khỏi kết quả tìm. Không lỗi, không cảnh
+báo, chỉ thiếu. Khác hẳn `S.monHoc` vốn là mảng đối tượng có `.ten`.
+
+### ⚠️ Cắt danh sách kết quả tìm phải cắt theo TỪNG LOẠI
+
+Gõ "Diễn" thì 24 lớp *… · Diễn Liên* chiếm hết chỗ, và điểm trường **Diễn
+Liên** — đúng thứ người dùng đang tìm — bị `slice(0,24)` đẩy văng ra ngoài.
+Nay mỗi loại tối đa `TIM_MOI_LOAI = 6`.
+
+### Việc cần xử lý lên trước cả thời khóa biểu
+
+Ngày 2/8 đã chốt "sản phẩm lên trước, quy trình lùi sau" — thời khóa biểu là
+khối đầu Bảng điều hành. Nay có một thứ được xếp lên trước nó nữa: **Việc cần
+xử lý**.
+
+Không mâu thuẫn, vì tiêu chí vẫn là một: *thứ nào có hạn giờ hơn thì lên
+trước*. Cô A ốm sáng nay, tám giờ vào tiết — đó là việc của hôm nay. Tiến độ
+xếp thời khóa biểu thì tuần sau xem cũng được. Thời khóa biểu vẫn đứng **trước
+ba thẻ bước**, phép thử canh cả hai thứ tự.
+
+Không ai báo nghỉ thì khối ấy vẫn hiện, nói thẳng *"Hôm nay không có giáo viên
+báo nghỉ."* — người dùng cần biết điều đó, không phải nhìn khoảng trống rồi tự
+đoán là chưa tải xong.
+
+### Thẻ số liệu đổi từ navy sang nền trắng
+
+Ngày 1/8 gộp bốn màu cam · lục · lam · tím thành một khối navy. Nay đổi tiếp
+sang **nền trắng, chỉ giữ vạch màu 4px bên trái và ô biểu tượng có màu**. Lý
+do: navy là màu của thanh điều hướng; dùng lại cho số liệu khiến hai thứ khác
+hẳn nhau trông như cùng một loại, và một khối màu đậm chiếm hết đầu trang thì
+mắt không còn chỗ nghỉ. Bốn con số ấy vốn đã có nhãn chữ ở dưới.
+
+### Hỏi trước khi xoá kết quả xếp
+
+Nút *Xoá kết quả* trước đây bấm một cái là bay sạch 710 tiết, chỉ còn dòng
+thông báo nhỏ mách nước bấm Hoàn tác — mà nút Hoàn tác lại nằm ở màn hình
+KHÁC. Nay hỏi trước, nói rõ **số tiết** và **số tiết đã ghim tay** (đó là công
+sức chỉnh tay, xếp lại không dựng lại được).
+
+### Nút Đặt lại mã giáo viên *(3/8/2026)*
+
+Phát hiện khi soi máy chủ thật: `ma_gv` của cô Nguyễn Thị Oanh là
+`1cc77cb6-df3d-469e-ac36-e4bc2171590f` — dư âm của lỗi upsert `ma_gv: g.id`.
+Lỗi đã vá hôm 2/8 nên không đẻ thêm hồ sơ trùng, nhưng dữ liệu để lại thì chưa
+ai dọn. Dựng bộ hàm y khuôn *Đặt lại mã lớp*.
+
+**Kiểm chốt an toàn TRƯỚC khi viết một dòng nào.** Đổi `ma_gv` là chạm đúng
+vào khoá tự nhiên đã gây ra thảm hoạ 105 hồ sơ. Đọc lại `ghiDuLieuNguon()`
+thấy nó đã tách hai nhánh — ai có trên máy chủ thì upsert theo `id` — nên đổi
+mã chỉ SỬA dòng cũ. An toàn. Nếu chưa có nhánh ấy thì việc này tuyệt đối không
+được làm.
+
+**Ngưỡng "xấu" phải nới từ 14 lên 20.** Mã giáo viên dài hơn mã lớp một cách
+tự nhiên (tên gọi + ba chữ cái + hậu tố `_2`). Để nguyên 14 thì chính mã do
+hàm sinh ra lại bị coi là xấu, `chuanMaGV()` chạy lại mỗi lần nạp và app báo
+"vừa đặt lại mã" mãi không thôi. Có phép thử canh: *"Mã do chính hàm sinh ra
+không bao giờ tự bị coi là xấu"* và *"chạy hai lần thì lần sau đổi 0 mã"*.
+
+**⚠️ Một phép thử xanh mà không kiểm được gì.** Phép thử *"Từng dòng phân công
+khớp nguyên bản"* của vòng xuất–nhập ma trận đối chiếu `gvId` nội bộ với mã
+trong tệp Excel. Nó đã ánh xạ ngược cho LỚP (có chú thích hẳn hoi) nhưng bỏ qua
+GIÁO VIÊN — và vẫn xanh suốt, vì `maGV` khi ấy còn trống nên `bangMauMaTran()`
+rơi về `g.id`, hai thứ tình cờ bằng nhau.
+
+Đặt mã đọc được là nó đỏ ngay. Bài học: **phép thử so hai giá trị tình cờ bằng
+nhau thì không chứng minh được gì** — nó chỉ nằm đó cho yên tâm. Chỗ đáng ngờ
+là những phép so mà hai vế lẽ ra phải đi qua một phép ánh xạ.

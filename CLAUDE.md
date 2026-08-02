@@ -104,7 +104,11 @@ tkb_phien_ban id, truong_id, version, nguoi_sua, du_lieu(jsonb), tao_luc
 nguoi_dung    id, truong_id, ho_ten, email, vai_tro, diem_truong_id
 nhat_ky       id, truong_id, nguoi_dung_id, hanh_dong, thoi_diem, du_lieu_cu
 day_thay      id, truong_id, ngay(date), buoi, tiet, lop_id, mon,
-              gv_vang_id, gv_thay_id(null=lớp tự quản), ghi_chu, nguoi_tao
+              gv_vang_id, gv_thay_id(null=lớp tự quản), ghi_chu, nguoi_tao,
+              da_xem, bao_nghi_id
+bao_nghi      id, truong_id, giao_vien_id, ngay(date), buoi_nghi('S'|'C'|'CN'),
+              ly_do, ghi_chu, trang_thai('cho'|'xong'|'huy'), gui_luc,
+              nguoi_gui, nguoi_xu_ly, xu_ly_luc
 ```
 
 **`day_thay` là bảng theo NGÀY, không phải theo tuần** *(2/8/2026 —
@@ -112,6 +116,20 @@ day_thay      id, truong_id, ngay(date), buoi, tiet, lop_id, mon,
 đối không sửa vào khuôn TKB tuần. Cả trường đọc được (giáo viên phải thấy
 tiết mình dạy thay), chỉ quản lý ghi; trùng khoá (ngày·buổi·tiết·lớp) thì
 `luuDayThay()` ghi đè qua `on_conflict` + `resolution=merge-duplicates`.
+
+**`bao_nghi` là bảng DUY NHẤT giáo viên được ghi vào** *(3/8/2026 —
+`db/bao-nghi.sql`)*. Đừng nhầm nó với `gv_nghi`: `gv_nghi` là buổi bận **lặp
+lại hằng tuần**, dữ liệu nguồn để XẾP lịch; `bao_nghi` là việc của **một ngày**
+— cô A ốm sáng thứ Ba 15/9. Nhét chung một bảng thì một lần ốm làm hỏng cả
+khuôn tuần. Quy tắc RLS cho giáo viên tự gửi và tự huỷ hồ sơ của **chính mình**
+(nối qua `giao_vien.nguoi_dung_id = auth.uid()`), chỉ khi còn `trang_thai='cho'`;
+quản lý đọc hết và chuyển trạng thái. Đọc bằng `.catch(() => [])` như hai bảng
+dưới — cơ sở dữ liệu chưa chạy tệp SQL vẫn mở app bình thường.
+
+⚠️ Cột tên là **`buoi_nghi`**, không phải `buoi`. Lý do rất cụ thể: enum
+`buoi_t` chỉ có `S` và `C`, còn báo nghỉ có thêm `CN` (cả ngày). Đặt tên cột
+trùng với một enum khác nghĩa là bẫy đọc nhầm cho người sửa sau — `npm run soat`
+bắt đúng chuyện này ngay lần chạy đầu, trước khi kịp dán vào SQL Editor.
 
 **`mon_hoc` và `phong` là hai bảng thêm sau** *(1/8/2026 — `db/mon-hoc-phong.sql`)*.
 Trước đó danh mục môn nằm cứng trong mã (`MON_LOP`, `MON_NANG`, `MON_NHE`) nên
@@ -248,6 +266,67 @@ TRỢ GIÚP      Hướng dẫn sử dụng
               Thẻ tài khoản + chấm báo tình trạng máy chủ
 ```
 
+#### Nay là NĂM NHÓM MỞ ĐƯỢC, không phải ba bước phẳng *(3/8/2026)*
+
+Quy trình ba bước ở trên đúng cho người **đang xếp lần đầu**, nhưng sau đó
+thanh bên còn phải chứa cả việc **trong năm học** — dạy thay, thông báo,
+phiên bản, nhật ký, tài khoản. Hai mươi tám mục bày phẳng một mạch thì thanh
+bên dài gấp đôi màn hình điện thoại và mắt không có mốc nào để bám.
+
+```
+ĐIỀU HÀNH               Bảng điều hành · Xếp thời khóa biểu · Dạy thay ●
+                        · Thông báo ● · Báo nghỉ
+TRA CỨU THỜI KHÓA BIỂU  Toàn trường · Theo khối · Theo lớp · Theo giáo viên
+                        · Thời khóa biểu của tôi
+DỮ LIỆU NHÀ TRƯỜNG      Thông tin trường · Điểm trường · Khối và khung giờ
+                        · Lớp học · Giáo viên · Môn học · Phân công chuyên môn
+                        · Phòng học · Buổi bận và tiết cố định
+QUẢN LÝ VÀ KẾT QUẢ      Kiểm tra khả thi · Các phương án đã lưu
+                        · Phiên bản và công bố · Xuất và in · Nhật ký
+HỆ THỐNG                Người dùng và phân quyền · Sao lưu dữ liệu
+                        · Hướng dẫn sử dụng
+```
+
+**Thông tin trường thuộc DỮ LIỆU NHÀ TRƯỜNG, không phải HỆ THỐNG** *(3/8/2026)*.
+Tên đơn vị, năm học, địa bàn là **dữ liệu của nhà trường**, không phải thiết
+lập kỹ thuật — và nó là việc khai đầu tiên nên đứng đầu nhóm. Đặt nhầm sang
+HỆ THỐNG thì người dùng đi tìm ở nhóm mình đang khai dở mà không thấy.
+
+**KHÔNG còn "Bước 1/2/3" ở bất cứ đâu trên màn hình** *(3/8/2026)*. Thanh bên
+chia theo năm nhóm chức năng, mà màn hình lại vẫn ghi *"Bước 1 · Khai báo dữ
+liệu — Việc 4 trong 16"*: **hai cách đánh số song song cho cùng một thứ**,
+người dùng phải tự dịch qua lại, và con số "16" đếm theo một chuỗi mà thanh
+menu không hề bày ra. Nay `TEN_BUOC` dùng đúng tên nhóm của thanh bên
+(*Dữ liệu nhà trường · Xếp thời khóa biểu · Tra cứu và xuất*), `dieuHuongBuoc()`
+chỉ còn nhãn nhóm + tên màn hình + hai nút ‹ trước / tiếp theo ›. Có phép thử
+quét cả 12 màn hình, không cho chữ `Bước <số>` nào lọt ra.
+
+**Nhãn nhóm phải ĐẬM HƠN tên mục nằm dưới nó.** Bản đầu để 10px màu `--nav-mo`
+nhạt — đúng kiểu nhãn phụ của bản menu phẳng cũ, nhưng nay nhãn nhóm là **mốc
+điều hướng chính**. Chữ mờ hơn cả mục con là thứ bậc lộn ngược, và chủ dự án
+nhận xét ngay: *"các mục lớn thì bị nuốt"*. Nay 11.5px, `font-weight:800`,
+màu `#B9C4E4`, kèm vạch ngăn phía trên để năm khối tách bạch cả khi cùng đóng.
+
+Bốn quy tắc, cả bốn đều có phép thử:
+
+- **Mở app thì chỉ nhóm ĐIỀU HÀNH bung sẵn.** Trạng thái nằm ở `S.nhomMo`
+  chứ không phải ở DOM — vẽ lại màn hình mà nhóm sập xuống là lỗi khó chịu
+  nhất của kiểu menu này.
+- **Chọn một trang thì nhóm chứa trang ấy TỰ bung** (`dungMenu()`). Người
+  dùng tự bấm đóng/mở nhóm khác thì tôn trọng lựa chọn ấy.
+- **Nhóm đang đóng mà bên trong có việc gấp thì gắn huy hiệu đỏ lên nhãn
+  nhóm** — không thì huy hiệu nằm khuất, đúng thứ nó sinh ra để tránh.
+- **Nhãn nhóm đọc theo VAI TRÒ.** Với giáo viên, "ĐIỀU HÀNH" là chữ sai —
+  họ không điều hành gì cả. `capNhatDem()` đổi thành *CỦA TÔI* và
+  *THỜI KHÓA BIỂU*.
+
+⚠️ Mỗi `.mi` mang sẵn `data-nh` ghi mình thuộc nhóm nào. Đừng quay lại lối
+dò `nextElementSibling` như bản phẳng cũ — thêm một mục là lệch hết.
+
+Ba mức hiện mục, gộp trong `thayDuocMuc(t)`:
+`MUC_GIAO_VIEN` (5 mục) · `MUC_TOAN_TRUONG` (người dùng · sao lưu · phiên bản,
+chỉ hiệu trưởng và PHT chuyên môn) · còn lại mọi quản lý đều thấy.
+
 **Đáy thanh bên chỉ còn thẻ tài khoản** *(1/8/2026)*. Ba nút cũ đã chuyển tới
 nơi thực sự dùng chúng — thanh bên là chỗ điều hướng, không phải chỗ chứa mọi
 việc lặt vặt:
@@ -374,6 +453,44 @@ Bốn hàm: `maXauXi()` nhận diện, `tienToDT()` lấy chữ đầu, `maLopTu
 `datLaiMaLop()` đổi và chống trùng. Chỉ đụng `maLop` — mọi tham chiếu khác đi
 bằng `id`. `sinhLop()` và `taoDuLieuThu()` dùng cùng dạng.
 
+#### Mã GIÁO VIÊN cũng phải là mã NGƯỜI đọc được *(3/8/2026)*
+
+Y hệt chuyện mã lớp hôm 2/8, và cùng một gốc: lỗi upsert `ma_gv: g.id` đã ghi
+UUID 36 ký tự của máy chủ vào cột `ma_gv`. Lỗi đã vá nên không đẻ thêm hồ sơ
+trùng, nhưng **dữ liệu để lại thì vẫn xấu** — mà `ma_gv` chính là thứ người
+dùng đọc trong bảng Giáo viên và gõ vào cột `Ma_GV` của tệp Excel.
+
+Dạng mã do đó chốt là **`<tên gọi>_<viết tắt họ và đệm>`** — `Oanh_NT`,
+`Hương_PT`, `Chung_TT`. Tên gọi đứng trước vì ba lý do: đó là thứ nhà trường
+dùng để gọi nhau; sắp theo mã thì **các cặp trùng tên gọi nằm sát nhau**, nhìn
+ra ngay đúng bốn cặp mà R09 vẫn cảnh báo; và gõ vào Excel thì gõ phần mình nhớ
+trước. **Giữ nguyên dấu** — *Thùy* và *Thủy* bỏ dấu đều thành `Thuy`.
+
+| Hàm | Việc |
+|---|---|
+| `maXauChuoi(m, toiDa)` | phép thử chung "mã thế nào là xấu" — mã lớp và mã giáo viên dùng chung một định nghĩa |
+| `maGVTu(hoTen)` | sinh mã từ họ tên |
+| `maGVXau(g)` | nhận diện mã cần chữa (ngưỡng 20, không phải 14) |
+| `datLaiMaGV(tatCa)` | đổi và chống trùng |
+| `chuanMaGV()` | chạy tự động lúc nạp, **chỉ chữa mã xấu** |
+
+Ba điều bắt buộc:
+
+- **Chỉ đụng `maGV`.** Mọi tham chiếu khác đi bằng `id`. Có phép thử chụp lại
+  toàn bộ phân công · chủ nhiệm · lưới · tài khoản trước và sau, đòi giống hệt.
+- **Đổi mã KHÔNG đẻ dòng mới trên máy chủ** vì `ghiDuLieuNguon()` đã tách hai
+  nhánh: ai có trên máy chủ thì upsert theo `id`. Đừng bao giờ gộp hai nhánh ấy —
+  đó đúng là chỗ đã đẻ ra 105 hồ sơ ngày 2/8.
+- **Ngưỡng "xấu" của mã giáo viên là 20 ký tự, không phải 14 như mã lớp.** Đặt
+  bằng 14 thì chính mã do `maGVTu()` sinh ra lại bị coi là xấu, và mỗi lần nạp
+  dữ liệu app lại báo "vừa đặt lại mã" — phiền mà không sửa được gì.
+
+⚠️ Bẫy đã lộ ra khi làm việc này: phép thử *"Từng dòng phân công khớp nguyên
+bản"* của vòng xuất–nhập ma trận **vẫn xanh dù thiếu một phép ánh xạ**. Nó đối
+chiếu `gvId` nội bộ với mã trong tệp Excel, và hai thứ ấy **tình cờ trùng nhau**
+suốt vì `maGV` còn trống nên rơi về `g.id`. Đặt mã đọc được là lộ ngay. Bài học:
+phép thử so hai thứ *tình cờ bằng nhau* thì không kiểm được gì cả.
+
 #### Sản phẩm lên trước, quy trình lùi sau *(2/8/2026)*
 
 Chủ dự án nêu đúng chỗ hổng của quy trình ba bước: *"sản phẩm đầu ra quan
@@ -409,6 +526,80 @@ Ba hàm giữ quy trình này:
   chưa có chủ nhiệm".
 - `dieuHuongBuoc()` **trả rỗng cho vai trò giáo viên**. Họ chỉ vào xem lịch,
   bày lối đi sang màn hình khác là làm khó họ.
+
+#### BÁO NGHỈ VÀ DẠY THAY — tiện ích điều hành *(3/8/2026)*
+
+Đây là tính năng dùng **suốt năm học**, khác hẳn phần xếp lịch chỉ dùng vài
+tuần tháng 8. Định vị đúng của nó: *một tiện ích điều hành trong app thời
+khóa biểu*, **không phải hệ thống quản lý nghỉ phép**. Mọi quyết định dưới
+đây đều xuất phát từ câu ấy.
+
+**Vòng đời một việc:** giáo viên gửi thông báo nghỉ → app tự đọc lưới TKB ra
+các tiết cần bố trí → gợi ý ba phương án → Ban Giám hiệu chọn → lưu vào
+`day_thay` → thông báo tới người dạy thay. Giáo viên **không phải nhập lại
+tiết nào**; họ chỉ chọn ngày, buổi, lý do.
+
+Ba tầng hàm trong vùng LOGIC, tách bạch cố ý — đều là hàm thuần, `npm test`
+gọi thẳng:
+
+| Hàm | Việc |
+|---|---|
+| `tietCanThay(bn)` | việc gì phải làm — đọc thẳng từ `S.tkb` |
+| `ungVienThay(o, gvVang, ngay, lich, boQua)` | ai làm được — **LỌC CỨNG rồi mới chấm điểm** |
+| `phuongAnThay(bn, boQua)` | ba phương án gói sẵn cho người quản lý chọn |
+| `xungDotDayThay(ds, boQua)` | chốt chặn cuối, chạy lại **ngay trước khi lưu** |
+| `vieccanXuLy()` | một nguồn sự thật cho cả ba chỗ hiện huy hiệu |
+
+**LỌC trước, CHẤM ĐIỂM sau.** Người vướng ràng buộc cứng phải **BIẾN MẤT**
+khỏi danh sách, không phải xuống cuối — xếp cuối thì vẫn có người bấm nhầm.
+Bảy trường hợp bị loại, mỗi cái một dòng `return` riêng để sửa một điều kiện
+không đụng vào sáu điều kiện kia: chính người đang nghỉ · cũng đang báo nghỉ ·
+đang có tiết cùng giờ · đã đăng ký buổi bận · đã nhận dạy thay lớp khác cùng
+tiết · đang ở điểm trường khác trong buổi ấy · đã kín `GIOI_HAN_TIET_BUOI`.
+
+**`boQua` là tham số bắt buộc phải nhớ.** Khi người quản lý ĐỔI phương án đã
+chọn, tiết cũ đang được dời đi nên không được tính là "người này đã bận" —
+đúng khuôn `dangChiemPhong(…, boLop)` của phòng chức năng.
+
+**Kiểm tra xung đột chạy HAI lần**: một lần lúc vẽ màn hình (để người dùng
+thấy vấn đề trong khi đang chọn, nút Xác nhận khoá luôn), một lần nữa ngay
+trước khi ghi. Danh sách gợi ý dựng lúc mở màn hình có thể đã cũ: người quản
+lý bên tab kia vừa lưu một phân công khác, hoặc một giáo viên vừa báo nghỉ.
+Có xung đột thì **không dòng nào được lưu** và hộp thoại nói rõ ai · khi nào ·
+vì sao.
+
+**Ba phương án, KHÔNG bày điểm số.** Người dùng là hiệu trưởng — họ cần biết
+"vì sao người này" (*trống cả buổi · cùng điểm trường · đã từng dạy lớp này ·
+chuyên môn phù hợp · chỉ có 2 tiết trong ngày*), không cần biết 137 hơn 129.
+Mỗi phương án ưu tiên để **một người dạy trọn cả buổi** vì đó là cách nhà
+trường vẫn làm; không ai trống trọn buổi thì tự chuyển sang ghép nhiều người
+theo từng tiết **và nói rõ ra**, chứ không im lặng.
+
+**Cán bộ quản lý chỉ vào phương án dự phòng** — trừ 200 điểm. Biết ai là cán
+bộ quản lý nhờ đọc thêm bảng `nguoi_dung` lúc tải (`S.giaoVienQL`).
+
+**Ba chỗ hiện thông báo đều lấy từ `vieccanXuLy()`** — chuông trên thanh đầu
+trang, huy hiệu mục *Dạy thay*, khối *Việc cần xử lý* ở Bảng điều hành. Ba
+chỗ đếm bằng ba đoạn mã riêng thì sớm muộn lệch nhau.
+
+**KHÔNG dựng bảng thông báo riêng.** Mọi dòng đều suy ra được từ `bao_nghi`
+và `day_thay`: quản lý thấy thông báo nghỉ `trang_thai='cho'`, giáo viên thấy
+tiết `day_thay` của mình chưa `da_xem`. Thêm một bảng nữa là thêm một chỗ để
+lệch dữ liệu mà không có thêm thông tin nào.
+
+**Chỉ đếm việc từ HÔM NAY trở đi.** Thông báo nghỉ của tuần trước không còn là
+việc phải làm; để đấy chỉ tổ làm huy hiệu đỏ mãi không tắt.
+
+**Biểu mẫu báo nghỉ đúng bốn ô** — ngày, buổi, lý do, ghi chú — và lọt gọn
+một màn hình điện thoại. Cố ý **không có**: đơn dài, tệp minh chứng, chữ ký
+điện tử, phê duyệt nhiều bước, trạng thái hành chính. Ba nút buổi và năm nút
+lý do là **nút bấm to 44px**, không phải ô chọn xổ xuống: thầy cô thao tác
+bằng ngón cái, và bày hết ra vẫn gọn hơn bắt mở danh sách. Biểu mẫu xem trước
+luôn **số tiết sẽ phải bố trí**, để thầy cô biết mình để lại việc gì.
+
+Bản in lịch dạy thay dùng lại `khungIn()` nên thể thức giống hệt mọi bản in
+khác. Ba lối ra: **In · Xuất Word · Sao chép gửi Zalo** — bản Zalo là chữ
+thuần gom theo ngày, vì Zalo không nhận bảng.
 
 #### Ô tìm kiếm trong danh sách dài *(2/8/2026)*
 
@@ -521,6 +712,8 @@ Vùng `/*#region XUAT*/` chỉ dựng **bảng hai chiều thuần dữ liệu**
 - Bản in rộng dùng `khungIn(..., rong=true)` → lớp `.rong` → `@page rong`.
 - Tệp Excel nay có `TOAN_TRUONG`, `KHOI_1…KHOI_5`, `TKB_LOP`, `TKB_GV`, `PCGD`,
   `DIEM_TRUONG`.
+- Bản thứ năm thêm 3/8/2026: **Lịch phân công dạy thay** (`trangInDayThay`),
+  A4 ngang, in đúng khoảng đang lọc trên màn hình chứ không in cả năm học.
 
 #### Khổ giấy chọn theo số cột, không theo thói quen *(1/8/2026)*
 
@@ -837,6 +1030,17 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
         và một màn hình soi lại; không nên nằm trên đường tới ngày khai giảng.
 - [ ] Dọn hồ sơ giáo viên và lớp thừa của bộ dữ liệu thử trên máy chủ thật
       *(2/8/2026)*. Chạy `db/soi-tai-khoan-gv.sql` để biết còn sót gì.
+- [ ] **Chạy `db/cai-dat.sql` lại một lần trên máy chủ thật** để có bảng
+      `bao_nghi` và hai cột mới của `day_thay` (`da_xem`, `bao_nghi_id`).
+      Chưa chạy thì app vẫn mở bình thường — đọc bằng `.catch(() => [])` —
+      nhưng gửi báo nghỉ sẽ báo đúng câu "máy chủ chưa có bảng báo nghỉ".
+- [ ] **Âm báo nhẹ khi có thông báo mới** *(§9 bản giao việc 3/8/2026, ghi rõ
+      là tuỳ chọn)*. Chưa làm: cần một nút bật/tắt và một chỗ nhớ lựa chọn ấy,
+      mà chỗ nhớ duy nhất được phép dùng là `localStorage` — vốn đang chỉ giữ
+      vé đăng nhập. Không nên chen vào trước ngày khai giảng.
+- [ ] **Đẩy thông báo thời gian thực** (Supabase Realtime). Hiện thông báo chỉ
+      cập nhật khi tải lại dữ liệu; đủ dùng cho quy mô một trường, nhưng cô A
+      báo nghỉ lúc 6h sáng thì hiệu trưởng phải mở lại app mới thấy.
 - [ ] Nhập lớp và giáo viên THẬT của Diễn Đồng, Diễn Thái khi danh sách chốt.
       Đường đã thông: gộp ba bảng phân công vào một tệp Excel, cột `Ma_lop` đặt
       tiền tố theo trường (`DL-1A`, `DD-1A`, `DT-1A`), `Ten_lop` giữ nguyên.

@@ -31,6 +31,8 @@ const NGUON = [
   'sua-thong-tin-truong.sql', // quy tắc UPDATE để lưu được tên trường, năm học
                          // — thiếu nó thì đổi tên đơn vị sau sáp nhập không lưu nổi
   'day-thay.sql',        // phân công dạy thay theo ngày
+  'bao-nghi.sql',        // giáo viên báo nghỉ theo ngày — phải SAU day-thay.sql
+                         //   vì có `alter table day_thay add column`
   'ma-moi.sql',          // vào trường bằng Google + mã mời
   'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
 ];

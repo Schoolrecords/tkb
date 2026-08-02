@@ -86,6 +86,47 @@ await chup('16-tao-du-lieu-thu',  { cao: 1000, lam: async p => {
   await p.fill('#ttTien', 'DD');
 } });
 
+/* ---------- Báo nghỉ và dạy thay (2/8/2026) ---------- */
+/* Dựng sẵn một thông báo nghỉ để màn hình có nội dung thật, không phải
+   ảnh của một màn hình trống. */
+const baoNghi = p => p.evaluate(() => {
+  const lop = Object.keys(S.tkb).find(l => S.tkb[l]['2-S-0']);
+  const co = S.tkb[lop]['2-S-0'];
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  const s = n => String(n).padStart(2, '0');
+  let ngay = `${d.getFullYear()}-${s(d.getMonth() + 1)}-${s(d.getDate())}`;
+  /* nhảy qua cuối tuần để có tiết thật */
+  while ([0, 6].includes(new Date(ngay + 'T00:00:00').getDay())) {
+    const x = new Date(ngay + 'T00:00:00'); x.setDate(x.getDate() + 1);
+    ngay = `${x.getFullYear()}-${s(x.getMonth() + 1)}-${s(x.getDate())}`;
+  }
+  S.baoNghi = [{id: 'bn1', gvId: co.gvId, ngay, buoi: 'S',
+    lyDo: 'Nghỉ ốm', ghiChu: '', trangThai: 'cho'}];
+});
+await chup('18-day-thay', { cao: 1050, lam: async p => {
+  await xep(p); await baoNghi(p); await di('daythay')(p); } });
+await chup('19-phuong-an-day-thay', { cao: 1100, lam: async p => {
+  await xep(p); await baoNghi(p); await di('daythay')(p);
+  await p.click('[data-xemphuongan]'); } });
+await chup('20-bao-nghi', { cao: 1000, lam: async p => {
+  await xep(p);
+  await p.evaluate(() => { S.nguoiDung = {vaiTro:'gv', gvId:S.giaoVien[0].id, diemTruongId:null}; });
+  await di('baonghi')(p); } });
+await chup('21-thong-bao', { cao: 950, lam: async p => {
+  await xep(p); await baoNghi(p); await di('thongbao')(p); } });
+await chup('22-viec-can-xu-ly', { cao: 1050, lam: async p => {
+  await xep(p); await baoNghi(p); await di('dieuhanh')(p); } });
+await chup('23-dt-bao-nghi', { rong: 390, cao: 860, lam: async p => {
+  await xep(p);
+  await p.evaluate(() => { S.nguoiDung = {vaiTro:'gv', gvId:S.giaoVien[0].id, diemTruongId:null}; });
+  await di('baonghi')(p); } });
+await chup('24-dt-day-thay', { rong: 390, cao: 860, lam: async p => {
+  await xep(p); await baoNghi(p); await di('daythay')(p); } });
+await chup('25-dt-360-bang-dieu-hanh', { rong: 360, cao: 800, lam: async p => {
+  await xep(p); await baoNghi(p); await di('dieuhanh')(p); } });
+await chup('26-dt-430-bang-dieu-hanh', { rong: 430, cao: 900, lam: async p => {
+  await xep(p); await baoNghi(p); await di('dieuhanh')(p); } });
+
 /* Trường CHƯA khai gì — thanh tiến trình phải chỉ rõ từng việc còn thiếu */
 await chup('13-truong-moi-chua-co-gi', { lam: p => p.evaluate(() => {
   S.lop = []; S.giaoVien = []; S.phanCong = []; S.tkb = {};

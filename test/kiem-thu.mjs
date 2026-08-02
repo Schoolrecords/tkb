@@ -40,6 +40,9 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   tuMayChu, napVaoS, dongGoiTKB, docTKB, taiCauHinh,
   diaChiDangNhapGoogle, donVeOAuth, dungMaMoi, sinhMaMoi, taoMaMoi, dsMaMoi,
   tietVangCua, goiYDayThay, luuDayThay, xoaDayThay,
+  tietCanThay, ungVienThay, phuongAnThay, xungDotDayThay, vieccanXuLy,
+  thongBaoCuaGV, buoiCuaNghi, ngayISO, ngayCong, ngayDayDu, thuTuISO,
+  LY_DO_NGHI, TEN_BUOI_NGHI, chiSoPhuongAn, guiBaoNghi, huyBaoNghi, danhDauXuLy,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
@@ -51,6 +54,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   chuanMon, laMonNang, laMonNhe, monCanPhong,
   coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
   taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
+  maGVTu, maGVXau, datLaiMaGV, chuanMaGV, maXauChuoi,
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi };`;
@@ -63,6 +67,9 @@ const taoUngDung = (doc, win, layMang) =>
 const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiNhatKy, sinhMaMoi,
         tietVangCua, goiYDayThay, luuDayThay,
+        tietCanThay, ungVienThay, phuongAnThay, xungDotDayThay, vieccanXuLy,
+        thongBaoCuaGV, buoiCuaNghi, ngayISO, ngayCong, ngayDayDu,
+        chiSoPhuongAn, guiBaoNghi,
         tuMayChu, napVaoS, dongGoiTKB, docTKB,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
         apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
@@ -75,6 +82,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         chuanMon, laMonNang, laMonNhe, monCanPhong,
         coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
         taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
+        maGVTu, maGVXau, datLaiMaGV, maXauChuoi,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi } = taoUngDung(documentGia);
@@ -1057,12 +1065,18 @@ kt('Vòng khép kín: xuất ma trận rồi nhập lại — 0 lỗi, đủ 35 
    rtDL.soLoi === 0 && rtDL.giaoVien.length === 35 && rtDL.lop.length === 25 &&
    rtDL.phanCong.length === 265 && rtDL.tongTiet === 710,
    `${rtDL.soLoi} lỗi · ${rtDL.phanCong.length} dòng · ${rtDL.tongTiet} tiết`);
-/* Tệp Excel tham chiếu lớp bằng MÃ LỚP, còn S.phanCong bằng id nội bộ —
-   ánh xạ ngược trước khi so, không thì so mã với id. */
+/* Tệp Excel tham chiếu lớp bằng MÃ LỚP và giáo viên bằng MÃ GIÁO VIÊN, còn
+   S.phanCong dùng id nội bộ — ánh xạ ngược CẢ HAI trước khi so, không thì so
+   mã với id.
+
+   ⚠️ Trước 3/8/2026 phép thử này chỉ ánh xạ lớp mà bỏ qua giáo viên, và vẫn
+   xanh — vì `maGV` khi ấy còn trống nên `bangMauMaTran()` rơi về `g.id`, hai
+   thứ tình cờ trùng nhau. Đặt mã giáo viên đọc được là lộ ngay chỗ thiếu. */
 kt('Từng dòng phân công khớp nguyên bản — đúng người, đúng lớp, đúng môn, đúng tiết', (() => {
-  const idCua = {}; S.lop.forEach(l => { idCua[l.maLop || l.id] = l.id; });
+  const idLop = {}; S.lop.forEach(l => { idLop[l.maLop || l.id] = l.id; });
+  const idGV = {}; S.giaoVien.forEach(g => { idGV[g.maGV || g.id] = g.id; });
   const bo = new Set(rtDL.phanCong.map(p =>
-    `${p.gvId}|${idCua[p.lopId] || p.lopId}|${p.mon}|${p.soTiet}`));
+    `${idGV[p.gvId] || p.gvId}|${idLop[p.lopId] || p.lopId}|${p.mon}|${p.soTiet}`));
   return S.phanCong.every(p => bo.has(`${p.gvId}|${p.lopId}|${p.mon}|${p.soTiet}`));
 })());
 kt('Chủ nhiệm giữ nguyên qua vòng xuất nhập',
@@ -1791,6 +1805,392 @@ kt('Trường trắng thì mẫu vẫn có dòng ví dụ để hiểu cách ghi
   const m = u.bangMauNhap();
   return !m.coThat && m.gv.length > 1 && m.lop.length > 1 && m.pc.length > 1;
 })());
+
+/* ==================================================================
+   18. BÁO NGHỈ VÀ PHƯƠNG ÁN DẠY THAY
+   ------------------------------------------------------------------
+   Mười bảy kịch bản của §23 trong bản giao việc. Chạy trên lưới THẬT của
+   Trường TH Diễn Liên đã xếp xong, không phải dữ liệu bịa — vì cái cần
+   chứng minh chính là "trên dữ liệu thật thì máy không đề xuất bậy".
+   ================================================================== */
+console.log('\n18. Báo nghỉ và phương án dạy thay');
+{
+  const u = taoUngDung(documentGia);
+  u.S.tkb = {}; u.S.lop.forEach(l => u.S.tkb[l.id] = {});
+  u.xepTuDong(0);
+  const T2 = '2026-09-07';                       /* thứ Hai */
+  const T3 = '2026-09-08';                       /* thứ Ba */
+  const CN = '2026-09-13';                       /* Chủ nhật */
+
+  kt('Ngày 7/9/2026 đúng là thứ Hai, 13/9 là Chủ nhật',
+     u.thuTuISO(T2) === 2 && u.thuTuISO(CN) === 1);
+  kt('Nghỉ cả ngày quy ra đúng hai buổi sáng và chiều',
+     u.buoiCuaNghi('CN').join() === 'S,C'
+     && u.buoiCuaNghi('S').join() === 'S');
+  kt('Đúng năm lý do nghỉ, không thêm thủ tục hành chính nào',
+     u.LY_DO_NGHI.length === 5 && u.LY_DO_NGHI.includes('Nghỉ ốm')
+     && u.LY_DO_NGHI.includes('Đi công tác'));
+
+  /* Chọn một giáo viên có tiết cả sáng lẫn chiều thứ Hai */
+  const lich = u.lichTraGV();
+  const gvCoTiet = u.S.giaoVien.find(g => {
+    const o = lich[g.id] || {};
+    return Object.keys(o).some(k => k.startsWith('2-S-'))
+        && Object.keys(o).some(k => k.startsWith('2-C-'));
+  }) || u.S.giaoVien.find(g => Object.keys(lich[g.id] || {}).length);
+
+  /* ----- 1 · 2 · 3: nghỉ sáng, nghỉ chiều, nghỉ cả ngày ----- */
+  const sang = u.tietCanThay({gvId: gvCoTiet.id, ngay: T2, buoi: 'S'});
+  const chieu = u.tietCanThay({gvId: gvCoTiet.id, ngay: T2, buoi: 'C'});
+  const caNgay = u.tietCanThay({gvId: gvCoTiet.id, ngay: T2, buoi: 'CN'});
+  kt('Nghỉ buổi SÁNG: máy tự đọc ra đúng các tiết sáng, không phải nhập tay',
+     sang.length > 0 && sang.every(o => o.buoi === 'S'),
+     `${sang.length} tiết`);
+  kt('Nghỉ buổi CHIỀU: chỉ ra tiết chiều', chieu.every(o => o.buoi === 'C'),
+     `${chieu.length} tiết`);
+  kt('Nghỉ CẢ NGÀY: đúng bằng sáng cộng chiều, không sót không thừa',
+     caNgay.length === sang.length + chieu.length, `${caNgay.length} tiết`);
+  kt('Mỗi tiết nói đủ lớp, môn, điểm trường — bảng của §10 dựng được ngay',
+     sang.every(o => o.lopId && o.mon && o.dtId));
+  kt('Nghỉ ngày Chủ nhật thì không có tiết nào để bố trí',
+     u.tietCanThay({gvId: gvCoTiet.id, ngay: CN, buoi: 'CN'}).length === 0);
+
+  /* ----- 6 · 7 · 9: lọc người không hợp lệ ----- */
+  const o1 = sang[0];
+  const uv = u.ungVienThay(o1, gvCoTiet.id, T2);
+  kt('Có ứng viên dạy thay cho tiết đầu tiên', uv.length > 0, `${uv.length} người`);
+  kt('KHÔNG ai trong danh sách đang có tiết đúng ô giờ ấy', (() => {
+    const l = u.lichTraGV();
+    return uv.every(x => !(l[x.gv.id] || {})[o1.khoa]);
+  })());
+  kt('KHÔNG ai đang đứng lớp ở điểm trường KHÁC trong buổi đó', (() => {
+    const l = u.lichTraGV();
+    const dtLop = u.S.lopDT[o1.lopId];
+    return uv.every(x => {
+      const o = l[x.gv.id] || {};
+      const dt = new Set(Object.keys(o).filter(k => k.startsWith(`2-${o1.buoi}-`))
+        .map(k => u.S.lopDT[o[k]]));
+      return dt.size === 0 || dt.has(dtLop);
+    });
+  })());
+  kt('KHÔNG ai đã đăng ký buổi bận cố định vào buổi đó',
+     uv.every(x => !(u.S.gvNghi[x.gv.id] || []).includes(`2-${o1.buoi}`)));
+  kt('Chính người đang nghỉ không bao giờ tự dạy thay mình',
+     !uv.some(x => x.gv.id === gvCoTiet.id));
+  kt('Mỗi ứng viên đều kèm LÝ DO bằng chữ, không phải con số',
+     uv.every(x => Array.isArray(x.lyDo) && x.lyDo.length > 0
+       && typeof x.lyDo[0] === 'string'));
+
+  /* Người thứ hai cũng báo nghỉ đúng buổi ấy → phải biến mất khỏi gợi ý */
+  const nan = uv[0].gv.id;
+  u.S.baoNghi = [{id: 'x1', gvId: nan, ngay: T2, buoi: o1.buoi,
+    lyDo: 'Nghỉ ốm', ghiChu: '', trangThai: 'cho'}];
+  kt('Người CŨNG đang báo nghỉ thì biến mất khỏi gợi ý, không phải xuống cuối',
+     !u.ungVienThay(o1, gvCoTiet.id, T2).some(x => x.gv.id === nan));
+  kt('Nhưng nghỉ buổi SÁNG thì buổi chiều vẫn dùng được — không loại oan cả ngày', (() => {
+    if (!chieu.length) return true;
+    /* So sánh đúng một điều: có mặt trong danh sách buổi chiều KHI báo nghỉ
+       sáng, giống hệt khi chưa báo nghỉ gì. Nếu họ vốn không đủ điều kiện
+       cho buổi chiều vì lý do khác thì hai lần đều vắng — vẫn là bằng nhau. */
+    const co = () => u.ungVienThay(chieu[0], gvCoTiet.id, T2).some(x => x.gv.id === nan);
+    const khiNghiSang = co();
+    const luu = u.S.baoNghi; u.S.baoNghi = [];
+    const khiKhongNghi = co();
+    u.S.baoNghi = luu;
+    return khiNghiSang === khiKhongNghi;
+  })());
+  u.S.baoNghi = [];
+
+  /* ----- 8: người đã được phân dạy thay lớp khác cùng tiết ----- */
+  const lopKhac = u.S.lop.find(l => l.id !== o1.lopId
+    && u.S.lopDT[l.id] === u.S.lopDT[o1.lopId]);
+  u.S.dayThay = [{id: 'd1', ngay: T2, buoi: o1.buoi, tiet: o1.i, lopId: lopKhac.id,
+    mon: 'Toán', gvVangId: gvCoTiet.id, gvThayId: nan, ghiChu: '', daXem: false}];
+  kt('Người đã nhận dạy thay lớp khác đúng tiết ấy thì không được gợi ý nữa',
+     !u.ungVienThay(o1, gvCoTiet.id, T2).some(x => x.gv.id === nan));
+  kt('Nhưng bỏ chính dòng ấy ra (khi ĐỔI phương án) thì họ lại hợp lệ',
+     u.ungVienThay(o1, gvCoTiet.id, T2, null, ['d1']).some(x => x.gv.id === nan));
+  u.S.dayThay = [];
+
+  /* ----- 10 · 11: một người cả buổi, hoặc nhiều người từng tiết ----- */
+  const bn = {id: 'bn1', gvId: gvCoTiet.id, ngay: T2, buoi: 'S',
+    lyDo: 'Nghỉ ốm', ghiChu: '', trangThai: 'cho'};
+  const pa = u.phuongAnThay(bn);
+  kt('Đề xuất tối đa BA phương án, không nhiều hơn', pa.pa.length <= 3
+     && pa.pa.length > 0, `${pa.pa.length} phương án`);
+  kt('Mỗi phương án bố trí đủ MỌI tiết, không bỏ sót tiết nào',
+     pa.pa.every(p => p.phan.length === pa.tiet.length));
+  kt('Ba phương án khác nhau thật sự, không phải ba bản sao', (() => {
+    const van = pa.pa.map(p => p.phan.map(x => x.gvId || '-').join('|'));
+    return new Set(van).size === van.length;
+  })());
+  kt('Phương án "một người cả buổi" thì đúng một người gánh mọi tiết', (() => {
+    const p = pa.pa.find(x => x.kieu === 'ca-buoi');
+    return !p || new Set(p.phan.map(x => x.gvId)).size === 1;
+  })());
+  kt('Không phương án nào đề xuất người vướng ràng buộc cứng', (() => {
+    const l = u.lichTraGV();
+    return pa.pa.every(p => p.phan.every(x =>
+      !x.gvId || !(l[x.gvId] || {})[x.o.khoa]));
+  })());
+  kt('Cán bộ quản lý chỉ vào phương án dự phòng, không đứng đầu bảng', (() => {
+    /* gán một người làm cán bộ quản lý rồi xem họ tụt hạng */
+    const id = uv[uv.length > 2 ? 1 : 0].gv.id;
+    const truoc = u.ungVienThay(o1, gvCoTiet.id, T2).findIndex(x => x.gv.id === id);
+    u.S.giaoVienQL = [id];
+    const sau = u.ungVienThay(o1, gvCoTiet.id, T2).findIndex(x => x.gv.id === id);
+    u.S.giaoVienQL = [];
+    return sau > truoc;
+  })());
+
+  /* ----- 14 · chốt chặn xung đột ----- */
+  kt('Lưới đang xếp không có xung đột nào — nền để đo mọi phép thử sau',
+     u.chiSoPhuongAn().xungDot === 0);
+  kt('Ép một người dạy hai lớp cùng một tiết thì BẮT ĐƯỢC, không lọt', (() => {
+    const loi = u.xungDotDayThay([
+      {ngay: T2, buoi: o1.buoi, tiet: o1.i, lopId: o1.lopId, mon: o1.mon,
+       gvVangId: gvCoTiet.id, gvThayId: nan},
+      {ngay: T2, buoi: o1.buoi, tiet: o1.i, lopId: lopKhac.id, mon: o1.mon,
+       gvVangId: gvCoTiet.id, gvThayId: nan}]);
+    return loi.length > 0;
+  })());
+  kt('Phương án do chính máy đề xuất thì KHÔNG BAO GIỜ có xung đột', (() => {
+    return pa.pa.every(p => u.xungDotDayThay(p.phan.map(x => ({
+      ngay: T2, buoi: x.o.buoi, tiet: x.o.i, lopId: x.o.lopId, mon: x.o.mon,
+      gvVangId: gvCoTiet.id, gvThayId: x.gvId}))).length === 0);
+  })());
+  kt('Lớp tự quản (không chọn ai) không sinh xung đột',
+     u.xungDotDayThay([{ngay: T2, buoi: o1.buoi, tiet: o1.i, lopId: o1.lopId,
+       mon: o1.mon, gvVangId: gvCoTiet.id, gvThayId: null}]).length === 0);
+  kt('Câu báo xung đột nói rõ AI, KHI NÀO và VÌ SAO — đủ để sửa ngay', (() => {
+    const l = u.lichTraGV();
+    for (const x of uv) {
+      const cua = l[x.gv.id] || {};
+      const k = Object.keys(cua).find(y => y.startsWith('2-') && cua[y] !== o1.lopId);
+      if (!k) continue;
+      const [, b, i] = k.split('-');
+      const loi = u.xungDotDayThay([{ngay: T2, buoi: b, tiet: +i, lopId: o1.lopId,
+        mon: o1.mon, gvVangId: gvCoTiet.id, gvThayId: x.gv.id}]);
+      if (loi.length) return !!(loi[0].gv && loi[0].noi && loi[0].vi);
+    }
+    return false;
+  })());
+
+  /* ----- 4 · 5: hai giáo viên nghỉ cùng buổi, có tiết trùng nhau ----- */
+  const gv2 = u.S.giaoVien.find(g => g.id !== gvCoTiet.id
+    && Object.keys(u.lichTraGV()[g.id] || {}).some(k => k.startsWith('2-S-')));
+  u.S.baoNghi = [
+    {id: 'a', gvId: gvCoTiet.id, ngay: T2, buoi: 'S', lyDo: 'Nghỉ ốm', ghiChu: '', trangThai: 'cho'},
+    {id: 'b', gvId: gv2.id, ngay: T2, buoi: 'S', lyDo: 'Đi công tác', ghiChu: '', trangThai: 'cho'}];
+  const vc = u.vieccanXuLy();
+  kt('Hai giáo viên nghỉ cùng buổi thì đếm đủ cả hai, cộng đúng tổng số tiết',
+     vc.soNghi === 2
+     && vc.soTiet === u.tietCanThay(u.S.baoNghi[0]).length
+                    + u.tietCanThay(u.S.baoNghi[1]).length,
+     `${vc.soNghi} người · ${vc.soTiet} tiết`);
+  kt('Người thứ hai đang nghỉ thì không được gợi ý dạy thay cho người thứ nhất',
+     !u.ungVienThay(o1, gvCoTiet.id, T2).some(x => x.gv.id === gv2.id));
+  kt('Đánh dấu đã xử lý một trường hợp thì số việc còn tồn giảm đúng một', (() => {
+    u.S.baoNghi[0].trangThai = 'xong';
+    const r = u.vieccanXuLy();
+    u.S.baoNghi[0].trangThai = 'cho';
+    return r.soNghi === 1 && r.daXuLy.length === 1;
+  })());
+  kt('Thông báo nghỉ của NGÀY ĐÃ QUA không còn tính là việc phải làm', (() => {
+    const cu = u.S.baoNghi.map(b => ({...b}));
+    u.S.baoNghi.forEach(b => b.ngay = '2020-01-06');
+    const r = u.vieccanXuLy();
+    u.S.baoNghi = cu;
+    return r.soNghi === 0;
+  })());
+
+  /* ----- 13 · huỷ báo nghỉ · 17 · huy hiệu giảm ----- */
+  kt('Giáo viên huỷ thông báo khi chưa xử lý thì việc cần làm biến mất', (() => {
+    u.S.baoNghi = u.S.baoNghi.filter(b => b.id !== 'b');
+    return u.vieccanXuLy().soNghi === 1;
+  })());
+
+  /* ----- 16 · 17: thông báo của giáo viên và huy hiệu ----- */
+  u.S.dayThay = pa.tiet.map((o, i) => ({id: 'n' + i, ngay: T2, buoi: o.buoi,
+    tiet: o.i, lopId: o.lopId, mon: o.mon, gvVangId: gvCoTiet.id,
+    gvThayId: nan, ghiChu: '', daXem: false}));
+  kt('Người được phân dạy thay thấy đủ số tiết trong thông báo của mình',
+     u.thongBaoCuaGV(nan).length === pa.tiet.length);
+  kt('Huy hiệu chưa xem giảm về 0 sau khi bấm Đã xem', (() => {
+    const truoc = u.thongBaoCuaGV(nan).filter(x => !x.daXem).length;
+    u.S.dayThay.forEach(x => x.daXem = true);
+    const sau = u.thongBaoCuaGV(nan).filter(x => !x.daXem).length;
+    return truoc === pa.tiet.length && sau === 0;
+  })());
+  kt('Thông báo sắp xếp theo ngày rồi tới buổi rồi tới tiết — đọc là hiểu', (() => {
+    const ds = u.thongBaoCuaGV(nan);
+    for (let i = 1; i < ds.length; i++) {
+      const a = ds[i - 1], b = ds[i];
+      const ka = `${a.ngay}|${a.buoi === 'S' ? 0 : 1}|${String(a.tiet).padStart(2, '0')}`;
+      const kb = `${b.ngay}|${b.buoi === 'S' ? 0 : 1}|${String(b.tiet).padStart(2, '0')}`;
+      if (ka > kb) return false;
+    }
+    return true;
+  })());
+
+  /* ----- Câu chữ xác nhận của §8 ----- */
+  kt('Câu xác nhận ghi đủ thứ, ngày, tháng, năm — "Thứ Ba, ngày 08/09/2026"',
+     u.ngayDayDu(T3) === 'Thứ Ba, ngày 08/09/2026', u.ngayDayDu(T3));
+  kt('Tên buổi nghỉ đọc thành lời, không phải mã S · C · CN',
+     u.TEN_BUOI_NGHI.S === 'buổi sáng' && u.TEN_BUOI_NGHI.CN === 'cả ngày');
+  kt('Cộng ngày không nhảy sai qua đầu tháng', u.ngayCong('2026-08-31', 1) === '2026-09-01');
+
+  /* ----- 19: thuật toán xếp không hề suy suyển ----- */
+  kt('Cả bộ báo nghỉ không đụng gì tới lưới thời khóa biểu — vẫn 710/710 tiết',
+     ...((() => {
+       const xep = u.S.lop.reduce((s, l) => s + Object.keys(u.S.tkb[l.id] || {}).length, 0);
+       return [xep === 710, `${xep}/710 tiết`];
+     })()));
+  kt('Năm chỉ số so sánh phương án đều tính ra số hợp lệ', (() => {
+    const c = u.chiSoPhuongAn();
+    return ['daXep', 'thieu', 'xungDot', 'trong', 'diChuyen']
+      .every(k => Number.isFinite(c[k]) && c[k] >= 0);
+  })());
+
+  /* ----- Chưa nối máy chủ thì mọi đường ghi đều báo rõ ----- */
+  kt('Chưa nối máy chủ: gửi báo nghỉ báo rõ, không văng lỗi', await (async () => {
+    const r = await u.guiBaoNghi({gvId: gvCoTiet.id, ngay: T2, buoi: 'S', lyDo: 'Nghỉ ốm'});
+    return r.ok === false && /máy chủ/i.test(r.thongBao);
+  })());
+}
+
+/* ==================================================================
+   19. MÃ GIÁO VIÊN PHẢI LÀ MÃ NGƯỜI ĐỌC ĐƯỢC
+   ------------------------------------------------------------------
+   Cùng câu chuyện với mã lớp, cùng gốc: lỗi upsert `ma_gv: g.id` ngày
+   2/8/2026 ghi UUID của máy chủ vào cột ma_gv. Lỗi đã vá, dữ liệu để
+   lại thì chưa. Bộ này canh cả hình dạng mã lẫn CHỐT AN TOÀN quan
+   trọng nhất: đổi mã không được đụng vào bất cứ tham chiếu nào.
+   ================================================================== */
+console.log('\n19. Mã giáo viên đọc được');
+{
+  const u = taoUngDung(documentGia);
+
+  kt('Dạng mã là "tên gọi _ viết tắt họ và đệm"', ...((() => {
+    const m = u.maGVTu('Nguyễn Thị Oanh');
+    return [m === 'Oanh_NT', m];
+  })()));
+  kt('Họ đệm dài thì lấy tối đa ba chữ cái đầu', ...((() => {
+    const m = u.maGVTu('Nguyễn Thị Kim Oanh');
+    return [m === 'Oanh_NTK', m];
+  })()));
+  kt('GIỮ NGUYÊN DẤU — Thùy và Thủy phải ra hai mã khác nhau', ...((() => {
+    const a = u.maGVTu('Nguyễn Thị Thùy'), b = u.maGVTu('Nguyễn Thị Hồng Thủy');
+    return [a !== b && /ù/.test(a) && /ủ/.test(b), `${a} ≠ ${b}`];
+  })()));
+  kt('Tên gõ ở dạng dấu RỜI vẫn ra cùng mã với dạng dựng sẵn', ...((() => {
+    const a = u.maGVTu('Nguyễn Thị Oanh');
+    const b = u.maGVTu('Nguyễn Thị Oanh'.normalize('NFD'));
+    return [a === b, `${a} = ${b}`];
+  })()));
+  kt('Tên chỉ một từ thì không có hậu tố thừa',
+     u.maGVTu('Oanh') === 'Oanh' && u.maGVTu('') === 'GV');
+
+  kt('Mã UUID bị nhận là XẤU, mã tử tế thì không', (() => {
+    return u.maGVXau({maGV: '1cc77cb6-df3d-469e-ac36-e4bc2171590f'})
+      && u.maGVXau({maGV: ''})
+      && !u.maGVXau({maGV: 'Oanh_NT'})
+      && !u.maGVXau({maGV: 'GV01'});
+  })());
+  kt('Mã do chính hàm sinh ra KHÔNG BAO GIỜ tự bị coi là xấu', (() => {
+    /* Nếu sai thì mỗi lần nạp dữ liệu app lại báo "vừa đặt lại mã" */
+    return u.S.giaoVien.every(g => !u.maGVXau({maGV: u.maGVTu(g.hoTen)}));
+  })());
+
+  kt('Đặt lại toàn bộ 35 giáo viên thì mã nào cũng đọc được', ...((() => {
+    const n = u.datLaiMaGV(true);
+    const xau = u.S.giaoVien.filter(g => u.maGVXau(g));
+    return [n > 0 && xau.length === 0, `đổi ${n} mã, còn ${xau.length} mã xấu`];
+  })()));
+  kt('Không hai giáo viên nào trùng mã — mã là khoá tự nhiên', ...((() => {
+    const ma = u.S.giaoVien.map(g => g.maGV);
+    return [new Set(ma).size === ma.length, `${new Set(ma).size}/${ma.length} mã riêng biệt`];
+  })()));
+  kt('Trùng hệt cả họ tên thì người sau mang hậu tố _2', ...((() => {
+    const v = taoUngDung(documentGia);
+    v.S.giaoVien = [
+      {id: 'a', maGV: '', hoTen: 'Nguyễn Thị Dung', cn: '', dinhMuc: 23},
+      {id: 'b', maGV: '', hoTen: 'Nguyễn Thị Dung', cn: '', dinhMuc: 23}];
+    v.datLaiMaGV(true);
+    const m = v.S.giaoVien.map(g => g.maGV);
+    return [m[0] === 'Dung_NT' && m[1] === 'Dung_NT_2', m.join(' · ')];
+  })()));
+  kt('Bốn cặp trùng TÊN GỌI nằm sát nhau khi sắp theo mã', ...((() => {
+    /* Đây là lợi ích chính của việc xếp tên gọi lên trước: nhìn danh sách
+       sắp theo mã là thấy ngay các cặp dễ nhầm — đúng thứ R09 cảnh báo. */
+    const ma = u.S.giaoVien.map(g => g.maGV).sort((a, b) => a.localeCompare(b, 'vi'));
+    const cap = [];
+    for (let i = 1; i < ma.length; i++)
+      if (ma[i].split('_')[0] === ma[i - 1].split('_')[0]) cap.push(ma[i].split('_')[0]);
+    return [cap.length >= 3, cap.join(' · ') || 'không cặp nào'];
+  })()));
+
+  kt('CHỐT AN TOÀN: đổi mã KHÔNG đụng phân công, chủ nhiệm hay lưới', ...((() => {
+    const v = taoUngDung(documentGia);
+    v.xepTuDong(0);
+    const truoc = {
+      pc: JSON.stringify(v.S.phanCong),
+      cn: JSON.stringify(v.S.giaoVien.map(g => [g.id, g.cn])),
+      id: JSON.stringify(v.S.giaoVien.map(g => g.id)),
+      tiet: v.S.lop.reduce((s, l) => s + Object.keys(v.S.tkb[l.id] || {}).length, 0),
+      ten: JSON.stringify(v.S.giaoVien.map(g => g.hoTen))
+    };
+    v.datLaiMaGV(true);
+    const sau = {
+      pc: JSON.stringify(v.S.phanCong),
+      cn: JSON.stringify(v.S.giaoVien.map(g => [g.id, g.cn])),
+      id: JSON.stringify(v.S.giaoVien.map(g => g.id)),
+      tiet: v.S.lop.reduce((s, l) => s + Object.keys(v.S.tkb[l.id] || {}).length, 0),
+      ten: JSON.stringify(v.S.giaoVien.map(g => g.hoTen))
+    };
+    const giong = Object.keys(truoc).every(k => truoc[k] === sau[k]);
+    return [giong && sau.tiet === 710, `${sau.tiet}/710 tiết, mọi tham chiếu nguyên vẹn`];
+  })()));
+  kt('Tài khoản đăng nhập đã nối cũng không bị xê dịch', (() => {
+    const v = taoUngDung(documentGia);
+    v.S.giaoVien[0].nguoiDungId = 'nd-abc';
+    v.datLaiMaGV(true);
+    return v.S.giaoVien[0].nguoiDungId === 'nd-abc';
+  })());
+
+  kt('Chạy tự động lúc nạp CHỈ chữa mã xấu, không đụng mã tử tế sẵn có',
+     ...((() => {
+       const v = taoUngDung(documentGia);
+       v.S.giaoVien[0].maGV = 'GV01';                       /* trường tự đặt, đẹp */
+       v.S.giaoVien[1].maGV = '1cc77cb6-df3d-469e-ac36-e4bc2171590f';  /* UUID */
+       const n = v.datLaiMaGV();                            /* không truyền tatCa */
+       return [v.S.giaoVien[0].maGV === 'GV01'
+         && !v.maGVXau(v.S.giaoVien[1]) && n >= 1,
+         `giữ GV01, chữa ${n} mã xấu`];
+     })()));
+  kt('Chạy hai lần liên tiếp thì lần sau không đổi gì nữa — đã hội tụ',
+     ...((() => {
+       const v = taoUngDung(documentGia);
+       v.datLaiMaGV(true);
+       const lai = v.datLaiMaGV(true);
+       return [lai === 0, `lần hai đổi ${lai} mã`];
+     })()));
+
+  kt('Mã lớp vẫn đúng như cũ sau khi tách hàm maXauChuoi dùng chung', (() => {
+    const v = taoUngDung(documentGia);
+    return v.maXauXi({maLop: '', id: 'lop_1A'}) === true
+      && v.maXauXi({maLop: '1A_DL', id: 'x'}) === false
+      && v.maXauXi({maLop: '1cc77cb6-df3d-469e-ac36-e4bc2171590f', id: 'x'}) === true;
+  })());
+  kt('Tệp Excel xuất ra mang mã mới, không còn UUID nào', ...((() => {
+    const v = taoUngDung(documentGia);
+    v.S.giaoVien[0].maGV = '1cc77cb6-df3d-469e-ac36-e4bc2171590f';
+    v.datLaiMaGV(true);
+    const mau = v.bangMauNhap();
+    const uuid = mau.gv.slice(1).filter(h => /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(h[1])));
+    return [uuid.length === 0, `${mau.gv.length - 1} dòng, 0 mã UUID`];
+  })()));
+}
 
 /* ---------- Tổng kết ---------- */
 console.log(`\n\x1b[1mKết quả: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);

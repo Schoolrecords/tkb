@@ -160,11 +160,25 @@ kt('Chưa xếp gì thì Bảng điều hành bày đủ ba bước hướng d�
 kt('Xếp xong rồi thì thôi bày ba thẻ "Xong", nhường chỗ cho thời khóa biểu',
    w.document.querySelectorAll('.bbuoc .bb').length === 0 &&
    !!w.document.querySelector('#noiDung .tt'));
-kt('Mỗi màn hình khai báo có dải điều hướng bước', (() => {
+kt('Mỗi màn hình khai báo có dải điều hướng, ghi tên NHÓM chứ không phải "Bước N"', (() => {
   w.chuyen('lop');
   const d = w.document.querySelector('.dhb');
-  return !!d && /Bước 1/.test(d.textContent);
+  /* Từ 3/8/2026 màn hình và thanh menu dùng CHUNG một bộ tên. Chữ "Bước 1"
+     là bộ đánh số thứ hai song song, đã bỏ hẳn. */
+  return !!d && /Dữ liệu nhà trường/.test(d.textContent)
+    && !/Bước/.test(d.textContent) && !/Việc \d+ trong/.test(d.textContent);
 })());
+kt('Không còn chữ "Bước N" nào lọt ra màn hình, ở bất kỳ trang nào', ...((() => {
+  const bay = [];
+  for (const t of ['dieuhanh','thongtin','lop','giaovien','phancong','kiemtra',
+                   'xep','toantruong','tkblop','xuatin','huongdan','daythay']) {
+    w.chuyen(t);
+    const m = w.document.querySelector('#noiDung').textContent.match(/Bước\s*\d/);
+    if (m) bay.push(`${t}: ${m[0]}`);
+  }
+  w.chuyen('dieuhanh');
+  return [bay.length === 0, bay.join(' · ') || 'sạch cả 12 màn hình'];
+})()));
 kt('Nút “tiếp theo” đi đúng màn hình kế trong chuỗi', (() => {
   w.chuyen('lop');
   const nut = [...w.document.querySelectorAll('.dhb [data-di]')].find(b => /Giáo viên/.test(b.textContent));
@@ -297,8 +311,23 @@ w.chuyen('lop');                                   /* gõ tay vào màn hình kh
 kt('Giáo viên bị đẩy về lịch cá nhân, không lạc vào màn hình khai báo',
    S.trangHienTai === 'cuatoi');
 const hien = [...w.document.querySelectorAll('.mi')].filter(m => m.style.display !== 'none');
-kt('Thanh bên chỉ còn ba mục dành cho giáo viên',
-   hien.length === 3, hien.map(m => m.dataset.t).join(' · '));
+/* Từ 2/8/2026 là NĂM mục: thêm Báo nghỉ và Thông báo. Hai việc này là
+   của chính thầy cô — giấu đi thì tính năng báo nghỉ thành vô dụng. */
+kt('Thanh bên chỉ còn năm mục dành cho giáo viên',
+   hien.length === 5, hien.map(m => m.dataset.t).join(' · '));
+kt('Trong đó có đủ Báo nghỉ và Thông báo — hai việc của chính thầy cô', (() => {
+  const t = hien.map(m => m.dataset.t);
+  return t.includes('baonghi') && t.includes('thongbao') && t.includes('cuatoi');
+})());
+kt('Nhưng tuyệt đối không thấy mục nào của người xếp lịch', (() => {
+  const t = hien.map(m => m.dataset.t);
+  return !['xep','phancong','daythay','giaovien','nguoidung','saoluu'].some(x => t.includes(x));
+})());
+kt('Nhãn nhóm đổi theo vai: giáo viên không "điều hành" gì cả', (() => {
+  const nh = [...w.document.querySelectorAll('.nhom')]
+    .find(b => b.dataset.monh === 'dh');
+  return /CỦA TÔI/.test(nh.textContent);
+})());
 kt('Không bày dải điều hướng bước cho giáo viên',
    !w.document.querySelector('.dhb'));
 S.nguoiDung = vaiCu;
@@ -478,34 +507,205 @@ kt('Màn hình Của tôi cũng vậy', !w.document.querySelector('#btICSToi'));
 kt('Không còn sót hàm dựng .ics nào trong trang',
    w.eval("typeof taoICS + typeof taiICS") === 'undefinedundefined');
 
-console.log('\n15d. Dạy thay, dạy bù');
+console.log('\n15d. Dạy thay — ba khu vực');
 w.chuyen('daythay');
-kt('Màn hình Dạy thay đủ bộ: chọn ngày, chọn người vắng, hai buổi, nút tìm',
-   !!w.document.querySelector('#dtNgay') && !!w.document.querySelector('#dtGV') &&
-   !!w.document.querySelector('#dtBuoiS') && !!w.document.querySelector('#dtBuoiC') &&
-   !!w.document.querySelector('#btTimThay'));
-kt('Chưa có phân công nào thì nói rõ việc cần làm, không để trống',
-   /Chưa có phân công nào/.test(w.document.querySelector('#noiDung').textContent));
-/* Chọn thứ Hai 7/9/2026 và một giáo viên đang có tiết, bấm tìm */
-w.eval(`(() => {
-  const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];
-  S.dtGV = co.gvId; S.dtNgay = '2026-09-07';
-  document.querySelector('#dtNgay').value = '2026-09-07';
-  document.querySelector('#dtGV').value = co.gvId;
-})()`);
-w.document.querySelector('#btTimThay').dispatchEvent(new w.Event('click', { bubbles: true }));
-kt('Bấm tìm là mở hộp gợi ý, mỗi tiết một ô chọn kèm lối thoát "Lớp tự quản"',
-   !!w.document.querySelector('#dtChon0') &&
-   /Lớp tự quản/.test(w.document.querySelector('#hopN').innerHTML) &&
-   /tiết cần người dạy thế/.test(w.document.querySelector('#hopN').textContent));
-kt('Chưa nối máy chủ mà bấm Lưu thì báo rõ, hộp vẫn giữ nguyên lựa chọn', await (async () => {
-  const nutLuu = [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Lưu phân công');
-  nutLuu.dispatchEvent(new w.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
-  return /Chưa nối máy chủ/.test(w.document.querySelector('#bao').textContent) &&
-         !!w.document.querySelector('#dtChon0');
+kt('Trang Dạy thay có đủ ba khu vực của bản giao việc', (() => {
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /Giáo viên báo nghỉ/.test(t) && /Lịch đã phân công/.test(t);
 })());
-w.eval('dong()');
+kt('Không ai báo nghỉ thì nói thẳng câu ấy, không để trống',
+   /Hôm nay không có giáo viên báo nghỉ/.test(w.document.querySelector('#noiDung').textContent));
+kt('Vẫn còn đường phân công tay khi thầy cô báo miệng',
+   !!w.document.querySelector('#btThayTay'));
+
+/* Dựng một thông báo nghỉ thật: chọn một giáo viên đang có tiết sáng thứ Hai */
+w.eval(`(() => {
+  const lop = Object.keys(S.tkb).find(l => S.tkb[l]['2-S-0']);
+  const co = S.tkb[lop]['2-S-0'];
+  S.baoNghi = [{id:'bn1', gvId:co.gvId, ngay:'2026-09-07', buoi:'S',
+    lyDo:'Nghỉ ốm', ghiChu:'', trangThai:'cho'}];
+})()`);
+w.chuyen('daythay');
+kt('Có người báo nghỉ thì hiện thẻ kèm số tiết cần bố trí', (() => {
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /Nghỉ buổi sáng/.test(t) && /tiết cần bố trí/.test(t) && /Nghỉ ốm/.test(t);
+})());
+kt('Thẻ có nút Xem phương án', !!w.document.querySelector('[data-xemphuongan]'));
+
+w.document.querySelector('[data-xemphuongan]').dispatchEvent(new w.Event('click', {bubbles:true}));
+kt('Bấm Xem phương án thì hiện bảng các tiết cần dạy thay', (() => {
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /Phương án dạy thay/.test(t) && /Điểm trường/.test(t);
+})());
+kt('Đề xuất đúng BA phương án, không nhiều không ít', ...((() => {
+  const n = w.document.querySelectorAll('.pa-the').length;
+  return [n === 3, `${n} thẻ phương án`];
+})()));
+kt('Thẻ phương án nói LÝ DO bằng chữ, tuyệt đối không bày điểm số', (() => {
+  const t = w.document.querySelector('.pa-luoi').textContent;
+  return /cùng điểm trường|trống cả buổi|đã từng dạy lớp này|chuyên môn phù hợp|Ghép/.test(t)
+    && !/\bđiểm:\s*\d/.test(t);
+})());
+kt('Phương án 1 ghi rõ là ưu tiên cao nhất, phương án 3 là dự phòng', (() => {
+  const t = w.document.querySelectorAll('.pa-the');
+  return /ưu tiên cao nhất/.test(t[0].textContent) && /dự phòng/.test(t[2].textContent);
+})());
+kt('Thẻ đang chọn có dấu tích, không chỉ dựa vào màu viền', (() => {
+  const on = w.document.querySelector('.pa-the.on');
+  return !!on && on.querySelector('.pa-tick').textContent.trim() === '✓';
+})());
+kt('Chọn phương án 2 thì dấu tích chuyển sang thẻ đó', (() => {
+  [...w.document.querySelectorAll('[data-pachon]')]
+    .find(b => b.tagName === 'BUTTON' && b.dataset.pachon === '1')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  const the = w.document.querySelectorAll('.pa-the');
+  return the[1].classList.contains('on') && !the[0].classList.contains('on');
+})());
+kt('Chuyển sang bố trí riêng từng tiết thì mỗi tiết một ô chọn', (() => {
+  w.document.querySelector('#btPaRieng').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const sel = w.document.querySelectorAll('[data-patiet]');
+  return sel.length > 0 && /Lớp tự quản/.test(sel[0].innerHTML);
+})());
+kt('Ô chọn từng tiết chỉ liệt kê người THẬT SỰ trống tiết đó', (() => {
+  const sel = w.document.querySelector('[data-patiet]');
+  const khoa = sel.dataset.patiet;
+  const hopLe = w.eval(`(() => {
+    const bn = S.baoNghi[0];
+    const o = tietCanThay(bn).find(x => x.khoa === '${khoa}');
+    return ungVienThay(o, bn.gvId, bn.ngay).map(u => u.gv.id);
+  })()`);
+  const bay = [...sel.options].map(o => o.value).filter(Boolean);
+  return bay.length > 0 && bay.every(id => hopLe.includes(id));
+})());
+kt('Người đang nghỉ không bao giờ nằm trong danh sách gợi ý', (() => {
+  const vang = w.eval('S.baoNghi[0].gvId');
+  return ![...w.document.querySelectorAll('[data-patiet]')]
+    .some(s => [...s.options].some(o => o.value === vang));
+})());
+w.document.querySelector('#btPaRieng').dispatchEvent(new w.Event('click', {bubbles:true}));
+
+console.log('\n15d2. Chốt chặn xung đột trước khi lưu');
+kt('Người đang có tiết chính khoá đúng giờ ấy thì bị bắt là xung đột', ...((() => {
+  /* Duyệt cả danh sách ứng viên để tìm người CÓ tiết vào thứ Hai ở một lớp
+     khác, rồi ép họ dạy thay đúng ô giờ ấy — §14 nói tuyệt đối không được. */
+  const r = w.eval(`(() => {
+    const bn = S.baoNghi[0];
+    const o = tietCanThay(bn)[0];
+    const lich = lichTraGV();
+    for (const uv of ungVienThay(o, bn.gvId, bn.ngay)) {
+      const cua = lich[uv.gv.id] || {};
+      const khoa = Object.keys(cua).find(k => k.startsWith('2-') && cua[k] !== o.lopId);
+      if (!khoa) continue;
+      const [t, b, i] = khoa.split('-');
+      return {ten: uv.gv.hoTen, loi: xungDotDayThay([{ngay:'2026-09-07', buoi:b,
+        tiet:+i, lopId:o.lopId, mon:o.mon, gvVangId:bn.gvId, gvThayId:uv.gv.id}])};
+    }
+    return null;
+  })()`);
+  if (!r) return [false, 'không tìm được ứng viên nào có tiết thứ Hai'];
+  return [r.loi.length > 0 && /đang có tiết dạy lớp/.test(r.loi[0].vi),
+    r.loi[0] ? r.loi[0].vi : 'không bắt được'];
+})()));
+kt('Người cũng đang báo nghỉ thì bị bắt là xung đột', (() => {
+  const loi = w.eval(`(() => {
+    const bn = S.baoNghi[0];
+    const o = tietCanThay(bn)[0];
+    const uv = ungVienThay(o, bn.gvId, bn.ngay)[0];
+    S.baoNghi.push({id:'bn2', gvId:uv.gv.id, ngay:'2026-09-07', buoi:'S',
+      lyDo:'Nghỉ ốm', ghiChu:'', trangThai:'cho'});
+    const r = xungDotDayThay([{ngay:'2026-09-07', buoi:o.buoi, tiet:o.i,
+      lopId:o.lopId, mon:o.mon, gvVangId:bn.gvId, gvThayId:uv.gv.id}]);
+    S.baoNghi = S.baoNghi.filter(x => x.id !== 'bn2');
+    return r;
+  })()`);
+  return loi.some(x => /cũng đang báo nghỉ/.test(x.vi));
+})());
+kt('Người đã đăng ký buổi bận cố định cũng bị bắt', (() => {
+  const loi = w.eval(`(() => {
+    const bn = S.baoNghi[0];
+    const o = tietCanThay(bn)[0];
+    const uv = ungVienThay(o, bn.gvId, bn.ngay)[0];
+    const cu = S.gvNghi[uv.gv.id];
+    S.gvNghi[uv.gv.id] = ['2-S'];
+    const r = xungDotDayThay([{ngay:'2026-09-07', buoi:'S', tiet:o.i,
+      lopId:o.lopId, mon:o.mon, gvVangId:bn.gvId, gvThayId:uv.gv.id}]);
+    if (cu) S.gvNghi[uv.gv.id] = cu; else delete S.gvNghi[uv.gv.id];
+    return r;
+  })()`);
+  return loi.some(x => /đã đăng ký bận/.test(x.vi));
+})());
+kt('Hai lớp khác nhau cùng một tiết mà chọn cùng một người thì chặn ngay trong mẻ', (() => {
+  const loi = w.eval(`(() => {
+    const bn = S.baoNghi[0];
+    const o = tietCanThay(bn)[0];
+    const uv = ungVienThay(o, bn.gvId, bn.ngay).find(u => {
+      const l = lichTraGV()[u.gv.id] || {};
+      return !l[o.khoa];
+    });
+    const lopKhac = S.lop.find(l => l.id !== o.lopId).id;
+    return xungDotDayThay([
+      {ngay:'2026-09-07', buoi:o.buoi, tiet:o.i, lopId:o.lopId, mon:o.mon,
+       gvVangId:bn.gvId, gvThayId:uv.gv.id},
+      {ngay:'2026-09-07', buoi:o.buoi, tiet:o.i, lopId:lopKhac, mon:o.mon,
+       gvVangId:bn.gvId, gvThayId:uv.gv.id}]);
+  })()`);
+  return loi.some(x => /đã được phân dạy thay lớp/.test(x.vi));
+})());
+kt('Lớp tự quản (không chọn ai) thì không có xung đột nào', (() => {
+  const loi = w.eval(`(() => {
+    const bn = S.baoNghi[0];
+    const o = tietCanThay(bn)[0];
+    return xungDotDayThay([{ngay:'2026-09-07', buoi:o.buoi, tiet:o.i,
+      lopId:o.lopId, mon:o.mon, gvVangId:bn.gvId, gvThayId:null}]);
+  })()`);
+  return loi.length === 0;
+})());
+kt('Chưa nối máy chủ mà bấm Xác nhận thì báo rõ, không im lặng', await (async () => {
+  w.chuyen('daythay');
+  w.document.querySelector('[data-xemphuongan]').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const n = w.document.querySelector('#btXacNhanPA');
+  n.dispatchEvent(new w.Event('click', {bubbles:true}));
+  await new Promise(r => setTimeout(r, 60));
+  return /Chưa nối máy chủ/.test(w.document.querySelector('#bao').textContent);
+})());
+
+console.log('\n15d3. Bản in và bản gửi Zalo');
+w.eval(`(() => {
+  const bn = S.baoNghi[0];
+  const ds = tietCanThay(bn);
+  S.dayThay = ds.map(o => ({id:'dt'+o.i, ngay:bn.ngay, buoi:o.buoi, tiet:o.i,
+    lopId:o.lopId, mon:o.mon, gvVangId:bn.gvId,
+    gvThayId:ungVienThay(o, bn.gvId, bn.ngay)[0].gv.id, ghiChu:'', daXem:false}));
+  S.dtLoc = 'het';
+})()`);
+w.chuyen('daythay');
+kt('Bản in có đủ tiêu đề, ngày áp dụng và hai chỗ ký', (() => {
+  const t = w.eval('trangInDayThay()');
+  return /LỊCH PHÂN CÔNG DẠY THAY/.test(t) && /Ngày áp dụng/.test(t)
+    && /NGƯỜI LẬP BIỂU/.test(t) && /HIỆU TRƯỞNG/.test(t);
+})());
+kt('Bản in ghi HỌ TÊN ĐẦY ĐỦ, không rút gọn — hai cô Dung phải phân biệt được', (() => {
+  const t = w.eval('trangInDayThay()');
+  const ten = w.eval('gvId(S.dayThay[0].gvThayId).hoTen');
+  return t.includes(ten) && ten.split(' ').length >= 2;
+})());
+kt('Bản in có đủ cột của mẫu §17', (() => {
+  const t = w.eval('trangInDayThay()');
+  return ['TT','Giáo viên nghỉ','Tiết','Lớp','Môn','Giáo viên dạy thay','Ghi chú']
+    .every(c => t.includes(c));
+})());
+kt('Bản gửi Zalo là chữ thuần, gom theo ngày, đọc được trên điện thoại', (() => {
+  const t = w.eval('vanBanDayThay()');
+  return /LỊCH DẠY THAY/.test(t) && /dạy thay/.test(t) && !/</.test(t);
+})());
+kt('Ba nút In · Word · Zalo đều có mặt khi đã có lịch', (() => {
+  return !!w.document.querySelector('#btInDayThay')
+    && !!w.document.querySelector('#btWordDayThay')
+    && !!w.document.querySelector('#btChepDayThay');
+})());
+kt('Cột Tình trạng nói rõ đã xem hay chưa, bằng CHỮ',
+   /Chưa xem/.test(w.document.querySelector('#noiDung').textContent));
+w.eval('S.dayThay = []; S.baoNghi = []; S.dtLoc = "moi"; S.bnXem = null');
 console.log('\n15e. Mẫu Excel ma trận');
 w.chuyen('lop');
 w.eval('hopNhapExcel()');
@@ -530,27 +730,59 @@ kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của t
 console.log('\n15h. Sản phẩm lên đầu Bảng điều hành');
 w.eval('KQ_XEP = xepTuDong(0)');
 w.chuyen('dieuhanh');
-kt('Xếp xong thì Bảng điều hành mở đầu bằng chính thời khóa biểu', (() => {
+/* Thứ tự mới (2/8/2026): VIỆC CẦN XỬ LÝ đứng trước cả thời khóa biểu.
+   Đó là thứ duy nhất có hạn giờ trong ngày — cô A ốm sáng nay, tám giờ vào
+   tiết. Tiến độ xếp lịch thì tuần sau xem cũng được. Nhưng thời khóa biểu
+   vẫn phải đứng TRƯỚC ba thẻ bước, đúng nguyên tắc "sản phẩm lên trước". */
+kt('Việc cần xử lý là khối đầu tiên, trước cả thời khóa biểu', (() => {
   const nd = w.document.querySelector('#noiDung');
-  const the = nd.querySelector('.the');
-  return /Thời khóa biểu/.test(the.textContent) && !!the.querySelector('.tt');
+  const dau = nd.querySelector('.viec, .the');
+  return dau.classList.contains('viec') && /Việc cần xử lý/.test(dau.textContent);
+})());
+kt('Không ai báo nghỉ thì khối ấy nói thẳng ra, không để trống', (() => {
+  const v = w.document.querySelector('#noiDung .viec');
+  return /Hôm nay không có giáo viên báo nghỉ/.test(v.textContent)
+    && !v.classList.contains('gap');
+})());
+kt('Xếp xong thì Bảng điều hành vẫn bày chính thời khóa biểu', (() => {
+  const the = [...w.document.querySelectorAll('#noiDung .the')]
+    .find(x => x.querySelector('.tt'));
+  return !!the && /Thời khóa biểu/.test(the.textContent);
+})());
+kt('Thời khóa biểu vẫn đứng TRƯỚC ba thẻ bước — sản phẩm lên trước', (() => {
+  const html = w.document.querySelector('#noiDung').innerHTML;
+  const iLuoi = html.indexOf('class="tt');
+  const iBuoc = html.indexOf('Khai báo dữ liệu');
+  return iLuoi > 0 && (iBuoc < 0 || iLuoi < iBuoc);
+})());
+kt('Có đủ sáu nút thao tác nhanh của §4', (() => {
+  const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
+  return ['kiemtra','xep','toantruong','daythay','xuatin','phienban']
+    .every(x => di.includes(x));
+})());
+kt('Chỉ MỘT nút hành động chính nổi bật trong dải thao tác nhanh', ...((() => {
+  const dai = [...w.document.querySelectorAll('#noiDung .the')]
+    .find(t => [...t.querySelectorAll('[data-di]')].length >= 5);
+  const ch = [...dai.querySelectorAll('button')].filter(b => b.className.includes('b-ch'));
+  return [ch.length === 1, `${ch.length} nút chính`];
+})()));
+kt('Thẻ số liệu nay là nền TRẮNG, không còn navy phủ kín đầu trang', (() => {
+  const css = w.document.documentElement.innerHTML;
+  const i = css.indexOf('.ts{background:var(--the)');
+  return i > 0 && /\.ts::after\{display:none\}/.test(css);
 })());
 kt('Có đủ lối đi thẳng tới bốn sản phẩm và Xuất/in', (() => {
   const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
   return ['toantruong','tkblop','tkbgv','tkbkhoi','xuatin'].every(x => di.includes(x));
 })());
-kt('Thời khóa biểu là khối ĐẦU TIÊN trên Bảng điều hành, không có gì chen trước', (() => {
-  const the = w.document.querySelector('#noiDung .the');
-  return /Thời khóa biểu/.test(the.querySelector('.the-d h2').textContent)
-    && !!the.querySelector('.tt');
-})());
+
 kt('Chưa xếp tiết nào thì không bày khối sản phẩm rỗng, ba bước lên trước', (() => {
   const luu = JSON.parse(JSON.stringify(w.eval('S.tkb')));
   w.eval('S.lop.forEach(l=>S.tkb[l.id]={}); KQ_XEP=null; ve()');
   const html = w.document.querySelector('#noiDung').innerHTML;
   const khong = !w.document.querySelector('#noiDung .the .tt');
   w.eval(`S.tkb = ${JSON.stringify(luu)}; ve()`);
-  return khong && /Khai báo dữ liệu/.test(html);
+  return khong && /Dữ liệu nhà trường/.test(html);
 })());
 kt('Vòng tròn phần trăm căn giữa bằng flex một cột, không phải lưới hai hàng', (() => {
   const css = w.document.documentElement.innerHTML;
@@ -980,6 +1212,286 @@ console.log('\n17b. Lịch trống thì phải nói ĐÚNG vì sao trống');
   S.nguoiDung = vaiCu; S.tkb = tkbCu; S.gvXem = null;
   w.chuyen('dieuhanh');
 }
+
+console.log('\n19. Menu năm nhóm mở được');
+w.chuyen('dieuhanh');
+kt('Thông tin trường nằm trong DỮ LIỆU NHÀ TRƯỜNG, không phải HỆ THỐNG', ...((() => {
+  /* Chủ dự án chỉ ra 3/8/2026: tên trường, năm học, địa bàn là DỮ LIỆU của
+     nhà trường, không phải thiết lập hệ thống. Và nó là việc khai đầu tiên
+     nên đứng đầu nhóm. */
+  const m = w.document.querySelector('.mi[data-t="thongtin"]');
+  const dl = [...w.document.querySelectorAll('.nh[data-nh="dl"] .mi')].map(x => x.dataset.t);
+  return [m.dataset.nh === 'dl' && dl[0] === 'thongtin', dl.join(' · ')];
+})()));
+kt('Nhãn nhóm đọc được, không mờ hơn tên mục nằm dưới nó', (() => {
+  const css = w.document.documentElement.innerHTML;
+  const i = css.indexOf('.nhom{display:flex');
+  const kh = css.slice(i, i + 330);
+  /* .mi để 13.5px màu #DDE3F2; nhãn nhóm phải đậm hơn hẳn chứ không nhạt hơn */
+  return /font-size:11\.5px/.test(kh) && /font-weight:800/.test(kh)
+    && /color:#B9C4E4/.test(kh) && /border-top:1px solid/.test(kh);
+})());
+kt('Thanh bên gom đúng năm nhóm', ...((() => {
+  const n = [...w.document.querySelectorAll('.nh')].map(x => x.dataset.nh);
+  return [n.length === 5 && n.join() === 'dh,tc,dl,qk,ht', n.join(' · ')];
+})()));
+kt('Mở app thì nhóm Điều hành bung sẵn, bốn nhóm kia thu lại', (() => {
+  /* Dựng lại đúng trạng thái lúc mới mở app: chưa ai bấm mở nhóm nào */
+  w.eval('S.nhomMo = {}; S.trangHienTai = "dieuhanh"; ve()');
+  const mo = [...w.document.querySelectorAll('.nh.mo')].map(x => x.dataset.nh);
+  return mo.length === 1 && mo[0] === 'dh';
+})());
+kt('Chọn một trang thì nhóm chứa trang đó TỰ bung ra', (() => {
+  w.chuyen('phancong');
+  return w.document.querySelector('.nh[data-nh="dl"]').classList.contains('mo');
+})());
+kt('Bấm nhãn nhóm là mở ra được, và trạng thái ấy GIỮ qua lần vẽ lại', (() => {
+  /* Dùng nhóm KHÔNG chứa trang đang mở: nhóm chứa trang đang mở thì
+     dungMenu() luôn bung lại — đó là hành vi đúng, không phải lỗi. */
+  w.chuyen('dieuhanh');
+  const nut = [...w.document.querySelectorAll('.nhom')].find(b => b.dataset.monh === 'ht');
+  nut.dispatchEvent(new w.Event('click', {bubbles:true}));
+  const mo = w.document.querySelector('.nh[data-nh="ht"]').classList.contains('mo');
+  w.eval('ve()');
+  const giuMo = w.document.querySelector('.nh[data-nh="ht"]').classList.contains('mo');
+  nut.dispatchEvent(new w.Event('click', {bubbles:true}));
+  w.eval('ve()');
+  const giuDong = !w.document.querySelector('.nh[data-nh="ht"]').classList.contains('mo');
+  return mo && giuMo && giuDong;
+})());
+kt('Vạch vàng đánh dấu mục đang mở vẫn còn nguyên', (() => {
+  const css = w.document.documentElement.innerHTML;
+  return /\.mi\.on::before\{[^}]*var\(--vang\)/.test(css);
+})());
+kt('Mỗi mục nhớ mình thuộc nhóm nào — không dò bằng nth-child', (() => {
+  return [...w.document.querySelectorAll('.mi')].every(m => !!m.dataset.nh);
+})());
+kt('Nhóm đang đóng mà bên trong có việc gấp thì bày huy hiệu tổng lên nhãn', (() => {
+  const css = w.document.documentElement.innerHTML;
+  return /\.nh:not\(\.mo\) \.nhom-n\.co\{display:inline-block\}/.test(css);
+})());
+
+console.log('\n19b. Năm màn hình mới của nhóm Quản lý và Hệ thống');
+for (const [t, chu] of [['phuongan','So sánh phương án'], ['phienban','Bản đang sử dụng'],
+                        ['nhatky','thao tác gần nhất'], ['nguoidung','Tài khoản đăng nhập'],
+                        ['saoluu','Tải bản sao lưu']]) {
+  w.chuyen(t);
+  kt(`Màn hình "${t}" mở được và có nội dung thật`,
+     w.eval('S.trangHienTai') === t
+     && new RegExp(chu).test(w.document.querySelector('#noiDung').textContent));
+}
+kt('Phiên bản bày đủ ba trạng thái: bản nháp · đang sử dụng · đã lưu trữ', (() => {
+  w.chuyen('phienban');
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /BẢN NHÁP/.test(t) && /ĐANG SỬ DỤNG/.test(t) && /ĐÃ LƯU TRỮ/.test(t);
+})());
+kt('Sao lưu nói rõ nạp tệp sẽ THAY dữ liệu, và máy chủ chưa đổi gì', (() => {
+  w.chuyen('saoluu');
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /sẽ THAY toàn bộ dữ liệu/.test(t) && /máy chủ chưa đổi gì/i.test(t);
+})());
+kt('Bảng phân quyền nói đủ ba vai và ghi rõ ai KHÔNG làm được gì', (() => {
+  w.chuyen('nguoidung');
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /PHT một điểm trường/.test(t) && /không/.test(t) && /Báo nghỉ/.test(t);
+})());
+
+console.log('\n19c. Biểu mẫu Báo nghỉ');
+const vaiGV = { ...S.nguoiDung };
+S.nguoiDung = { vaiTro: 'gv', gvId: S.giaoVien[0].id, diemTruongId: null };
+w.chuyen('baonghi');
+kt('Biểu mẫu đúng bốn ô — ngày, buổi, lý do, ghi chú. Không thêm thủ tục nào', (() => {
+  const nd = w.document.querySelector('#noiDung');
+  return !!nd.querySelector('#bnNgay') && nd.querySelectorAll('[data-bnbuoi]').length === 3
+    && nd.querySelectorAll('[data-bnlydo]').length === 5 && !!nd.querySelector('#bnGhiChu');
+})());
+kt('Tuyệt đối không có tệp minh chứng, chữ ký hay bước phê duyệt nào', (() => {
+  const t = w.document.querySelector('#noiDung').textContent;
+  return !/minh chứng|chữ ký|phê duyệt|trình ký/i.test(t)
+    && !w.document.querySelector('#noiDung input[type=file]');
+})());
+kt('Ba lựa chọn buổi đúng như bản giao việc: sáng · chiều · cả ngày', (() => {
+  const v = [...w.document.querySelectorAll('[data-bnbuoi]')].map(b => b.dataset.bnbuoi);
+  return v.join() === 'S,C,CN';
+})());
+kt('Ghi chú KHÔNG bắt buộc, và nói rõ điều đó ra',
+   /không bắt buộc/i.test(w.document.querySelector('#noiDung').textContent));
+kt('Xem trước ngay số tiết sẽ phải bố trí — thầy cô biết mình để lại việc gì', (() => {
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /tiết sẽ cần bố trí dạy thay/.test(t) || /không có tiết nào/.test(t);
+})());
+kt('Chọn "Cả ngày" thì số tiết xem trước tăng lên', (() => {
+  const so = () => {
+    const m = w.document.querySelector('#noiDung').textContent.match(/(\d+) tiết sẽ cần/);
+    return m ? +m[1] : 0;
+  };
+  w.eval(`S.bnBuoi='S'; ve()`); const a = so();
+  w.eval(`S.bnBuoi='CN'; ve()`); const b = so();
+  return b >= a;
+})());
+kt('Ngày nghỉ mặc định là ngày làm việc, không rơi vào thứ Bảy hay Chủ nhật', (() => {
+  const t = w.eval('thuTuISO(ngayMacDinhNghi())');
+  return t >= 2 && t <= 6;
+})());
+kt('Chưa nối máy chủ mà bấm Gửi thì báo rõ, không im lặng', await (async () => {
+  w.document.querySelector('#btGuiNghi').dispatchEvent(new w.Event('click', {bubbles:true}));
+  await new Promise(r => setTimeout(r, 60));
+  return /máy chủ/i.test(w.document.querySelector('#bao').textContent);
+})());
+kt('Màn hình Của tôi có nút Báo nghỉ và nút Thông báo ngay đầu trang', (() => {
+  w.chuyen('cuatoi');
+  const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
+  return di.includes('baonghi') && di.includes('thongbao');
+})());
+S.nguoiDung = vaiGV;
+w.chuyen('dieuhanh');
+
+console.log('\n19d. Ô tìm kiếm chung');
+kt('Bảng điều hành có ô tìm kiếm chung', !!w.document.querySelector('#timChung'));
+kt('Gõ tên giáo viên thì ra đúng người, kèm số tiết và điểm trường', (() => {
+  const g = S.giaoVien[0];
+  const tu = g.hoTen.split(' ').pop();
+  const kq = w.eval(`ketQuaTim(${JSON.stringify(tu)})`);
+  return kq.some(x => x.loai === 'Giáo viên' && /tiết\/tuần/.test(x.phu));
+})());
+kt('Tìm KHÔNG DẤU vẫn ra — thầy cô gõ điện thoại ít khi bỏ dấu đúng', (() => {
+  const g = S.giaoVien.find(x => /ươ|ơ|ê|ô|à|á/.test(x.hoTen)) || S.giaoVien[0];
+  const tu = w.eval(`khongDau(${JSON.stringify(g.hoTen.split(' ').pop())})`).toLowerCase();
+  return w.eval(`ketQuaTim(${JSON.stringify(tu)})`).some(x => x.ten === g.hoTen);
+})());
+kt('Gõ tên lớp thì ra lớp, kèm chủ nhiệm và điểm trường', (() => {
+  const kq = w.eval(`ketQuaTim('1A')`);
+  return kq.some(x => x.loai === 'Lớp' && /Chủ nhiệm/.test(x.phu));
+})());
+kt('Tìm được cả môn học và điểm trường, không chỉ người và lớp', (() => {
+  const a = w.eval(`ketQuaTim('Toán')`);
+  const b = w.eval(`ketQuaTim('Diễn')`);
+  return a.some(x => x.loai === 'Môn học') && b.some(x => x.loai === 'Điểm trường');
+})());
+kt('Gõ một chữ cái thì chưa tìm — tránh đổ cả trường ra màn hình',
+   w.eval(`ketQuaTim('a')`).length === 0);
+kt('Từ khoá khớp hàng chục lớp vẫn KHÔNG đẩy điểm trường ra ngoài danh sách',
+   ...((() => {
+     const kq = w.eval(`ketQuaTim('Diễn')`);
+     const loai = [...new Set(kq.map(x => x.loai))];
+     return [loai.includes('Điểm trường') && kq.filter(x => x.loai === 'Lớp').length <= 6,
+       loai.join(' · ')];
+   })()));
+
+console.log('\n19d2. Cảnh báo trước thao tác ảnh hưởng nhiều tiết');
+kt('Bấm "Xoá kết quả" thì HỎI trước, không xoá ngay hàng trăm tiết', (() => {
+  w.eval('KQ_XEP = xepTuDong(0)');
+  w.chuyen('xep');
+  const truoc = w.eval('soTietDaXep()');
+  w.document.querySelector('#btXoaTKB').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const conNguyen = w.eval('soTietDaXep()') === truoc;
+  const hoi = /sẽ bị xoá khỏi lưới/.test(w.document.querySelector('#hopN').textContent);
+  return truoc > 0 && conNguyen && hoi;
+})());
+kt('Hộp hỏi nói rõ SỐ TIẾT, không nói chung chung', (() => {
+  const t = w.document.querySelector('#hopN').textContent;
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  return /tiết của \d+ lớp/.test(t) && nut.some(x => /^Xoá \d+ tiết$/.test(x))
+    && nut.includes('Không xoá');
+})());
+kt('Bấm "Không xoá" thì lưới còn nguyên vẹn', (() => {
+  const truoc = w.eval('soTietDaXep()');
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Không xoá')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  return w.eval('soTietDaXep()') === truoc && truoc > 0;
+})());
+kt('Xác nhận rồi thì xoá thật, và Hoàn tác lấy lại được', (() => {
+  w.document.querySelector('#btXoaTKB').dispatchEvent(new w.Event('click', {bubbles:true}));
+  [...w.document.querySelectorAll('#hopC button')].find(b => /^Xoá \d+ tiết$/.test(b.textContent))
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  const sach = w.eval('soTietDaXep()') === 0;
+  w.eval('hoanTac()');
+  return sach && w.eval('soTietDaXep()') > 0;
+})());
+
+console.log('\n19e. Lưới: cỡ hiển thị và toàn màn hình');
+w.chuyen('toantruong');
+kt('Có đủ ba cỡ hiển thị gọn · tiêu chuẩn · rộng', (() => {
+  const v = [...w.document.querySelectorAll('[data-coluoi]')].map(b => b.dataset.coluoi);
+  return v.join() === 'gon,tc,rong';
+})());
+kt('Đổi cỡ thì lớp CSS của khung lưới đổi theo', (() => {
+  w.eval(`S.coLuoi='gon'; ve()`);
+  const gon = !!w.document.querySelector('#noiDung .luoi-gon');
+  w.eval(`S.coLuoi='rong'; ve()`);
+  const rong = !!w.document.querySelector('#noiDung .luoi-rong2');
+  w.eval(`S.coLuoi='tc'; ve()`);
+  return gon && rong;
+})());
+kt('Có nút toàn màn hình, và Esc thoát ra được', (() => {
+  const nut = w.document.querySelector('[data-toanmh]');
+  if (!nut) return false;
+  nut.dispatchEvent(new w.Event('click', {bubbles:true}));
+  const bat = w.document.body.classList.contains('toan-mh');
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+  return bat && !w.document.body.classList.contains('toan-mh');
+})());
+kt('Tiêu đề lưới vẫn dính hai chiều — khung cuộn vẫn đúng là .tt-boc', (() => {
+  const boc = w.document.querySelector('#noiDung .tt-boc');
+  return !!boc && !boc.parentElement.classList.contains('tt-boc');
+})());
+kt('Kéo thả sang ô ngoài khung giờ của khối thì nói rõ lý do', (() => {
+  /* lớp khối 1 tan sớm hơn khối 4–5, nên có ô "không tồn tại" với khối 1 */
+  const r = w.eval(`(() => {
+    const l = S.lop.find(x => x.khoi === 1);
+    S.lopXem = l.id;
+    const co = Object.keys(S.tkb[l.id])[0];
+    const ngoai = oTuan(5).map(x => x.khoa).find(k => !oTuan(1).some(y => y.khoa === k));
+    if (!ngoai || !co) return null;
+    return kiemTraChuyen(co, ngoai);
+  })()`);
+  return r === null || /đã tan trước tiết này/.test(r);
+})());
+w.chuyen('dieuhanh');
+
+console.log('\n19f. Nút Đặt lại mã giáo viên');
+w.chuyen('giaovien');
+kt('Màn hình Giáo viên có nút Đặt lại mã giáo viên',
+   !!w.document.querySelector('#btDatLaiMaGV'));
+kt('Bảng Giáo viên không còn bày mã UUID nào ra màn hình', ...((() => {
+  /* chuanMaGV() chạy sẵn lúc nạp nên tới đây phải sạch rồi */
+  const xau = w.eval('S.giaoVien.filter(g => maGVXau(g)).length');
+  return [xau === 0, `${xau} mã xấu`];
+})()));
+kt('Bấm nút thì HỎI trước và bày bảng xem trước mã cũ → mã mới', (() => {
+  /* cố tình bôi bẩn một mã để hộp có việc phải làm */
+  w.eval(`S.giaoVien[0].maGV = '1cc77cb6-df3d-469e-ac36-e4bc2171590f'; ve()`);
+  w.document.querySelector('#btDatLaiMaGV').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const t = w.document.querySelector('#hopN').textContent;
+  return /Mã hiện tại/.test(t) && /Mã mới/.test(t)
+    && /1cc77cb6/.test(w.document.querySelector('#hopN').innerHTML);
+})());
+kt('Hộp nói rõ thứ gì KHÔNG đổi — họ tên, phân công, chủ nhiệm, tài khoản', (() => {
+  const t = w.document.querySelector('#hopN').textContent;
+  return /Họ tên, phân công, lớp chủ nhiệm, tài khoản đăng nhập/.test(t)
+    && /giữ nguyên hoàn toàn/.test(t);
+})());
+kt('Bấm Huỷ thì mã giữ nguyên như cũ', (() => {
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Huỷ')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  return w.eval(`S.giaoVien[0].maGV`) === '1cc77cb6-df3d-469e-ac36-e4bc2171590f';
+})());
+kt('Xác nhận thì mã đổi, và họ tên với phân công không xê dịch', ...((() => {
+  const truoc = w.eval('JSON.stringify([S.giaoVien.map(g=>g.hoTen), S.phanCong.length])');
+  w.document.querySelector('#btDatLaiMaGV').dispatchEvent(new w.Event('click', {bubbles:true}));
+  [...w.document.querySelectorAll('#hopC button')].find(b => /^Đặt lại \d+ mã$/.test(b.textContent))
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  const sau = w.eval('JSON.stringify([S.giaoVien.map(g=>g.hoTen), S.phanCong.length])');
+  const ma = w.eval('S.giaoVien[0].maGV');
+  return [truoc === sau && !/^[0-9a-f]{8}-/.test(ma), `mã mới: ${ma}`];
+})()));
+kt('Mọi mã đều đúng dạng rồi thì hộp nói thẳng, không bày nút đổi thừa', (() => {
+  w.document.querySelector('#btDatLaiMaGV').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const t = w.document.querySelector('#hopN').textContent;
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  return /đều đã đúng dạng/.test(t) && nut.length === 1 && nut[0] === 'Đóng';
+})());
+w.eval('dong()');
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
