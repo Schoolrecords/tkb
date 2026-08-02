@@ -751,10 +751,28 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       265 dòng · 710 tiết, khớp từng dòng. Lệch chuẩn thì sửa trong app sau
       nhập hoặc dùng mẫu 3 trang (bỏ ý ghi đè `Toán:3` — thêm cú pháp là thêm
       chỗ gõ sai).
-- [ ] 3. **Đăng nhập Google + phễu demo**: thêm (không thay) đăng nhập
-      email/mật khẩu; người đăng nhập chưa thuộc trường nào thấy TKB demo
-      tương tác + hai lối "Nhập mã mời của trường" / "Đăng ký trường mới" —
-      chống lặp lại sự cố tài khoản mồ côi.
+- [x] 3. **Đăng nhập Google + phễu demo + mã mời** *(2/8/2026)*. THÊM chứ
+      không thay email/mật khẩu.
+      · **OAuth thuần GoTrue**: `dangNhapGoogle()` chuyển hướng sang
+        `/auth/v1/authorize`, `donVeOAuth()` đón vé trong `#hash` lúc mở
+        trang — không thư viện ngoài, không khoá bí mật ở trình duyệt.
+      · **Trạng thái KHÁCH** (`KHO.khach`): đăng nhập rồi nhưng chưa thuộc
+        trường nào → màn chào bày ba lối: *Khám phá bản demo* · *Nhập mã
+        mời* · *Đăng ký trường mới*. Giữ phiên, không đá ra — chống lặp
+        sự cố tài khoản mồ côi. Đăng nhập mật khẩu mồ côi cũng thành khách.
+      · **Bản demo** (`KHO.xemDemo`): mở toàn bộ giao diện với dữ liệu mẫu,
+        dải nổi nhắc + lối thoát; mọi đường ghi máy chủ vẫn bị chặn sẵn vì
+        `KHO.nguon !== 'may-chu'`. Ai chưa đăng nhập cũng xem demo được.
+      · **Mã mời** (`db/ma-moi.sql`): quản trị tạo mã 6 ký tự cho từng thầy
+        cô (nút *Mã mời Google* trong hộp Tài khoản), gửi Zalo; thầy cô đăng
+        nhập Google gõ mã là RPC `dung_ma_moi` (SECURITY DEFINER) nối vào
+        đúng hồ sơ `giao_vien` — không mật khẩu, không xác minh thư, mã dùng
+        một lần, hạn 30 ngày. Bảng mã chỉ quản lý đọc được.
+      ⚠️ **Việc tay để Google chạy thật** (ghi ở đầu `db/ma-moi.sql`):
+      tạo OAuth client trên console.cloud.google.com (redirect URI
+      `https://<dự-án>.supabase.co/auth/v1/callback`), dán Client ID/Secret
+      vào Supabase → Authentication → Providers → Google, thêm địa chỉ
+      trang vào Redirect URLs, và chạy lại `db/cai-dat.sql`.
 - [x] Thanh bên gọn lại: bỏ ba nút ở đáy, chuyển vào đúng chỗ dùng *(1/8/2026)*
 - [x] Tên đơn vị mặc định là `Trường Tiểu học mới`, Diễn Liên thành điểm trường
 - [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức

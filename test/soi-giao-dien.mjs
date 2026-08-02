@@ -502,6 +502,34 @@ kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của t
     `${r.tongTiet} tiết = chuẩn đang khai (${mong})`];
 })()));
 
+console.log('\n15f. Đăng nhập Google và phễu demo');
+/* Giả có máy chủ nhưng chưa đăng nhập → màn chào */
+w.eval(`KHO.cauHinh={url:'https://gia.supabase.co',khoa:'k'}; S.trangHienTai='chao'; ve()`);
+kt('Màn chào có nút Google, nút mật khẩu và lối vào bản demo',
+   !!w.document.querySelector('#btChaoGoogle') && !!w.document.querySelector('#btChaoVao') &&
+   !!w.document.querySelector('#btChaoDemo'));
+w.document.querySelector('#btChaoDemo').dispatchEvent(new w.Event('click', { bubbles: true }));
+kt('Bấm demo là vào thẳng bảng điều hành với dữ liệu mẫu, có dải nổi nhắc',
+   w.eval('KHO.xemDemo') === true && w.eval('S.trangHienTai') === 'dieuhanh' &&
+   w.eval('S.lop.length') > 0 && !!w.document.querySelector('#theDemo'));
+w.document.querySelector('#btDemoThoat').dispatchEvent(new w.Event('click', { bubbles: true }));
+kt('Thoát demo là về màn chào, dải nổi biến mất',
+   w.eval('KHO.xemDemo') === false && w.eval('S.trangHienTai') === 'chao' &&
+   !w.document.querySelector('#theDemo'));
+/* Khách: đã đăng nhập Google nhưng chưa thuộc trường nào */
+w.eval(`KHO.khach={email:'khach@gmail.com'}; ve()`);
+kt('Khách thấy ba lối đi: demo, mã mời, đăng ký trường — kèm email của mình',
+   /khach@gmail\.com/.test(w.document.querySelector('#noiDung').textContent) &&
+   !!w.document.querySelector('#btChaoMaMoi') && !!w.document.querySelector('#btChaoTruongMoi2'));
+w.document.querySelector('#btChaoMaMoi').dispatchEvent(new w.Event('click', { bubbles: true }));
+kt('Bấm "Nhập mã mời" là mở hộp gõ mã',
+   /Nhập mã mời/.test(w.document.querySelector('#hopT').textContent) &&
+   !!w.document.querySelector('#mmMa'));
+w.eval('dong()');
+w.eval(`dangXuat(); KHO.cauHinh=null; S.trangHienTai='dieuhanh'; ve()`);
+kt('Dọn xong trạng thái thử — app về bình thường',
+   !w.eval('KHO.khach') && !w.document.querySelector('#theDemo'));
+
 kt('Giáo viên được phân dạy thay thấy dải báo ngay trên màn hình Của tôi', (() => {
   w.eval(`(() => {
     const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];

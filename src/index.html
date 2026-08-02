@@ -1734,6 +1734,8 @@ let KHO = {
   daDocCauHinh:false,
   phien:null,        /* {token, lamMoi, uid, email} */
   nguoiDung:null,    /* {id, hoTen, email, vaiTro, truongId, tenTruong, diemTruongId, gvId} */
+  khach:null,        /* {email} — đã đăng nhập (thường là Google) nhưng CHƯA thuộc trường nào */
+  xemDemo:false,     /* đang khám phá bản demo bằng dữ liệu mẫu */
   nguon:'nhung',     /* 'may-chu' | 'tep-mau' | 'nhung' */
   version:0,         /* phiên bản TKB đang giữ trên máy — gửi kèm khi lưu */
   loiCuoi:''
@@ -1832,7 +1834,16 @@ async function dangNhap(email, matKhau, nho){
     if(!p?.access_token) throw new Error('Máy chủ không trả vé đăng nhập');
     KHO.phien = {token:p.access_token, lamMoi:p.refresh_token, uid:p.user?.id, email:p.user?.email};
     const ho = await napHoSo();
-    if(!ho.ok){ KHO.phien = null; return ho; }
+    if(!ho.ok){
+      if(ho.moCoi){
+        /* Giữ phiên, thành KHÁCH — xem demo, nhập mã mời, đăng ký trường mới */
+        KHO.khach={email:KHO.phien.email||String(email).trim()};
+        if(nho!==false) nhoPhien();
+        return {ok:true, khach:true};
+      }
+      KHO.phien = null; return ho;
+    }
+    KHO.khach=null;
     if(nho!==false) nhoPhien();
     return {ok:true, nguoiDung:KHO.nguoiDung};
   }catch(e){
@@ -1847,10 +1858,11 @@ async function dangNhap(email, matKhau, nho){
 async function napHoSo(){
   const nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
   if(!nd?.length)
-    /* Nói bằng tiếng của thầy cô, không phải tiếng của người viết phần mềm.
-       Người đọc câu này thường không biết bảng nguoi_dung là gì. */
-    return {ok:false, loi:'Mật khẩu đúng, nhưng tài khoản này chưa được nhà trường cấp quyền vào phần mềm. '
-      +'Báo người quản trị để họ cấp tài khoản cho thầy cô ở mục Giáo viên.'};
+    /* Tài khoản thật nhưng chưa thuộc trường nào — cờ moCoi để nơi gọi quyết
+       biến thành KHÁCH (xem demo, nhập mã mời, đăng ký trường) thay vì đá ra. */
+    return {ok:false, moCoi:true,
+      loi:'Tài khoản này chưa thuộc trường nào trong hệ thống. '
+      +'Nhập mã mời của trường, hoặc báo người quản trị cấp quyền.'};
   const u = nd[0];
   /* Nếu là giáo viên thì nối tiếp về bản ghi giao_vien để mở thẳng lịch cá nhân */
   let gv = null;
@@ -1885,12 +1897,130 @@ async function vaoLaiBangVeNho(){
     KHO.phien = {token:p.access_token, lamMoi:p.refresh_token||n.lamMoi,
                  uid:p.user?.id, email:p.user?.email||n.email};
     const ho = await napHoSo();
-    if(!ho.ok){ KHO.phien=null; quenPhien(); return false; }
+    if(!ho.ok){
+      if(ho.moCoi){
+        /* Khách quen quay lại — vẫn chưa thuộc trường nào, giữ phiên */
+        KHO.khach={email:KHO.phien.email||''}; nhoPhien(); return 'khach';
+      }
+      KHO.phien=null; quenPhien(); return false;
+    }
+    KHO.khach=null;
     nhoPhien();
     return true;
   }catch(e){
     /* Vé hỏng hoặc quá hạn thì xoá đi, lần sau hỏi mật khẩu như thường */
     KHO.phien = null; quenPhien(); return false;
+  }
+}
+
+/* ---------- 1b. Đăng nhập bằng Google ----------
+   GoTrue của Supabase lo trọn vòng OAuth: mình chỉ chuyển hướng sang
+   /auth/v1/authorize, Google xác thực xong thì GoTrue đưa người dùng về lại
+   đúng trang này kèm vé trong phần #hash của địa chỉ. Không thư viện ngoài,
+   không khoá bí mật nào chạm trình duyệt. Điều kiện: dự án Supabase đã bật
+   Google provider — các bước bật ghi ở đầu db/ma-moi.sql. */
+function diaChiDangNhapGoogle(){
+  if(!KHO.cauHinh) return '';
+  const w=cuaSo(); if(!w) return '';
+  const ve=String(w.location.origin+w.location.pathname);
+  return `${KHO.cauHinh.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(ve)}`;
+}
+function dangNhapGoogle(){
+  const d=diaChiDangNhapGoogle();
+  if(!d) return {ok:false, loi:'Chưa cấu hình máy chủ nên chưa đăng nhập Google được.'};
+  cuaSo().location.href=d;
+  return {ok:true};
+}
+
+/* Đón vé Google trả về trên #hash của địa chỉ — gọi một lần lúc mở trang.
+   Trả null khi địa chỉ không mang vé (trường hợp thường gặp nhất). */
+async function donVeOAuth(hashThu){
+  const w=cuaSo();
+  const h=String(hashThu ?? w?.location?.hash ?? '');
+  if(!h||h==='#') return null;
+  const m=new URLSearchParams(h.replace(/^#/,''));
+  const xoaHash=()=>{ try{ w?.history?.replaceState(null,'',w.location.pathname+w.location.search); }catch(e){} };
+  if(m.get('error')){
+    xoaHash();
+    return {ok:false, loi:'Đăng nhập Google chưa xong: '
+      +String(m.get('error_description')||m.get('error')).replace(/\+/g,' ')};
+  }
+  if(!m.get('access_token')) return null;
+  await taiCauHinh();
+  if(!KHO.cauHinh) return null;
+  xoaHash();
+  try{
+    KHO.phien={token:m.get('access_token'), lamMoi:m.get('refresh_token')||'', uid:'', email:''};
+    const u=await goiAPI('/auth/v1/user');
+    KHO.phien.uid=u?.id||''; KHO.phien.email=u?.email||'';
+    const ho=await napHoSo();
+    if(!ho.ok){
+      if(ho.moCoi){ KHO.khach={email:KHO.phien.email}; nhoPhien(); return {ok:true, khach:true}; }
+      KHO.phien=null; return ho;
+    }
+    KHO.khach=null; nhoPhien();
+    return {ok:true, nguoiDung:KHO.nguoiDung};
+  }catch(e){
+    KHO.phien=null;
+    return {ok:false, loi:dienGiaiLoi(e)};
+  }
+}
+
+/* ---------- 1c. Mã mời — nối tài khoản Google vào trường ----------
+   Quản trị tạo mã cho từng thầy cô rồi gửi qua Zalo. Thầy cô đăng nhập
+   Google xong gõ mã: hàm dung_ma_moi trên máy chủ tự nối vào đúng hồ sơ
+   giáo viên — không mật khẩu, không xác minh thư. Xem db/ma-moi.sql. */
+function sinhMaMoi(rnd){
+  const r=rnd||Math.random;
+  const BO='ABCDEFGHJKMNPQRSTUVWXYZ23456789';   /* bỏ 0·O và 1·I·L cho khỏi đọc nhầm */
+  let m=''; for(let i=0;i<6;i++) m+=BO[Math.floor(r()*BO.length)%BO.length];
+  return m;
+}
+async function taoMaMoi(tt){
+  if(!coMayChu()) return {ok:false, loi:'Chưa nối máy chủ.'};
+  try{
+    const ma=sinhMaMoi();
+    const kq=await goiAPI('/rest/v1/ma_moi',{method:'POST',
+      headers:{Prefer:'return=representation'},
+      body:JSON.stringify({truong_id:KHO.nguoiDung.truongId, ma,
+        vai_tro:tt?.vaiTro||'giao_vien', giao_vien_id:tt?.gvId||null,
+        diem_truong_id:tt?.diemTruongId||null, nguoi_tao:KHO.nguoiDung.id})});
+    return {ok:true, ma:kq?.[0]?.ma||ma, id:kq?.[0]?.id||''};
+  }catch(e){
+    const t=String(e?.message||'');
+    if(/ma_moi|relation|404/i.test(t)) return {ok:false,
+      loi:'Máy chủ chưa có bảng mã mời. Quản trị chạy db/ma-moi.sql (có sẵn trong db/cai-dat.sql) một lần trong SQL Editor.'};
+    return {ok:false, loi:dienGiaiLoi(e)};
+  }
+}
+async function dsMaMoi(){
+  if(!coMayChu()) return {ok:false, ds:[]};
+  try{
+    const ds=await goiAPI(`/rest/v1/ma_moi?truong_id=eq.${KHO.nguoiDung.truongId}`
+      +'&select=id,ma,vai_tro,het_han,dung_luc,giao_vien(ho_ten)&order=tao_luc.desc&limit=100');
+    return {ok:true, ds:(ds||[]).map(x=>({id:x.id, ma:x.ma, vaiTro:x.vai_tro,
+      hetHan:dinhDangLuc(x.het_han), daDung:!!x.dung_luc, hoTen:x.giao_vien?.ho_ten||''}))};
+  }catch(e){ return {ok:false, ds:[], loi:dienGiaiLoi(e)}; }
+}
+const xoaMaMoi = id => goiAPI(`/rest/v1/ma_moi?id=eq.${id}`,{method:'DELETE'})
+  .then(()=>({ok:true})).catch(e=>({ok:false, loi:dienGiaiLoi(e)}));
+
+async function dungMaMoi(ma){
+  if(!KHO.phien) return {ok:false, loi:'Đăng nhập trước rồi mới nhập mã.'};
+  try{
+    const kq=await goiAPI('/rest/v1/rpc/dung_ma_moi',{method:'POST',
+      body:JSON.stringify({p_ma:String(ma||'').trim().toUpperCase()})});
+    const d=Array.isArray(kq)?kq[0]:kq;
+    if(!d?.ok) return {ok:false, loi:d?.thong_bao||'Mã không đúng hoặc đã hết hạn.'};
+    const ho=await napHoSo();
+    if(!ho.ok) return {ok:false, loi:ho.loi};
+    KHO.khach=null; KHO.xemDemo=false; nhoPhien();
+    return {ok:true, nguoiDung:KHO.nguoiDung, thongBao:d.thong_bao||'Đã vào trường.'};
+  }catch(e){
+    const t=String(e?.message||'');
+    if(/dung_ma_moi|Function not found|404/i.test(t)) return {ok:false,
+      loi:'Máy chủ chưa cài hàm mã mời. Quản trị chạy db/ma-moi.sql một lần trong SQL Editor.'};
+    return {ok:false, loi:dienGiaiLoi(e)};
   }
 }
 
@@ -1951,6 +2081,7 @@ async function dangKyTruong(tt){
 function dangXuat(){
   KHO.phien = null; KHO.nguoiDung = null; KHO.nguon = 'nhung';
   KHO.version = 0; KHO.loiCuoi = '';
+  KHO.khach = null; KHO.xemDemo = false;
   S.nguoiDung = {vaiTro:'qt', gvId:null, diemTruongId:null};
   quenPhien();          /* đăng xuất là quên hẳn, máy dùng chung mới an toàn */
 }
@@ -2782,7 +2913,9 @@ const MUC_GIAO_VIEN = ['cuatoi','tkblop','huongdan'];
 
    Mở tệp trực tiếp không qua máy chủ (lúc phát triển, hoặc chưa tạo
    cauhinh.js) thì vẫn chạy bằng dữ liệu mẫu như cũ. */
-const canDangNhap = () => !!KHO.cauHinh && !coMayChu();
+/* Đang xem demo thì mở toàn bộ giao diện với dữ liệu mẫu — mọi đường ghi lên
+   máy chủ vẫn bị chặn sẵn vì KHO.nguon không phải 'may-chu'. */
+const canDangNhap = () => !!KHO.cauHinh && !coMayChu() && !KHO.xemDemo;
 
 const thayDuocMuc = t =>
   canDangNhap() ? false : (!quyen().laGV || MUC_GIAO_VIEN.includes(t));
@@ -3251,6 +3384,31 @@ function ve(){
     : t==='buoiban'   ? mBuoiBan()
     : mKhungGio();
   capNhatDem(); noiSuKien();
+  veTheDemo();
+}
+
+/* Dải nổi nhắc đang xem demo — theo người dùng qua mọi màn hình, kèm hai lối
+   thoát: về trang chào để nhập mã mời / đăng ký trường, hoặc rời demo. */
+function veTheDemo(){
+  let p=$('#theDemo');
+  if(!KHO.xemDemo){ p&&p.remove(); return; }
+  if(!p){
+    p=document.createElement('div'); p.id='theDemo';
+    p.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;'
+      +'background:#1B2559;color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;'
+      +'box-shadow:0 8px 30px rgba(27,37,89,.35);display:flex;gap:14px;align-items:center;white-space:nowrap';
+    document.body.appendChild(p);
+  }
+  p.innerHTML=`Đang xem <b>bản demo</b>
+    <a href="#" id="btDemoDung" style="color:#F5C542;font-weight:700">Dùng cho trường tôi</a>
+    <a href="#" id="btDemoThoat" style="color:#8E9BC4">Thoát</a>`;
+  $('#btDemoDung').onclick=e=>{
+    e.preventDefault(); KHO.xemDemo=false; chuyen('chao');
+  };
+  $('#btDemoThoat').onclick=e=>{
+    e.preventDefault(); KHO.xemDemo=false;
+    bao('Đã rời bản demo.'); chuyen('chao');
+  };
 }
 function capNhatDem(){
   /* Số trên badge luôn theo phạm vi người dùng được thấy, không phải toàn trường */
@@ -3371,6 +3529,35 @@ function dieuHuongBuoc(t){
    Không bày một chữ nào về dữ liệu nhà trường. Ai mở địa chỉ này cũng chỉ
    thấy đúng lời mời đăng nhập. */
 function mChao(){
+  /* Nhãn hiệu Google vẽ tại chỗ — không tải gì từ ngoài */
+  const logoGG=`<svg viewBox="0 0 24 24" style="width:18px;height:18px"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 01-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1 .7-2.4 1.2-4 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0012 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 010-4.6V6.6H1.3a12 12 0 000 10.8l4-3.1z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 001.3 6.6l4 3.1c.9-2.9 3.6-5 6.7-5z"/></svg>`;
+
+  /* --- Biến thể KHÁCH: đã đăng nhập (thường là Google) nhưng chưa thuộc trường nào --- */
+  if(KHO.khach) return `<div class="hd-dau" style="text-align:center;padding:30px 26px">
+    <div class="hd-eb">✦ THỜI KHÓA BIỂU TRƯỜNG TIỂU HỌC</div>
+    <h2 style="font-size:24px">Chào ${esc(KHO.khach.email||'quý thầy cô')}</h2>
+    <p style="margin:9px auto 0;max-width:560px">Tài khoản đã đăng nhập nhưng <b>chưa thuộc trường nào</b>
+      trong hệ thống. Chọn một trong ba lối dưới đây.</p>
+  </div>
+  <div class="the-so" style="max-width:940px;margin:0 auto">
+    <div class="ts lam" style="cursor:pointer" id="btChaoDemo">
+      <div class="ts-so" style="font-size:17px">Khám phá bản demo</div>
+      <div class="ts-n" style="line-height:1.6">Trường mẫu 25 lớp · 3 điểm trường. Xếp thử, kéo thả,
+        kiểm tra khả thi — đầy đủ tính năng, không cần nhập gì.</div></div>
+    <div class="ts luc" style="cursor:pointer" id="btChaoMaMoi">
+      <div class="ts-so" style="font-size:17px">Nhập mã mời của trường</div>
+      <div class="ts-n" style="line-height:1.6">Trường đã dùng phần mềm? Người quản trị gửi thầy cô
+        một mã 6 ký tự — gõ vào là mở đúng lịch của mình.</div></div>
+    <div class="ts cam" style="cursor:pointer" id="btChaoTruongMoi2">
+      <div class="ts-so" style="font-size:17px">Đăng ký trường mới</div>
+      <div class="ts-n" style="line-height:1.6">Lập hồ sơ trường trên hệ thống — việc của cán bộ
+        quản lý, cả trường chỉ làm một lần.</div></div>
+  </div>
+  <div style="max-width:560px;margin:18px auto 0;text-align:center">
+    <div class="gy"><a href="#" id="btChaoThoat" style="color:var(--chu-mo)">Đăng xuất khỏi tài khoản này</a></div>
+  </div>`;
+
+  /* --- Biến thể thường: chưa đăng nhập --- */
   return `<div class="hd-dau" style="text-align:center;padding:34px 26px">
     <div class="hd-eb">✦ NĂM HỌC ${esc(S.namHoc||'2026-2027')}</div>
     <h2 style="font-size:26px">Thời khóa biểu nhà trường</h2>
@@ -3387,11 +3574,15 @@ function mChao(){
       </div>
       <div style="font-size:17px;font-weight:800;letter-spacing:-.02em">Mời đăng nhập</div>
       <div style="font-size:13.5px;color:var(--chu-mo);margin:8px auto 20px;max-width:400px;line-height:1.7">
-        Dùng tài khoản nhà trường cấp. Chưa có tài khoản thì báo người quản trị —
-        không phải tự đăng ký, không phải xác minh thư điện tử.</div>
-      <button class="b b-vang" id="btChaoVao" style="padding:13px 28px;font-size:15px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
-        Đăng nhập</button>
+        Nhanh nhất là tài khoản Google có sẵn trên máy — một chạm, không mật khẩu.
+        Hoặc dùng email nhà trường cấp.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto">
+        <button class="b" id="btChaoGoogle" style="padding:12px 20px;font-size:14.5px;background:#fff;
+          color:#1B2559;border:1.5px solid var(--ke-2);display:flex;gap:10px;align-items:center;justify-content:center">
+          ${logoGG} Đăng nhập bằng Google</button>
+        <button class="b b-vang" id="btChaoVao" style="padding:12px 20px;font-size:14.5px">
+          Đăng nhập bằng mật khẩu</button>
+      </div>
       ${KHO.loiCuoi?`<div class="canhbao do" style="margin-top:18px;text-align:left">
         <div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được máy chủ</b>
         <div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
@@ -3399,7 +3590,10 @@ function mChao(){
   </div>
 
   <div style="max-width:560px;margin:16px auto 0;text-align:center">
-    <div class="gy">Trường chưa có trong hệ thống?
+    <div class="gy">Muốn xem phần mềm làm được gì?
+      <a href="#" id="btChaoDemo" style="color:var(--lam);font-weight:600">Khám phá bản demo</a>
+      — trường mẫu 25 lớp, không cần tài khoản.</div>
+    <div class="gy" style="margin-top:6px">Trường chưa có trong hệ thống?
       <a href="#" id="btChaoTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
       — chỉ dùng một lần khi mở tài khoản cho một trường.</div>
   </div>`;
@@ -5338,6 +5532,21 @@ function noiSuKien(){
   /* màn hình chào */
   $('#btChaoVao')&&($('#btChaoVao').onclick=hopMayChu);
   $('#btChaoTruongMoi')&&($('#btChaoTruongMoi').onclick=e=>{e.preventDefault();hopDangKyTruong();});
+  $('#btChaoTruongMoi2')&&($('#btChaoTruongMoi2').onclick=hopDangKyTruong);
+  $('#btChaoGoogle')&&($('#btChaoGoogle').onclick=()=>{
+    const kq=dangNhapGoogle();
+    if(!kq.ok) bao(kq.loi,true);
+  });
+  $('#btChaoDemo')&&($('#btChaoDemo').onclick=e=>{
+    e.preventDefault();
+    KHO.xemDemo=true; KQ_XEP=xepTuDong();
+    bao('Đang xem bản demo — trường mẫu 25 lớp. Mọi tính năng dùng được, chỉ không lưu lên máy chủ.');
+    chuyen('dieuhanh');
+  });
+  $('#btChaoMaMoi')&&($('#btChaoMaMoi').onclick=hopNhapMaMoi);
+  $('#btChaoThoat')&&($('#btChaoThoat').onclick=e=>{
+    e.preventDefault(); dangXuat(); bao('Đã đăng xuất.'); ve();
+  });
 
   /* hướng dẫn */
   $$('[data-hdvai]').forEach(b=>b.onclick=()=>{ HD_VAI=b.dataset.hdvai; ve(); });
@@ -6443,7 +6652,11 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
          <input type="checkbox" id="dnNho" checked> Ghi nhớ tôi trên máy này</label>
        <div class="gy">Lần sau mở là vào thẳng, không phải gõ lại. Máy dùng chung thì bỏ tích này.</div>
        ${KHO.loiCuoi?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
-       <div class="gy" style="margin-top:15px;padding-top:13px;border-top:1px solid var(--ke)">
+       <div style="margin-top:15px;padding-top:13px;border-top:1px solid var(--ke)">
+         <button class="b" id="dnGoogle" style="width:100%;background:#fff;color:#1B2559;
+           border:1.5px solid var(--ke-2);justify-content:center">Đăng nhập bằng Google — một chạm, không mật khẩu</button>
+       </div>
+       <div class="gy" style="margin-top:12px">
          Trường chưa có trong hệ thống?
          <a href="#" id="dnTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
          — chỉ dùng một lần khi mở tài khoản cho một trường, không phải việc của thầy cô.</div>`,
@@ -6463,6 +6676,8 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
     if(mk) mk.onkeydown=e=>{ if(e.key==='Enter') $('#hopC').lastChild.click(); };
     const lk=$('#dnTruongMoi');
     if(lk) lk.onclick=e=>{ e.preventDefault(); hopDangKyTruong(); };
+    const gg=$('#dnGoogle');
+    if(gg) gg.onclick=()=>{ const kq=dangNhapGoogle(); if(!kq.ok) bao(kq.loi,true); };
     return;
   }
 
@@ -6502,7 +6717,8 @@ async function hopTaiKhoan(){
        nên số liệu trên màn hình chưa phải của trường.</div>`,
     [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đăng nhập',lam:hopMayChu}]);
 
-  hop('Tài khoản đăng nhập','<div class="trong-hop">Đang tải danh sách…</div>',[{ten:'Đóng',lam:dong}]);
+  hop('Tài khoản đăng nhập','<div class="trong-hop">Đang tải danh sách…</div>',
+    [{ten:'Đóng',lam:dong},{ten:'Mã mời Google',phu:1,lam:hopMaMoi}]);
   const kq=await dsThanhVien();
   if(!kq.ok) return void($('#hopN').innerHTML=
     `<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
@@ -6741,6 +6957,81 @@ function hopXoaTaiKhoan(id, ten){
     }}]);
 }
 
+/* ---------- Mã mời ---------- */
+/* Người dùng đã đăng nhập (thường bằng Google) gõ mã trường gửi cho */
+function hopNhapMaMoi(){
+  hop('Nhập mã mời của trường',
+    `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Mã gồm 6 chữ và số,
+      do người quản trị của trường gửi cho thầy cô (thường qua Zalo).</p>
+     <div class="on-l"><label>Mã mời</label>
+       <input class="ip" id="mmMa" maxlength="12" placeholder="Ví dụ: 7KM3T9"
+         style="font-size:22px;letter-spacing:.35em;text-transform:uppercase;text-align:center"></div>
+     <div class="gy">Gõ xong là vào thẳng trường — không mật khẩu, không xác minh thư.</div>`,
+    [{ten:'Huỷ',phu:1,lam:dong},{ten:'Vào trường',lam:async e=>{
+      const ma=$('#mmMa').value.trim();
+      if(!ma) return bao('Gõ mã mời trước đã.',true);
+      const b=e.currentTarget, cu=b.textContent;
+      b.disabled=true; b.textContent='Đang kiểm tra…';
+      const kq=await dungMaMoi(ma);
+      if(!kq.ok){ b.disabled=false; b.textContent=cu; return bao(kq.loi,true); }
+      const t=await taiDuLieu();
+      KQ_XEP=null; dong(); capNhatTaiKhoan();
+      bao(`Chào ${kq.nguoiDung.hoTen}. ${t.thongBao}`, !t.ok);
+      chuyen(kq.nguoiDung.vaiTro==='giao_vien'?'cuatoi':'dieuhanh');
+    }}]);
+  const o=$('#mmMa'); if(o) o.focus();
+}
+
+/* Quản trị tạo và quản lý mã mời — mỗi thầy cô một mã, gửi qua Zalo */
+async function hopMaMoi(){
+  hop('Mã mời — vào trường bằng tài khoản Google','<div class="trong-hop">Đang tải…</div>',
+    [{ten:'Đóng',lam:dong}]);
+  const kq=await dsMaMoi();
+  const dsGV=[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+  $('#hopN').innerHTML=`
+    <p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Tạo mã cho từng thầy cô rồi gửi
+      qua Zalo. Thầy cô bấm <b>Đăng nhập bằng Google</b> trên trang, gõ mã là vào đúng lịch của
+      mình — không cần cấp mật khẩu, không xác minh thư. Mỗi mã dùng một lần, hạn 30 ngày.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:13px">
+      <div class="on-l" style="margin:0;flex:1;min-width:220px"><label>Tạo mã cho</label>
+        <select class="ip" id="mmChonGV" style="width:100%">
+          ${dsGV.map(g=>`<option value="${g.id}">${esc(g.hoTen)}</option>`).join('')}
+          <option value="">— Cán bộ quản lý (phó hiệu trưởng) —</option>
+        </select></div>
+      <button class="b b-ch" id="btTaoMaMoi">Tạo mã</button>
+    </div>
+    <div id="mmKQ"></div>
+    ${kq.ok
+      ? (kq.ds.length?`<div class="bang" style="max-height:38vh"><table class="dl"><thead><tr>
+          <th>Mã</th><th>Cho ai</th><th>Tình trạng</th><th>Hạn</th><th></th></tr></thead><tbody>
+          ${kq.ds.map(x=>`<tr>
+            <td style="font-weight:700;letter-spacing:.15em">${esc(x.ma)}</td>
+            <td>${esc(x.hoTen||TEN_VAI_TRO[x.vaiTro]||x.vaiTro)}</td>
+            <td>${x.daDung?'<span class="tag ok">Đã dùng</span>':'<span class="tag">Chưa dùng</span>'}</td>
+            <td style="white-space:nowrap">${esc(x.hetHan)}</td>
+            <td class="phai">${x.daDung?'':`<button class="b b-vien b-nho" data-xoamamoi="${x.id}">Thu hồi</button>`}</td>
+          </tr>`).join('')}</tbody></table></div>`
+        :`<div class="trong-hop"><b>Chưa có mã nào</b>Chọn thầy cô ở trên rồi bấm “Tạo mã”.</div>`)
+      :`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
+          <b>Chưa xem được danh sách mã</b><div class="cb-g">${esc(kq.loi||'')}</div></div></div>`}`;
+  $('#btTaoMaMoi').onclick=async()=>{
+    const gvId=$('#mmChonGV').value;
+    const b=$('#btTaoMaMoi'); b.disabled=true; b.textContent='Đang tạo…';
+    const t=await taoMaMoi(gvId?{gvId, vaiTro:'giao_vien'}:{vaiTro:'pho_hieu_truong'});
+    b.disabled=false; b.textContent='Tạo mã';
+    if(!t.ok) return bao(t.loi,true);
+    $('#mmKQ').innerHTML=`<div class="canhbao ok" style="margin-bottom:13px"><div class="cb-ic">✓</div>
+      <div class="cb-t"><b>Mã mời: <span style="font-size:21px;letter-spacing:.3em">${esc(t.ma)}</span></b>
+      <div class="cb-g">Chép mã này gửi cho ${esc(gvId?(S.giaoVien.find(g=>g.id===gvId)?.hoTen||'thầy cô'):'cán bộ quản lý')} —
+        họ đăng nhập Google rồi gõ mã là xong.</div></div></div>`;
+  };
+  $$('[data-xoamamoi]').forEach(b=>b.onclick=async()=>{
+    const kq2=await xoaMaMoi(b.dataset.xoamamoi);
+    if(!kq2.ok) return bao(kq2.loi,true);
+    bao('Đã thu hồi mã.'); hopMaMoi();
+  });
+}
+
 /* Đăng ký trường mới — dành cho trường thứ hai trở đi */
 function hopDangKyTruong(){
   hop('Đăng ký trường mới',
@@ -6968,20 +7259,27 @@ $('#btChuong').onclick=()=>chuyen('kiemtra');
    không có thì chạy bằng dữ liệu mẫu và xếp thử ngay cho có cái nhìn.
    ================================================================== */
 async function khoiDong(){
-  let kq, vaoLai=false;
-  /* Vào lại bằng vé đã nhớ TRƯỚC khi tải dữ liệu — nhờ vậy giáo viên mở
-     trang lên là thấy ngay lịch của mình, không qua màn hình đăng nhập nào. */
-  try{ vaoLai = await vaoLaiBangVeNho(); }catch(e){}
+  let kq, vaoLai=false, gg=null;
+  /* 1. Địa chỉ có mang vé Google trả về không? Đón trước tiên. */
+  try{ await taiCauHinh(); gg=await donVeOAuth(); }catch(e){}
+  /* 2. Không thì vào lại bằng vé đã nhớ — giáo viên mở trang là thấy lịch */
+  if(!gg?.ok) try{ vaoLai = await vaoLaiBangVeNho(); }catch(e){}
   try{ kq = await taiDuLieu(); }
   catch(e){ kq = {ok:false, thongBao:'Không tải được dữ liệu — '+dienGiaiLoi(e)}; }
   capNhatTaiKhoan();
+  const daVao = (gg?.ok && !gg.khach) || vaoLai===true;
   /* Giáo viên thì mở thẳng lịch cá nhân, không phải tìm menu */
-  if(vaoLai && quyen().laGV) S.trangHienTai='cuatoi';
+  if(daVao && quyen().laGV) S.trangHienTai='cuatoi';
   /* Chỉ xếp thử khi đang chạy dữ liệu mẫu ngoại tuyến — có máy chủ mà chưa
      đăng nhập thì không bày gì cả, xếp làm gì cho tốn công */
   if(!canDangNhap() && !soTietDaXep() && !quyen().laGV) KQ_XEP = xepTuDong();
   ve();
-  if(vaoLai) bao(`Chào ${KHO.nguoiDung.hoTen}`);
+  if(daVao) bao(`Chào ${KHO.nguoiDung.hoTen}`);
+  else if(gg?.ok && gg.khach)
+    bao('Đã đăng nhập Google. Tài khoản chưa thuộc trường nào — chọn một lối trên màn hình.');
+  else if(gg && !gg.ok) bao(gg.loi, true);
+  else if(vaoLai==='khach')
+    bao(`Chào ${KHO.khach?.email||'quý thầy cô'} — tài khoản chưa thuộc trường nào.`);
   else if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);
 }
 khoiDong();

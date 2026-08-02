@@ -37,7 +37,8 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [], addEventL
 const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}\n; return {
   S, xepTuDong, kiemTra, buoiBat, KHO, NGUON, khungGioMacDinh,
   taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat, taiNhatKy,
-  tuMayChu, napVaoS, dongGoiTKB, docTKB,
+  tuMayChu, napVaoS, dongGoiTKB, docTKB, taiCauHinh,
+  diaChiDangNhapGoogle, donVeOAuth, dungMaMoi, sinhMaMoi, taoMaMoi, dsMaMoi,
   tietVangCua, goiYDayThay, luuDayThay, xoaDayThay,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
@@ -60,7 +61,7 @@ const taoUngDung = (doc, win, layMang) =>
   new Function('document', 'window', 'fetch', NGUON_MA)(doc, win, layMang);
 
 const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
-        taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiNhatKy,
+        taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiNhatKy, sinhMaMoi,
         tietVangCua, goiYDayThay, luuDayThay,
         tuMayChu, napVaoS, dongGoiTKB, docTKB,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
@@ -266,7 +267,8 @@ let veHienHanh = 'VE1', soLanRPC = 0, daLamMoiVe = false;
 /* Ghi lại mọi thứ máy chủ giả nhận được, để phép thử soi lại đúng sai */
 const GHI = { diemTruong: [], khungGio: null, giaoVien: null, lop: null, phanCong: null,
               xoaPhanCong: 0, congBo: [], gvNghi: null, xoaNghi: 0, nhatKy: [],
-              dayThay: [], xoaDayThay: 0 };
+              dayThay: [], xoaDayThay: 0,
+              oauthUser: 'u1', daDungMa: false, maMoi: [], xoaMaMoi: 0 };
 const dap = (du, ma = 200) => ({ ok: ma < 400, status: ma, text: async () => JSON.stringify(du) });
 const BAN_LUU = {
   3: { version: 3, ghi_chu: '5/5 tiết', tao_luc: '2026-07-30T02:15:00Z',
@@ -321,6 +323,23 @@ async function mangGia(url, opt = {}) {
     return dap(GHI.dayThay);
   }
 
+  if (co('/auth/v1/user')) return dap(GHI.oauthUser === 'u9'
+    ? { id: 'u9', email: 'khach@gmail.com' } : { id: 'u1', email: 'c@t.vn' });
+  if (co('/rpc/dung_ma_moi')) {
+    if (than?.p_ma === 'GOODMA') { GHI.daDungMa = true;
+      return dap([{ ok: true, thong_bao: 'Đã vào trường. Mở lại trang là thấy lịch của mình.' }]); }
+    return dap([{ ok: false, thong_bao: 'Mã không đúng, đã dùng, hoặc đã hết hạn. Hỏi lại người quản trị của trường.' }]);
+  }
+  if (co('/ma_moi')) {
+    if (opt.method === 'POST') { GHI.maMoi.push(than); return dap([{ id: 'mm-' + GHI.maMoi.length, ...than }], 201); }
+    if (opt.method === 'DELETE') { GHI.xoaMaMoi++; return dap(null, 204); }
+    return dap(GHI.maMoi.map((m, i) => ({ id: 'mm-' + (i + 1), ...m, het_han: '2026-09-01T00:00:00Z',
+      dung_luc: null, giao_vien: null })));
+  }
+  if (co('/nguoi_dung?') && co('id=eq.u9')) return dap(GHI.daDungMa
+    ? [{ id: 'u9', ho_ten: 'Khách Google', email: 'khach@gmail.com', vai_tro: 'giao_vien',
+         truong_id: 't1', diem_truong_id: null, truong: { ten: HANG.truong.ten } }]
+    : []);
   if (co('/nguoi_dung?')) return dap([{ id: 'u1', ho_ten: 'Trần Thanh Chung', email: 'c@t.vn',
     vai_tro: 'pho_hieu_truong', truong_id: 't1', diem_truong_id: null, truong: { ten: HANG.truong.ten } }]);
   if (co('/giao_vien?nguoi_dung_id=')) return dap([{ id: 'g2', ho_ten: 'Đặng Thị Dung' }]);
@@ -471,6 +490,58 @@ kt('Đang chạy dữ liệu mẫu thì chặn lưu, không ghi rác lên máy c
 MC.dangXuat();
 const sauThoat = await MC.luuTKB(MC.dongGoiTKB(), 4);
 kt('Đăng xuất rồi thì không lưu được nữa', sauThoat.ok === false);
+
+/* ---------- 6b. Đăng nhập Google, khách và mã mời ---------- */
+console.log('\n6b. Đăng nhập Google, khách và mã mời');
+
+/* Bản ứng dụng có cửa sổ giả đầy đủ — kiểm được cả địa chỉ chuyển hướng */
+const G = taoUngDung(
+  documentGia,
+  { CAU_HINH: { SUPABASE_URL: 'https://gia.supabase.co/', SUPABASE_ANON: 'khoa-anon' },
+    location: { protocol: 'https:', origin: 'https://truong.example', pathname: '/tkb/', hash: '' },
+    history: { replaceState() {} } },
+  mangGia);
+await G.taiCauHinh();
+
+kt('Địa chỉ đăng nhập Google trỏ đúng /authorize của GoTrue, mang theo đường về',
+   G.diaChiDangNhapGoogle() ===
+   'https://gia.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Ftruong.example%2Ftkb%2F');
+kt('Địa chỉ không mang vé thì đón vé trả về null, không làm gì cả',
+   await G.donVeOAuth('') === null && await G.donVeOAuth('#chi-la-neo') === null);
+kt('Google từ chối thì nói rõ lý do, không văng lỗi', await (async () => {
+  const v = await G.donVeOAuth('#error=access_denied&error_description=Nguoi+dung+tu+choi');
+  return v.ok === false && /Nguoi dung tu choi/.test(v.loi);
+})());
+
+/* Vé thật nhưng tài khoản chưa thuộc trường nào → thành KHÁCH, giữ phiên */
+veHienHanh = 'VE1';
+GHI.oauthUser = 'u9';
+const veKhach = await G.donVeOAuth('#access_token=VE1&refresh_token=RF1&token_type=bearer');
+kt('Đăng nhập Google mà chưa thuộc trường nào thì thành khách, phiên vẫn giữ',
+   veKhach?.ok === true && veKhach.khach === true &&
+   G.KHO.khach?.email === 'khach@gmail.com' && G.KHO.phien?.uid === 'u9' && !G.KHO.nguoiDung);
+
+kt('Mã mời sai thì máy chủ từ chối, có hướng xử lý', await (async () => {
+  const v = await G.dungMaMoi('SAIMA');
+  return v.ok === false && /quản trị/.test(v.loi);
+})());
+kt('Mã mời đúng (gõ thường cũng được) — vào trường, hết là khách', await (async () => {
+  const v = await G.dungMaMoi('  goodma ');
+  return v.ok === true && G.KHO.nguoiDung?.truongId === 't1' &&
+    G.KHO.nguoiDung.vaiTro === 'giao_vien' && G.KHO.khach === null;
+})());
+
+kt('Sinh mã mời: 6 ký tự, không có 0·O·1·I·L dễ đọc nhầm', (() => {
+  let i = 0; const day = [0.01, 0.2, 0.4, 0.6, 0.8, 0.99];
+  const ma = sinhMaMoi(() => day[i++ % day.length]);
+  return /^[A-HJ-KM-NP-Z2-9]{6}$/.test(ma) && sinhMaMoi(() => 0.9999) === '999999';
+})());
+kt('Tạo mã mời ghi lên máy chủ, nối đúng trường và giáo viên', await (async () => {
+  const t = await G.taoMaMoi({ gvId: 'g2', vaiTro: 'giao_vien' });
+  return t.ok === true && /^[A-HJ-KM-NP-Z2-9]{6}$/.test(t.ma) &&
+    GHI.maMoi[0].truong_id === 't1' && GHI.maMoi[0].giao_vien_id === 'g2';
+})());
+GHI.oauthUser = 'u1';
 
 /* ---------- 7. Phân quyền theo điểm trường ---------- */
 console.log('\n7. Phân quyền theo điểm trường');

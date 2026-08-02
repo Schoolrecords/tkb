@@ -26,6 +26,7 @@ const NGUON = [
   'mon-hoc-phong.sql',   // danh mục môn, bảng phòng (dùng truong_cua_toi)
   'cong-bo.sql',         // quy tắc UPDATE để bấm được nút Công bố
   'day-thay.sql',        // phân công dạy thay theo ngày
+  'ma-moi.sql',          // vào trường bằng Google + mã mời
   'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
 ];
 
