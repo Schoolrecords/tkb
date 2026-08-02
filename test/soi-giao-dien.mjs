@@ -506,6 +506,15 @@ console.log('\n15g. Ngăn kéo điều hướng trên điện thoại');
 kt('Có nút ☰ và nền mờ; mặc định ngăn kéo đóng',
    !!w.document.querySelector('#btMenu') && !!w.document.querySelector('#manMenu') &&
    !w.document.body.classList.contains('mo-menu'));
+/* Lỗi thật trên iPhone: quên bật display cho nền mờ trong media query nên
+   nó vẫn mang display:none của quy tắc gốc — mở ngăn kéo ra là kẹt cứng,
+   bấm đâu cũng không đóng được. */
+kt('Nền mờ được bật hiển thị trong khổ điện thoại — có lối đóng ngăn kéo', (() => {
+  const css = w.document.documentElement.innerHTML;
+  const i = css.indexOf('@media(max-width:900px)');
+  const khoi = css.slice(i, i + 2600);
+  return /\.man-menu\{display:block/.test(khoi);
+})());
 w.document.querySelector('#btMenu').dispatchEvent(new w.Event('click', { bubbles: true }));
 kt('Bấm ☰ là mở ngăn kéo', w.document.body.classList.contains('mo-menu'));
 w.document.querySelector('#manMenu').dispatchEvent(new w.Event('click', { bubbles: true }));
@@ -576,6 +585,26 @@ w.eval(`KHO.khach={email:'khach@gmail.com'}; ve()`);
 kt('Khách thấy ba lối đi: demo, mã mời, đăng ký trường — kèm email của mình',
    /khach@gmail\.com/.test(w.document.querySelector('#noiDung').textContent) &&
    !!w.document.querySelector('#btChaoMaMoi') && !!w.document.querySelector('#btChaoTruongMoi2'));
+/* Lỗi thật trên iPhone 2/8/2026: đã đăng nhập Google mà nút vẫn ghi "Đăng
+   nhập" — thầy cô tưởng chưa vào được, bấm đăng nhập lại lần nữa vô nghĩa. */
+kt('Là khách thì nút trên thanh hiện tên tài khoản, không mời đăng nhập nữa', (() => {
+  w.eval('capNhatTaiKhoan()');
+  const chu = w.document.querySelector('#chuDangNhap').textContent;
+  return chu !== 'Đăng nhập' && /khach/.test(chu);
+})());
+kt('Bấm nút đó khi là khách thì mở lối thoát, không mở lại hộp đăng nhập', (() => {
+  w.eval('hopMayChu()');
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  const co = nut.includes('Đăng xuất') && nut.includes('Nhập mã mời')
+    && !w.document.querySelector('#dnGoogle');
+  w.eval('dong()');
+  return co;
+})());
+kt('Email dài không tràn khung: tiêu đề chào bọc chữ và co theo bề ngang', (() => {
+  const h = w.document.querySelector('#noiDung h2');
+  return /overflow-wrap:\s*anywhere/.test(h.getAttribute('style') || '')
+    && /clamp\(/.test(h.getAttribute('style') || '');
+})());
 w.document.querySelector('#btChaoMaMoi').dispatchEvent(new w.Event('click', { bubbles: true }));
 kt('Bấm "Nhập mã mời" là mở hộp gõ mã',
    /Nhập mã mời/.test(w.document.querySelector('#hopT').textContent) &&

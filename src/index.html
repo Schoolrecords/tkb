@@ -348,7 +348,9 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 .on-l .ip{width:100%}
 .gy{font-size:12px;color:var(--chu-mo);margin-top:6px}
 
-#bao{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(100px);z-index:99;
+/* Thanh công cụ dưới đáy Safari trên iPhone che mất thông báo — cộng thêm
+   vùng an toàn của máy. Đã dính thật: chữ "Đã đăng nhập Google." bị cắt đôi. */
+#bao{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(100px);z-index:99;
   background:var(--nav);color:#fff;padding:12px 22px;border-radius:30px;font-size:13.5px;font-weight:600;
   box-shadow:var(--bong2);transition:transform .32s cubic-bezier(.2,.9,.3,1.2);pointer-events:none;max-width:90vw;text-align:center}
 #bao.on{transform:translateX(-50%) translateY(0)}
@@ -472,7 +474,10 @@ table.tt tr.het td{border-bottom:2px solid var(--ke-2)}
     padding:20px 15px;overflow:hidden;
     transform:translateX(-101%);transition:transform .24s ease}
   body.mo-menu aside{transform:none;box-shadow:0 0 44px rgba(10,15,40,.45)}
-  .man-menu{position:fixed;inset:0;z-index:60;background:rgba(10,15,40,.5);
+  /* `display:block` BẮT BUỘC ở đây: quy tắc gốc đặt .man-menu{display:none}
+     cho máy tính, quên bật lại thì nền mờ không hiện, không bấm được — mở
+     ngăn kéo ra là kẹt cứng, không lối thoát. Đã dính thật trên iPhone. */
+  .man-menu{display:block;position:fixed;inset:0;z-index:60;background:rgba(10,15,40,.5);
     opacity:0;pointer-events:none;transition:opacity .24s}
   body.mo-menu .man-menu{opacity:1;pointer-events:auto}
   body.mo-menu{overflow:hidden}
@@ -3543,7 +3548,7 @@ function mChao(){
   /* --- Biến thể KHÁCH: đã đăng nhập (thường là Google) nhưng chưa thuộc trường nào --- */
   if(KHO.khach) return `<div class="hd-dau" style="text-align:center;padding:30px 26px">
     <div class="hd-eb">✦ THỜI KHÓA BIỂU TRƯỜNG TIỂU HỌC</div>
-    <h2 style="font-size:24px">Chào ${esc(KHO.khach.email||'quý thầy cô')}</h2>
+    <h2 style="font-size:clamp(17px,5vw,24px);overflow-wrap:anywhere;line-height:1.3">Chào ${esc(KHO.khach.email||'quý thầy cô')}</h2>
     <p style="margin:9px auto 0;max-width:560px">Tài khoản đã đăng nhập nhưng <b>chưa thuộc trường nào</b>
       trong hệ thống. Chọn một trong ba lối dưới đây.</p>
   </div>
@@ -3561,7 +3566,7 @@ function mChao(){
       <div class="ts-n" style="line-height:1.6">Lập hồ sơ trường trên hệ thống — việc của cán bộ
         quản lý, cả trường chỉ làm một lần.</div></div>
   </div>
-  <div style="max-width:560px;margin:18px auto 0;text-align:center">
+  <div style="max-width:560px;margin:18px auto 40px;text-align:center">
     <div class="gy"><a href="#" id="btChaoThoat" style="color:var(--chu-mo)">Đăng xuất khỏi tài khoản này</a></div>
   </div>`;
 
@@ -6644,6 +6649,14 @@ function capNhatTaiKhoan(){
     $('#chuDangNhap').textContent = tenTat(n.hoTen);
     nut.className='b b-vien';
     nut.title = n.hoTen+' — bấm để đăng xuất';
+  }else if(KHO.khach){
+    /* Đã đăng nhập Google nhưng chưa thuộc trường nào. Để nguyên chữ
+       "Đăng nhập" thì thầy cô tưởng mình chưa vào được — mời họ đăng
+       nhập lần thứ hai một cách vô nghĩa. Hiện tên tài khoản đang dùng. */
+    const em=String(KHO.khach.email||'').split('@')[0] || 'Tài khoản';
+    $('#chuDangNhap').textContent = em.length>12 ? em.slice(0,11)+'…' : em;
+    nut.className='b b-vien';
+    nut.title = KHO.khach.email+' — đã đăng nhập, chưa thuộc trường nào. Bấm để đăng xuất.';
   }else{
     $('#chuDangNhap').textContent = 'Đăng nhập';
     nut.className='b b-vang';
@@ -6671,6 +6684,18 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
        Tạo tệp xong thì tải lại trang. Mở tệp bằng đường dẫn file:// sẽ không nạp được cấu hình,
        phải chạy qua máy chủ web — dùng lệnh <b>npm start</b>.</div>`,
     [{ten:'Đóng',lam:dong}]);
+
+  /* Đang là KHÁCH: đã đăng nhập Google, chưa thuộc trường nào. Bấm nút tài
+     khoản trên thanh phải cho họ lối ra, đừng mời đăng nhập lần nữa. */
+  if(KHO.khach) return hop('Tài khoản đang dùng',
+    `<div class="hang">Đăng nhập bằng <b>${esc(KHO.khach.email||'')}</b></div>
+     <div class="canhbao" style="margin-top:13px"><div class="cb-ic">i</div><div class="cb-t">
+       <b>Tài khoản này chưa thuộc trường nào</b>
+       <div class="cb-g">Nhập <b>mã mời</b> nhà trường gửi cho thầy cô là vào được ngay.
+         Chưa có mã thì hỏi người quản trị của trường.</div></div></div>`,
+    [{ten:'Đăng xuất',phu:1,lam:()=>{ dangXuat(); dong(); capNhatTaiKhoan();
+        bao('Đã đăng xuất.'); chuyen('chao'); }},
+     {ten:'Nhập mã mời',lam:hopNhapMaMoi}]);
 
   /* Đã có cấu hình nhưng chưa đăng nhập — chỉ một cửa: Google.
      Đường mật khẩu đã gỡ khỏi giao diện (quyết định 2/8/2026): mỗi CBGV
