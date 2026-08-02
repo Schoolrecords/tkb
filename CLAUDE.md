@@ -499,11 +499,30 @@ nhau, mà **băng rôn mang tên trường** — thứ neo cả trang — lại 
 
 ```
 1. băng rôn navy    tên trường · quy mô · nguồn · phiên bản · ngày hôm nay
-2. tiêu đề + phạm vi + ô tìm kiếm
-3. THỜI KHÓA BIỂU   sản phẩm — thứ người dùng mở phần mềm để xem
-4. việc cần xử lý + thao tác nhanh
-5. số liệu · tiến độ · cảnh báo · điểm trường
+2. dải bốn chỉ số   lớp · % đã xếp · giáo viên · điểm trường
+3. THỜI KHÓA BIỂU   bốn thẻ chuyển cách xem + lưới
+4. việc cần xử lý
+5. tiến độ · cảnh báo · điểm trường
 ```
+
+**Bốn cách xem là THẺ CHUYỂN TẠI CHỖ, không phải nút rời trang** *(3/8/2026)*.
+Trước đó chúng là `data-di`: bấm *Theo lớp* là rời Bảng điều hành, và **không
+có đường quay lại để bấm thẻ thứ hai**. Chủ dự án nói đúng: *"bấm nút nào thì
+hiển thị thời khóa biểu nút đó và không biến mất, muốn quay lại bấm nút khác
+không có"*. Nay đổi `S.dhXem` rồi vẽ lại đúng khối ấy — xem `kheSanPhamHTML()`.
+
+Lưới trong Bảng điều hành **CHỈ ĐỌC**: không kéo thả, không chạm sửa. Màn hình
+*Theo lớp* mới là chỗ chỉnh tay; hai nơi cùng sửa một thứ thì sớm muộn lệch
+hành vi. Hai hàm dựng lưới tuần dùng chung: `luoiTuanLop(id)` · `luoiTuanGV(id)`,
+cùng khung `luoiTuanKhung(oNoi)`.
+
+**Ba thứ đã chuyển khỏi Bảng điều hành:**
+
+| Cái gì | Đi đâu | Vì sao |
+|---|---|---|
+| Tiêu đề + phạm vi + ô tìm kiếm chung | ô tìm kiếm → mục **Giáo viên** | tìm giáo viên là việc của mục Giáo viên; tiêu đề trùng với băng rôn ngay trên nó |
+| Cụm sáu nút thao tác nhanh | màn hình **Xếp thời khóa biểu** | Bảng điều hành là chỗ NHÌN thời khóa biểu, không phải bảng nút bấm |
+| Bốn thẻ số liệu `.ts` | thành dải `.dai-so` **trên** lưới | bốn hộp cao 102px rời nhau chiếm gần một màn hình để nói bốn con số |
 
 **Việc cần xử lý lùi xuống SAU lưới.** Ngày 2/8 nó được đặt lên đầu vì "thứ
 duy nhất có hạn giờ trong ngày". Đúng — nhưng phần lớn thời gian nó là một

@@ -737,6 +737,36 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .chuong.gap{background:rgba(192,57,43,.24)}
 .chuong.gap:hover{background:rgba(192,57,43,.36)}
 
+/* ---------- Dải bốn chỉ số trên lưới (3/8/2026) ----------
+   Thay bốn thẻ .ts cao 102px rời nhau bằng MỘT dải liền — cùng thông tin,
+   một phần ba chiều cao, và đọc được cùng lúc với thời khóa biểu ngay dưới. */
+.dai-so{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;background:var(--ke);border:1px solid var(--ke);border-radius:var(--r);
+  overflow:hidden;margin-bottom:18px;box-shadow:var(--bong)}
+.ds-o{background:var(--the);border:0;padding:12px 16px;text-align:left;cursor:pointer;
+  border-left:3px solid var(--dsm,#4A6FB5);transition:background .16s}
+.ds-o:hover{background:var(--nen)}
+.ds-o:active{transform:translateY(-2px)}
+.ds-o b{display:block;font-size:23px;font-weight:800;letter-spacing:-.04em;
+  line-height:1.1;color:var(--dsm,#4A6FB5)}
+.ds-o span{display:block;font-size:11.5px;color:var(--chu-mo);margin-top:2px}
+.ds-o.cam{--dsm:#C4823A}.ds-o.luc{--dsm:var(--xanh)}.ds-o.lam{--dsm:#4A6FB5}
+.ds-o.tim{--dsm:#6E52BC}.ds-o.canh{--dsm:var(--canh)}
+
+/* ---------- Thẻ chuyển cách xem, ngay trong Bảng điều hành ----------
+   Là THẺ chuyển tại chỗ, không phải nút điều hướng: bấm xong vẫn đứng đây,
+   bấm sang thẻ khác được ngay. Trước đây chúng rời trang và không có đường
+   quay lại — đúng chỗ chủ dự án phàn nàn. */
+.dai-xem{display:flex;gap:2px;background:var(--nen);border:1px solid var(--ke);
+  border-radius:var(--r2);padding:3px;margin-bottom:12px;flex-wrap:wrap}
+.xem-nut{flex:1 1 auto;min-width:110px;min-height:38px;padding:8px 14px;cursor:pointer;
+  background:none;border:0;border-radius:8px;font-size:13.5px;font-weight:500;
+  color:var(--chu-mo);transition:background .16s,color .16s}
+.xem-nut:hover{background:var(--the);color:var(--chu)}
+.xem-nut.on{background:var(--nav);color:#fff;font-weight:700;box-shadow:var(--bong)}
+.dh-chon{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dh-chon .ip{flex:1 1 200px;max-width:340px}
+
 /* ---------- Ô tìm kiếm chung (§20) ---------- */
 .tim-chung{position:relative;margin-bottom:18px}
 .tim-chung .loc-o{max-width:none}
@@ -1054,6 +1084,7 @@ let S = {
   dtLoc:'moi',          /* bộ lọc lịch đã phân công: hôm nay · mai · tuần · ngày · tất cả */
   dtLocNgay:'',         /* ngày cụ thể khi dtLoc === 'ngay' */
   coLuoi:'tc',          /* cỡ hiển thị lưới: gon · tc (tiêu chuẩn) · rong */
+  dhXem:'toantruong',   /* Bảng điều hành đang bày cách xem nào — xem kheSanPhamHTML() */
   nhomMo:{}             /* nhóm menu nào đang mở — xem dungMenu() */
 };
 /* Lưới thật của Trường TH Diễn Liên, đối chiếu từ bản kết xuất SmartScheduler
@@ -4950,25 +4981,7 @@ function mDieuHanh(){
   const vc=vieccanXuLy();
 
   const coSanPham = daXep>0 && ds.length>0;
-  const kheSanPham = !coSanPham ? '' : `
-  <div class="the the-rong the-luoi" style="margin-bottom:18px">
-    <div class="the-d"><h2>Thời khóa biểu ${esc(S.tenTruong)}</h2>
-      <span class="meta">${ds.length} lớp · ${daXep}/${tongCan} tiết${KHO.version?` · phiên bản ${KHO.version}`:''}</span></div>
-    <div class="the-t">
-      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
-        <button class="b b-ch" data-di="toantruong">Xem toàn trường</button>
-        <button class="b b-vien" data-di="tkblop">Theo lớp</button>
-        <button class="b b-vien" data-di="tkbgv">Theo giáo viên</button>
-        <button class="b b-vien" data-di="tkbkhoi">Theo khối</button>
-        <button class="b b-vien" data-di="xuatin">Xuất và in</button>
-      </div>
-      ${daiDiemLuoi()}
-      <div class="${lopCoLuoi().trim()}">${luoiRongHTML(xepTheoKhoi(lopChoLuoi()),true,'46vh')}</div>
-      <div class="gy" style="margin-top:10px">Cuộn trong khung để xem hết.
-        ${KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
-          :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.':''}</div>
-    </div>
-  </div>`;
+  const kheSanPham = coSanPham ? kheSanPhamHTML(ds, daXep, tongCan) : '';
 
   /* ---------- Thứ tự trên màn hình (sắp lại 3/8/2026) ----------
      Chủ dự án nhận xét "giao diện rời rạc": trang là một chồng hộp trắng rời
@@ -4986,16 +4999,12 @@ function mDieuHanh(){
      gì xảy ra. Khi CÓ việc thật thì băng rôn mang dải đỏ ở ngay đầu trang,
      nên không ai bỏ sót; xem `bangRon()`. */
   return bangRon(vc, ds.length)
-  + dauTrang('Bảng điều hành',
-    coSanPham?'Thời khóa biểu đang dùng, việc cần xử lý và toàn cảnh công tác xếp'
-             :'Toàn cảnh công tác xếp thời khóa biểu',true)
-  + oTimChung()
+  + kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV.size)
   + kheSanPham
   + kheVieccanXuLy(vc, canhBao)
-  + kheThaoTacNhanh(coSanPham)
   + (coSanPham?'':thanhBuoc(0))+`
   <div class="dh">
-  <div class="the-so">
+  <div class="the-so" hidden>
     <div class="ts cam" data-di="lop"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2"/></svg></div>
       <div class="ts-so">${ds.length}</div><div class="ts-n">Lớp học</div></div>
     <div class="ts luc" data-di="xep"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg></div>
@@ -5052,6 +5061,155 @@ function mDieuHanh(){
     }).join('')}</div></div>
   </div>
   </div>
+  </div>`;
+}
+
+/* ==================================================================
+   3.1a LƯỚI TUẦN CHỈ ĐỌC — dùng chung cho Bảng điều hành
+   ------------------------------------------------------------------
+   Bảng điều hành nay bày được cả bốn cách xem thời khóa biểu ngay tại chỗ
+   (xem `kheSanPham`). Hai cách "theo lớp" và "theo giáo viên" cần lưới tuần
+   ngang — cột là thứ, dòng là tiết.
+
+   CHỈ ĐỌC, không kéo thả: màn hình Theo lớp mới là chỗ chỉnh tay, và nhét
+   kéo thả vào Bảng điều hành thì hai nơi cùng sửa một thứ, sớm muộn lệch
+   hành vi. Ở đây chỉ để NHÌN.
+   ================================================================== */
+function luoiTuanKhung(oNoi){
+  const bb=buoiBat();
+  const maxS=Math.max(...bb.filter(k=>k.buoi==='S').map(k=>k.tiet),0);
+  const maxC=Math.max(...bb.filter(k=>k.buoi==='C').map(k=>k.tiet),0);
+  let bang=`<div class="luoi-boc"><table class="tkb"><thead><tr>
+    <th class="gt">Buổi</th><th style="width:52px">Tiết</th>
+    ${THU.map(t=>`<th>${TEN_THU[t]}</th>`).join('')}</tr></thead><tbody>`;
+  [['S','Sáng',maxS],['C','Chiều',maxC]].forEach(([b,ten,mx])=>{
+    for(let i=0;i<mx;i++) bang+=`<tr>${i===0?`<td class="c-thu" rowspan="${mx}">${ten}</td>`:''}
+      <td class="c-tiet">${i+1}</td>${THU.map(t=>`<td>${oNoi(t,b,i)}</td>`).join('')}</tr>`;
+  });
+  return bang+'</tbody></table></div>';
+}
+
+/* Lưới tuần của MỘT GIÁO VIÊN. Màn hình Theo giáo viên dùng chung hàm này. */
+function luoiTuanGV(id){
+  const bb=buoiBat(), lich={};
+  Object.entries(S.tkb).forEach(([lp,o])=>Object.entries(o).forEach(([k,v])=>{
+    if(v.gvId===id) lich[k]={lp, mon:v.mon}; }));
+  return luoiTuanKhung((t,b,i)=>{
+    const k=bb.find(x=>x.thu===t&&x.buoi===b);
+    if(!k||i>=k.tiet) return '<div class="o-nghi"></div>';
+    const v=lich[`${t}-${b}-${i}`];
+    if(!v) return '<div class="o-trong"></div>';
+    return `<div class="o-tiet ${mLop(v.mon)}"><div class="o-mon">${esc(v.mon)}</div>
+      <div class="o-gv">Lớp ${esc(lopId(v.lp)?.ten)} · ${esc(tenDT(S.lopDT[v.lp]))}</div></div>`;
+  });
+}
+
+/* Lưới tuần của MỘT LỚP, bản chỉ đọc. */
+function luoiTuanLop(id){
+  const bb=buoiBat(), o=S.tkb[id]||{}, khoi=lopId(id)?.khoi;
+  return luoiTuanKhung((t,b,i)=>{
+    const k=bb.find(x=>x.thu===t&&x.buoi===b);
+    if(!k||i>=soTietBuoi(k,khoi)) return '<div class="o-nghi"></div>';
+    const v=o[`${t}-${b}-${i}`];
+    if(!v) return '<div class="o-trong"></div>';
+    const g=gvId(v.gvId);
+    return `<div class="o-tiet ${mLop(v.mon)}" style="cursor:default">
+      <div class="o-mon">${esc(v.mon)}</div>
+      <div class="o-gv">${esc(tenTat(g?.hoTen||''))}</div></div>`;
+  });
+}
+
+/* ---------- Dải bốn chỉ số, đặt NGAY TRÊN lưới ----------
+   Trước 3/8/2026 bốn thẻ này nằm tận dưới đáy, sau cả lưới, và mỗi thẻ là
+   một hộp trắng cao 102px — bốn hộp rời chiếm gần một màn hình để nói bốn
+   con số. Nay gộp thành MỘT dải liền, cao bằng một phần ba, đặt ngay trên
+   thời khóa biểu để đọc được cùng lúc với lưới. Bấm được, đi thẳng tới màn
+   hình tương ứng. */
+function kheSoLieu(soLop, pt, daXep, tongCan, soGV){
+  const o=[
+    ['lop',      soLop,    'Lớp học',      'cam'],
+    ['xep',      pt+'%',   `Đã xếp · ${daXep}/${tongCan} tiết`, pt>=100?'luc':'canh'],
+    ['giaovien', soGV,     'Giáo viên',    'lam'],
+    ['diemtruong', dtTrongPV().length, 'Điểm trường', 'tim'],
+  ];
+  return `<div class="dai-so">${o.map(([di,v,t,m])=>
+    `<button class="ds-o ${m}" data-di="${di}"><b>${v}</b><span>${t}</span></button>`).join('')}</div>`;
+}
+
+/* ---------- Khối SẢN PHẨM: bốn cách xem, chuyển TẠI CHỖ ----------
+   Trước 3/8/2026 bốn nút này là nút ĐIỀU HƯỚNG (`data-di`): bấm "Theo lớp"
+   là rời Bảng điều hành sang màn hình khác, và không có đường quay lại để
+   bấm nút thứ hai. Chủ dự án nói đúng: "bấm nút nào thì hiển thị thời khóa
+   biểu nút đó và không biến mất, muốn quay lại bấm nút khác không có".
+
+   Nay chúng là THẺ CHUYỂN: đổi `S.dhXem` rồi vẽ lại đúng khối này, lưới bên
+   dưới đổi theo, thẻ đang chọn vẫn nằm đó để bấm sang thẻ khác. Bảng điều
+   hành trở thành chỗ xem thời khóa biểu thật sự, đúng nghĩa bộ mặt sản phẩm.
+
+   Bốn màn hình riêng vẫn còn nguyên — đó mới là chỗ chỉnh tay, xuất, in.
+   Ở đây CHỈ ĐỌC. */
+const THE_XEM = [['toantruong','Toàn trường'],['tkbkhoi','Theo khối'],
+                 ['tkblop','Theo lớp'],['tkbgv','Theo giáo viên']];
+
+function kheSanPhamHTML(ds, daXep, tongCan){
+  if(!THE_XEM.some(x=>x[0]===S.dhXem)) S.dhXem='toantruong';
+  const xem=S.dhXem;
+
+  /* Dải chọn phụ + lưới, tuỳ thẻ đang mở */
+  let dai='', luoi='', meta='';
+  if(xem==='toantruong'){
+    dai=daiDiemLuoi();
+    luoi=luoiRongHTML(xepTheoKhoi(lopChoLuoi()),true,'52vh');
+    meta=`${ds.length} lớp · ${daXep}/${tongCan} tiết`;
+  }else if(xem==='tkbkhoi'){
+    const khoi=khoiDangCo(ds);
+    if(!khoi.includes(S.khoiXem)) S.khoiXem=khoi[0];
+    const lop=ds.filter(l=>khoiCuaLop(l)===S.khoiXem);
+    dai=`<div class="dai-dt">${khoi.map(k=>`<button class="dt-nut${k===S.khoiXem?' on':''}"
+      data-dhkhoi="${k}">Khối ${k}<span>${ds.filter(l=>khoiCuaLop(l)===k).length}</span></button>`).join('')}</div>`;
+    luoi=luoiRongHTML(xepTheoKhoi(lop),false,'52vh');
+    meta=`Khối ${S.khoiXem} · ${lop.length} lớp`;
+  }else if(xem==='tkblop'){
+    if(!ds.some(l=>l.id===S.lopXem)) S.lopXem=ds[0]?.id;
+    const l=lopId(S.lopXem);
+    dai=`<div class="dh-chon">
+      ${oLocChon('dhLop',ds.length,'lớp','Tìm lớp…')}
+      <select class="ip" id="dhLop">${xepTheoKhoi(ds).map(x=>`<option value="${x.id}"
+        ${x.id===S.lopXem?'selected':''} data-loctu="${tuLoc(x.ten,x.maLop,tenDT(S.lopDT[x.id]))}"
+        >${esc(tenLopDay(x.id))}</option>`).join('')}</select>
+      <button class="b b-vien b-nho" data-di="tkblop">Mở để chỉnh tay ›</button></div>`;
+    luoi=S.lopXem?luoiTuanLop(S.lopXem):'';
+    meta=l?`${esc(tenLopDay(l.id))} · ${Object.keys(S.tkb[l.id]||{}).length} tiết/tuần`:'';
+  }else{
+    const cds=[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+    if(!cds.some(x=>x.id===S.gvXem)) S.gvXem=cds[0]?.id;
+    const g=gvId(S.gvXem);
+    const so=Object.values(S.tkb).reduce((s,o)=>
+      s+Object.values(o).filter(v=>v.gvId===S.gvXem).length,0);
+    dai=`<div class="dh-chon">
+      ${oLocChon('dhGV',cds.length,'giáo viên','Tìm giáo viên…')}
+      <select class="ip" id="dhGV">${cds.map(x=>`<option value="${x.id}"
+        ${x.id===S.gvXem?'selected':''} data-loctu="${tuLoc(x.hoTen,x.maGV,tenCN(x))}"
+        >${esc(x.hoTen)}</option>`).join('')}</select>
+      <button class="b b-vien b-nho" data-di="tkbgv">Mở đầy đủ ›</button></div>`;
+    luoi=S.gvXem?luoiTuanGV(S.gvXem):'';
+    meta=g?`${esc(g.hoTen)} · ${so} tiết/tuần`:'';
+  }
+
+  return `<div class="the the-rong the-luoi" style="margin-bottom:18px">
+    <div class="the-d"><h2>Thời khóa biểu ${esc(S.tenTruong)}</h2>
+      <span class="meta">${meta}${KHO.version?` · phiên bản ${KHO.version}`:''}</span>
+      <button class="b b-vang b-nho" data-di="xuatin">Xuất và in</button></div>
+    <div class="the-t">
+      <div class="dai-xem">${THE_XEM.map(([v,t])=>
+        `<button class="xem-nut${v===xem?' on':''}" data-dhxem="${v}">${t}</button>`).join('')}</div>
+      ${dai}
+      <div class="${lopCoLuoi().trim()}" style="margin-top:12px">${luoi}</div>
+      <div class="gy" style="margin-top:10px">${
+        KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
+        :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.'
+        :'Cuộn trong khung để xem hết.'}</div>
+    </div>
   </div>`;
 }
 
@@ -5133,7 +5291,12 @@ function kheVieccanXuLy(vc, canhBao){
   </div>`;
 }
 
-/* ---------- Sáu nút thao tác nhanh (§4) ----------
+/* ---------- Sáu nút thao tác nhanh ----------
+   Chuyển khỏi Bảng điều hành 3/8/2026 sang màn hình XẾP THỜI KHÓA BIỂU.
+   Lý do: Bảng điều hành phải là chỗ NHÌN thời khóa biểu, không phải bảng
+   nút bấm; còn màn hình Xếp mới là nơi người dùng đang làm việc và cần
+   nhảy qua lại giữa kiểm tra · xếp · công bố · xuất.
+
    Đúng MỘT nút chính nổi bật, năm nút còn lại là nút viền — §5 nói rõ:
    không để quá nhiều nút cùng màu và cùng mức độ ưu tiên. Nút chính là
    nút của việc TIẾP THEO phải làm, nên nó đổi theo trạng thái. */
@@ -5165,7 +5328,8 @@ function mXep(){
   const loi=KT.vm.filter(v=>v.muc==='do');
   /* Ghi lên máy chủ chỉ có nghĩa khi lưới dựng trên chính dữ liệu của máy chủ */
   const luuDuoc=coMayChu() && KHO.nguon==='may-chu';
-  return dauTrang('Xếp thời khóa biểu','Máy xếp trước, cán bộ chỉnh sau. Nguyên tắc: một giáo viên chỉ ở một điểm trường trong một buổi.',false)+dieuHuongBuoc('xep')+`
+  return dauTrang('Xếp thời khóa biểu','Máy xếp trước, cán bộ chỉnh sau. Nguyên tắc: một giáo viên chỉ ở một điểm trường trong một buổi.',false)
+  +dieuHuongBuoc('xep')+kheThaoTacNhanh(soTietDaXep()>0)+`
   <div class="dh"><div class="dh-duoi">
     <div class="the">
       <div class="the-d"><h2>Xếp tự động</h2></div>
@@ -7957,7 +8121,11 @@ function mGiaoVien(){
     Tài khoản đăng nhập</button>
     ${S.giaoVien.some(g=>g.nguoiDungId)?`<button class="b b-vien" id="btChuyenTK">Chuyển tài khoản</button>`:''}
     ${S.giaoVien.length?`<button class="b b-vien" id="btDatLaiMaGV">Đặt lại mã giáo viên</button>`:''}`):'')+`
-  ${oLoc('bGV',ds.length,'giáo viên','Tìm họ tên, mã, lớp chủ nhiệm, điểm trường…')}
+  ${/* Ô tìm kiếm chung chuyển từ Bảng điều hành về đây 3/8/2026 — tìm giáo
+       viên là việc của mục Giáo viên. Nó khác `oLoc` ở chỗ không lọc bảng mà
+       trả kết quả bấm được, nhảy thẳng tới lịch dạy của người ấy. */''}
+  ${oTimChung()}
+  ${oLoc('bGV',ds.length,'giáo viên','Lọc nhanh trong bảng dưới…')}
   <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr><th>Họ và tên</th>
     <th class="phai">Định mức</th><th>Chủ nhiệm</th><th>Điểm trường</th>
     <th class="phai">Lớp</th><th class="phai">Tiết/tuần</th><th class="phai">Buổi cần</th><th>Tình trạng</th>
@@ -8328,6 +8496,11 @@ function noiSuKien(){
   if(S.trangHienTai==='nhatky' && coMayChu()) veNhatKy();
 
   /* ---------- Cỡ hiển thị lưới và toàn màn hình (§7) ---------- */
+  /* Thẻ chuyển cách xem trên Bảng điều hành — đổi lưới TẠI CHỖ, không rời trang */
+  $$('[data-dhxem]').forEach(b=>b.onclick=()=>{ S.dhXem=b.dataset.dhxem; ve(); });
+  $$('[data-dhkhoi]').forEach(b=>b.onclick=()=>{ S.khoiXem=+b.dataset.dhkhoi; ve(); });
+  $('#dhLop')&&($('#dhLop').onchange=e=>{ S.lopXem=e.target.value; ve(); });
+  $('#dhGV') &&($('#dhGV').onchange =e=>{ S.gvXem =e.target.value; ve(); });
   $$('[data-coluoi]').forEach(b=>b.onclick=()=>{ S.coLuoi=b.dataset.coluoi; ve(); });
   $$('[data-toanmh]').forEach(b=>b.onclick=()=>batToanManHinh(true));
 

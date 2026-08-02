@@ -785,25 +785,96 @@ kt('Thời khóa biểu vẫn đứng TRƯỚC ba thẻ bước — sản phẩm
   const iBuoc = html.indexOf('Khai báo dữ liệu');
   return iLuoi > 0 && (iBuoc < 0 || iLuoi < iBuoc);
 })());
-kt('Có đủ sáu nút thao tác nhanh của §4', (() => {
+/* Cụm thao tác nhanh chuyển sang màn hình XẾP 3/8/2026 — Bảng điều hành
+   phải là chỗ NHÌN thời khóa biểu, không phải một bảng nút bấm. */
+kt('Bảng điều hành KHÔNG còn cụm sáu nút thao tác nhanh', (() => {
+  /* Không đòi vắng mặt MỌI data-di — thẻ Cảnh báo vẫn có lối sang Kiểm tra
+     khả thi, đó là lối đi đúng chỗ. Chỉ đòi không còn CỤM sáu nút: dấu hiệu
+     là nút "Công bố phiên bản", vốn chỉ có trong cụm ấy. */
   const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
-  return ['kiemtra','xep','toantruong','daythay','xuatin','phienban']
+  return !di.includes('phienban');
+})());
+kt('Cụm ấy nay nằm ở màn hình Xếp thời khóa biểu, đủ sáu nút', (() => {
+  w.chuyen('xep');
+  const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
+  const ok = ['kiemtra','xep','toantruong','daythay','xuatin','phienban']
     .every(x => di.includes(x));
+  w.chuyen('dieuhanh');
+  return ok;
 })());
 kt('Chỉ MỘT nút hành động chính nổi bật trong dải thao tác nhanh', ...((() => {
+  w.chuyen('xep');
   const dai = [...w.document.querySelectorAll('#noiDung .the')]
     .find(t => [...t.querySelectorAll('[data-di]')].length >= 5);
-  const ch = [...dai.querySelectorAll('button')].filter(b => b.className.includes('b-ch'));
-  return [ch.length === 1, `${ch.length} nút chính`];
+  const ch = dai ? [...dai.querySelectorAll('button')].filter(b => b.className.includes('b-ch')) : [];
+  w.chuyen('dieuhanh');
+  return [!!dai && ch.length === 1, `${ch.length} nút chính`];
 })()));
+kt('Bảng điều hành bỏ hẳn tiêu đề + ô tìm kiếm chung, vào thẳng thời khóa biểu', (() => {
+  return !w.document.querySelector('#noiDung .dau-trang')
+    && !w.document.querySelector('#noiDung #timChung');
+})());
+kt('Ô tìm kiếm chung nay nằm ở mục Giáo viên', (() => {
+  w.chuyen('giaovien');
+  const co = !!w.document.querySelector('#timChung');
+  w.chuyen('dieuhanh');
+  return co;
+})());
+kt('Dải bốn chỉ số nằm TRÊN lưới thời khóa biểu', ...((() => {
+  const html = w.document.querySelector('#noiDung').innerHTML;
+  const iSo = html.indexOf('class="dai-so'), iLuoi = html.indexOf('class="tt');
+  return [iSo > 0 && iLuoi > 0 && iSo < iLuoi, `số ${iSo} · lưới ${iLuoi}`];
+})()));
+
+console.log('\n15h2. Bốn cách xem, chuyển TẠI CHỖ trên Bảng điều hành');
+kt('Có đủ bốn thẻ chuyển cách xem', ...((() => {
+  const v = [...w.document.querySelectorAll('[data-dhxem]')].map(b => b.dataset.dhxem);
+  return [v.join() === 'toantruong,tkbkhoi,tkblop,tkbgv', v.join(' · ')];
+})()));
+kt('Chúng là THẺ CHUYỂN, không phải nút rời trang — không mang data-di', (() => {
+  return [...w.document.querySelectorAll('[data-dhxem]')].every(b => !b.dataset.di);
+})());
+kt('Bấm "Theo lớp" thì lưới đổi ngay mà VẪN Ở Bảng điều hành', (() => {
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'tkblop')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  return w.eval('S.trangHienTai') === 'dieuhanh'
+    && !!w.document.querySelector('#dhLop')
+    && !!w.document.querySelector('#noiDung table.tkb');
+})());
+kt('Và thẻ vừa bấm được đánh dấu đang chọn, các thẻ kia vẫn còn để bấm tiếp', (() => {
+  const on = [...w.document.querySelectorAll('.xem-nut.on')];
+  return on.length === 1 && on[0].dataset.dhxem === 'tkblop'
+    && w.document.querySelectorAll('[data-dhxem]').length === 4;
+})());
+kt('Bấm tiếp "Theo giáo viên" thì đổi sang lịch của giáo viên', (() => {
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'tkbgv')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  return w.eval('S.trangHienTai') === 'dieuhanh' && !!w.document.querySelector('#dhGV');
+})());
+kt('Quay lại "Toàn trường" thì có dải điểm trường và lưới rộng', (() => {
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'toantruong')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  return !!w.document.querySelector('#noiDung table.tt');
+})());
+kt('Lưới trong Bảng điều hành CHỈ ĐỌC — không kéo thả, không chạm sửa', (() => {
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'tkblop')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  const nd = w.document.querySelector('#noiDung');
+  const ok = !nd.querySelector('[data-keo]') && !nd.querySelector('[data-cham]');
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'toantruong')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  return ok;
+})());
 kt('Thẻ số liệu nay là nền TRẮNG, không còn navy phủ kín đầu trang', (() => {
   const css = w.document.documentElement.innerHTML;
   const i = css.indexOf('.ts{background:var(--the)');
   return i > 0 && /\.ts::after\{display:none\}/.test(css);
 })());
-kt('Có đủ lối đi thẳng tới bốn sản phẩm và Xuất/in', (() => {
+kt('Bốn cách xem nay là THẺ CHUYỂN tại chỗ, chỉ Xuất/in mới rời trang', (() => {
+  const xem = [...w.document.querySelectorAll('#noiDung [data-dhxem]')].map(b => b.dataset.dhxem);
   const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
-  return ['toantruong','tkblop','tkbgv','tkbkhoi','xuatin'].every(x => di.includes(x));
+  return ['toantruong','tkblop','tkbgv','tkbkhoi'].every(x => xem.includes(x))
+    && di.includes('xuatin');
 })());
 
 kt('Chưa xếp tiết nào thì không bày khối sản phẩm rỗng, ba bước lên trước', (() => {
@@ -1377,7 +1448,10 @@ S.nguoiDung = vaiGV;
 w.chuyen('dieuhanh');
 
 console.log('\n19d. Ô tìm kiếm chung');
-kt('Bảng điều hành có ô tìm kiếm chung', !!w.document.querySelector('#timChung'));
+/* Ô tìm kiếm chung chuyển từ Bảng điều hành về mục Giáo viên (3/8/2026) —
+   tìm giáo viên là việc của mục Giáo viên. */
+w.chuyen('giaovien');
+kt('Mục Giáo viên có ô tìm kiếm chung', !!w.document.querySelector('#timChung'));
 kt('Gõ tên giáo viên thì ra đúng người, kèm số tiết và điểm trường', (() => {
   const g = S.giaoVien[0];
   const tu = g.hoTen.split(' ').pop();
