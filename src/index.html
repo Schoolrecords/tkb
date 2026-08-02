@@ -7339,8 +7339,9 @@ async function hopMaMoi(){
       mình — không cần cấp mật khẩu, không xác minh thư. Mỗi mã dùng một lần, hạn 30 ngày.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:13px">
       <div class="on-l" style="margin:0;flex:1;min-width:220px"><label>Tạo mã cho</label>
-        <select class="ip" id="mmChonGV" style="width:100%">
-          ${dsGV.map(g=>`<option value="${g.id}">${esc(g.hoTen)}</option>`).join('')}
+        ${oLocChon('mmChonGV',dsGV.length,'giáo viên','Tìm giáo viên…','width:100%')}
+        <select class="ip" id="mmChonGV" style="width:100%;margin-top:7px">
+          ${dsGV.map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(g.hoTen)}</option>`).join('')}
           <option value="">— Cán bộ quản lý (phó hiệu trưởng) —</option>
         </select></div>
       <button class="b b-ch" id="btTaoMaMoi">Tạo mã</button>
@@ -7359,6 +7360,12 @@ async function hopMaMoi(){
         :`<div class="trong-hop"><b>Chưa có mã nào</b>Chọn thầy cô ở trên rồi bấm “Tạo mã”.</div>`)
       :`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
           <b>Chưa xem được danh sách mã</b><div class="cb-g">${esc(kq.loi||'')}</div></div></div>`}`;
+  /* Hộp thoại dựng ngoài `ve()` nên `noiSuKien()` không chạm tới — nối tay */
+  $$('[data-locsel]').forEach(i=>{ i.oninput=()=>locChon(i); });
+  $$('[data-locxoa]').forEach(b=>b.onclick=()=>{
+    const i=b.parentElement.querySelector('input'); if(!i) return;
+    i.value=''; locChon(i); i.focus();
+  });
   $('#btTaoMaMoi').onclick=async()=>{
     const gvId=$('#mmChonGV').value;
     const b=$('#btTaoMaMoi'); b.disabled=true; b.textContent='Đang tạo…';
