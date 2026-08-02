@@ -2442,6 +2442,24 @@ const themThanhVien = tt => goiTaiKhoan({viec:'tao', email:tt.email, mat_khau:tt
 const datLaiMatKhau = (id, mk) => goiTaiKhoan({viec:'doi_mat_khau', id, mat_khau:mk});
 const xoaThanhVien  = id => goiTaiKhoan({viec:'xoa', id});
 
+/* ---------- 4b. Nhật ký thao tác ----------
+   Đọc lại vết đã ghi: ai lưu, ai công bố, ai nhập dữ liệu, lúc nào.
+   Quy tắc p_nk_doc trong db/schema.sql chỉ cho quản lý đọc.
+   Trả dữ liệu thuần — màn hình tự diễn giải mã hành động thành câu. */
+async function taiNhatKy(gioiHan=100){
+  if(!coMayChu()) return {ok:false, ds:[],
+    thongBao:'Chưa nối máy chủ nên chưa có nhật ký. Nhật ký ghi lại các thao tác trên máy chủ: lưu, công bố, nhập dữ liệu.'};
+  try{
+    const ds = await goiAPI(`/rest/v1/nhat_ky?truong_id=eq.${KHO.nguoiDung.truongId}`
+      + '&select=hanh_dong,du_lieu_cu,thoi_diem,nguoi_dung(ho_ten)'
+      + `&order=thoi_diem.desc&limit=${+gioiHan||100}`);
+    return {ok:true, thongBao:'', ds:(ds||[]).map(h=>({
+      hanhDong:h.hanh_dong, duLieu:h.du_lieu_cu||{},
+      luc:dinhDangLuc(h.thoi_diem), hoTen:h.nguoi_dung?.ho_ten||'—'
+    }))};
+  }catch(e){ return {ok:false, ds:[], thongBao:dienGiaiLoi(e)}; }
+}
+
 /* Ghi vết thao tác. Hỏng cũng không được chặn việc chính, nên nuốt lỗi. */
 function ghiNhatKy(hanhDong, duLieuCu){
   if(!coMayChu()) return Promise.resolve(false);
@@ -3152,6 +3170,7 @@ function mXep(){
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>
           ${KHO.banCongBo===KHO.version?'Rút công bố':'Công bố cho giáo viên'}</button>`:''}
         <button class="b b-vien" id="btLichSu">Lịch sử phiên bản</button>
+        <button class="b b-vien" id="btNhatKy">Nhật ký thao tác</button>
         ${coMayChu()?'':'<button class="b b-vien" id="btNoiMayChu">Kết nối máy chủ</button>'}
       </div>
       ${luuDuoc&&KHO.version&&KHO.banCongBo!==KHO.version?`<div class="canhbao" style="margin-top:13px">
@@ -4185,6 +4204,7 @@ const HD_ND = {
         <ul>
           <li>Hai người lưu cùng lúc thì máy chủ từ chối người giữ bản cũ hơn, không ai mất công.</li>
           <li><b>Lịch sử phiên bản</b> cho xem lại và khôi phục bản cũ. Khôi phục chỉ nạp lên màn hình, muốn chốt thì lưu lại thành bản mới.</li>
+          <li><b>Nhật ký thao tác</b> ghi lại ai lưu, ai công bố, ai nhập dữ liệu, lúc nào — trường nhiều người cùng xếp thì nhìn vào đây là biết chuyện gì đã xảy ra.</li>
         </ul>`},
       {t:'Bước 3 — Bốn sản phẩm và cách in', n:`
         <p>Xếp xong là có ngay bốn bản, đúng bốn thứ nhà trường vẫn cần:</p>
@@ -4987,6 +5007,7 @@ function noiSuKien(){
   /* lưu và phiên bản */
   $('#btNoiMayChu')&&($('#btNoiMayChu').onclick=hopMayChu);
   $('#btLichSu')&&($('#btLichSu').onclick=hopLichSu);
+  $('#btNhatKy')&&($('#btNhatKy').onclick=hopNhatKy);
   $('#btCongBo')&&($('#btCongBo').onclick=async e=>{
     const b=e.currentTarget, cu=b.innerHTML, rut=KHO.banCongBo===KHO.version;
     b.disabled=true; b.textContent=rut?'Đang rút…':'Đang công bố…';
@@ -6187,6 +6208,34 @@ async function hopLichSu(){
     ve();
   });
 }
+/* Nhật ký thao tác — ai làm gì trên máy chủ, lúc nào. Mã hành động dịch
+   thành câu tại đây; vùng DULIEU chỉ trả dữ liệu thuần. */
+const MO_TA_HANH_DONG = {
+  luu_tkb:            d=>`Lưu thời khóa biểu thành phiên bản ${d.version ?? '—'}`,
+  cong_bo:            d=>`Công bố phiên bản ${d.version ?? '—'} cho giáo viên`,
+  rut_cong_bo:        d=>`Rút công bố phiên bản ${d.version ?? '—'}`,
+  nhap_du_lieu_nguon: d=>`Nhập dữ liệu nguồn: ${d.lop ?? 0} lớp · ${d.giaoVien ?? 0} giáo viên · ${d.phanCong ?? 0} dòng phân công`,
+  luu_buoi_ban:       d=>`Cập nhật buổi bận của giáo viên (${d.so ?? 0} dòng)`
+};
+async function hopNhatKy(){
+  hop('Nhật ký thao tác','<div class="trong-hop">Đang tải…</div>',[{ten:'Đóng',lam:dong}]);
+  const kq=await taiNhatKy(100);
+  if(!kq.ok) return void($('#hopN').innerHTML=
+    `<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
+      <b>Chưa xem được nhật ký</b><div class="cb-g">${esc(kq.thongBao)}</div></div></div>`);
+  if(!kq.ds.length) return void($('#hopN').innerHTML=
+    `<div class="trong-hop"><b>Chưa có thao tác nào</b>Lưu, công bố hay nhập dữ liệu là có dòng đầu tiên.</div>`);
+  $('#hopN').innerHTML=
+    `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Ai làm gì trên máy chủ, lúc nào —
+      ${kq.ds.length} thao tác gần nhất, mới nhất ở trên.</p>
+     <div class="bang" style="max-height:52vh"><table class="dl"><thead><tr>
+       <th>Lúc</th><th>Người làm</th><th>Việc</th></tr></thead><tbody>
+     ${kq.ds.map(h=>`<tr><td style="white-space:nowrap">${esc(h.luc)}</td>
+       <td style="white-space:nowrap">${esc(h.hoTen)}</td>
+       <td>${esc((MO_TA_HANH_DONG[h.hanhDong]||(()=>h.hanhDong))(h.duLieu))}</td></tr>`).join('')}
+     </tbody></table></div>`;
+}
+
 $('#btDangNhapTren').onclick=hopMayChu;   /* thanh trên cùng là lối vào duy nhất */
 
 

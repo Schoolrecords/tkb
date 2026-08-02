@@ -36,7 +36,7 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [], addEventL
 
 const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}\n; return {
   S, xepTuDong, kiemTra, buoiBat, KHO, NGUON, khungGioMacDinh,
-  taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat,
+  taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat, taiNhatKy,
   tuMayChu, napVaoS, dongGoiTKB, docTKB,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
@@ -58,7 +58,7 @@ const taoUngDung = (doc, win, layMang) =>
   new Function('document', 'window', 'fetch', NGUON_MA)(doc, win, layMang);
 
 const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
-        taiDuLieu, luuTKB, lichSuPhienBan, dangNhap,
+        taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiNhatKy,
         tuMayChu, napVaoS, dongGoiTKB, docTKB,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
         apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
@@ -261,7 +261,7 @@ console.log('\n6. Nói chuyện với máy chủ (máy chủ giả)');
 let veHienHanh = 'VE1', soLanRPC = 0, daLamMoiVe = false;
 /* Ghi lại mọi thứ máy chủ giả nhận được, để phép thử soi lại đúng sai */
 const GHI = { diemTruong: [], khungGio: null, giaoVien: null, lop: null, phanCong: null,
-              xoaPhanCong: 0, congBo: [], gvNghi: null, xoaNghi: 0 };
+              xoaPhanCong: 0, congBo: [], gvNghi: null, xoaNghi: 0, nhatKy: [] };
 const dap = (du, ma = 200) => ({ ok: ma < 400, status: ma, text: async () => JSON.stringify(du) });
 const BAN_LUU = {
   3: { version: 3, ghi_chu: '5/5 tiết', tao_luc: '2026-07-30T02:15:00Z',
@@ -316,7 +316,13 @@ async function mangGia(url, opt = {}) {
   if (co('/lop?')) return dap(HANG.lop);
   if (co('/phan_cong?')) return dap(HANG.phan_cong);
   if (co('/gv_nghi?')) return dap(HANG.gv_nghi);
-  if (co('/nhat_ky')) return dap(null, 201);
+  if (co('/nhat_ky')) {
+    if (opt.method === 'POST') { GHI.nhatKy.push(than); return dap(null, 201); }
+    /* Đọc: mới nhất ở trên, kèm họ tên người làm như PostgREST nhúng bảng nguoi_dung */
+    return dap(GHI.nhatKy.slice().reverse().map(h => ({
+      hanh_dong: h.hanh_dong, du_lieu_cu: h.du_lieu_cu, thoi_diem: '2026-08-02T03:00:00Z',
+      nguoi_dung: { ho_ten: 'Trần Thanh Chung' } })));
+  }
 
   if (co('/rpc/luu_tkb')) {
     /* Lần gọi đầu cố tình để vé hết hạn — buộc tầng dữ liệu tự xin vé mới */
@@ -400,6 +406,19 @@ kt('Công bố bản khác thì bản cũ tự tắt — mỗi lúc chỉ một 
 const cb0 = await MC.congBoTKB(2, false);
 kt('Rút công bố được khi cần sửa giữa năm',
    cb0.ok === true && GHI.congBo.length === 0, cb0.thongBao);
+
+/* Nhật ký: các thao tác vừa làm ở trên phải để lại vết đọc lại được */
+const nkMC = await MC.taiNhatKy();
+kt('Nhật ký đọc được — lưu và công bố đều để lại vết, kèm người và thời điểm',
+   nkMC.ok === true && nkMC.ds.length >= 3 &&
+   nkMC.ds.some(h => h.hanhDong === 'luu_tkb' && h.duLieu.version === 4) &&
+   nkMC.ds.some(h => h.hanhDong === 'cong_bo') &&
+   nkMC.ds.some(h => h.hanhDong === 'rut_cong_bo') &&
+   nkMC.ds.every(h => h.hoTen === 'Trần Thanh Chung' &&
+                      /^\d{2}:\d{2} \d{2}\/\d{2}\/\d{4}$/.test(h.luc)),
+   `${nkMC.ds.length} dòng, mới nhất: ${nkMC.ds[0]?.hanhDong}`);
+kt('Chưa nối máy chủ thì nhật ký nói rõ cách có nó, không đổ lỗi',
+   await taiNhatKy().then(r => r.ok === false && /Chưa nối máy chủ/.test(r.thongBao)));
 
 /* Tình huống thật đã gặp: đăng nhập được nhưng trường trên máy chủ chưa có lớp
    nên phần mềm quay về dữ liệu mẫu. Lưới lúc đó dựng trên mã lớp và mã giáo

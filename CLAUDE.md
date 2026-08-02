@@ -648,8 +648,11 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [x] Tầng truy cập dữ liệu: `taiDuLieu()`, `luuTKB(tkb, version)`, `lichSuPhienBan()`, `dangNhap()`
 - [x] Đăng nhập giáo viên bằng email + mật khẩu, dò về `giao_vien.nguoi_dung_id`
 - [x] Phân quyền: quản trị (toàn trường) → PHT (điểm trường phụ trách) → giáo viên (chỉ xem)
-- [ ] Nhật ký thao tác và khôi phục phiên bản
-      *(đã ghi `nhat_ky` lúc lưu và khôi phục được bản cũ — còn màn hình xem nhật ký)*
+- [x] Nhật ký thao tác và khôi phục phiên bản *(hoàn tất 2/8/2026)*.
+      `taiNhatKy()` trong vùng DULIEU (trả dữ liệu thuần, PostgREST nhúng
+      `nguoi_dung(ho_ten)` lấy tên người làm); hộp **Nhật ký thao tác** cạnh
+      *Lịch sử phiên bản* trên màn hình Xếp, mã hành động dịch thành câu qua
+      `MO_TA_HANH_DONG`. Chỉ quản lý đọc được (quy tắc `p_nk_doc` có sẵn).
 - [x] Nhập PCGD từ Excel, **ghi thẳng lên máy chủ** (`ghiDuLieuNguon`)
 - [x] Xuất TKB ra Excel/PDF theo lớp, theo giáo viên, theo điểm trường
 - [x] Khung giờ theo khối — `khung_gio.so_tiet_khoi`, khối nhỏ tan sớm hơn
@@ -730,7 +733,7 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       là module được dùng nhiều nhất thế giới; nó biến phần mềm từ *mỗi năm một
       lần* thành *mỗi tuần một lần*, và ràng buộc điểm trường khiến gợi ý người
       dạy thay ở đây chính xác hơn hẳn làm tay.
-- [ ] Màn hình nhật ký thao tác
+- [x] Màn hình nhật ký thao tác *(2/8/2026 — xem mục 9 ở trên)*
 - [x] In tổng hợp toàn trường một tờ *(1/8/2026)* · [ ] xuất `.ics` cho lịch điện thoại
 - [ ] Bảng tra cập nhật tăng dần trong `xepTuDong()` trước, rồi mới Web Worker
 - [ ] **Chạy `db/mon-hoc-phong.sql`** một lần trong Supabase SQL Editor. Chưa

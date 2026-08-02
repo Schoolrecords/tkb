@@ -421,6 +421,21 @@ kt('Vùng LOGIC cắt ra tự chạy được với document giả — đúng th
    === 'function-function-function');
 kt('Trình duyệt không có Worker thì taoWorkerXep trả null, xếp kỹ vẫn chạy tại chỗ',
    w.eval('typeof Worker') === 'undefined' && w.eval('taoWorkerXep()') === null);
+
+console.log('\n15b. Nhật ký thao tác');
+kt('Màn hình Xếp có nút Nhật ký thao tác cạnh Lịch sử phiên bản',
+   !!w.document.querySelector('#btNhatKy') && !!w.document.querySelector('#btLichSu'));
+await w.eval('hopNhatKy()');
+kt('Chưa nối máy chủ thì hộp nhật ký nói rõ vì sao và bao giờ có',
+   /Chưa xem được nhật ký/.test(w.document.querySelector('#hopN')?.textContent || '') &&
+   /Chưa nối máy chủ/.test(w.document.querySelector('#hopN')?.textContent || ''));
+kt('Mã hành động dịch thành câu tiếng Việt đọc được', (() => {
+  const d = w.eval('MO_TA_HANH_DONG');
+  return d.luu_tkb({version: 4}) === 'Lưu thời khóa biểu thành phiên bản 4'
+    && d.nhap_du_lieu_nguon({lop: 25, giaoVien: 35, phanCong: 265}).includes('25 lớp')
+    && d.cong_bo({version: 2}).includes('giáo viên');
+})());
+w.eval('dong()');
 w.chuyen('xuatin');
 kt('Mỗi thẻ in đều có nút Tải Word đi kèm',
    !!w.document.querySelector('#btWordRong') && !!w.document.querySelector('#btWordLop') &&
