@@ -1638,14 +1638,17 @@ const maLopTu = (ten, dtTen) => String(ten||'').replace(/\s+/g,'')+'_'+tienToDT(
    là thứ NGƯỜI đọc và gõ; không bao giờ được để mã máy lọt ra màn hình. */
 const chuanMaLop = () => datLaiMaLop();
 
-/* Đặt lại mã cho các lớp đang mang mã xấu. Chỉ đụng `maLop` — mọi tham
-   chiếu khác đi bằng `id` nên không xê dịch gì. */
-function datLaiMaLop(){
-  const daCo=new Set(S.lop.map(l=>l.maLop).filter(Boolean));
+/* Đặt lại mã lớp. Mặc định chỉ chữa các mã XẤU (chạy tự động lúc nạp);
+   truyền `tatCa` để đưa TOÀN BỘ về dạng chuẩn `1A_DL` — dùng cho nút bấm
+   tay, vì máy chủ cũ có thể đang giữ mã cũ kiểu "1A" trông không xấu nhưng
+   không nói được lớp đó ở điểm trường nào.
+   Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id` nên không xê dịch gì. */
+function datLaiMaLop(tatCa){
+  const can = l => tatCa ? maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten)!==l.maLop : maXauXi(l);
+  const daCo=new Set(S.lop.filter(l=>!can(l)).map(l=>l.maLop).filter(Boolean));
   let doi=0;
   S.lop.forEach(l=>{
-    if(!maXauXi(l)) return;
-    daCo.delete(l.maLop);
+    if(!can(l)) return;
     const goc=maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten);
     let m=goc, i=1;
     while(daCo.has(m)) m=goc+'_'+(++i);
@@ -5430,7 +5433,7 @@ function mLopHoc(){
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btSinhLop">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Tạo lớp hàng loạt</button>
     <button class="b b-vien" id="btThemLop">Thêm một lớp</button>
-    ${ds.some(l=>maXauXi(l))?`<button class="b b-vien" id="btDatLaiMa" style="color:var(--cam)">Đặt lại mã lớp</button>`:''}
+    ${sua&&S.lop.length?`<button class="b b-vien" id="btDatLaiMa">Đặt lại mã lớp</button>`:''}
     <span style="font-size:12.5px;color:var(--chu-mo)">${ds.length} lớp · ${Object.keys(theoKhoi).length} khối</span>`)
    :nhanChiXem('thêm và sửa lớp học')+'<div style="margin-bottom:14px"></div>')+`
   ${!ds.length?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
@@ -5941,25 +5944,35 @@ function noiSuKien(){
   $('#btSinhLop')&&($('#btSinhLop').onclick=hopSinhLop);
   $('#btThemLop')&&($('#btThemLop').onclick=hopThemLop);
   $('#btDatLaiMa')&&($('#btDatLaiMa').onclick=()=>{
-    const xau=S.lop.filter(maXauXi);
+    const moiCua=l=>maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten);
+    const doi=S.lop.filter(l=>moiCua(l)!==l.maLop);
     hop('Đặt lại mã lớp',
-      `<p style="font-size:13px;margin-bottom:12px"><b>${xau.length} lớp</b> đang mang mã do máy
-        chủ tự sinh — chuỗi dài vô nghĩa, khó đọc và khó gõ vào Excel.</p>
-       <div class="bang" style="max-height:34vh"><table class="dl"><thead><tr>
-         <th>Lớp</th><th>Mã hiện tại</th><th>Mã mới</th></tr></thead><tbody>
-       ${xau.slice(0,12).map(l=>`<tr><td><b>${esc(tenLopDay(l.id))}</b></td>
-         <td style="font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--chu-mo)">${esc(String(l.maLop||l.id).slice(0,20))}…</td>
-         <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(tienToDT(dtId(S.lopDT[l.id])?.ten)+'-'+String(l.ten||'').replace(/\\s+/g,''))}</b></td></tr>`).join('')}
-       ${xau.length>12?`<tr><td colspan="3" style="color:var(--chu-mo)">…và ${xau.length-12} lớp khác</td></tr>`:''}
-       </tbody></table></div>
-       <div class="gy" style="margin-top:11px">Chỉ đổi <b>mã lớp</b> — thứ để đối chiếu với tệp Excel.
-        Tên lớp, chủ nhiệm, phân công và thời khóa biểu giữ nguyên hoàn toàn.
-        ${coMayChu()&&duocSuaNguon()?'Bấm <b>Lưu</b> sau đó để ghi lên máy chủ.':''}</div>`,
-      [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đặt lại mã',lam:()=>{
-        const n=datLaiMaLop(); dong();
-        bao(`Đã đặt lại mã cho ${n} lớp.${coMayChu()&&duocSuaNguon()?' Bấm Lưu để ghi lên máy chủ.':''}`);
-        ve();
-      }}]);
+      !doi.length
+      ? `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
+          <b>Cả ${S.lop.length} lớp đều đã đúng dạng</b>
+          <div class="cb-g">Mã lớp hiện là <b>tên lớp _ viết tắt điểm trường</b>, ví dụ
+            <b>1A_DL</b>. Không có gì cần đổi.</div></div></div>`
+      : `<p style="font-size:13px;margin-bottom:12px">Đưa <b>${doi.length} lớp</b> về dạng chuẩn
+          <b>tên lớp _ viết tắt điểm trường</b> — đọc là biết ngay lớp nào ở đâu, và gõ vào Excel
+          không nhầm giữa các điểm trường trùng tên lớp.</p>
+         <div class="bang" style="max-height:34vh"><table class="dl"><thead><tr>
+           <th>Lớp</th><th>Điểm trường</th><th>Mã hiện tại</th><th>Mã mới</th></tr></thead><tbody>
+         ${doi.slice(0,12).map(l=>`<tr><td><b>${esc(l.ten)}</b></td>
+           <td style="font-size:11.5px;color:var(--chu-mo)">${esc(dtId(S.lopDT[l.id])?.ten||'')}</td>
+           <td style="font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--chu-mo)">${esc(String(l.maLop||l.id).slice(0,18))}${String(l.maLop||l.id).length>18?'…':''}</td>
+           <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(moiCua(l))}</b></td></tr>`).join('')}
+         ${doi.length>12?`<tr><td colspan="4" style="color:var(--chu-mo)">…và ${doi.length-12} lớp khác</td></tr>`:''}
+         </tbody></table></div>
+         <div class="gy" style="margin-top:11px">Chỉ đổi <b>mã lớp</b> — thứ để đối chiếu với tệp Excel.
+          Tên lớp, chủ nhiệm, phân công và thời khóa biểu giữ nguyên hoàn toàn.
+          ${coMayChu()&&duocSuaNguon()?'Bấm <b>Lưu</b> sau đó để ghi lên máy chủ.':''}</div>`,
+      doi.length
+        ? [{ten:'Huỷ',phu:1,lam:dong},{ten:`Đặt lại ${doi.length} mã`,lam:()=>{
+            const n=datLaiMaLop(true); dong();
+            bao(`Đã đặt lại mã cho ${n} lớp.${coMayChu()&&duocSuaNguon()?' Bấm Lưu để ghi lên máy chủ.':''}`);
+            ve();
+          }}]
+        : [{ten:'Đóng',lam:dong}]);
   });
   $$('[data-lopten]').forEach(x=>x.onchange=e=>{
     const l=lopId(x.dataset.lopten); if(!l) return;

@@ -945,6 +945,14 @@ console.log('\n10a. Đặt lại mã lớp do máy chủ tự sinh');
      doi === 2 && u.S.lop[0].maLop === '2A_DL' && u.S.lop[1].maLop === '2B_DL',
      `${doi} lớp · ${u.S.lop.map(l => l.maLop).join(' · ')}`);
   kt('Mã đang đẹp thì không đụng tới', u.S.lop[2].maLop === '2A_DĐ');
+  /* Máy chủ cũ có thể giữ mã kiểu "2A" — không xấu, nhưng không nói được
+     lớp đó ở điểm trường nào. Nút bấm tay đưa TOÀN BỘ về dạng chuẩn. */
+  kt('Đặt lại toàn bộ: mã cũ kiểu "2A" cũng được đưa về dạng có điểm trường', (() => {
+    u.S.lop.forEach(l => { l.maLop = l.ten; });          /* giống sau khi chạy ma-lop.sql */
+    const n = u.datLaiMaLop(true);
+    return n === 3 && u.S.lop.map(l => l.maLop).join(',') === '2A_DL,2B_DL,2A_DĐ';
+  })(), 'hai lớp cùng tên 2A vẫn ra hai mã khác nhau');
+  kt('Chạy lại lần nữa thì không còn gì để đổi', u.datLaiMaLop(true) === 0);
   kt('Mã mới không trùng nhau — hai điểm trường cùng có lớp 2A vẫn phân biệt được',
      new Set(u.S.lop.map(l => l.maLop)).size === 3);
 }
