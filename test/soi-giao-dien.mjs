@@ -148,8 +148,18 @@ kt('Bỏ đánh dấu cũng nhận ngay', !(S.gvNghi[maGV] || []).includes(kb));
 
 console.log('\n6. Thanh tiến trình ba bước');
 w.chuyen('dieuhanh');
-kt('Bảng điều hành bày đủ ba bước',
-   w.document.querySelectorAll('.bbuoc .bb').length === 3);
+/* Ba thẻ bước chỉ bày khi CÒN VIỆC PHẢI LÀM. Xếp xong rồi mà vẫn hiện
+   "Xong · Xong · Xong" thì chỉ đẩy nội dung thật xuống dưới. */
+kt('Chưa xếp gì thì Bảng điều hành bày đủ ba bước hướng dẫn', (() => {
+  const luu = JSON.parse(JSON.stringify(S.tkb));
+  w.eval('S.lop.forEach(l=>S.tkb[l.id]={}); KQ_XEP=null; ve()');
+  const co = w.document.querySelectorAll('.bbuoc .bb').length === 3;
+  w.eval(`S.tkb = ${JSON.stringify(luu)}; ve()`);
+  return co;
+})());
+kt('Xếp xong rồi thì thôi bày ba thẻ "Xong", nhường chỗ cho thời khóa biểu',
+   w.document.querySelectorAll('.bbuoc .bb').length === 0 &&
+   !!w.document.querySelector('#noiDung .tt'));
 kt('Mỗi màn hình khai báo có dải điều hướng bước', (() => {
   w.chuyen('lop');
   const d = w.document.querySelector('.dhb');
@@ -175,20 +185,20 @@ w.document.querySelector('[data-sl="1"]').value = '3';
 w.document.querySelector('#slTien').value = 'THU';
 /* Bấm đúng nút “Tạo lớp” trong hộp thoại */
 [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Tạo lớp').click();
-const moi = S.lop.filter(l => (l.maLop || '').startsWith('THU-'));
+const moi = S.lop.filter(l => (l.maLop || '').endsWith('_THU'));
 kt('Tạo lớp hàng loạt sinh đúng số lớp và đúng tên',
    moi.length === 3 && moi.map(l => l.ten).join(',') === '1A,1B,1C',
    `${soLopTruoc} → ${S.lop.length} lớp`);
 kt('Lớp trùng tên ở điểm trường khác vẫn tạo được, phân biệt bằng mã',
    S.lop.filter(l => l.ten === '1A').length === 2 &&
-   moi[0].maLop === 'THU-1A', `hai lớp "1A": ${S.lop.filter(l => l.ten === '1A').map(l => l.maLop || l.id).join(' · ')}`);
+   moi[0].maLop === '1A_THU', `hai lớp "1A": ${S.lop.filter(l => l.ten === '1A').map(l => l.maLop || l.id).join(' · ')}`);
 kt('Tạo lại lần nữa không sinh trùng trong cùng điểm trường', (() => {
   w.hopSinhLop();
   w.document.querySelector('#slDT').value = 'dtThu';
   w.document.querySelector('[data-sl="1"]').value = '3';
   w.document.querySelector('#slTien').value = 'THU';
   [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Tạo lớp').click();
-  return S.lop.filter(l => (l.maLop || '').startsWith('THU-')).length === 3;
+  return S.lop.filter(l => (l.maLop || '').endsWith('_THU')).length === 3;
 })());
 kt('Mỗi lớp mới có mã riêng, không lớp nào trùng mã',
    new Set(S.lop.map(l => l.maLop || l.id)).size === S.lop.length);
@@ -260,7 +270,7 @@ kt('Máy nhận ra điểm trường nào có phòng Tin học',
 console.log('\n10. Sản phẩm toàn trường và theo khối');
 w.eval('KQ_XEP = xepTuDong(0)');
 w.chuyen('toantruong');
-const cotTT = w.document.querySelectorAll('.tt thead tr:last-child th').length - 1;
+const cotTT = w.document.querySelectorAll('.tt thead tr:last-child th').length - 2;
 kt('Bảng toàn trường đủ một cột cho mỗi lớp',
    cotTT === w.eval('lopTrongPV().length'), `${cotTT} cột lớp`);
 kt('Bảng toàn trường có ô tiết thật, không rỗng',
@@ -268,7 +278,7 @@ kt('Bảng toàn trường có ô tiết thật, không rỗng',
    `${w.document.querySelectorAll('.tt tbody td b').length} ô có tiết`);
 w.chuyen('tkbkhoi');
 kt('Màn hình theo khối tự chọn sẵn một khối', S.khoiXem != null, `khối ${S.khoiXem}`);
-const cotK = w.document.querySelectorAll('.tt thead tr:last-child th').length - 1;
+const cotK = w.document.querySelectorAll('.tt thead tr:last-child th').length - 2;
 kt('Bảng theo khối chỉ hiện lớp của khối đó',
    cotK === w.eval(`lopTheoKhoi(${S.khoiXem}).length`), `${cotK} lớp`);
 kt('Bản in toàn trường dựng được và dùng khổ rộng', (() => {
@@ -342,13 +352,13 @@ kt('Tạo xong có thêm một điểm trường với đủ 17 lớp',
    S.diemTruong.length === truocDT.dt + 1 && S.lop.length === truocDT.lop + 17,
    `${truocDT.lop} → ${S.lop.length} lớp`);
 kt('Sinh kèm giáo viên, không để lớp nào trống chủ nhiệm', (() => {
-  const moi = S.lop.filter(l => (l.maLop || '').startsWith('DD-'));
+  const moi = S.lop.filter(l => (l.maLop || '').endsWith('_DD'));
   return S.giaoVien.length > truocDT.gv && moi.every(l => S.giaoVien.some(g => g.cn === l.id));
 })(), `${truocDT.gv} → ${S.giaoVien.length} giáo viên`);
 /* Điểm trường mới tạo KHÔNG tích ô "có phòng Tin học", mà mục 9 ở trên đã khai
    bảng phòng — nên ràng buộc cứng số 4 bật, và mọi tiết Tin học của Diễn Đồng
    phải bị chặn lại chứ không được xếp bừa vào phòng ở điểm trường khác. */
-const soLopTin = S.lop.filter(l => (l.maLop || '').startsWith('DD-') && l.khoi >= 3).length;
+const soLopTin = S.lop.filter(l => (l.maLop || '').endsWith('_DD') && l.khoi >= 3).length;
 const r13 = w.eval('KQ_XEP = xepTuDong()');
 const tinChuaXep = r13.chuaXep.filter(x => x.mon === 'Tin học').reduce((s, x) => s + x.con, 0);
 kt('Điểm trường chưa có phòng máy thì tiết Tin học bị chặn, không xếp bừa',
@@ -366,7 +376,7 @@ kt('Khai thêm phòng Tin học cho điểm trường đó là xếp trọn vẹ
 })(), (() => { const r = w.eval('KQ_XEP'); return `${r.daXep}/${r.tongCan} tiết · ${r.giay} giây`; })());
 kt('Bảng toàn trường hiện đủ cột cho cả hai điểm trường', (() => {
   w.chuyen('toantruong');
-  return w.document.querySelectorAll('.tt thead tr:last-child th').length - 1 === S.lop.length;
+  return w.document.querySelectorAll('.tt thead tr:last-child th').length - 2 === S.lop.length;
 })(), `${S.lop.length} cột lớp`);
 
 console.log('\n14. Bản in đúng khổ giấy và đủ thể thức');
@@ -514,9 +524,10 @@ kt('Có đủ lối đi thẳng tới bốn sản phẩm và Xuất/in', (() => 
   const di = [...w.document.querySelectorAll('#noiDung [data-di]')].map(b => b.dataset.di);
   return ['toantruong','tkblop','tkbgv','tkbkhoi','xuatin'].every(x => di.includes(x));
 })());
-kt('Khối sản phẩm đứng TRƯỚC ba thẻ bước — sản phẩm trước, quy trình sau', (() => {
-  const html = w.document.querySelector('#noiDung').innerHTML;
-  return html.indexOf('Thời khóa biểu') < html.indexOf('Khai báo dữ liệu');
+kt('Thời khóa biểu là khối ĐẦU TIÊN trên Bảng điều hành, không có gì chen trước', (() => {
+  const the = w.document.querySelector('#noiDung .the');
+  return /Thời khóa biểu/.test(the.querySelector('.the-d h2').textContent)
+    && !!the.querySelector('.tt');
 })());
 kt('Chưa xếp tiết nào thì không bày khối sản phẩm rỗng, ba bước lên trước', (() => {
   const luu = JSON.parse(JSON.stringify(w.eval('S.tkb')));
@@ -702,4 +713,7 @@ kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0
 
 console.log(`\n\x1b[1mKết quả soi giao diện: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
 process.exit(hong ? 1 : 0);
+
+
+
 

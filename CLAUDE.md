@@ -303,14 +303,41 @@ không phải trang trí:
 4. **Ô "nghỉ" kẻ sọc mờ** — mắt nhận ra ngay là "khối này tan rồi". Vẫn
    giữ chữ *nghỉ*: bỏ trống thì lẫn với tiết chưa xếp.
 
+Bố cục cột trái theo đúng bảng thời khóa biểu in trên giấy: **cột Thứ gộp ô
+cả ngày** (`rowspan`) rồi tới **cột Tiết** (`S1…S4`, `C1…C3`, ô chiều tô vàng
+nhạt). Hai cột đều dính trái — cột thứ hai phải khai `left:44px` khớp đúng bề
+ngang cột thứ nhất, lệch một pixel là chồng lên nhau.
+
+Kẻ **dọc mảnh, ngang rõ**: mắt đọc bảng này theo HÀNG (một tiết, xem các lớp
+học gì), nên hàng phải tách bạch còn cột chỉ cần gợi ý.
+
+#### Không bao giờ để mất việc chưa lưu *(2/8/2026)*
+
+Chủ dự án khai xong lớp cho hai điểm trường mới, chưa bấm Lưu, trang tải lại
+— **mất sạch**. Dữ liệu nguồn nằm trong bộ nhớ trình duyệt cho tới khi ghi
+lên máy chủ, mà trang thì tải lại vì đủ thứ lý do.
+
+Cách làm: **không gắn cờ ở từng chỗ sửa** (hàng chục chỗ, sót một chỗ là hỏng
+cả cơ chế). Thay vào đó lấy **vân tay** dữ liệu nguồn — `vanTayNguon()` gộp
+lớp · giáo viên · phân công · điểm trường · môn · phòng · buổi bận thành một
+chuỗi. `chotVanTay()` chụp lúc tải xong và lúc ghi xong; `coThayDoiChuaLuu()`
+so lại. Khác nhau nghĩa là có sửa chưa lưu, bất kể sửa ở đâu. Hai lối báo:
+dải đỏ *"● Có thay đổi chưa lưu"* cạnh nút Lưu (nút đổi sang đỏ, chữ
+*"Lưu ngay"*), và `beforeunload` chặn khi rời trang.
+
 #### Mã lớp phải là mã NGƯỜI đọc được *(2/8/2026)*
 
 Cơ sở dữ liệu dựng trước khi có cột `ma_lop` để trống ô đó, nên bảng Lớp học
 bày ra mã UUID 36 ký tự của máy chủ — mà mã lớp chính là thứ người dùng phải
-gõ vào tệp Excel. Nút **Đặt lại mã lớp** (chỉ hiện khi có mã xấu) đổi thành
-`<tiền tố điểm trường>-<tên lớp>`: `DL-2A`, `DD-2A`. Ba hàm: `maXauXi()`
-nhận diện, `tienToDT()` lấy chữ đầu tên điểm trường, `datLaiMaLop()` đổi và
-chống trùng. Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id`.
+gõ vào tệp Excel. Nút **Đặt lại mã lớp** (chỉ hiện khi có mã xấu).
+
+Dạng mã do chủ dự án chốt: **`<tên lớp>_<viết tắt điểm trường>`** — `1A_DL`,
+`1A_DĐ`, `1A_DT`. Tên lớp đứng trước vì đó là thứ người dùng tìm, và sắp theo
+mã cũng ra đúng thứ tự lớp. Viết tắt **giữ nguyên dấu tiếng Việt**: bỏ dấu
+thì *Diễn Đồng* và *Diễn Đông* đều thành `DD`, lẫn nhau ngay từ mã lớp.
+Bốn hàm: `maXauXi()` nhận diện, `tienToDT()` lấy chữ đầu, `maLopTu()` ghép,
+`datLaiMaLop()` đổi và chống trùng. Chỉ đụng `maLop` — mọi tham chiếu khác đi
+bằng `id`. `sinhLop()` và `taoDuLieuThu()` dùng cùng dạng.
 
 #### Sản phẩm lên trước, quy trình lùi sau *(2/8/2026)*
 

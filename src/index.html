@@ -184,6 +184,9 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .the-d h2{font-size:15.5px;font-weight:700;letter-spacing:-.02em}
 .the-d .meta{margin-left:auto;font-size:12px;color:var(--chu-mo)}
 .the-t{padding:18px 20px}
+/* Thẻ chứa lưới thời khóa biểu: bớt lề để bảng rộng thêm gần 30px mỗi bên —
+   ở đây từng cột là một lớp, mỗi milimét đều đổi thành nội dung đọc được. */
+.the-rong>.the-t{padding:12px 12px 14px}
 
 .vong{display:flex;align-items:center;gap:22px}
 /* Cụm chữ phải nằm GIỮA lỗ tròn. Bản cũ dùng `display:grid` với hai con:
@@ -220,6 +223,10 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .b-vien{background:var(--the);color:var(--chu);border:1px solid var(--ke-2)}
 .b-vien:hover{background:#F7F9FD;filter:none}
 .b-vang{background:linear-gradient(135deg,#E9A91F,#F5C542);color:var(--nav)}
+/* Nút Lưu khi còn thay đổi treo — phải nổi hơn hẳn màu vàng thường */
+.b-do{background:linear-gradient(135deg,#B33224,#D0503F);color:#fff}
+.chua-luu{font-size:12.5px;font-weight:700;color:var(--do);white-space:nowrap;
+  background:var(--do-nen);padding:6px 11px;border-radius:20px}
 .b-nho{padding:7px 12px;font-size:12.5px}
 button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2.5px solid var(--lam);outline-offset:2px}
 
@@ -449,8 +456,19 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 /* ---------- Lưới toàn trường: cuộn ngang trong khung, thân trang không cuộn ---------- */
 .tt-boc{overflow:auto;max-height:74vh;border:1px solid var(--ke);border-radius:var(--r);background:var(--the)}
 table.tt{border-collapse:separate;border-spacing:0;font-size:11.5px;width:max-content;min-width:100%}
-table.tt th,table.tt td{border-right:1px solid var(--ke);border-bottom:1px solid var(--ke);padding:5px 7px;
+/* Kẻ DỌC mảnh, kẻ NGANG rõ — mắt đọc bảng này theo hàng (một tiết, xem
+   các lớp học gì), nên hàng phải tách bạch còn cột chỉ cần gợi ý. */
+table.tt th,table.tt td{border-right:1px solid #EEF1F7;border-bottom:1px solid var(--ke-2);padding:5px 7px;
   white-space:nowrap;background:var(--the)}
+/* Hai cột trái dính: Thứ (gộp ô cả ngày) rồi tới Tiết */
+table.tt .c-thu2{position:sticky;left:0;z-index:2;width:44px;min-width:44px;
+  background:#EEF2FA;font-weight:800;font-size:12px;text-align:center;color:var(--nav);
+  border-right:1px solid var(--ke-2);vertical-align:middle}
+table.tt .c-tiet2{position:sticky;left:44px;z-index:2;width:42px;min-width:42px;
+  background:#F7F9FD;font-weight:700;font-size:11px;text-align:center;color:var(--chu-mo);
+  border-right:2px solid var(--ke-2)}
+table.tt td.c-tiet2.chieu{background:#FBF7EF;color:var(--cam)}
+table.tt thead th.c-thu2,table.tt thead th.c-tiet2{z-index:5}
 table.tt thead th{position:sticky;top:0;z-index:3;background:#F0F3F9;font-size:11px;font-weight:700}
 table.tt th.goc{position:sticky;left:0;z-index:4}
 table.tt td.goc,table.tt th.canh{position:sticky;left:0;z-index:2;background:#F7F9FD;font-weight:700;
@@ -1603,23 +1621,28 @@ const maXauXi = l => {
   const m=String(l.maLop||l.id||'');
   return !l.maLop || m.length>14 || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(m);
 };
-/* Tiền tố lấy chữ đầu các từ trong tên điểm trường: "Điểm trường Diễn Liên" → DL */
+/* Viết tắt điểm trường: chữ đầu mỗi từ, GIỮ NGUYÊN dấu tiếng Việt —
+   "Điểm trường Diễn Đồng" → DĐ, phân biệt hẳn với "Diễn Liên" → DL.
+   Bỏ dấu thì Diễn Đồng và Diễn Đông đều thành DD, lẫn nhau ngay. */
 function tienToDT(ten){
-  const chu=khongDau(String(ten||'').replace(/^\s*Điểm\s+trường\s*/i,''))
-    .split('-').filter(Boolean);
+  const chu=String(ten||'').replace(/^\s*Điểm\s+trường\s*/i,'').trim().split(/\s+/).filter(Boolean);
   return chu.map(x=>x[0]).join('').toUpperCase().slice(0,3) || 'DT';
 }
-/* Đặt lại mã cho các lớp có mã xấu: <tiền tố điểm trường>-<tên lớp>.
-   Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id` nên không xê dịch gì. */
+/* Mã lớp: TÊN LỚP trước, viết tắt điểm trường sau — `1A_DL`, `1A_DĐ`.
+   Tên lớp đứng trước vì đó là thứ người dùng tìm; sắp theo mã cũng ra
+   đúng thứ tự lớp. Chọn dấu `_` để không lẫn với gạch nối trong tên. */
+const maLopTu = (ten, dtTen) => String(ten||'').replace(/\s+/g,'')+'_'+tienToDT(dtTen);
+/* Đặt lại mã cho các lớp đang mang mã xấu. Chỉ đụng `maLop` — mọi tham
+   chiếu khác đi bằng `id` nên không xê dịch gì. */
 function datLaiMaLop(){
   const daCo=new Set(S.lop.map(l=>l.maLop).filter(Boolean));
   let doi=0;
   S.lop.forEach(l=>{
     if(!maXauXi(l)) return;
     daCo.delete(l.maLop);
-    const goc=tienToDT(dtId(S.lopDT[l.id])?.ten)+'-'+String(l.ten||'').replace(/\s+/g,'');
+    const goc=maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten);
     let m=goc, i=1;
-    while(daCo.has(m)) m=goc+'-'+(++i);
+    while(daCo.has(m)) m=goc+'_'+(++i);
     daCo.add(m); l.maLop=m; doi++;
   });
   return doi;
@@ -1629,8 +1652,9 @@ function sinhLop(khoi, so, tienTo, dt){
   const r=[], n=Math.max(0,Math.min(26,+so||0));
   for(let i=0;i<n;i++){
     const ten=khoi+CHU_LOP[i];
-    const ma=(tienTo?tienTo.trim()+'-':'')+ten;
-    r.push({id:'lop_'+ma.replace(/[^A-Za-z0-9]+/g,'_'), maLop:ma, ten, khoi:+khoi, dtId:dt});
+    /* Tên lớp trước, viết tắt điểm trường sau: 1A_DL — xem maLopTu() */
+    const ma=ten+(tienTo?'_'+tienTo.trim():'');
+    r.push({id:'lop_'+khongDau(ma).replace(/-+/g,'_'), maLop:ma, ten, khoi:+khoi, dtId:dt});
   }
   return r;
 }
@@ -1688,7 +1712,7 @@ function taoDuLieuThu(tenDiem, tienTo, soLop, coPhongTin){
   const chia=chiaLopTheoKhoi(soLop), lopMoi=[];
   [1,2,3,4,5].forEach(k=>{
     for(let i=0;i<chia[k];i++){
-      const maLop=duyNhat((tienTo?tienTo.trim()+'-':'')+k+CHU_LOP[i], daLop);
+      const maLop=duyNhat(k+CHU_LOP[i]+(tienTo?'_'+tienTo.trim():''), daLop);
       const id='lop_'+ma(maLop);
       S.lop.push({id, maLop, ten:k+CHU_LOP[i], khoi:k});
       S.lopDT[id]=d.id; S.tkb[id]={};
@@ -2380,6 +2404,7 @@ async function taiTuMayChu(){
                     phan_cong, gv_nghi, mon_hoc, phong, day_thay}));
   KHO.version = +pb?.[0]?.version || 0;
   KHO.banCongBo = +cb?.[0]?.version || 0;
+  chotVanTay();                    /* mốc so sánh: vừa tải về thì chưa có gì để lưu */
   const d = pb?.[0]?.du_lieu ? docTKB(pb[0].du_lieu) : {nap:0, boQua:0};
   return {
     ok:true, nguon:'may-chu', version:KHO.version, soTiet:d.nap, boQua:d.boQua,
@@ -2917,6 +2942,32 @@ function ghiNhatKy(hanhDong, duLieuCu){
     hanh_dong:hanhDong, du_lieu_cu:duLieuCu||null
   })}).then(()=>true).catch(()=>false);
 }
+
+/* ---------- Chống mất dữ liệu chưa lưu ----------
+   ĐÃ MẤT THẬT (2/8/2026): chủ dự án khai xong lớp cho hai điểm trường mới,
+   chưa bấm Lưu, trang tải lại — mất sạch. Dữ liệu nguồn nằm trong bộ nhớ
+   trình duyệt cho tới khi ghi lên máy chủ, mà trang thì tải lại vì đủ thứ
+   lý do: bản mới, Ctrl+F5, hết pin, chuyển tab quá lâu.
+
+   Không gắn cờ ở từng chỗ sửa — có hàng chục chỗ, sót một chỗ là hỏng cả
+   cơ chế. Thay vào đó lấy VÂN TAY của dữ liệu nguồn: chụp lúc tải xong và
+   lúc ghi xong, so lại khi người dùng định rời trang. Khác nhau nghĩa là
+   có sửa chưa lưu, bất kể sửa ở đâu. */
+function vanTayNguon(){
+  const gon = (a,f) => (a||[]).map(f).sort().join('|');
+  return [
+    gon(S.lop, l=>`${l.id}:${l.ten}:${l.khoi}:${l.maLop||''}:${S.lopDT[l.id]||''}`),
+    gon(S.giaoVien, g=>`${g.id}:${g.hoTen}:${g.cn||''}:${g.dinhMuc||''}`),
+    gon(S.phanCong, p=>`${p.gvId}:${p.lopId}:${p.mon}:${p.soTiet}`),
+    gon(S.diemTruong, d=>`${d.id}:${d.ten}:${d.phongTin!==false}`),
+    gon(S.monHoc, m=>`${m.ten}:${m.nang}:${m.nhe}:${m.phong||''}`),
+    gon(S.phong, p=>`${p.ten}:${p.dtId}:${p.mon||''}`),
+    Object.entries(S.gvNghi||{}).map(([k,v])=>k+':'+[...v].sort().join(',')).sort().join('|')
+  ].join('##');
+}
+const chotVanTay = () => { KHO.vanTay = vanTayNguon(); };
+const coThayDoiChuaLuu = () =>
+  KHO.vanTay != null && coMayChu() && duocSuaNguon() && vanTayNguon() !== KHO.vanTay;
 
 function dinhDangLuc(x){
   if(!x) return '';
@@ -3680,7 +3731,7 @@ function mDieuHanh(){
      hướng dẫn lên trước, vì lúc đó người dùng thật sự cần được dẫn đường. */
   const coSanPham = daXep>0 && ds.length>0;
   const kheSanPham = !coSanPham ? '' : `
-  <div class="the" style="margin-bottom:18px">
+  <div class="the the-rong" style="margin-bottom:18px">
     <div class="the-d"><h2>Thời khóa biểu ${esc(S.tenTruong)}</h2>
       <span class="meta">${ds.length} lớp · ${daXep}/${tongCan} tiết${KHO.version?` · phiên bản ${KHO.version}`:''}</span></div>
     <div class="the-t">
@@ -3701,7 +3752,9 @@ function mDieuHanh(){
   return dauTrang('Bảng điều hành',
     coSanPham?'Thời khóa biểu đang dùng và toàn cảnh công tác xếp'
              :'Toàn cảnh công tác xếp thời khóa biểu',true)+
-  kheSanPham+thanhBuoc(0)+`
+  /* Ba thẻ bước chỉ có nghĩa khi còn việc phải làm. Xếp xong rồi mà vẫn
+     bày ba thẻ "Xong · Xong · Xong" thì chỉ tổ đẩy nội dung thật xuống. */
+  kheSanPham+(coSanPham?'':thanhBuoc(0))+`
   <div class="dh">
   <div class="bang-ron">
     <div>
@@ -4229,11 +4282,17 @@ function luoiRongHTML(ds, ghiKhoi, cao){
     const k=khoiCuaLop(l), cuoi=daiKhoi[daiKhoi.length-1];
     if(cuoi && cuoi.k===k) cuoi.n++; else daiKhoi.push({k, n:1});
   });
+  /* Đếm số dòng của mỗi NGÀY để gộp ô cột Thứ — ghi "Thứ Hai" một lần cho
+     cả ngày, đúng lối bảng thời khóa biểu in trên giấy. */
+  const soDongNgay={};
+  hang.forEach(o=>{ soDongNgay[o.thu]=(soDongNgay[o.thu]||0)+1; });
+  let thuTruoc=null;
+
   return `<div class="tt-boc"${cao?` style="max-height:${cao}"`:''}><table class="tt${ghiKhoi?' co-khoi':''}">
     <thead>
-      ${ghiKhoi?`<tr class="dai-khoi"><th class="goc"></th>
+      ${ghiKhoi?`<tr class="dai-khoi"><th class="c-thu2"></th><th class="c-tiet2"></th>
         ${daiKhoi.map(x=>`<th colspan="${x.n}">Khối ${x.k}</th>`).join('')}</tr>`:''}
-      <tr><th class="goc">Giờ</th>
+      <tr><th class="c-thu2">Thứ</th><th class="c-tiet2">Tiết</th>
       ${ds.map(l=>`<th>${esc(tenLopDay(l.id))}</th>`).join('')}
     </tr></thead><tbody>
     ${hang.map((o,i)=>{
@@ -4241,8 +4300,10 @@ function luoiRongHTML(ds, ghiKhoi, cao){
       const sau=hang[i+1];
       const hetNgay = !sau || sau.thu!==o.thu;
       const hetBuoi = !hetNgay && sau.buoi!==o.buoi;
+      const dauNgay = o.thu!==thuTruoc; thuTruoc=o.thu;
       return `<tr class="${hetNgay?'het-ngay':hetBuoi?'het':''}">
-        <td class="goc">${TAT_THU[o.thu]} ${o.buoi==='S'?'sáng':'chiều'} · ${o.tiet}</td>
+        ${dauNgay?`<td class="c-thu2" rowspan="${soDongNgay[o.thu]}">${TAT_THU[o.thu]}</td>`:''}
+        <td class="c-tiet2 ${o.buoi==='S'?'sang':'chieu'}">${o.buoi==='S'?'S':'C'}${o.tiet}</td>
         ${ds.map(l=>{
           if(k && o.tiet>soTietBuoi(k,khoiCuaLop(l)))
             return '<td class="o-nghi-t">nghỉ</td>';
@@ -5265,14 +5326,19 @@ const MAU_MON = [
    lớp, giáo viên, phân công, điểm trường. Bày ở màn hình Môn học hay Phòng học
    là hứa hão — tệp không có hai thứ đó. */
 function thanhKhaiBao(nut, coNhap=true){
+  /* Còn thay đổi chưa ghi lên máy chủ thì nói thẳng ra ngay cạnh nút Lưu.
+     Người dùng đã khai xong lớp cho hai điểm trường rồi mất sạch vì không
+     biết mình chưa lưu — im lặng ở đây là im lặng đắt nhất trong phần mềm. */
+  const treo = coThayDoiChuaLuu();
   return `<div class="kb-thanh">${nut}
     <span style="flex:1"></span>
+    ${treo?`<span class="chua-luu">● Có thay đổi chưa lưu</span>`:''}
     ${coNhap?`<button class="b b-vien" id="btNhapExcel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg>
       Nhập từ Excel</button>`:''}
-    <button class="b b-vang" id="btLuuNguon">
+    <button class="b ${treo?'b-do':'b-vang'}" id="btLuuNguon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21V9M8 13l4-4 4 4M4 3h16"/></svg>
-      Lưu</button></div>`;
+      Lưu${treo?' ngay':''}</button></div>`;
 }
 
 /* ---------- 3.8a Thông tin trường ---------- */
@@ -6537,7 +6603,9 @@ async function luuNguonLenMayChu(e){
   if(b){ b.disabled=true; b.textContent='Đang lưu…'; }
   const kq=await ghiDuLieuNguon(S);
   if(b){ b.disabled=false; b.innerHTML=cu; }
+  if(kq.ok) chotVanTay();          /* ghi xong thì coi như không còn thay đổi treo */
   bao(kq.thongBao, !kq.ok);
+  ve();
   if(kq.ok && (kq.lopThua?.length || kq.gvThua?.length))
     setTimeout(()=>bao(`Trên máy chủ còn ${kq.lopThua.length} lớp và ${kq.gvThua.length} giáo viên `+
       'không có trong màn hình này — phần mềm không tự xoá.'), 3200);
@@ -7270,6 +7338,14 @@ async function khoiDong(){
   else if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);
 }
 khoiDong();
+
+/* Rời trang khi còn thay đổi chưa lưu thì trình duyệt hỏi lại. Không cứu
+   được mọi tình huống (hết pin, đóng máy) nhưng cứu đúng tình huống hay
+   gặp nhất: bấm F5, bấm nút quay lại, đóng tab. */
+window.addEventListener('beforeunload', e=>{
+  if(!coThayDoiChuaLuu()) return;
+  e.preventDefault(); e.returnValue='';
+});
 
 /* Đăng ký service worker — chỉ khi chạy qua http/https (mở bằng file://
    hay trong trình duyệt giả của npm run soi thì bỏ qua, không lỗi gì).

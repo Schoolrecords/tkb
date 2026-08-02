@@ -922,21 +922,24 @@ console.log('\n10a. Đặt lại mã lớp do máy chủ tự sinh');
                     { id: 'dt2', ten: 'Điểm trường Diễn Đồng', phongTin: false }];
   u.S.lop = [{ id: 'u1', ten: '2A', khoi: 2, maLop: '' },
              { id: 'u2', ten: '2B', khoi: 2, maLop: '9ef6de95-589a-4a9f-86a9-3e56c1dc4a5c' },
-             { id: 'u3', ten: '2A', khoi: 2, maLop: 'DD-2A' }];
+             { id: 'u3', ten: '2A', khoi: 2, maLop: '2A_DĐ' }];
   u.S.lopDT = { u1: 'dt1', u2: 'dt1', u3: 'dt2' };
 
   kt('Nhận ra mã xấu: bỏ trống hoặc UUID của máy chủ',
      u.maXauXi(u.S.lop[0]) && u.maXauXi(u.S.lop[1]) && !u.maXauXi(u.S.lop[2]));
-  kt('Tiền tố lấy chữ đầu tên điểm trường, bỏ chữ "Điểm trường"',
+  /* Giữ dấu tiếng Việt trong viết tắt: bỏ dấu thì Diễn Đồng và Diễn Đông
+     đều thành DD, hai điểm trường lẫn nhau ngay từ mã lớp. */
+  kt('Viết tắt điểm trường giữ nguyên dấu tiếng Việt',
      u.tienToDT('Điểm trường Diễn Liên') === 'DL' &&
-     u.tienToDT('Điểm trường Diễn Đồng') === 'DD',
-     'Diễn Liên → DL · Diễn Đồng → DD');
+     u.tienToDT('Điểm trường Diễn Đồng') === 'DĐ' &&
+     u.tienToDT('Điểm trường Diễn Thái') === 'DT',
+     'Diễn Liên → DL · Diễn Đồng → DĐ · Diễn Thái → DT');
 
   const doi = u.datLaiMaLop();
-  kt('Đặt lại đúng số lớp cần đổi, mã mới đọc được ngay',
-     doi === 2 && u.S.lop[0].maLop === 'DL-2A' && u.S.lop[1].maLop === 'DL-2B',
+  kt('Đặt lại đúng số lớp, mã đọc được ngay: tên lớp trước, điểm trường sau',
+     doi === 2 && u.S.lop[0].maLop === '2A_DL' && u.S.lop[1].maLop === '2B_DL',
      `${doi} lớp · ${u.S.lop.map(l => l.maLop).join(' · ')}`);
-  kt('Mã đang đẹp thì không đụng tới', u.S.lop[2].maLop === 'DD-2A');
+  kt('Mã đang đẹp thì không đụng tới', u.S.lop[2].maLop === '2A_DĐ');
   kt('Mã mới không trùng nhau — hai điểm trường cùng có lớp 2A vẫn phân biệt được',
      new Set(u.S.lop.map(l => l.maLop)).size === 3);
 }
@@ -1139,8 +1142,8 @@ console.log('\n  Sinh lớp hàng loạt');
 const sinh = sinhLop(1, 5, 'DD', 'dt2');
 kt('Khai "khối 1 có 5 lớp" ra đúng 1A–1E',
    sinh.length === 5 && sinh.map(l => l.ten).join(',') === '1A,1B,1C,1D,1E');
-kt('Mã lớp mang tiền tố điểm trường',
-   sinh.every(l => l.maLop.startsWith('DD-')) && sinh[0].maLop === 'DD-1A');
+kt('Mã lớp: tên lớp trước, viết tắt điểm trường sau',
+   sinh.every(l => l.maLop.endsWith('_DD')) && sinh[0].maLop === '1A_DD');
 kt('Ba điểm trường cùng khai "1A" vẫn ra ba mã khác nhau', (() => {
   const ma = ['DL', 'DD', 'DT'].map(t => sinhLop(1, 1, t, 'x')[0].maLop);
   return new Set(ma).size === 3;
@@ -1586,3 +1589,4 @@ kt('Trường trắng thì mẫu vẫn có dòng ví dụ để hiểu cách ghi
 /* ---------- Tổng kết ---------- */
 console.log(`\n\x1b[1mKết quả: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
 process.exit(hong ? 1 : 0);
+
