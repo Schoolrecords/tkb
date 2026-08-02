@@ -113,17 +113,34 @@ select * from (
   -- ---------- 9. Tài khoản đã nối vào hồ sơ giáo viên chưa ----------
   -- Tài khoản vai trò giáo viên mà chưa nối thì đăng nhập vào sẽ
   -- không biết lấy lịch của ai — phần mềm chặn, không cho xem nhầm.
+  --
+  -- ⚠️ Vai trò trong CSDL là 'giao_vien', KHÔNG phải 'gv' (enum vai_tro_t
+  -- gồm quan_tri · hieu_truong · pho_hieu_truong · giao_vien). Và so bằng
+  -- `vai_tro::text` chứ đừng so thẳng vào enum: gõ sai một chữ là Postgres
+  -- báo lỗi 22P02 và HỎNG CẢ CÂU, tám dòng kiểm tra kia cũng không ra.
+  -- Ép sang chữ thì sai lắm chỉ đếm ra 0, các dòng khác vẫn đọc được.
   select 9, 'Tài khoản giáo viên đã nối hồ sơ',
          (select count(*) from nguoi_dung n
-           where n.vai_tro = 'gv'
+           where n.vai_tro::text = 'giao_vien'
              and exists (select 1 from giao_vien g where g.nguoi_dung_id = n.id))::text
-         || '/' || (select count(*) from nguoi_dung where vai_tro = 'gv')::text,
-         case when (select count(*) from nguoi_dung where vai_tro = 'gv') = 0
+         || '/' || (select count(*) from nguoi_dung where vai_tro::text = 'giao_vien')::text,
+         case when (select count(*) from nguoi_dung where vai_tro::text = 'giao_vien') = 0
                 then 'ℹ️ chưa cấp tài khoản giáo viên nào'
               when (select count(*) from nguoi_dung n
-                     where n.vai_tro = 'gv'
+                     where n.vai_tro::text = 'giao_vien'
                        and not exists (select 1 from giao_vien g where g.nguoi_dung_id = n.id)) = 0
                 then '✅ nối đủ'
               else '⚠️ có tài khoản chưa nối — thầy cô ấy đăng nhập sẽ không thấy lịch' end
+
+  union all
+  -- ---------- 10. Ai đang có tài khoản ----------
+  -- Bày thẳng ra để khỏi phải đoán: bốn vai trò đang có mấy người.
+  select 10, 'Tài khoản theo vai trò',
+         coalesce((select string_agg(x.vai || ': ' || x.so::text, ' · ' order by x.vai)
+                   from (select vai_tro::text as vai, count(*) as so
+                         from nguoi_dung group by vai_tro::text) x), 'chưa có tài khoản nào'),
+         case when (select count(*) from nguoi_dung) = 0
+                then '⚠️ chưa cấp tài khoản nào — chưa ai đăng nhập được'
+              else 'ℹ️ để biết' end
 
 ) k order by tt;
