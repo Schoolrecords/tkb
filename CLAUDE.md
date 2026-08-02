@@ -174,8 +174,28 @@ Ba thứ cần nhớ khi sửa vùng này:
   về `{ok, thongBao}` để màn hình tự hiển thị. Nhờ vậy `npm test` cắt vùng này
   ra chạy thẳng trong Node được (mục 5 và 6 của bộ kiểm thử).
 
-Phiên đăng nhập **không lưu xuống máy** (đúng quy ước không dùng
-localStorage), tải lại trang là phải đăng nhập lại.
+**Upsert theo khoá tự nhiên: mã phải GIỮ NGUYÊN, và ai đã có trên máy chủ thì
+ghi theo `id`.** Áp cho **cả `lop` lẫn `giao_vien`** trong `ghiDuLieuNguon()`.
+Bảng lớp đã vá 1/8/2026; bảng giáo viên bị bỏ sót và ăn đòn thật 2/8/2026:
+`ma_gv: g.id` — sau khi tải về thì `g.id` là UUID máy chủ, nên lần lưu sau
+không khớp dòng cũ và máy chủ **thêm nguyên một lứa 35 hồ sơ**. Trường 35 giáo
+viên thành **105 hồ sơ, mỗi người ba bản**; hai lứa cũ mất sạch phân công nên
+thành hồ sơ trùng tên 0 tiết, và mã mời nối nhầm một cô giáo vào đó. Vá một
+lỗi upsert thì phải rà **mọi** bảng dùng cùng khuôn trong cùng hàm.
+
+**Mọi lệnh SỬA (PATCH) phải đi qua `suaHang()` và ĐẾM số dòng đổi được.**
+PostgREST trả "thành công" cho lệnh sửa 0 dòng, nên quy tắc RLS chặn ghi trông
+y hệt ghi trót lọt. Đã cắn hai lần — nút *Công bố* (thiếu `p_tkb_sua`) và lưu
+tên trường (thiếu `p_truong_sua`, tìm ra 2/8/2026) — mỗi lần đều mất nhiều ngày
+vì phần mềm vẫn báo "đã lưu". `npm run soat` nay đối chiếu "app ghi vào bảng
+nào" với "bảng nào có quy tắc cho ghi"; thêm một đường ghi mới mà quên quy tắc
+là CI đỏ ngay.
+
+**Phiên đăng nhập LƯU xuống máy** — vé làm mới trong `localStorage`, xem mục 2
+và mục 11. Không lưu mật khẩu, và bỏ tích *Ghi nhớ tôi trên máy này* thì không
+lưu gì cả. Supabase **xoay vòng** vé làm mới, nên `lamMoiPhien()` xin vé mới
+xong phải ghi lại vé ấy xuống máy; quên bước đó thì hôm sau thầy cô mở app lên
+vẫn bị hỏi mật khẩu, có phép thử canh.
 
 ### Phân quyền trên giao diện — đã dựng
 
@@ -805,19 +825,25 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 > Sắp sửa vào một vùng mã cũ thì đọc tệp ấy trước.
 > Đề xuất chưa đưa vào lộ trình: xem `docs/danh-gia-va-de-xuat.md`.
 
-- [ ] **Phát quyền cho 35 thầy cô Diễn Liên** — việc DUY NHẤT đang chặn người
-      dùng thật *(chốt lại 2/8/2026)*. Thời khóa biểu đã công bố (phiên bản 7)
-      nhưng cả cơ sở dữ liệu mới có **một tài khoản vai trò `quan_tri`**, chưa
-      thầy cô nào có đường vào. Ba đường đang để ngỏ, chủ dự án chưa chốt:
-      · phát mã mời tay, từng người một — làm được ngay, 35 lần thao tác;
-      · nút *tạo mã hàng loạt* — một cú bấm ra bảng 35 mã, chép hoặc tải Excel;
+- [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Nút *Tạo N mã* trong hộp **Mã
+      mời** nay làm cả mẻ trong một cú bấm, kèm nút chép và tải Excel — việc
+      còn lại là gửi Zalo. Hai nhóm bị **cố ý bỏ qua**: người đã có tài khoản,
+      và hồ sơ không có dòng phân công nào (thường là hồ sơ thừa của bộ dữ liệu
+      thử; phát mã vào đó là cầm chắc một thầy cô đăng nhập xong nhìn màn hình
+      trắng — xem sự cố cô Oanh trong `docs/lich-su-quyet-dinh.md`).
       · **link mời cả trường** — một link dán nhóm Zalo, thầy cô bấm rồi tự
-        nhận tên mình. Thiết kế đã bàn xong ngày 2/8 (chế độ *Nhẹ*: nhận tên
-        là thấy lịch ngay, quản lý soi lại sau), **chưa viết dòng mã nào**.
+        nhận tên mình — vẫn để ngỏ cho Pha 2. Thiết kế đã bàn ngày 2/8 (chế độ
+        *Nhẹ*), **chưa viết dòng mã nào**. Nó cần thêm bảng, thêm quy tắc RLS
+        và một màn hình soi lại; không nên nằm trên đường tới ngày khai giảng.
+- [ ] Dọn hồ sơ giáo viên và lớp thừa của bộ dữ liệu thử trên máy chủ thật
+      *(2/8/2026)*. Chạy `db/soi-tai-khoan-gv.sql` để biết còn sót gì.
 - [ ] Nhập lớp và giáo viên THẬT của Diễn Đồng, Diễn Thái khi danh sách chốt.
       Đường đã thông: gộp ba bảng phân công vào một tệp Excel, cột `Ma_lop` đặt
       tiền tố theo trường (`DL-1A`, `DD-1A`, `DT-1A`), `Ten_lop` giữ nguyên.
-- [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức
+- [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức. **Trước khi làm
+      phải chạy `db/cai-dat.sql` một lần trên máy chủ đang chạy** — bản cũ
+      thiếu quy tắc `p_truong_sua` nên đổi tên bao nhiêu lần cũng không lưu
+      được, mà phần mềm vẫn báo đã lưu.
 
 ## 10. Việc KHÔNG làm
 

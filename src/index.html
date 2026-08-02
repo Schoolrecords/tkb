@@ -1950,12 +1950,39 @@ async function goiAPI(duong, tuyChon={}, choThuLai=true){
   return kq;
 }
 
+/* ---------- Lệnh SỬA (PATCH): phải ĐẾM số dòng thật sự đổi ----------
+   PostgREST trả 204 "thành công" cho lệnh PATCH sửa được 0 dòng. Nghĩa là
+   quy tắc RLS chặn ghi trông y hệt như ghi trót lọt — phần mềm báo "đã lưu"
+   trong khi máy chủ không đổi gì.
+
+   Đã cắn ĐÚNG HAI LẦN, cả hai đều mất nhiều ngày mới lần ra:
+     · nút *Công bố cho giáo viên* bấm mãi không ăn (thiếu p_tkb_sua)
+     · lưu tên trường không vào (thiếu p_truong_sua — tìm ra 2/8/2026)
+
+   Nay mọi lệnh sửa đi qua đây: xin máy chủ trả lại chính những dòng đã đổi
+   rồi đếm. Trả về 0 là HỎNG, không phải xong. */
+async function suaHang(duong, than){
+  const kq = await goiAPI(duong, {method:'PATCH', body:JSON.stringify(than),
+    headers:{Prefer:'return=representation'}});
+  return Array.isArray(kq) ? kq.length : (kq ? 1 : 0);
+}
+/* Câu nói chung cho trường hợp máy chủ nhận lệnh mà không đổi được dòng nào */
+const NHAC_CAI_DAT = 'Máy chủ nhận lệnh nhưng không sửa được dòng nào — cơ sở dữ liệu '
+  + 'chưa có quy tắc cho phép ghi vào chỗ này. Quản trị mở Supabase → SQL Editor, '
+  + 'dán toàn bộ db/cai-dat.sql rồi bấm Run một lần. Dữ liệu đang có không mất gì.';
+
 async function lamMoiPhien(){
   try{
     const p = await goiAPI('/auth/v1/token?grant_type=refresh_token',
       {method:'POST', body:JSON.stringify({refresh_token:KHO.phien.lamMoi})}, false);
     if(!p?.access_token) throw new Error('Không lấy được vé mới');
     KHO.phien = {...KHO.phien, token:p.access_token, lamMoi:p.refresh_token||KHO.phien.lamMoi};
+    /* ⚠️ PHẢI ghi lại vé mới xuống máy. Supabase XOAY VÒNG vé làm mới: xin vé
+       mới xong là vé cũ hỏng. Bản trước chỉ đổi vé trong bộ nhớ, localStorage
+       vẫn giữ vé đã tiêu — nên hôm sau thầy cô mở app lên là bị hỏi mật khẩu,
+       đúng thứ mà cả cơ chế "ghi nhớ đăng nhập" sinh ra để tránh.
+       Chỉ ghi khi người dùng đã chọn ghi nhớ — bỏ tích thì đừng tự ý nhớ hộ. */
+    if(docPhienNho()) nhoPhien();
     return true;
   }catch(e){ KHO.phien=null; KHO.nguoiDung=null; return false; }
 }
@@ -2147,8 +2174,21 @@ async function donVeOAuth(hashThu){
    Google xong gõ mã: hàm dung_ma_moi trên máy chủ tự nối vào đúng hồ sơ
    giáo viên — không mật khẩu, không xác minh thư. Xem db/ma-moi.sql. */
 function sinhMaMoi(rnd){
-  const r=rnd||Math.random;
   const BO='ABCDEFGHJKMNPQRSTUVWXYZ23456789';   /* bỏ 0·O và 1·I·L cho khỏi đọc nhầm */
+  /* Mã mời là chìa khoá vào dữ liệu cả trường, nên lấy số ngẫu nhiên của hệ
+     điều hành chứ không phải Math.random — dãy của Math.random đoán được khi
+     biết vài giá trị trước đó. Chia hết vòng 2^32 rồi mới lấy dư, bỏ phần dư
+     lẻ ở cuối để 31 chữ cái có cơ hội ngang nhau.
+     Truyền `rnd` vào thì dùng nguồn ấy — phép thử cần dãy dựng lại được. */
+  const c = (typeof crypto!=='undefined' && crypto.getRandomValues) ? crypto : null;
+  if(!rnd && c){
+    const nguong=Math.floor(4294967296/BO.length)*BO.length;
+    const o=new Uint32Array(1);
+    let m='';
+    while(m.length<6){ c.getRandomValues(o); if(o[0]<nguong) m+=BO[o[0]%BO.length]; }
+    return m;
+  }
+  const r=rnd||Math.random;
   let m=''; for(let i=0;i<6;i++) m+=BO[Math.floor(r()*BO.length)%BO.length];
   return m;
 }
@@ -2164,6 +2204,10 @@ async function taoMaMoi(tt){
     return {ok:true, ma:kq?.[0]?.ma||ma, id:kq?.[0]?.id||''};
   }catch(e){
     const t=String(e?.message||'');
+    /* Trùng mã: cột `ma` khoá duy nhất. Xác suất bé nhưng phát 35 mã một lượt
+       thì đừng để một lần đen đủi làm hỏng cả mẻ — bốc lại một lần. */
+    if(/duplicate key|already exists|23505/i.test(t) && !tt?.thuLai)
+      return taoMaMoi({...tt, thuLai:true});
     if(/ma_moi|relation|404/i.test(t)) return {ok:false,
       loi:'Máy chủ chưa có bảng mã mời. Quản trị chạy db/ma-moi.sql (có sẵn trong db/cai-dat.sql) một lần trong SQL Editor.'};
     return {ok:false, loi:dienGiaiLoi(e)};
@@ -2172,10 +2216,13 @@ async function taoMaMoi(tt){
 async function dsMaMoi(){
   if(!coMayChu()) return {ok:false, ds:[]};
   try{
+    /* Lấy cả giao_vien_id: phát mã hàng loạt phải biết ai ĐÃ có mã còn hiệu
+       lực để không phát chồng hai mã cho cùng một người. */
     const ds=await goiAPI(`/rest/v1/ma_moi?truong_id=eq.${KHO.nguoiDung.truongId}`
-      +'&select=id,ma,vai_tro,het_han,dung_luc,giao_vien(ho_ten)&order=tao_luc.desc&limit=100');
-    return {ok:true, ds:(ds||[]).map(x=>({id:x.id, ma:x.ma, vaiTro:x.vai_tro,
-      hetHan:dinhDangLuc(x.het_han), daDung:!!x.dung_luc, hoTen:x.giao_vien?.ho_ten||''}))};
+      +'&select=id,ma,vai_tro,het_han,dung_luc,giao_vien_id,giao_vien(ho_ten)&order=tao_luc.desc&limit=300');
+    return {ok:true, ds:(ds||[]).map(x=>({id:x.id, ma:x.ma, vaiTro:x.vai_tro, gvId:x.giao_vien_id||'',
+      hetHan:dinhDangLuc(x.het_han), conHan:new Date(x.het_han)>new Date(),
+      daDung:!!x.dung_luc, hoTen:x.giao_vien?.ho_ten||''}))};
   }catch(e){ return {ok:false, ds:[], loi:dienGiaiLoi(e)}; }
 }
 const xoaMaMoi = id => goiAPI(`/rest/v1/ma_moi?id=eq.${id}`,{method:'DELETE'})
@@ -2526,13 +2573,15 @@ async function congBoTKB(version, bat=true){
   if(!duocLuu()) return {ok:false, thongBao:'Thầy cô chỉ xem, không công bố được.'};
   const t=KHO.nguoiDung.truongId;
   try{
+    /* Tắt các bản đang công bố. Đổi 0 dòng ở đây là chuyện thường — chưa
+       công bố bản nào — nên không kiểm số dòng ở bước này. */
     if(bat)
-      await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true`,
-        {method:'PATCH', body:JSON.stringify({cong_bo:false}),
-         headers:{Prefer:'return=minimal'}});
-    await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&version=eq.${+version}`,
-      {method:'PATCH', body:JSON.stringify({cong_bo:!!bat}),
-       headers:{Prefer:'return=minimal'}});
+      await suaHang(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true`, {cong_bo:false});
+    /* Còn bước này thì bắt buộc phải đổi đúng một dòng. Không đổi được dòng
+       nào nghĩa là thiếu quy tắc p_tkb_sua — báo thẳng, đừng khoe "đã công bố". */
+    const so = await suaHang(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&version=eq.${+version}`,
+      {cong_bo:!!bat});
+    if(!so) return {ok:false, thongBao:NHAC_CAI_DAT};
     KHO.banCongBo = bat ? +version : 0;
     ghiNhatKy(bat?'cong_bo':'rut_cong_bo', {version:+version});
     return {ok:true, thongBao: bat
@@ -2801,12 +2850,41 @@ async function ghiDuLieuNguon(dl){
       so_tiet_khoi:k.tietKhoi||null, bat:k.bat!==false
     })), 'truong_id,thu,buoi');
 
-    /* 3. Giáo viên, rồi đọc lại để lấy mã UUID */
-    await gop('giao_vien', dl.giaoVien.map(g=>({
-      truong_id:t, ma_gv:g.id, ho_ten:g.hoTen, dinh_muc:g.dinhMuc||DINH_MUC
-    })), 'truong_id,ma_gv');
+    const laUUID=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
+
+    /* 3. Giáo viên.
+       ⚠️ ĐÚNG CÁI BẪY ĐÃ VÁ CHO BẢNG LỚP — nhưng bảng này bị bỏ sót, và nó
+       đã ăn thật: ngày 2/8/2026 trường 35 giáo viên có 105 hồ sơ trên máy chủ.
+
+       Dòng cũ ghi `ma_gv: g.id`. Lần lưu ĐẦU thì g.id là mã do app đặt
+       (`gv_nguyen_thi_oanh`), máy chủ lưu đúng mã ấy. Nhưng tải về thì g.id
+       thành UUID của máy chủ, nên lần lưu SAU ghi ma_gv = UUID — không khớp
+       dòng cũ nào → máy chủ THÊM nguyên một lứa giáo viên mới. Mỗi lần bấm
+       Lưu sau khi tải lại là nhân thêm 35 hồ sơ.
+
+       Tệ hơn: bước 5 xoá sạch phân công rồi ghi lại theo lứa MỚI NHẤT, nên
+       lứa cũ thành hồ sơ trùng tên 0 tiết — chính là thứ đã làm mã mời nối
+       nhầm cô Oanh vào hồ sơ rỗng.
+
+       Vá y như bảng lớp: mã giữ NGUYÊN (`g.maGV`), và ai đã có trên máy chủ
+       thì upsert theo `id` để sửa đúng dòng cũ. */
+    const maCuaGV=g=>g.maGV||g.id;
+    const hangGV=g=>({truong_id:t, ma_gv:maCuaGV(g), ho_ten:g.hoTen,
+                      dinh_muc:g.dinhMuc||DINH_MUC});
+    const gvDaCo=dl.giaoVien.filter(g=>laUUID(g.id));
+    const gvMoiKhai=dl.giaoVien.filter(g=>!laUUID(g.id));
+    if(gvDaCo.length)
+      await gop('giao_vien', gvDaCo.map(g=>({id:g.id, ...hangGV(g)})), 'id');
+    if(gvMoiKhai.length)
+      await gop('giao_vien', gvMoiKhai.map(hangGV), 'truong_id,ma_gv');
     const gvSv=await goiAPI(`/rest/v1/giao_vien?truong_id=eq.${t}&select=id,ma_gv`);
-    const maGV={}; (gvSv||[]).forEach(g=>maGV[g.ma_gv]=g.id);
+    const svTheoMa={}; (gvSv||[]).forEach(g=>svTheoMa[g.ma_gv]=g.id);
+    /* Bản đồ id-trong-app → id-trên-máy-chủ. Trước đây tra thẳng bằng bảng
+       ma_gv→id vì hai thứ ấy tình cờ trùng nhau; nay mã giữ nguyên nên phải
+       đi qua mã. Giữ nguyên tên `maGV` sẽ dễ nhầm, nên đặt tên khác hẳn. */
+    const idSv={}; dl.giaoVien.forEach(g=>{
+      idSv[g.id]=svTheoMa[maCuaGV(g)] || (laUUID(g.id)?g.id:undefined);
+    });
 
     /* 4. Lớp, kèm chủ nhiệm và điểm trường.
        Khoá tự nhiên là MÃ LỚP chứ không phải tên: sau sáp nhập, ba điểm trường
@@ -2815,7 +2893,7 @@ async function ghiDuLieuNguon(dl){
     const tenDiemCua=id=>dl.diemTruong.find(d=>d.id===dl.lopDT[id])?.ten;
     const maCua=l=>l.maLop||l.id;
     const hangLop=l=>({truong_id:t, ma_lop:maCua(l), ten:l.ten, khoi:l.khoi,
-      diem_truong_id:maDT[tenDiemCua(l.id)], gvcn_id:maGV[cnCua[l.id]] || null});
+      diem_truong_id:maDT[tenDiemCua(l.id)], gvcn_id:idSv[cnCua[l.id]] || null});
     /* ⚠️ BẪY CHẾT NGƯỜI khi ĐỔI MÃ LỚP. Upsert theo khoá tự nhiên
        (truong_id, ma_lop) chỉ đúng khi mã không đổi. Lớp đã nằm trên máy chủ
        mà nay mang mã mới thì không khớp dòng cũ → máy chủ THÊM lớp mới, nhân
@@ -2823,7 +2901,6 @@ async function ghiDuLieuNguon(dl){
          · Lớp đã có trên máy chủ (id là UUID thật) → upsert theo `id`,
            sửa đúng dòng cũ dù mã có đổi.
          · Lớp mới khai trong app (id do app tự đặt) → upsert theo mã như cũ. */
-    const laUUID=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
     const daCoTrenSv=dl.lop.filter(l=>laUUID(l.id));
     const lopMoiKhai=dl.lop.filter(l=>!laUUID(l.id));
     if(daCoTrenSv.length)
@@ -2838,7 +2915,7 @@ async function ghiDuLieuNguon(dl){
       {method:'DELETE', headers:{Prefer:'return=minimal'}});
     const maLopCua=id=>{ const l=dl.lop.find(x=>x.id===id); return l?maCua(l):id; };
     const hangPC=dl.phanCong
-      .map(p=>({truong_id:t, giao_vien_id:maGV[p.gvId], lop_id:maLop[maLopCua(p.lopId)],
+      .map(p=>({truong_id:t, giao_vien_id:idSv[p.gvId], lop_id:maLop[maLopCua(p.lopId)],
                 mon:p.mon, so_tiet:p.soTiet}))
       .filter(r=>r.giao_vien_id && r.lop_id && r.so_tiet>0);
     if(hangPC.length) await goiAPI('/rest/v1/phan_cong',
@@ -2847,10 +2924,21 @@ async function ghiDuLieuNguon(dl){
     /* 6. Thông tin trường, danh mục môn, bảng phòng.
        Ba thứ này thêm sau nên bọc riêng: cơ sở dữ liệu chưa chạy
        db/mon-hoc-phong.sql thì bỏ qua, chứ không làm hỏng cả lần nhập. */
-    if(dl.tenTruong) await goiAPI(`/rest/v1/truong?id=eq.${t}`,
-      {method:'PATCH', headers:{Prefer:'return=minimal'},
-       body:JSON.stringify({ten:dl.tenTruong, nam_hoc:dl.namHoc||null,
-                            xa:dl.xa||null, tinh:dl.tinh||null})}).catch(()=>{});
+    /* Thông tin trường. Hai chỗ từng sai ở đây, cùng nằm trong bốn dòng này:
+       · `nam_hoc` là cột NOT NULL — đẩy null vào là máy chủ từ chối cả lệnh,
+         nên trường nào bỏ trống ô năm học thì bỏ hẳn cột đó khỏi lệnh sửa.
+       · `.catch(()=>{})` nuốt sạch mọi lỗi, còn 0 dòng đổi thì PostgREST vốn
+         đã im lặng — cộng lại thành "báo đã lưu mà chẳng lưu gì". Nay đếm số
+         dòng và mang lời cảnh báo về cho màn hình. */
+    let loiTruong = '';
+    if(dl.tenTruong){
+      const than = {ten:dl.tenTruong, xa:dl.xa||null, tinh:dl.tinh||null};
+      if(dl.namHoc) than.nam_hoc = dl.namHoc;
+      try{
+        if(!await suaHang(`/rest/v1/truong?id=eq.${t}`, than))
+          loiTruong = `Chưa lưu được thông tin trường (tên, năm học, địa bàn). ${NHAC_CAI_DAT}`;
+      }catch(e){ loiTruong = `Chưa lưu được thông tin trường: ${dienGiaiLoi(e)}`; }
+    }
     if(dl.monHoc?.length){
       await goiAPI(`/rest/v1/mon_hoc?truong_id=eq.${t}`,
         {method:'DELETE', headers:{Prefer:'return=minimal'}})
@@ -2882,7 +2970,9 @@ async function ghiDuLieuNguon(dl){
         {method:'DELETE', headers:{Prefer:'return=minimal'}});
       const hangNghi=dsNghi.flatMap(([ma,ds])=>ds.map(k=>{
         const p=k.split('-');
-        return {truong_id:t, giao_vien_id:maGV[ma], thu:+p[0], buoi:p[1]};
+        /* Khoá của gvNghi là mã giáo viên trong tệp Excel, có khi lại là id
+           trong app — tra cả hai đường, không đoán. */
+        return {truong_id:t, giao_vien_id:idSv[ma]||svTheoMa[ma], thu:+p[0], buoi:p[1]};
       })).filter(r=>r.giao_vien_id);
       if(hangNghi.length) await goiAPI('/rest/v1/gv_nghi',
         {method:'POST', headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangNghi)});
@@ -2891,16 +2981,17 @@ async function ghiDuLieuNguon(dl){
     /* Còn sót lại trên máy chủ mà tệp không nhắc tới — không tự xoá, chỉ báo,
        vì xoá lớp là kéo theo cả phân công và làm hỏng phiên bản đã lưu. */
     const maTepLop=new Set(dl.lop.map(maCua));
-    const maTrongTep=new Set(dl.giaoVien.map(g=>g.id));
+    const maTrongTep=new Set(dl.giaoVien.map(maCuaGV));
     const lopThua=(lopSv||[]).filter(l=>!maTepLop.has(l.ma_lop)).map(l=>l.ten);
     const gvThua=(gvSv||[]).filter(g=>!maTrongTep.has(g.ma_gv)).map(g=>g.ma_gv);
 
     ghiNhatKy('nhap_du_lieu_nguon',
       {lop:dl.lop.length, giaoVien:dl.giaoVien.length, phanCong:hangPC.length});
-    return {ok:true, lopThua, gvThua,
+    return {ok:true, lopThua, gvThua, loiTruong,
       chiTiet:{diemTruong:Object.keys(maDT).length, khungGio:dl.khungGio.length,
                giaoVien:dl.giaoVien.length, lop:dl.lop.length, phanCong:hangPC.length},
-      thongBao:`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${hangPC.length} dòng phân công.`};
+      thongBao:`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${hangPC.length} dòng phân công.`
+        + (loiTruong?` ⚠️ ${loiTruong}`:'')};
   }catch(e){
     return {ok:false, thongBao:dienGiaiLoi(e)};
   }
@@ -2968,6 +3059,44 @@ async function xoaDayThay(id){
 /* ---------- 6. Quản lý tài khoản ----------
    Gọi Edge Function `tai-khoan`. Tạo tài khoản đăng nhập cần khoá bí mật,
    khoá đó chỉ nằm trên máy chủ Supabase — xem db/edge-function-tai-khoan.ts. */
+/* ---------- Nối tài khoản đăng nhập vào ĐÚNG hồ sơ giáo viên ----------
+   SỰ CỐ THẬT 2/8/2026: cô Nguyễn Thị Oanh nhập mã mời, vào được phần mềm,
+   thấy đúng tên mình — nhưng màn hình trắng. Trường có HAI hồ sơ cùng tên
+   "Nguyễn Thị Oanh": một hồ sơ 22 tiết, một hồ sơ 0 tiết (sót lại từ bộ dữ
+   liệu thử). Ô chọn trong hộp Mã mời chỉ bày họ tên, nên chọn nhầm là chuyện
+   sớm muộn — và chọn nhầm rồi thì KHÔNG CÓ ĐƯỜNG NÀO sửa trong phần mềm.
+
+   Hàm này là đường sửa ấy. Chạy thẳng trên bảng giao_vien bằng quy tắc RLS
+   sẵn có của cán bộ quản lý — không cần Edge Function nào. */
+async function datTaiKhoanGV(idGV, idNguoiDung){
+  if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ nên chưa đổi được.'};
+  if(KHO.nguon!=='may-chu') return {ok:false,
+    thongBao:'Đang chạy bằng dữ liệu mẫu nên chưa đổi được — mã giáo viên không phải của trường.'};
+  const t=KHO.nguoiDung.truongId;
+  try{
+    /* Một tài khoản chỉ giữ MỘT hồ sơ. Gỡ ở mọi hồ sơ cũ trước — gỡ được 0
+       dòng là chuyện thường (tài khoản chưa nối ai), không phải lỗi. */
+    if(idNguoiDung)
+      await suaHang(`/rest/v1/giao_vien?truong_id=eq.${t}&nguoi_dung_id=eq.${idNguoiDung}`,
+        {nguoi_dung_id:null});
+    if(idGV){
+      const so=await suaHang(`/rest/v1/giao_vien?id=eq.${idGV}`,
+        {nguoi_dung_id:idNguoiDung||null});
+      if(!so) return {ok:false, thongBao:NHAC_CAI_DAT};
+    }
+    /* Sửa luôn bản trong bộ nhớ để màn hình khớp ngay, khỏi bắt tải lại */
+    S.giaoVien.forEach(g=>{ if(idNguoiDung && g.nguoiDungId===idNguoiDung) g.nguoiDungId=null; });
+    const g=S.giaoVien.find(x=>x.id===idGV);
+    if(g) g.nguoiDungId=idNguoiDung||null;
+    if(idNguoiDung && idNguoiDung===KHO.nguoiDung.id){
+      KHO.nguoiDung.gvId=idGV||null;
+      if(S.nguoiDung) S.nguoiDung.gvId=idGV||null;
+    }
+    ghiNhatKy('doi_ho_so_gv', {nguoiDung:idNguoiDung, hoSoMoi:idGV});
+    return {ok:true, thongBao:'Đã nối lại. Thầy cô tải lại trang là thấy đúng lịch của mình.'};
+  }catch(e){ return {ok:false, thongBao:dienGiaiLoi(e)}; }
+}
+
 async function goiTaiKhoan(than){
   if(!coMayChu()) return {ok:false, loi:'Chưa nối máy chủ.'};
   try{
@@ -3053,9 +3182,18 @@ function dinhDangLuc(x){
 /* ==================================================================
    2c. QUYỀN HẠN TRÊN GIAO DIỆN
    ------------------------------------------------------------------
-   Hàng rào thật nằm ở Row Level Security trong db/schema.sql. Vùng này
-   chỉ lo phần giao diện: không bày ra thứ người dùng không được đụng,
-   và khi họ không đụng được thì nói rõ vì sao, ai làm được việc đó.
+   Ranh giới GIÁO VIÊN ↔ QUẢN LÝ có hàng rào thật ở Row Level Security
+   (db/schema.sql): giáo viên không ghi được vào bảng nguồn nào, dù gọi
+   thẳng API. Vùng này chỉ lo phần giao diện của ranh giới đó.
+
+   ⚠️ Nhưng ranh giới PHT-MỘT-ĐIỂM-TRƯỜNG thì CHỈ có ở đây, không có ở
+   tầng cơ sở dữ liệu: hàm la_quan_ly() gộp chung cả ba vai quản lý, nên
+   xét theo RLS thì một PHT phụ trách điểm trường vẫn ghi được vào lớp
+   của điểm trường khác. Đấy là chấp nhận có chủ đích — thời khóa biểu
+   lưu dạng một khối JSON của cả trường, mà bảng quyền lại cho PHT được
+   lưu, nên RLS không có cách nào cắt theo điểm trường. Việc bó phạm vi ở
+   đây là để người dùng khỏi giẫm chân nhau, KHÔNG phải hàng rào an ninh.
+   Đừng viết mã dựa vào giả định rằng máy chủ sẽ chặn hộ.
 
    Ba mức:
      quản trị · hiệu trưởng · PHT chuyên môn   → toàn trường
@@ -4265,7 +4403,11 @@ function mTKBGV(){
     ${g?.cn?`<span class="tag ok">Chủ nhiệm ${esc(tenCN(g))}</span>`:''}
     <button class="b b-vien b-nho" id="btICSGV" style="margin-left:auto">Đưa vào lịch điện thoại</button>
     <button class="b b-vien b-nho" id="btInGVNay">In / lưu PDF</button>
-  </div>${bang}`;
+  </div>
+  ${Object.keys(lich).length ? '' : (()=>{ const l=lyDoTrongLich(S.gvXem,false);
+    return `<div class="canhbao ${l.nang?'do':''}" style="margin-bottom:12px">
+      <div class="cb-ic">${l.nang?'!':'i'}</div><div class="cb-t">
+      <b>${esc(l.tieu)}</b><div class="cb-g">${l.giai}</div></div></div>`; })()}${bang}`;
 }
 
 /* ---------- 3.5 Thời khóa biểu của tôi (màn hình giáo viên) ---------- */
@@ -4332,8 +4474,10 @@ function mCuaToi(){
         <div class="sl">Lớp ${esc(lopId(x.lp)?.ten)} · ${esc(dtId(S.lopDT[x.lp])?.ten.replace('Điểm trường ',''))}</div>
       </div>`).join(''):'<div class="ngay-trong">Không có tiết</div>'}</div></div>`;
   }).join('')}</div>`
-  :`<div class="the"><div class="trong-hop"><b>Chưa có thời khóa biểu</b>
-     Nhà trường chưa xếp xong. Khi có lịch, thầy cô sẽ thấy ngay tại đây.</div></div>`}
+  :(()=>{ const l=lyDoTrongLich(id); return `<div class="the"><div class="the-t">
+      <div class="canhbao ${l.nang?'do':''}"><div class="cb-ic">${l.nang?'!':'i'}</div><div class="cb-t">
+        <b>${esc(l.tieu)}</b><div class="cb-g">${l.giai}</div></div></div>
+    </div></div>`; })()}
   ${chiXemLichMinh()?'':`<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
     <select class="ip" id="selToi">${[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'))
       .map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${esc(x.hoTen)}</option>`).join('')}</select>
@@ -4343,6 +4487,69 @@ function mCuaToi(){
 /* Giáo viên chỉ thấy lịch của chính mình, không chọn xem lịch người khác.
    Muốn xem bằng vai trò khác thì đăng xuất rồi đăng nhập bằng tài khoản đó. */
 const chiXemLichMinh = () => quyen().laGV;
+
+/* ---------- Nhãn cho mọi ô chọn giáo viên ----------
+   KHÔNG BAO GIỜ chỉ bày họ tên. Trường có bốn cặp trùng tên (hai cô Dung,
+   hai cô Linh, hai cô Hương, hai cô Oanh), và ô chọn chỉ có họ tên chính là
+   thứ đã làm mã mời nối nhầm hồ sơ ngày 2/8/2026. Số tiết là dấu hiệu phân
+   biệt rõ nhất: hồ sơ 0 tiết gần như luôn là hồ sơ thừa của bộ dữ liệu thử. */
+function nhanChonGV(g){
+  const ti=S.phanCong.filter(p=>p.gvId===g.id).reduce((s,p)=>s+p.soTiet,0);
+  const cn=tenCN(g);
+  /* Mã dạng UUID dài 36 ký tự thì bày ra chỉ tổ rối — bỏ qua */
+  const ma=(g.maGV && g.maGV.length<=12) ? ' · '+g.maGV : '';
+  return `${g.hoTen} — ${ti?ti+' tiết':'CHƯA CÓ TIẾT NÀO'}${cn?' · CN '+cn:''}${ma}`;
+}
+
+/* ---------- Vì sao lịch của một giáo viên trống ----------
+   ĐÃ DÍNH THẬT (2/8/2026): một cô giáo nhập mã mời xong, vào được phần mềm,
+   thấy đúng tên mình, nhưng màn hình *Của tôi* trắng trơn kèm dòng chữ
+   "Nhà trường chưa xếp xong" — trong khi trường đã xếp trọn 710/710 tiết.
+   Câu ấy nói sai chuyện, và tệ hơn: nó GIẤU mất lỗi thật.
+
+   Ba nguyên nhân hoàn toàn khác nhau, ba cách sửa khác nhau, và cách sửa
+   nào cũng nằm ở tay người khác — nên câu chữ phải đủ để thầy cô nhắn lại
+   cho người quản trị mà không ai phải mở SQL ra dò.
+   Muốn soi tận gốc trên máy chủ thì chạy db/soi-tai-khoan-gv.sql. */
+function lyDoTrongLich(idGV, laToi=true){
+  const g = gvId(idGV);
+  const tongLuoi = soTietDaXep();
+  const tietPC = S.phanCong.filter(p=>p.gvId===idGV).reduce((s,p)=>s+p.soTiet,0);
+  const nhan = `<b>${esc(g?.hoTen||'(không rõ)')}</b>${g?.maGV?` · mã <b>${esc(g.maGV)}</b>`:''}`;
+  /* 1. Lưới rỗng hẳn. Với vai trò giáo viên thì phần mềm chỉ đọc được bản đã
+     công bố, nên "chưa thấy gì" gần như luôn là "nhà trường chưa công bố" —
+     nói đúng như vậy, đừng đổ cho việc xếp. */
+  if(!tongLuoi) return quyen().laGV
+    ? {ma:'chua-cong-bo', nang:false, tieu:'Nhà trường chưa công bố thời khóa biểu',
+       giai:'Thầy cô chỉ xem được bản nhà trường đã chốt và công bố. Khi có bản chính thức, '
+         +'mở trang lên là thấy ngay tại đây — không phải làm gì thêm.'}
+    : {ma:'chua-xep', nang:false, tieu:'Chưa xếp thời khóa biểu',
+       giai:'Vào <b>Bước 2 · Xếp thời khóa biểu</b> để xếp. Xếp xong nhớ bấm '
+         +'<b>Công bố cho giáo viên</b> thì thầy cô mới xem được.'};
+  /* 2. Trường đã xếp, mà hồ sơ này không có việc gì cả. Gần như luôn là nối
+     nhầm hồ sơ trùng tên — trường có hai cô Dung, hai cô Linh, hai cô Hương,
+     hai cô Oanh. Nói thẳng ra mã hồ sơ để người quản trị dò được ngay. */
+  if(!tietPC) return {ma:'nham-ho-so', nang:true,
+    tieu: laToi ? 'Hồ sơ đang nối chưa được phân công tiết nào'
+                : 'Giáo viên này chưa được phân công tiết nào',
+    giai: laToi
+      ? `Tài khoản này đang nối với hồ sơ ${nhan}, mà hồ sơ ấy không có dòng phân công nào — `
+        +`trong khi nhà trường đã xếp ${tongLuoi} tiết. Trường có nhiều thầy cô trùng tên, `
+        +'nhiều khả năng tài khoản nối nhầm hồ sơ. Nhắn người quản trị mở mục '
+        +'<b>Giáo viên → Chuyển tài khoản</b> và chọn lại đúng hồ sơ — mất một phút.'
+      : `Hồ sơ ${nhan} không có dòng phân công nào nên không có gì để xếp. Hoặc thêm việc cho `
+        +'thầy cô này ở <b>Bước 1 · Phân công</b>, hoặc xoá hồ sơ thừa ở mục <b>Giáo viên</b> — '
+        +'hồ sơ không có việc mà vẫn nằm trong danh sách thì rất dễ phát nhầm mã mời vào đó.'};
+  /* 3. Có phân công, có lưới, mà lưới không chứa tiết nào của người này →
+     bản đang xem xếp từ trước khi có bảng phân công ấy. */
+  return {ma:'ban-cu', nang:true,
+    tieu: laToi ? 'Bản đang xem không chứa tiết nào của thầy cô'
+                : 'Bản đang xem không chứa tiết nào của giáo viên này',
+    giai:`Hồ sơ ${nhan} có <b>${tietPC} tiết</b> theo bảng phân công, nhưng bản thời khóa biểu `
+      +'đang xem lại không có tiết nào của hồ sơ ấy — bản này xếp từ trước khi có bảng phân công đó. '
+      +(laToi ? 'Nhắn người quản trị xếp lại rồi <b>công bố lại</b>.'
+              : 'Xếp lại ở <b>Bước 2</b> rồi <b>công bố lại</b> thì thầy cô mới thấy đúng lịch.')};
+}
 
 /* ---------- 3.5b Dạy thay, dạy bù ----------
    Việc lặp lại hằng tuần trong năm học: cô A ốm sáng mai, ai dạy thế tiết
@@ -5800,7 +6007,8 @@ function mGiaoVien(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Thêm giáo viên</button>
     <button class="b b-vien" id="btTaiKhoan">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M18 8h5M20.5 5.5v5"/></svg>
-    Tài khoản đăng nhập</button>`):'')+`
+    Tài khoản đăng nhập</button>
+    ${S.giaoVien.some(g=>g.nguoiDungId)?`<button class="b b-vien" id="btChuyenTK">Chuyển tài khoản</button>`:''}`):'')+`
   ${oLoc('bGV',ds.length,'giáo viên','Tìm họ tên, mã, lớp chủ nhiệm, điểm trường…')}
   <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr><th>Họ và tên</th>
     <th class="phai">Định mức</th><th>Chủ nhiệm</th><th>Điểm trường</th>
@@ -6055,7 +6263,15 @@ function noiSuKien(){
   $('#btInGVNay')&&($('#btInGVNay').onclick=()=>
     inRa(trangInGV(S.gvXem), gvId(S.gvXem)?.hoTen||''));
   $('#btICSGV')&&($('#btICSGV').onclick=()=>taiICS(S.gvXem));
-  $('#btICSToi')&&($('#btICSToi').onclick=()=>taiICS(S.nguoiDung.gvId||S.giaoVien[0]?.id));
+  /* Lấy đúng người màn hình đang hiện, không tự chọn lại lần nữa: hai nơi tính
+     ra hai người khác nhau là tải về nhầm lịch mà không ai hay. Vai trò giáo
+     viên chưa nối hồ sơ đã bị thieuHoSoGV() chặn từ đầu màn hình, nên nhánh
+     rơi về người đầu danh sách chỉ dành cho cán bộ quản lý đang xem thử. */
+  $('#btICSToi')&&($('#btICSToi').onclick=()=>{
+    const id=S.nguoiDung.gvId||S.giaoVien[0]?.id;
+    if(!id) return bao('Chưa có giáo viên nào để lấy lịch.',true);
+    taiICS(id);
+  });
 
   /* Dạy thay — hai ô chọn chỉ ghi vào S, không vẽ lại từng phím */
   $('#dtNgay')&&($('#dtNgay').onchange=e=>{S.dtNgay=e.target.value;});
@@ -6332,6 +6548,7 @@ function noiSuKien(){
   });
 
   $('#btTaiKhoan')&&($('#btTaiKhoan').onclick=hopTaiKhoan);
+  $('#btChuyenTK')&&($('#btChuyenTK').onclick=hopChuyenTaiKhoan);
   $('#btThemDT')&&($('#btThemDT').onclick=hopThemDT);
   $('#btGanLop')&&($('#btGanLop').onclick=hopGanLop);
   $('#btTaoThu')&&($('#btTaoThu').onclick=hopTaoThu);
@@ -6895,7 +7112,9 @@ async function luuNguonLenMayChu(e){
   const kq=await ghiDuLieuNguon(S);
   if(b){ b.disabled=false; b.innerHTML=cu; }
   if(kq.ok) chotVanTay();          /* ghi xong thì coi như không còn thay đổi treo */
-  bao(kq.thongBao, !kq.ok);
+  /* Lưu được lớp và giáo viên nhưng KHÔNG lưu được thông tin trường thì vẫn
+     phải hiện dải đỏ — báo xanh là người dùng tin đã xong, đúng cái bẫy cũ. */
+  bao(kq.thongBao, !kq.ok || !!kq.loiTruong);
   ve();
   if(kq.ok && (kq.lopThua?.length || kq.gvThua?.length))
     setTimeout(()=>bao(`Trên máy chủ còn ${kq.lopThua.length} lớp và ${kq.gvThua.length} giáo viên `+
@@ -7211,7 +7430,8 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
      <div class="hang">Vai trò <b>${esc(TEN_VAI_TRO[n.vaiTro]||n.vaiTro)}</b></div>
      <div class="hang">Trường <b>${esc(n.tenTruong||S.tenTruong)}</b></div>
      <div class="hang">Phiên bản đang giữ <b>${KHO.version||'chưa có'}</b></div>
-     <div class="gy" style="margin-top:12px">Phiên đăng nhập không lưu lại trên máy — tải lại trang là phải đăng nhập lại.</div>`,
+     <div class="gy" style="margin-top:12px">Máy này đang ghi nhớ đăng nhập: mở lại trang là vào thẳng,
+       không phải gõ mật khẩu. Máy dùng chung thì bấm <b>Đăng xuất</b> khi xong việc.</div>`,
     [{ten:'Đăng xuất',phu:1,lam:async()=>{
         dangXuat(); const t=await taiDuLieu();
         KQ_XEP=null; dong(); capNhatTaiKhoan();
@@ -7250,17 +7470,24 @@ async function hopTaiKhoan(){
 
 function veHopTaiKhoan(ds){
   const TEN={quan_tri:'Quản trị',hieu_truong:'Hiệu trưởng',pho_hieu_truong:'Phó hiệu trưởng',giao_vien:'Giáo viên'};
-  const chuaCo=S.giaoVien.filter(g=>!ds.some(x=>x.email && x.ho_ten===g.hoTen));
+  /* Hồ sơ giáo viên nối vào mỗi tài khoản — tra bằng ID, tuyệt đối không dò
+     theo họ tên: trường có bốn cặp trùng tên và đó chính là gốc sự cố 2/8. */
+  const hoSoCua=id=>S.giaoVien.find(g=>g.nguoiDungId===id);
   $('#hopN').innerHTML=
     `<div class="bang" style="max-height:34vh;margin-bottom:15px"><table class="dl"><thead><tr>
-      <th>Họ và tên</th><th>Email</th><th>Vai trò</th><th></th></tr></thead><tbody>
-     ${ds.length?ds.map(x=>`<tr><td><b>${esc(x.ho_ten)}</b></td><td>${esc(x.email||'—')}</td>
+      <th>Họ và tên</th><th>Email</th><th>Vai trò</th><th>Hồ sơ giáo viên</th><th></th></tr></thead><tbody>
+     ${ds.length?ds.map(x=>{
+       const hs=hoSoCua(x.id);
+       const ti=hs?S.phanCong.filter(p=>p.gvId===hs.id).reduce((s,p)=>s+p.soTiet,0):0;
+       return `<tr><td><b>${esc(x.ho_ten)}</b></td><td>${esc(x.email||'—')}</td>
        <td>${esc(TEN[x.vai_tro]||x.vai_tro)}${x.diem_truong_id?`<br><span style="font-size:11px;color:var(--chu-mo)">${esc(dtId(x.diem_truong_id)?.ten||'')}</span>`:''}</td>
+       <td>${hs?`${esc(hs.hoTen)}<br><span class="tag ${ti?'ok':'do'}">${ti?ti+' tiết':'không có tiết nào'}</span>`
+              :(x.vai_tro==='giao_vien'?'<span class="tag do">chưa nối</span>':'<span style="color:var(--chu-mo)">—</span>')}</td>
        <td class="phai" style="white-space:nowrap">
          ${x.id===KHO.nguoiDung.id?'<span class="tag">Đang dùng</span>'
            :`<button class="b b-vien b-nho" data-xoatk="${x.id}" data-ten="${esc(x.ho_ten)}" style="color:var(--do)">Xoá</button>`}
-       </td></tr>`).join('')
-      :'<tr><td colspan="4" style="text-align:center;color:var(--chu-mo);padding:22px">Chưa có tài khoản nào ngoài thầy cô</td></tr>'}
+       </td></tr>`;}).join('')
+      :'<tr><td colspan="5" style="text-align:center;color:var(--chu-mo);padding:22px">Chưa có tài khoản nào ngoài thầy cô</td></tr>'}
     </tbody></table></div>
 
     <div style="border-top:1px solid var(--ke);padding-top:15px">
@@ -7273,6 +7500,7 @@ function veHopTaiKhoan(ds){
     </div>`;
   $('#hopC').innerHTML='';
   [{ten:'Đóng',phu:1,lam:dong},
+   ...(S.giaoVien.some(g=>g.nguoiDungId)?[{ten:'Chuyển tài khoản',phu:1,lam:hopChuyenTaiKhoan}]:[]),
    {ten:'Mã mời Google',lam:hopMaMoi}
   ].forEach(x=>{const b=document.createElement('button');
     b.className='b '+(x.phu?'b-vien':'b-ch'); b.textContent=x.ten; b.onclick=x.lam; $('#hopC').appendChild(b);});
@@ -7341,11 +7569,22 @@ async function hopMaMoi(){
       <div class="on-l" style="margin:0;flex:1;min-width:220px"><label>Tạo mã cho</label>
         ${oLocChon('mmChonGV',dsGV.length,'giáo viên','Tìm giáo viên…','width:100%')}
         <select class="ip" id="mmChonGV" style="width:100%;margin-top:7px">
-          ${dsGV.map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(g.hoTen)}</option>`).join('')}
+          ${dsGV.map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(nhanChonGV(g))}</option>`).join('')}
           <option value="">— Cán bộ quản lý (phó hiệu trưởng) —</option>
         </select></div>
       <button class="b b-ch" id="btTaoMaMoi">Tạo mã</button>
     </div>
+    ${(()=>{ const c=canPhatMa(kq.ok?kq.ds:[]);
+      return `<div class="hd-b" style="margin-bottom:13px">
+        <b>Phát mã cho cả trường</b>
+        <span>${c.ds.length
+          ? `Còn <b>${c.ds.length}</b> thầy cô chưa có đường vào. Một cú bấm ra đủ ${c.ds.length} mã,
+             chép hoặc tải Excel rồi gửi Zalo.`
+          : 'Mọi thầy cô có tiết đều đã có tài khoản hoặc đã được phát mã còn hạn.'}${
+          c.boQua ? ` Bỏ qua ${c.boQua} hồ sơ chưa được phân công tiết nào — phát mã vào đó là
+             thầy cô đăng nhập xong thấy màn hình trắng.` : ''}</span>
+        ${c.ds.length?`<div style="margin-top:9px"><button class="b b-ch" id="btMaHangLoat">Tạo ${c.ds.length} mã</button></div>`:''}
+      </div>`; })()}
     <div id="mmKQ"></div>
     ${kq.ok
       ? (kq.ds.length?`<div class="bang" style="max-height:38vh"><table class="dl"><thead><tr>
@@ -7382,6 +7621,143 @@ async function hopMaMoi(){
     if(!kq2.ok) return bao(kq2.loi,true);
     bao('Đã thu hồi mã.'); hopMaMoi();
   });
+  $('#btMaHangLoat')&&($('#btMaHangLoat').onclick=()=>phatMaHangLoat(kq.ok?kq.ds:[]));
+}
+
+/* ---------- Chuyển tài khoản sang hồ sơ khác ----------
+   Đường sửa khi mã mời nối nhầm người trùng tên. Trước 2/8/2026 không có
+   đường nào: màn hình *Tài khoản đăng nhập* chỉ liệt kê và xoá, mà xoá tài
+   khoản thì thầy cô phải xin mã mời mới và làm lại từ đầu. */
+function hopChuyenTaiKhoan(){
+  const dangGiu=S.giaoVien.filter(g=>g.nguoiDungId);
+  if(!dangGiu.length) return bao('Chưa hồ sơ nào được nối với tài khoản đăng nhập.');
+  const tiet=g=>S.phanCong.filter(p=>p.gvId===g.id).reduce((s,p)=>s+p.soTiet,0);
+  /* Xếp hồ sơ 0 tiết lên đầu — đó chính là hồ sơ đang có vấn đề */
+  const nguon=[...dangGiu].sort((a,b)=>tiet(a)-tiet(b)||a.hoTen.localeCompare(b.hoTen,'vi'));
+  const dich=S.giaoVien.filter(g=>!g.nguoiDungId)
+    .sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+  if(!dich.length) return bao('Mọi hồ sơ giáo viên đều đã có tài khoản rồi.');
+
+  hop('Chuyển tài khoản sang hồ sơ khác',
+  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Dùng khi mã mời nối nhầm
+     người <b>trùng tên</b>: thầy cô đăng nhập được nhưng mở ra không thấy tiết nào.
+     Chuyển xong, thầy cô chỉ cần tải lại trang — không phải xin mã mời mới.</p>
+   <div class="on-l"><label>Tài khoản đang nối vào hồ sơ</label>
+     ${oLocChon('ctkNguon',nguon.length,'hồ sơ','Tìm hồ sơ…','width:100%')}
+     <select class="ip" id="ctkNguon" style="width:100%;margin-top:7px">
+       ${nguon.map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV)}">${esc(nhanChonGV(g))}</option>`).join('')}
+     </select></div>
+   <div id="ctkCanh"></div>
+   <div class="on-l"><label>Chuyển sang hồ sơ</label>
+     ${oLocChon('ctkDich',dich.length,'hồ sơ','Tìm hồ sơ…','width:100%')}
+     <select class="ip" id="ctkDich" style="width:100%;margin-top:7px">
+       ${dich.map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV)}">${esc(nhanChonGV(g))}</option>`).join('')}
+     </select>
+     <div class="gy">Hồ sơ ghi <b>CHƯA CÓ TIẾT NÀO</b> thường là hồ sơ thừa của bộ dữ liệu thử —
+       chuyển vào đó là thầy cô lại thấy màn hình trắng như cũ.</div></div>`,
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Chuyển',lam:async e=>{
+    const idCu=$('#ctkNguon').value, idMoi=$('#ctkDich').value;
+    const gCu=gvId(idCu), gMoi=gvId(idMoi);
+    if(!gCu?.nguoiDungId) return bao('Hồ sơ nguồn không còn giữ tài khoản nào.',true);
+    const b=e.currentTarget; b.disabled=true; b.textContent='Đang chuyển…';
+    const kq=await datTaiKhoanGV(idMoi, gCu.nguoiDungId);
+    b.disabled=false; b.textContent='Chuyển';
+    if(!kq.ok) return bao(kq.thongBao,true);
+    dong(); bao(`${kq.thongBao} (${gCu.hoTen} → ${gMoi?.hoTen||''})`); ve();
+  }}]);
+
+  /* Nhắc ngay khi hồ sơ nguồn không có tiết nào — đó là dấu hiệu nối nhầm */
+  const soi=()=>{
+    const g=gvId($('#ctkNguon').value);
+    $('#ctkCanh').innerHTML = (g && !tiet(g))
+      ? `<div class="canhbao do" style="margin:0 0 13px"><div class="cb-ic">!</div><div class="cb-t">
+          <b>Hồ sơ này không có tiết nào</b><div class="cb-g">Đúng dấu hiệu nối nhầm: thầy cô đăng nhập
+          được nhưng màn hình lịch trống trơn. Chọn hồ sơ cùng tên CÓ tiết ở ô dưới.</div></div></div>`
+      : '';
+  };
+  soi();
+  $('#ctkNguon').onchange=soi;
+  $$('[data-locsel]').forEach(i=>{ i.oninput=()=>locChon(i); });
+  $$('[data-locxoa]').forEach(b=>b.onclick=()=>{
+    const i=b.parentElement.querySelector('input'); if(!i) return;
+    i.value=''; locChon(i); i.focus();
+  });
+}
+
+/* ---------- Phát mã mời cho cả trường ----------
+   Việc DUY NHẤT đang chặn thầy cô dùng phần mềm thật. Trước đó hộp này chỉ
+   tạo được MỘT mã mỗi lần bấm: 35 lần chọn tên, bấm, chép, dán Zalo.
+
+   Hai chỗ cố ý bỏ qua, cả hai đều rút ra từ sự cố 2/8/2026 — một cô nhập mã
+   xong vào thấy màn hình trắng vì mã nối vào hồ sơ trùng tên không có tiết:
+     · người đã có tài khoản (`nguoiDungId`) — phát nữa là thừa;
+     · hồ sơ KHÔNG có dòng phân công nào và cũng không chủ nhiệm lớp nào —
+       gần như luôn là hồ sơ thừa của bộ dữ liệu thử. Phát mã vào đó là cầm
+       chắc một thầy cô đăng nhập xong nhìn màn hình trắng. */
+function canPhatMa(dsMa){
+  /* Mã chưa dùng mà còn hạn thì coi như người đó đã cầm mã rồi */
+  const daPhat=new Set((dsMa||[]).filter(x=>!x.daDung&&x.conHan&&x.gvId).map(x=>x.gvId));
+  const coViec=g=>!!g.cn||S.phanCong.some(p=>p.gvId===g.id);
+  const chuaCo=S.giaoVien.filter(g=>!g.nguoiDungId&&!daPhat.has(g.id));
+  return {ds:chuaCo.filter(coViec).sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi')),
+          boQua:chuaCo.filter(g=>!coViec(g)).length};
+}
+
+async function phatMaHangLoat(dsMa){
+  const ds=canPhatMa(dsMa).ds;
+  if(!ds.length) return bao('Không còn ai cần phát mã.');
+  const b=$('#btMaHangLoat'); if(b) b.disabled=true;
+  const xong=[], hong=[];
+  /* Tạo tuần tự chứ không bắn một lượt: 35 lệnh ghi song song lên máy chủ dễ
+     bị chặn nhịp, mà việc này chỉ làm một lần nên chậm vài giây không sao. */
+  for(let i=0;i<ds.length;i++){
+    const g=ds[i];
+    if(b) b.textContent=`Đang tạo ${i+1}/${ds.length}…`;
+    const t=await taoMaMoi({gvId:g.id, vaiTro:'giao_vien'});
+    if(t.ok) xong.push({...g, ma:t.ma}); else hong.push({...g, loi:t.loi});
+    if(hong.length>=3) break;   /* hỏng liên tiếp thì dừng, đừng nện máy chủ */
+  }
+  if(b){ b.disabled=false; b.textContent=`Tạo ${ds.length} mã`; }
+  MA_VUA_PHAT=xong;
+  $('#mmKQ').innerHTML=`
+    ${hong.length?`<div class="canhbao do" style="margin-bottom:11px"><div class="cb-ic">!</div>
+      <div class="cb-t"><b>${hong.length} mã chưa tạo được</b>
+      <div class="cb-g">${esc(hong[0].loi||'')}</div></div></div>`:''}
+    ${xong.length?`<div class="canhbao ok" style="margin-bottom:11px"><div class="cb-ic">✓</div>
+      <div class="cb-t"><b>Đã tạo ${xong.length} mã mời</b>
+      <div class="cb-g">Gửi cho từng thầy cô. Họ bấm <b>Đăng nhập bằng Google</b> trên trang rồi
+        gõ mã của mình là vào đúng lịch. Mỗi mã dùng một lần, hạn 30 ngày.</div></div></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:11px">
+      <button class="b b-ch" id="btMaXL">Tải Excel danh sách mã</button>
+      <button class="b b-vien" id="btMaChep">Chép tất cả</button>
+    </div>
+    <div class="bang" style="max-height:34vh;margin-bottom:13px"><table class="dl"><thead><tr>
+      <th>Họ và tên</th><th>Mã giáo viên</th><th>Chủ nhiệm</th><th>Mã mời</th></tr></thead><tbody>
+      ${xong.map(x=>`<tr><td><b>${esc(x.hoTen)}</b></td><td>${esc(x.maGV||'')}</td>
+        <td>${esc(tenCN(x)||'')}</td>
+        <td style="font-weight:700;letter-spacing:.15em">${esc(x.ma)}</td></tr>`).join('')}
+    </tbody></table></div>`:''}`;
+  $('#btMaXL')&&($('#btMaXL').onclick=()=>taiExcelMaMoi(MA_VUA_PHAT));
+  $('#btMaChep')&&($('#btMaChep').onclick=()=>{
+    const chu=MA_VUA_PHAT.map(x=>`${x.hoTen}: ${x.ma}`).join('\n');
+    navigator.clipboard?.writeText(chu).then(()=>bao(`Đã chép ${MA_VUA_PHAT.length} dòng.`),
+      ()=>bao('Trình duyệt không cho chép tự động — tải Excel về dùng cho chắc.',true));
+  });
+}
+let MA_VUA_PHAT=[];
+
+async function taiExcelMaMoi(ds){
+  if(!ds?.length) return bao('Chưa có mã nào để tải.',true);
+  if(!coExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi tải lại trang.',true);
+  const wb=new ExcelJS.Workbook();
+  const ws=trangXL(wb,'MA_MOI','doc');
+  let d=tieuDeXL(ws,1,4,`DANH SÁCH MÃ MỜI — ${S.tenTruong.toUpperCase()}`,
+    'Mỗi mã dùng một lần, hạn 30 ngày. Thầy cô đăng nhập bằng Google rồi gõ mã của mình.');
+  d=dauCotXL(ws,d,[{ten:'Họ và tên',rong:26},{ten:'Mã giáo viên',rong:14},
+    {ten:'Chủ nhiệm',rong:16},{ten:'Mã mời',rong:14}]);
+  thanBangXL(ws,d,ds.map(x=>[x.hoTen,x.maGV||'',tenCN(x)||'',x.ma]),
+    ['left','center','center','center']);
+  await ghiTepXL(wb,`ma-moi-${tenTepXuat('xlsx')}`);
 }
 
 /* Đăng ký trường mới — dành cho trường thứ hai trở đi */

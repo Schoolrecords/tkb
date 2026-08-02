@@ -118,7 +118,92 @@ for (const t of dsTep) {
   }
 }
 
-/* ---------- 3. Cú pháp, nếu máy có bộ phân tích ---------- */
+/* ==================================================================
+   3. APP GHI VÀO BẢNG NÀO — BẢNG ẤY CÓ CHO GHI KHÔNG
+   ------------------------------------------------------------------
+   Lớp lỗi đắt nhất của cả dự án, đã cắn ĐÚNG HAI LẦN:
+
+     · nút "Công bố cho giáo viên" bấm mãi không ăn — bảng tkb_phien_ban
+       thiếu quy tắc UPDATE (vá bằng db/cong-bo.sql)
+     · lưu tên trường không vào — bảng truong thiếu quy tắc UPDATE
+       (tìm ra 2/8/2026, vá bằng db/sua-thong-tin-truong.sql)
+
+   Vì sao khó thấy: RLS bật mà thiếu quy tắc thì PostgREST KHÔNG báo lỗi.
+   Nó sửa 0 dòng rồi trả về thành công. Phần mềm khoe "đã lưu", người dùng
+   tin, và chỉ phát hiện ra khi tải lại trang — có khi vài ngày sau.
+
+   Không có cách nào bắt bằng cách đọc SQL không thôi, cũng không bắt được
+   bằng cách đọc mã ứng dụng không thôi. Phải ĐỐI CHIẾU hai bên.
+   ================================================================== */
+const QUYEN = {};                    /* bảng → tập lệnh được phép (insert/update/…) */
+const themQuyen = (b, c) => (QUYEN[b] = QUYEN[b] || new Set()).add(c.toLowerCase());
+
+for (const t of dsTep) {
+  const ma = boChuThich(doc(t));
+  /* a) Quy tắc khai thẳng tên bảng */
+  for (const m of ma.matchAll(/create\s+policy\s+\w+\s+on\s+(?:public\.)?(\w+)\s+for\s+(\w+)/gi))
+    themQuyen(m[1].toLowerCase(), m[2]);
+  /* b) Quy tắc dựng trong vòng lặp `foreach b in array[…]` bằng format() —
+     tên bảng nằm ở mảng, tên lệnh nằm trong chuỗi format. */
+  for (const kh of ma.matchAll(/array\s*\[([^\]]*)\]([\s\S]*?)end\s*\$\$/gi)) {
+    const bang = [...kh[1].matchAll(/'([^']+)'/g)].map(x => x[1].toLowerCase());
+    for (const p of kh[2].matchAll(/create\s+policy[^']*?\s+for\s+(\w+)/gi))
+      bang.forEach(b => themQuyen(b, p[1]));
+  }
+}
+
+/* Ứng dụng ghi vào đâu. Đọc thẳng src/index.html — nguồn sự thật duy nhất. */
+const APP = readFileSync(join(DB, '..', 'src', 'index.html'), 'utf8');
+const CAN = {};                      /* bảng → tập lệnh ứng dụng thật sự dùng */
+const themCan = (b, c, vi) => {
+  const o = CAN[b] = CAN[b] || {};
+  (o[c] = o[c] || new Set()).add(vi);
+};
+for (const m of APP.matchAll(/\/rest\/v1\/(\w+)/g)) {
+  const b = m[1].toLowerCase();
+  if (!BANG.has(b)) continue;                       /* rpc/… và đường lạ thì bỏ */
+  const truoc = APP.slice(Math.max(0, m.index - 90), m.index);
+  const sau = APP.slice(m.index, m.index + 300);
+  const dong = APP.slice(0, m.index).split('\n').length;
+  /* suaHang() tự gắn PATCH nên tên lệnh không nằm cạnh đường dẫn */
+  if (/suaHang\(\s*$|suaHang\(\s*`?$/.test(truoc)) themCan(b, 'update', dong);
+  const pt = sau.match(/method\s*:\s*'(\w+)'/);
+  if (pt) {
+    if (pt[1] === 'PATCH') themCan(b, 'update', dong);
+    if (pt[1] === 'DELETE') themCan(b, 'delete', dong);
+    if (pt[1] === 'POST') {
+      themCan(b, 'insert', dong);
+      /* Upsert cần CẢ hai: thêm dòng mới và sửa dòng đã có */
+      if (/merge-duplicates/.test(sau)) themCan(b, 'update', dong);
+    }
+  }
+}
+/* Hàm gộp dùng chung: `gop(bang, hàng, khoá)` luôn là upsert */
+for (const m of APP.matchAll(/\bgop\(\s*'(\w+)'/g))
+  if (BANG.has(m[1].toLowerCase())) {
+    const dong = APP.slice(0, m.index).split('\n').length;
+    themCan(m[1].toLowerCase(), 'insert', dong); themCan(m[1].toLowerCase(), 'update', dong);
+  }
+
+console.log('Đối chiếu quyền ghi: src/index.html ↔ quy tắc RLS trong db/\n');
+let thieu = 0;
+for (const [b, lenh] of Object.entries(CAN).sort()) {
+  const cho = QUYEN[b] || new Set();
+  for (const [c, dong] of Object.entries(lenh)) {
+    if (cho.has(c) || cho.has('all')) continue;
+    thieu++; loi++;
+    console.log(`  ❌ bảng ${b}: ứng dụng có lệnh ${c.toUpperCase()} (dòng `
+      + `${[...dong].sort((x, y) => x - y).join(', ')} của src/index.html) `
+      + `nhưng không quy tắc RLS nào cho phép`);
+    console.log(`     → PostgREST sẽ sửa 0 dòng và vẫn báo thành công. `
+      + `Thêm quy tắc "for ${c}" cho bảng ${b} trong db/`);
+  }
+}
+if (!thieu) console.log(`  ✅ ${Object.keys(CAN).length} bảng ứng dụng có ghi vào `
+  + 'đều có quy tắc RLS tương ứng');
+console.log('');
+
+/* ---------- 4. Cú pháp, nếu máy có bộ phân tích ---------- */
 let cuPhap = 'bỏ qua (chưa cài libpg-query — cài bằng: npm i --no-save libpg-query)';
 try {
   const { parse } = await import('libpg-query');

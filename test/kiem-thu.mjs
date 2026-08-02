@@ -46,7 +46,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   khongDau, tenTepXuat, taoICS, gapDongICS,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
-  duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan,
+  duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan, datTaiKhoanGV,
   tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
   chuanMon, laMonNang, laMonNhe, monCanPhong,
   coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
@@ -299,7 +299,15 @@ async function mangGia(url, opt = {}) {
     return dap(GHI.diemTruong.slice(-than.length), 201);
   }
   if (opt.method === 'POST' && co('/khung_gio')) { GHI.khungGio = than; return dap(null, 201); }
-  if (opt.method === 'POST' && co('/giao_vien')) { GHI.giaoVien = than; return dap(null, 201); }
+  if (opt.method === 'POST' && co('/giao_vien')) {
+    GHI.giaoVien = than;
+    /* Nhớ cả KHOÁ upsert: ghi theo `id` hay theo `truong_id,ma_gv` là hai
+       chuyện khác hẳn nhau — ghi nhầm khoá thì máy chủ THÊM lứa giáo viên
+       mới thay vì sửa lứa cũ. Đúng lỗi đã nhân 35 hồ sơ thành 105. */
+    GHI.gvTheoKhoa = (GHI.gvTheoKhoa || []).concat(
+      than.map(h => ({ khoa: (url.match(/on_conflict=([^&]*)/) || [])[1] || '', hang: h })));
+    return dap(null, 201);
+  }
   if (opt.method === 'POST' && co('/lop?')) {
     GHI.lop = (GHI.lop || []).concat(than);
     GHI.lopTheoKhoa = (GHI.lopTheoKhoa || []).concat(
@@ -347,8 +355,26 @@ async function mangGia(url, opt = {}) {
     : []);
   if (co('/nguoi_dung?')) return dap([{ id: 'u1', ho_ten: 'Trần Thanh Chung', email: 'c@t.vn',
     vai_tro: 'pho_hieu_truong', truong_id: 't1', diem_truong_id: null, truong: { ten: HANG.truong.ten } }]);
+  /* Nối / gỡ tài khoản khỏi hồ sơ giáo viên. Trả về đúng những dòng đã đổi,
+     y như PostgREST kèm Prefer: return=representation. */
+  if (co('/giao_vien?') && opt.method === 'PATCH') {
+    GHI.noiHoSo = (GHI.noiHoSo || []).concat({ url, than });
+    /* Bước gỡ (lọc theo nguoi_dung_id) không khớp dòng nào là chuyện thường */
+    return dap(co('nguoi_dung_id=eq.') ? [] : [{ id: 'gv-vua-doi', ...than }]);
+  }
   if (co('/giao_vien?nguoi_dung_id=')) return dap([{ id: 'g2', ho_ten: 'Đặng Thị Dung' }]);
-  if (co('/truong?id=')) return dap([HANG.truong]);
+  if (co('/truong?id=')) {
+    /* Sửa thông tin trường. Bảng `truong` từng KHÔNG có quy tắc UPDATE nào,
+       nên lệnh sửa đổi 0 dòng mà vẫn báo thành công — tên trường mới không
+       bao giờ lưu được. GHI.chanSuaTruong dựng lại đúng tình huống ấy. */
+    if (opt.method === 'PATCH') {
+      GHI.suaTruong = than;
+      if (GHI.chanSuaTruong) return dap([]);
+      Object.assign(HANG.truong, than);
+      return dap([HANG.truong]);
+    }
+    return dap([HANG.truong]);
+  }
   if (co('/diem_truong?')) return dap(HANG.diem_truong);
   if (co('/khung_gio?')) return dap(HANG.khung_gio);
   if (co('/giao_vien?')) return dap(HANG.giao_vien);
@@ -373,13 +399,23 @@ async function mangGia(url, opt = {}) {
   if (co('/tkb_phien_ban?')) {
     /* Công bố: bật cong_bo cho một bản, tắt các bản khác */
     if (opt.method === 'PATCH') {
-      if (co('cong_bo=eq.true')) { Object.values(BAN_LUU).forEach(v => v.cong_bo = false); }
-      else {
+      /* PostgREST kèm `Prefer: return=representation` trả về CHÍNH những dòng
+         vừa đổi. Đổi 0 dòng — vì quy tắc RLS không cho ghi — cũng là 200 với
+         mảng rỗng, KHÔNG phải lỗi. Máy giả phải giống hệt chỗ này, vì đó là
+         cách duy nhất phần mềm nhận ra lệnh ghi bị chặn. */
+      let doi = [];
+      if (co('cong_bo=eq.true')) {
+        doi = Object.values(BAN_LUU).filter(v => v.cong_bo);
+        doi.forEach(v => v.cong_bo = false);
+      } else {
         const v = (url.match(/version=eq\.(\d+)/) || [])[1];
-        if (v && BAN_LUU[v]) BAN_LUU[v].cong_bo = !!than.cong_bo;
+        /* GHI.chanCongBo mô phỏng cơ sở dữ liệu THIẾU quy tắc p_tkb_sua */
+        if (v && BAN_LUU[v] && !GHI.chanCongBo) {
+          BAN_LUU[v].cong_bo = !!than.cong_bo; doi = [BAN_LUU[v]];
+        }
       }
       GHI.congBo = Object.values(BAN_LUU).filter(v => v.cong_bo).map(v => v.version);
-      return dap(null, 204);
+      return dap(doi);
     }
     if (co('cong_bo=eq.true')) return dap(Object.values(BAN_LUU).filter(v => v.cong_bo));
     if (co('version=eq.2')) return dap([BAN_LUU[2]]);
@@ -388,6 +424,19 @@ async function mangGia(url, opt = {}) {
   }
   return dap({ message: 'Đường dẫn lạ: ' + url }, 404);
 }
+
+/* Kho nhớ đăng nhập giả. Mã ứng dụng gọi thẳng `localStorage` (biến toàn cục
+   của trình duyệt) và bọc trong try/catch, nên chạy trong Node thì mọi lời gọi
+   rơi vào im lặng — vé đăng nhập không được ghi mà cũng chẳng ai hay.
+   Dựng bản giả để kiểm được đúng phần đó. */
+const KHO_MAY = new Map();
+globalThis.localStorage = {
+  getItem: k => (KHO_MAY.has(k) ? KHO_MAY.get(k) : null),
+  setItem: (k, v) => KHO_MAY.set(k, String(v)),
+  removeItem: k => KHO_MAY.delete(k)
+};
+const vePhienNho = () => { try { return JSON.parse(KHO_MAY.get('tkb_phien') || 'null'); }
+                           catch (e) { return null; } };
 
 const MC = taoUngDung(
   documentGia,
@@ -411,10 +460,31 @@ kt('Tải về đủ dữ liệu trường kèm phiên bản mới nhất',
    MC.S.lop.length === 2 && MC.S.tenTruong === HANG.truong.ten &&
    Object.keys(MC.S.tkb.l1).length === 1, taiMC.thongBao);
 
+kt('Chọn ghi nhớ thì vé làm mới nằm lại trên máy, kèm email để điền sẵn',
+   vePhienNho()?.lamMoi === 'RF1' && vePhienNho()?.email === 'c@t.vn',
+   JSON.stringify(vePhienNho()));
+
 const luuMC = await MC.luuTKB(MC.dongGoiTKB(), MC.KHO.version, 'kiểm thử');
 kt('Vé hết hạn giữa chừng thì tự xin vé mới rồi lưu tiếp',
    daLamMoiVe === true && luuMC.ok === true && luuMC.version === 4 && MC.KHO.version === 4,
    luuMC.thongBao);
+
+/* Supabase XOAY VÒNG vé làm mới: xin vé mới xong là vé cũ hỏng. Bản trước chỉ
+   đổi vé trong bộ nhớ, để nguyên vé đã tiêu dưới máy — nên hôm sau thầy cô mở
+   app lên là bị hỏi mật khẩu, đúng thứ mà cả cơ chế ghi nhớ sinh ra để tránh. */
+kt('Xin vé mới giữa chừng thì vé DƯỚI MÁY cũng phải đổi theo',
+   vePhienNho()?.lamMoi === 'RF2',
+   'vé đang nhớ: ' + (vePhienNho()?.lamMoi || '(không có)'));
+kt('Không chọn ghi nhớ thì đừng tự nhớ hộ — kể cả sau khi xoay vé',
+   await (async () => {
+     KHO_MAY.clear();
+     await MC.dangNhap('c@t.vn', 'dung', false);
+     const truoc = KHO_MAY.size;
+     soLanRPC = 0;                       /* buộc lần gọi sau lại hết hạn vé */
+     await MC.luuTKB(MC.dongGoiTKB(), MC.KHO.version, 'không nhớ');
+     return truoc === 0 && KHO_MAY.size === 0;
+   })());
+await MC.dangNhap('c@t.vn', 'dung');    /* trả lại trạng thái có ghi nhớ */
 
 const luuCu = await MC.luuTKB(MC.dongGoiTKB(), 1, 'bản cũ');
 kt('Khóa lạc quan: giữ bản cũ thì máy chủ từ chối, không ghi đè',
@@ -445,6 +515,19 @@ kt('Công bố bản khác thì bản cũ tự tắt — mỗi lúc chỉ một 
 const cb0 = await MC.congBoTKB(2, false);
 kt('Rút công bố được khi cần sửa giữa năm',
    cb0.ok === true && GHI.congBo.length === 0, cb0.thongBao);
+
+/* ⚠️ LỚP LỖI NGUY HIỂM NHẤT của cả tầng dữ liệu: PostgREST trả 204 "thành
+   công" cho lệnh PATCH sửa được 0 dòng. Quy tắc RLS chặn ghi trông y hệt ghi
+   trót lọt, nên phần mềm khoe "Đã công bố" trong khi máy chủ không đổi gì —
+   và cả trường ngồi chờ một thời khóa biểu không bao giờ tới tay ai.
+   Đã cắn hai lần (bảng tkb_phien_ban, rồi bảng truong). Phép thử này canh. */
+GHI.chanCongBo = true;
+const cbChan = await MC.congBoTKB(3, true);
+GHI.chanCongBo = false;
+kt('Máy chủ chặn ghi thì KHÔNG được báo đã công bố',
+   cbChan.ok === false && /cai-dat\.sql/.test(cbChan.thongBao), cbChan.thongBao);
+kt('Chặn ghi thì cũng không tự nhận là đang có bản công bố',
+   MC.KHO.banCongBo === 0 && GHI.congBo.length === 0);
 
 /* Nhật ký: các thao tác vừa làm ở trên phải để lại vết đọc lại được */
 const nkMC = await MC.taiNhatKy();
@@ -1053,6 +1136,96 @@ kt('Phân công xoá sạch rồi ghi lại, mọi dòng nối đúng mã',
 kt('Tổng số tiết ghi lên đúng bằng tệp Excel',
    GHI.phanCong.reduce((s, p) => s + p.so_tiet, 0) === tep.tongTiet,
    `${tep.tongTiet} tiết`);
+
+/* ---------- Thông tin trường: tên, năm học, địa bàn ----------
+   Bảng `truong` bật RLS nhưng suốt từ đầu chỉ có quy tắc SELECT. Lệnh sửa vì
+   thế đổi 0 dòng rồi trả 204 — phần mềm báo "đã lưu", người dùng tải lại trang
+   thì tên cũ quay về. Việc sắp cần tới ngay: đổi tên đơn vị khi có quyết định
+   sáp nhập. Vá bằng db/sua-thong-tin-truong.sql. */
+const ghiTruong = await MC.ghiDuLieuNguon({ ...tep,
+  tenTruong: 'Trường Tiểu học Quảng Châu', xa: 'Quảng Châu', tinh: 'Nghệ An', namHoc: '2026-2027' });
+kt('Tên trường, năm học và địa bàn ghi thật lên máy chủ',
+   ghiTruong.ok === true && !ghiTruong.loiTruong &&
+   GHI.suaTruong.ten === 'Trường Tiểu học Quảng Châu' &&
+   GHI.suaTruong.nam_hoc === '2026-2027' && GHI.suaTruong.xa === 'Quảng Châu',
+   JSON.stringify(GHI.suaTruong));
+kt('Bỏ trống năm học thì KHÔNG đẩy null vào cột NOT NULL — cả lệnh sẽ đổ',
+   await (async () => {
+     await MC.ghiDuLieuNguon({ ...tep, tenTruong: 'Trường Tiểu học mới', namHoc: '' });
+     return !('nam_hoc' in GHI.suaTruong);
+   })(), JSON.stringify(GHI.suaTruong));
+kt('Máy chủ thiếu quy tắc sửa trường thì BÁO RA, không im lặng nhận là xong',
+   await (async () => {
+     GHI.chanSuaTruong = true;
+     const r = await MC.ghiDuLieuNguon({ ...tep, tenTruong: 'Tên mới không lưu được' });
+     GHI.chanSuaTruong = false;
+     /* Lớp và giáo viên vẫn lưu được nên ok vẫn true — nhưng phải mang lời
+        cảnh báo về, và câu thông báo chung phải nhắc tới nó. */
+     return r.ok === true && /sua|cai-dat\.sql/i.test(r.loiTruong || '') &&
+            /⚠️/.test(r.thongBao);
+   })());
+
+/* ⚠️ LỖI NHÂN BẢN GIÁO VIÊN — sự cố thật 2/8/2026, trường 35 giáo viên có
+   105 hồ sơ trên máy chủ, mỗi người đúng ba bản.
+
+   Cơ chế: bản cũ ghi `ma_gv: g.id`. Lần lưu ĐẦU thì g.id là mã app tự đặt
+   (`gv_...`) nên máy chủ lưu đúng mã. Nhưng TẢI VỀ rồi thì g.id thành UUID
+   của máy chủ, nên lần lưu SAU ghi ma_gv = UUID, không khớp dòng nào →
+   thêm nguyên một lứa mới. Cứ mỗi lần Lưu sau khi tải lại là thêm 35 hồ sơ.
+
+   Đây đúng là cái bẫy đã vá cho bảng LỚP mà quên vá cho bảng giáo viên. */
+kt('Lưu lần hai sau khi tải về KHÔNG nhân đôi danh sách giáo viên',
+   await (async () => {
+     const truoc = (GHI.gvTheoKhoa || []).length;
+     const uuid = 'a1b2c3d4-1111-4222-8333-444455556666';
+     await MC.ghiDuLieuNguon({ ...tep,
+       /* Đúng hình dạng sau khi tải về: id là UUID máy chủ, maGV là mã cũ */
+       giaoVien: [{ id: uuid, maGV: 'GV01', hoTen: 'Nguyễn Thị Trinh', cn: '', dinhMuc: 23 },
+                  { id: 'gv_moi_khai', maGV: 'gv_moi_khai', hoTen: 'Người mới', cn: '', dinhMuc: 23 }],
+       phanCong: [] });
+     const moi = (GHI.gvTheoKhoa || []).slice(truoc);
+     const theoId = moi.filter(x => x.khoa === 'id');
+     const theoMa = moi.filter(x => x.khoa === 'truong_id,ma_gv');
+     return theoId.length === 1 && theoId[0].hang.id === uuid &&
+            /* mã giữ NGUYÊN, không bị thay bằng UUID */
+            theoId[0].hang.ma_gv === 'GV01' &&
+            theoMa.length === 1 && theoMa[0].hang.ma_gv === 'gv_moi_khai';
+   })(),
+   'người đã có trên máy chủ ghi theo id · người mới khai ghi theo mã');
+
+kt('Mã giáo viên không bao giờ bị ghi đè bằng UUID của máy chủ',
+   (GHI.giaoVien || []).every(h => !/^[0-9a-f-]{36}$/i.test(h.ma_gv)),
+   JSON.stringify((GHI.giaoVien || []).map(h => h.ma_gv)));
+
+/* ---------- Nối lại tài khoản vào đúng hồ sơ giáo viên ----------
+   Sự cố 2/8/2026: mã mời nối tài khoản cô Oanh vào hồ sơ "Nguyễn Thị Oanh"
+   0 tiết thay vì hồ sơ cùng tên 22 tiết — và phần mềm KHÔNG có đường nào sửa. */
+{
+  const nguonCu = MC.KHO.nguon;
+  MC.KHO.nguon = 'may-chu';        /* chốt chặn "đang chạy dữ liệu mẫu" */
+  const gvCu = MC.S.giaoVien[0], gvMoi = MC.S.giaoVien[1];
+  gvCu.nguoiDungId = 'u-co-oanh';
+  const doi = await MC.datTaiKhoanGV(gvMoi.id, 'u-co-oanh');
+  kt('Chuyển được tài khoản sang hồ sơ khác, không phải cấp lại mã mời',
+     doi.ok === true, doi.thongBao);
+  kt('Hồ sơ cũ nhả tài khoản ra — một tài khoản chỉ giữ MỘT hồ sơ',
+     !gvCu.nguoiDungId && gvMoi.nguoiDungId === 'u-co-oanh');
+  kt('Chuyển tài khoản của CHÍNH mình thì màn hình lịch cá nhân đổi theo ngay',
+     await (async () => {
+       const idCu = MC.KHO.nguoiDung.id;
+       await MC.datTaiKhoanGV(gvCu.id, idCu);
+       return MC.KHO.nguoiDung.gvId === gvCu.id && MC.S.nguoiDung.gvId === gvCu.id;
+     })());
+  kt('Đang chạy dữ liệu mẫu thì KHÔNG cho đổi — mã giáo viên không phải của trường',
+     await (async () => {
+       MC.KHO.nguon = 'tep-mau';
+       const r = await MC.datTaiKhoanGV(gvMoi.id, 'u-co-oanh');
+       MC.KHO.nguon = 'may-chu';
+       return r.ok === false && /dữ liệu mẫu/.test(r.thongBao);
+     })());
+  gvCu.nguoiDungId = null; gvMoi.nguoiDungId = null;
+  MC.KHO.nguoiDung.gvId = 'g2'; MC.KHO.nguon = nguonCu;
+}
 
 /* Buổi bận: ràng buộc cứng số 7. Có sẵn trong thuật toán và trong cơ sở dữ
    liệu từ đầu, nhưng trước đây không màn hình nào ghi vào được. */

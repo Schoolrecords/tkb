@@ -811,6 +811,117 @@ kt('sw.js đọc được, có xử lý fetch và KHÔNG BAO GIỜ cache Supabas
 kt('Trình duyệt giả không có serviceWorker mà trang vẫn chạy — đăng ký được rào đúng',
    !('serviceWorker' in w.navigator));
 
+console.log('\n17b. Lịch trống thì phải nói ĐÚNG vì sao trống');
+/* Sự cố 2/8/2026: một cô giáo nhập mã mời xong, vào được phần mềm, thấy đúng
+   tên mình, nhưng màn hình Của tôi trắng trơn kèm dòng "Nhà trường chưa xếp
+   xong" — trong khi trường đã xếp trọn 710/710 tiết. Câu ấy nói sai chuyện và
+   giấu mất lỗi thật. Ba nguyên nhân, ba cách sửa khác hẳn nhau. */
+{
+  const vaiCu = { ...S.nguoiDung }, tkbCu = S.tkb, gvCu = S.giaoVien.slice();
+  const noiDung = () => w.document.querySelector('#noiDung').textContent;
+
+  /* (a) Lưới rỗng hẳn + vai trò giáo viên → chưa CÔNG BỐ, không phải chưa xếp.
+     Giáo viên chỉ đọc được bản đã công bố, nên đây gần như luôn là nguyên nhân. */
+  S.nguoiDung = { vaiTro: 'gv', gvId: S.giaoVien[0].id, diemTruongId: null };
+  S.tkb = {};
+  w.chuyen('cuatoi');
+  kt('Lưới rỗng: nói "chưa công bố", KHÔNG đổ cho "chưa xếp xong"',
+     /chưa công bố/i.test(noiDung()) && !/chưa xếp xong/i.test(noiDung()));
+
+  /* (b) Trường đã xếp mà hồ sơ đang nối lại không có dòng phân công nào —
+     đúng tình huống mã mời nối nhầm một trong hai người trùng tên. */
+  S.tkb = tkbCu;
+  S.giaoVien.push({ id: 'gv-ma-trung', hoTen: 'Nguyễn Thị Oanh', maGV: 'GV-TRUNG',
+                    tenNgan: 'GV-TRUNG', cn: '', dinhMuc: 23 });
+  S.nguoiDung = { vaiTro: 'gv', gvId: 'gv-ma-trung', diemTruongId: null };
+  w.chuyen('cuatoi');
+  kt('Hồ sơ không có phân công: chỉ thẳng là nối nhầm, kèm MÃ để quản trị dò',
+     /nối nhầm/i.test(noiDung()) && noiDung().includes('GV-TRUNG'));
+  /* Lời nhắc phải trỏ tới một nút CÓ THẬT. Bản đầu chỉ thầy cô sang
+     "Giáo viên → Tài khoản đăng nhập", mà màn hình ấy chỉ liệt kê và xoá,
+     không nối lại được — chỉ đường tới một cái nút không tồn tại. */
+  kt('Và nói rõ chỗ sửa, không bắt thầy cô tự đoán',
+     /Chuyển tài khoản/i.test(noiDung()));
+  kt('Chỗ ấy phải là một nút CÓ THẬT trên màn hình Giáo viên', (() => {
+     S.giaoVien[0].nguoiDungId = 'u-nao-do';
+     const vai = { ...S.nguoiDung };
+     S.nguoiDung = { vaiTro: 'qt', gvId: null, diemTruongId: null };
+     w.chuyen('giaovien');
+     const co = !!w.document.querySelector('#btChuyenTK');
+     S.nguoiDung = vai; delete S.giaoVien[0].nguoiDungId;
+     return co;
+  })());
+
+  /* (c) Có phân công đàng hoàng nhưng bản đang xem không chứa tiết nào của
+     người ấy → bản công bố cũ, xếp lại rồi công bố lại. */
+  S.phanCong.push({ gvId: 'gv-ma-trung', lopId: S.lop[0].id, mon: 'Toán', soTiet: 4 });
+  w.chuyen('cuatoi');
+  kt('Có phân công mà bản đang xem không có tiết: nói bản cũ, bảo công bố lại',
+     /bản/i.test(noiDung()) && /công bố lại/i.test(noiDung()) &&
+     !/nối nhầm/i.test(noiDung()));
+
+  /* Cùng lời giải thích ấy phải có ở màn hình Theo giáo viên của người xếp —
+     đây chính là chỗ chủ dự án nhìn thấy lưới trống mà không hiểu vì sao. */
+  S.nguoiDung = vaiCu;
+  S.gvXem = 'gv-ma-trung';
+  w.chuyen('tkbgv');
+  kt('Màn hình Theo giáo viên cũng giải thích lưới trống, không để người xếp đoán',
+     /không chứa tiết nào của giáo viên này/i.test(noiDung()));
+
+  /* Phát mã hàng loạt: hai nhóm phải bị bỏ qua, cả hai đều rút từ sự cố trên */
+  S.giaoVien[0].nguoiDungId = 'u-da-co';
+  S.giaoVien.push({ id: 'gv-thua', hoTen: 'Hồ sơ thừa', maGV: 'GV-THUA',
+                    tenNgan: 'GV-THUA', cn: '', dinhMuc: 23 });
+  const canPhat = w.eval('canPhatMa([])');
+  kt('Phát mã hàng loạt bỏ qua người đã có tài khoản',
+     !canPhat.ds.some(g => g.id === S.giaoVien[0].id));
+  kt('Bỏ qua luôn hồ sơ chưa được phân công tiết nào — phát vào đó là hứa hão',
+     !canPhat.ds.some(g => g.id === 'gv-thua') && canPhat.boQua >= 1,
+     `bỏ qua ${canPhat.boQua} hồ sơ`);
+  kt('Người đã cầm mã còn hạn thì không phát chồng mã thứ hai',
+     w.eval(`canPhatMa([{gvId:'${S.giaoVien[1].id}', daDung:false, conHan:true}])`)
+       .ds.every(g => g.id !== S.giaoVien[1].id));
+  kt('Mã đã dùng rồi hoặc đã hết hạn thì không tính là còn hiệu lực',
+     w.eval(`canPhatMa([{gvId:'${S.giaoVien[1].id}', daDung:true, conHan:true}])`)
+       .ds.some(g => g.id === S.giaoVien[1].id));
+
+  /* Hộp Chuyển tài khoản: đường sửa khi mã mời nối nhầm hồ sơ trùng tên.
+     Dựng lại đúng tình huống thật — tài khoản đang nằm ở hồ sơ 0 tiết. */
+  S.giaoVien.push({ id: 'gv-nham', hoTen: 'Nguyễn Thị Oanh', maGV: 'GV-NHAM',
+                    tenNgan: 'GV-NHAM', cn: '', dinhMuc: 23, nguoiDungId: 'u-co-oanh' });
+  w.eval('hopChuyenTaiKhoan()');
+  const hopCTK = w.document.querySelector('#hopN');
+  kt('Hộp Chuyển tài khoản dựng được, có hồ sơ nguồn và hồ sơ đích',
+     !!hopCTK?.querySelector('#ctkNguon') && !!hopCTK?.querySelector('#ctkDich'));
+  kt('Ô chọn hồ sơ ghi rõ SỐ TIẾT — không bao giờ chỉ có họ tên',
+     [...hopCTK.querySelectorAll('#ctkDich option')]
+       .every(o => /tiết|CHƯA CÓ TIẾT NÀO/.test(o.textContent)));
+  kt('Hồ sơ nguồn không có tiết nào thì cảnh báo đỏ ngay, không đợi bấm',
+     /không có tiết nào/i.test(w.document.querySelector('#ctkCanh')?.textContent || ''),
+     w.document.querySelector('#ctkCanh')?.textContent?.slice(0, 40) || '(không có)');
+  kt('Hồ sơ 0 tiết được xếp lên ĐẦU ô chọn nguồn — đúng chỗ cần sửa',
+     hopCTK.querySelector('#ctkNguon option')?.value === 'gv-nham');
+  w.eval('dong()');
+  S.giaoVien.splice(S.giaoVien.findIndex(g => g.id === 'gv-nham'), 1);
+
+  /* Hộp Mã mời dựng được thật, có nút phát cả mẻ và nói rõ bỏ qua bao nhiêu */
+  await w.eval('hopMaMoi()');
+  const hopN = w.document.querySelector('#hopN');
+  kt('Hộp Mã mời có nút phát cả mẻ, ghi rõ số người còn thiếu đường vào',
+     /Tạo \d+ mã/.test(hopN?.querySelector('#btMaHangLoat')?.textContent || ''),
+     hopN?.querySelector('#btMaHangLoat')?.textContent || '(không có nút)');
+  kt('Và nói rõ đã bỏ qua hồ sơ chưa phân công — không lặng lẽ cắt bớt',
+     /Bỏ qua \d+ hồ sơ/.test(hopN?.textContent || ''));
+  w.eval('dong()');
+
+  /* Trả lại nguyên trạng cho các phép thử sau */
+  S.phanCong.pop();
+  S.giaoVien.length = 0; gvCu.forEach(g => S.giaoVien.push(g));
+  delete S.giaoVien[0].nguoiDungId;
+  S.nguoiDung = vaiCu; S.tkb = tkbCu; S.gvXem = null;
+  w.chuyen('dieuhanh');
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');

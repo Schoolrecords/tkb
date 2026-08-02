@@ -52,7 +52,22 @@ vào buổi giáo viên đã báo bận.
 
 Chưa cài `jsdom` thì lệnh tự bỏ qua, `npm test` không phụ thuộc gì cả.
 
-Sửa thuật toán hoặc tầng dữ liệu xong thì chạy lại cả hai lệnh trước khi commit.
+### Soát tệp SQL
+
+```bash
+npm run soat
+```
+
+Soát tên bảng, giá trị enum và cú pháp của mọi tệp trong `db/`, rồi **đối chiếu
+hai bên**: những bảng `src/index.html` có ghi vào, với những bảng có quy tắc RLS
+cho phép ghi.
+
+Đối chiếu ấy bắt một lớp lỗi rất khó thấy: RLS bật mà thiếu quy tắc thì
+PostgREST **không báo lỗi** — nó sửa 0 dòng rồi trả về thành công, phần mềm khoe
+"đã lưu" và chỉ vỡ ra khi tải lại trang. Dự án đã dính đúng hai lần (nút *Công
+bố cho giáo viên*, rồi lưu *tên trường*).
+
+Sửa thuật toán hoặc tầng dữ liệu xong thì chạy lại cả ba lệnh trước khi commit.
 
 ---
 
@@ -90,6 +105,11 @@ db/du-lieu-dien-lien.sql      nạp 25 lớp · 35 GV · 265 dòng lên máy ch�
 db/ma-lop.sql                 thêm cột ma_lop — cho phép ba điểm trường cùng có
                               lớp "1A". Chạy một lần trên CSDL dựng trước 1/8/2026
 db/cong-bo.sql                mở quy tắc UPDATE để bấm được nút Công bố
+db/sua-thong-tin-truong.sql   mở quy tắc UPDATE để lưu được tên trường, năm học
+                              — thiếu nó thì đổi tên đơn vị không bao giờ lưu
+db/soi-tai-khoan-gv.sql       soi vì sao một thầy cô mở app ra không thấy lịch:
+                              chưa công bố · bản cũ · chưa nối · nối nhầm · lạc trường
+db/soat-sql.mjs               soát SQL + đối chiếu quyền ghi (npm run soat)
 
 test/kiem-thu.mjs             bộ kiểm thử thuật toán và tầng dữ liệu
 test/soi-giao-dien.mjs        bấm thử giao diện trong trình duyệt giả (npm run soi)

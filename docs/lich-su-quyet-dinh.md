@@ -239,3 +239,148 @@ Những việc dựng nền, làm xong trước khi nhật ký bắt đầu ghi 
       nằm trong bộ cài gộp `db/cai-dat.sql` mà chủ dự án dán một lần. Soi
       bằng `db/soi-cai-dat.sql`: đủ **14/14 bảng** (có `mon_hoc` và `phong`),
       RLS bật hết. Từ nay màn hình Môn học và Phòng học lưu được lên máy chủ.
+---
+
+## 2/8/2026 chiều — rà soát hệ thống: bốn lỗi và một sự cố người dùng thật
+
+Rà lại toàn hệ thống theo yêu cầu của chủ dự án. Bộ kiểm thử lúc bắt đầu đã
+sạch (233 + 159 + 6 + 9 = 407 phép thử, 0 hỏng), nên bốn lỗi dưới đây đều nằm
+ở chỗ mà kiểm thử không nhìn tới: **ranh giới giữa app và máy chủ Supabase**.
+
+### Sự cố mở màn: cô giáo nhập mã mời xong, màn hình trắng
+
+Một cô giáo dùng mã mời vào được phần mềm, thấy đúng tên mình, nhưng màn hình
+*Thời khóa biểu của tôi* trắng trơn kèm dòng chữ **"Nhà trường chưa xếp
+xong"** — trong khi trường đã xếp trọn **710/710 tiết**. Trên máy quản trị,
+màn hình *Theo giáo viên* cũng trống với vài thầy cô khác.
+
+Câu thông báo ấy **nói sai chuyện**, và tệ hơn: nó **giấu mất lỗi thật**. Màn
+hình lịch cá nhân trống có **năm** nguyên nhân, cách sửa khác hẳn nhau:
+
+| | Nguyên nhân | Cách sửa |
+|---|---|---|
+| 1 | chưa công bố bản nào | bấm *Công bố cho giáo viên* |
+| 2 | bản công bố đã cũ | xếp lại rồi công bố lại |
+| 3 | tài khoản chưa nối hồ sơ giáo viên | mục *Giáo viên · Tài khoản* |
+| 4 | **nối NHẦM hồ sơ trùng tên** | thu hồi rồi cấp lại mã mời |
+| 5 | tài khoản nằm ở trường khác | `db/sua-tai-khoan-mo-coi.sql` |
+
+Nguyên nhân 4 là thứ dự án tự chuốc lấy: trường có **hai cô Dung, hai cô Linh,
+hai cô Hương, hai cô Oanh**, và bộ sinh dữ liệu thử lại **cố ý** dùng đúng kho
+tên ấy. Trên máy chủ thật còn sót hồ sơ giáo viên và lớp của bộ thử, nên ô chọn
+trong hộp Mã mời bày ra nhiều người trùng tên mà không hề nói ai có tiết, ai
+không.
+
+**Đã làm ba việc:**
+
+- `db/soi-tai-khoan-gv.sql` — soi từng tài khoản trên máy chủ: ở trường nào,
+  nối hồ sơ nào, hồ sơ ấy có bao nhiêu tiết phân công, và có bao nhiêu tiết
+  **trong bản đang công bố**. Cột `ket_luan` gọi thẳng tên nguyên nhân 1–5.
+- `lyDoTrongLich(idGV, laToi)` — màn hình tự nói đúng nguyên nhân, nêu cả
+  **mã giáo viên** đang nối để quản trị dò được ngay. Dùng ở cả *Của tôi* lẫn
+  *Theo giáo viên* (chỗ chủ dự án nhìn thấy lưới trống mà không hiểu vì sao).
+- Nút **Tạo N mã** trong hộp Mã mời: phát cả mẻ trong một cú bấm, kèm nút chép
+  và tải Excel. **Bỏ qua có chủ đích** người đã có tài khoản và hồ sơ không có
+  dòng phân công nào — phát mã vào hồ sơ rỗng là cầm chắc thêm một màn hình
+  trắng nữa.
+
+### Lỗi 1 — bảng `truong` không có quy tắc UPDATE nào
+
+Bảng `truong` bật RLS nhưng từ đầu tới giờ **chỉ có `p_truong_doc` (SELECT)**.
+Màn hình *Thông tin trường* vẫn PATCH thẳng vào bảng ấy. RLS bật mà thiếu quy
+tắc thì PostgREST **không báo lỗi** — nó sửa 0 dòng rồi trả 204, y hệt ghi
+thành công. Cộng thêm `.catch(()=>{})` nuốt nốt phần còn lại: sửa tên trường,
+bấm Lưu, thấy báo đã lưu, tải lại trang thì tên cũ quay về.
+
+Việc sắp cần tới ngay chính là đổi tên đơn vị khi có quyết định sáp nhập.
+Vá bằng `db/sua-thong-tin-truong.sql` (đã gộp vào `db/cai-dat.sql`). Kèm một
+lỗi nữa nằm sau lưng nó: lệnh cũ đẩy `nam_hoc: null` vào cột `not null`, bỏ
+trống ô năm học là cả lệnh đổ — nay bỏ hẳn cột đó khỏi lệnh khi không có giá trị.
+
+### Lỗi 2 — cùng cái bẫy ấy ở nút *Công bố cho giáo viên*
+
+`congBoTKB()` cũng coi 204 là thành công. Đây đúng là sự cố đã trả giá một lần
+(thiếu `p_tkb_sua`, vá bằng `db/cong-bo.sql`) — nhưng lần ấy chỉ vá **quy tắc**,
+không vá **cách báo lỗi**. Trường nào cài từ bộ SQL cũ vẫn thấy dòng chữ xanh
+*"Đã công bố phiên bản 7"* trong khi máy chủ không đổi gì.
+
+Vá gốc: mọi lệnh sửa đi qua **`suaHang()`**, xin máy chủ trả lại chính những
+dòng đã đổi (`Prefer: return=representation`) rồi **đếm**. 0 dòng là hỏng.
+
+**Và để không có lần thứ ba:** `npm run soat` nay đối chiếu *"app ghi vào bảng
+nào"* (đọc `src/index.html`) với *"bảng nào có quy tắc cho ghi"* (đọc `db/*.sql`,
+hiểu cả quy tắc dựng trong vòng lặp `format()`). Đã kiểm chứng bộ soát này thật
+sự đỏ khi bỏ quy tắc `p_truong_sua` đi. CI chạy nó trước cả `npm test`.
+
+### Lỗi 3 — thầy cô vẫn bị hỏi mật khẩu mỗi sáng
+
+`lamMoiPhien()` xin vé mới rồi chỉ đổi vé **trong bộ nhớ**, không ghi xuống
+máy. Supabase **xoay vòng** vé làm mới: xin vé mới xong là vé cũ hỏng. Nên hôm
+sau thầy cô mở app lên là vé dưới máy đã tiêu → đăng nhập lại. Đúng thứ mà cả
+cơ chế "ghi nhớ đăng nhập" sinh ra để tránh.
+
+Sửa một dòng: `if(docPhienNho()) nhoPhien();` — chỉ ghi khi người dùng đã chọn
+ghi nhớ, bỏ tích thì không nhớ hộ. Ba phép thử canh, kèm một kho `localStorage`
+giả trong `test/kiem-thu.mjs` (trước đó chạy trong Node là mọi lời gọi rơi vào
+im lặng, nên vùng này chưa từng được kiểm).
+
+### Lỗi 4 — mã mời sinh bằng `Math.random`
+
+Mã mời là chìa khoá vào dữ liệu cả trường, mà dãy của `Math.random` đoán được
+khi biết vài giá trị trước đó. Nay lấy `crypto.getRandomValues`, chia hết vòng
+2³² rồi mới lấy dư để 31 chữ cái có cơ hội ngang nhau. Thêm một lần bốc lại khi
+trùng mã — phát 35 mã một lượt thì đừng để một lần đen đủi làm hỏng cả mẻ.
+
+### Một chỗ tài liệu nói sai, đã sửa
+
+Chú thích đầu vùng `QUYEN` viết *"Hàng rào thật nằm ở Row Level Security"*.
+Đúng với ranh giới **giáo viên ↔ quản lý**, nhưng **sai** với ranh giới
+**PHT-một-điểm-trường**: `la_quan_ly()` gộp chung cả ba vai quản lý, nên xét
+theo RLS thì PHT phụ trách điểm trường vẫn ghi được vào lớp của điểm khác.
+
+Giữ nguyên như vậy là **có chủ đích** — thời khóa biểu lưu dạng một khối JSON
+của cả trường, mà bảng quyền lại cho PHT được lưu, nên RLS không có cách nào
+cắt theo điểm trường. Việc bó phạm vi ở giao diện là để người dùng khỏi giẫm
+chân nhau, **không phải hàng rào an ninh**. Nay chú thích nói đúng như thế.
+
+### Lỗi 5 — hồ sơ giáo viên tự nhân bản: 35 người thành 105 hồ sơ
+
+Tìm ra cuối ngày 2/8/2026, khi chủ dự án hỏi một câu rất đúng chỗ: *"anh chỉ
+mới nhập 35 giáo viên, tại sao hệ thống lại có 105?"* — kèm ảnh chụp ô chọn
+giáo viên, **mỗi cái tên đúng ba bản**.
+
+**Cơ chế.** Bước 3 của `ghiDuLieuNguon()` ghi `ma_gv: g.id`.
+
+- Lần lưu **đầu**: `g.id` là mã app tự đặt (`gv_nguyen_thi_oanh`), máy chủ lưu
+  đúng mã ấy và cấp cho dòng một UUID riêng.
+- **Tải về**: `tuMayChu()` gán `id = <UUID máy chủ>`, `maGV = <ma_gv cũ>`.
+- Lần lưu **sau**: ghi `ma_gv = <UUID>`. Upsert theo `(truong_id, ma_gv)` không
+  khớp dòng nào → máy chủ **thêm nguyên một lứa 35 hồ sơ**. Ba lần lưu sau ba
+  lần tải là **105**.
+
+**Vì sao nó độc.** Bước 5 xoá sạch `phan_cong` rồi ghi lại theo lứa mới nhất,
+nên hai lứa cũ thành hồ sơ **trùng tên, 0 tiết**. Đó chính là những hồ sơ rỗng
+mà hộp Mã mời bày ra — và là thứ đã nối nhầm tài khoản cô Oanh. Một dòng mã
+giải thích trọn cả ba triệu chứng của ngày hôm ấy.
+
+**Điều đáng tiếc nhất:** đây **đúng là cái bẫy đã vá cho bảng LỚP**, và khối
+chú thích *"⚠️ BẪY CHẾT NGƯỜI khi ĐỔI MÃ LỚP"* mô tả y hệt cơ chế này vẫn nằm
+ngay bên dưới trong cùng một hàm. Lần ấy vá bảng lớp mà quên bảng giáo viên
+nằm ngay bên trên. Vì thế 60 lớp vẫn đúng 60, còn giáo viên thì nhân ba.
+
+**Bài học:** vá một lỗi upsert-theo-khoá-tự-nhiên thì phải rà **mọi** bảng
+dùng cùng khuôn ấy trong cùng hàm, không chỉ bảng đang báo lỗi.
+
+**Đã vá** y như bảng lớp: mã giữ **nguyên** (`g.maGV || g.id`), ai đã có trên
+máy chủ (id là UUID) thì upsert theo `id`. Thêm bảng tra `idSv` (id-trong-app →
+id-trên-máy-chủ) thay cho bảng `maGV` cũ — trước đây tra thẳng bằng ma_gv được
+là vì hai thứ ấy *tình cờ* trùng nhau, đúng cái tình cờ đã sinh ra lỗi.
+
+Hai phép thử canh: lưu lần hai sau khi tải về phải ghi theo `id` chứ không
+theo mã, và mã giáo viên không bao giờ bị ghi đè bằng UUID.
+
+**Dọn hậu quả trên máy chủ:** `db/don-ho-so-trung.sql` — soi trước rồi mới xoá,
+và chỉ xoá hồ sơ **không dính gì cả** (không phân công, không chủ nhiệm lớp
+nào, không giữ tài khoản nào), luôn giữ lại một bản cho mỗi họ tên. Chạy **sau**
+`db/sua-noi-nham-ho-so.sql`, rồi xếp lại và công bố lại — bản đã công bố trỏ
+theo id hồ sơ cũ.

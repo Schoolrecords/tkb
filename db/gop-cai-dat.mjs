@@ -28,6 +28,8 @@ const NGUON = [
                          //   bảng đã có, thiếu nó là mọi lệnh ghi lớp đều đổ
   'mon-hoc-phong.sql',   // danh mục môn, bảng phòng (dùng truong_cua_toi)
   'cong-bo.sql',         // quy tắc UPDATE để bấm được nút Công bố
+  'sua-thong-tin-truong.sql', // quy tắc UPDATE để lưu được tên trường, năm học
+                         // — thiếu nó thì đổi tên đơn vị sau sáp nhập không lưu nổi
   'day-thay.sql',        // phân công dạy thay theo ngày
   'ma-moi.sql',          // vào trường bằng Google + mã mời
   'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
