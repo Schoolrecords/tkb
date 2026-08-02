@@ -5544,6 +5544,76 @@ let DANG_XEP_KY = false;
 /* Nhả một nhịp để trình duyệt kịp vẽ lại và nhận cú bấm Huỷ */
 const nghiMotNhip = () => new Promise(r=>setTimeout(r,0));
 
+/* ---------- Web Worker cho xếp kỹ ----------
+   Xếp kỹ chạy 30 giây tới 5 phút. Nhả nhịp trên luồng chính đủ để trang
+   không treo, nhưng trên điện thoại yếu giao diện vẫn giật. Worker đưa
+   toàn bộ tính toán sang luồng riêng — thanh tiến độ mượt, nút Dừng ăn ngay.
+
+   Giữ đúng quy ước MỘT TỆP: không có tệp .js riêng. Worker dựng từ Blob,
+   mã lấy bằng cách cắt vùng /*#region LOGIC* / từ chính trang — đúng vùng
+   mà test/kiem-thu.mjs vẫn cắt ra chạy trong Node, kèm document giả y hệt.
+   Trình duyệt nào không tạo được Worker thì chayXepKy tự chạy tại chỗ như cũ. */
+let WK_XEP = null;                     /* worker đang chạy, để nút Dừng gửi lệnh huỷ */
+
+function maVungLogic(){
+  for(const th of document.querySelectorAll('script')){
+    const m = th.textContent || '';
+    const a = m.indexOf('/*#region LOGIC*/'), b = m.indexOf('/*#endregion LOGIC*/');
+    if(a >= 0 && b > a) return m.slice(a, b);
+  }
+  return null;
+}
+
+function taoWorkerXep(){
+  if(typeof Worker === 'undefined' || typeof Blob === 'undefined'
+     || typeof URL === 'undefined' || !URL.createObjectURL) return null;
+  const logic = maVungLogic();
+  if(!logic) return null;
+  const hau = `
+self.onmessage = async (e) => {
+  const d = e.data;
+  if (d.loai === 'huy') { self.HUY = true; return; }
+  if (d.loai !== 'batdau') return;
+  self.HUY = false;
+  Object.assign(S, d.duLieu);
+  try {
+    const g = xepDaiTung(d.tuyChon);
+    let b = g.next();
+    while (!b.done) {
+      postMessage({loai:'tiendo', tin:b.value});
+      /* nhả nhịp để vòng sự kiện của worker nhận được lệnh huỷ */
+      await new Promise(r => setTimeout(r, 0));
+      b = g.next(self.HUY ? false : undefined);
+    }
+    postMessage({loai:'xong', ketQua:b.value});
+  } catch (err) {
+    postMessage({loai:'loi', thongBao:String((err && err.message) || err)});
+  }
+};`;
+  /* document giả đặt TRƯỚC vùng LOGIC — cùng khuôn với test/kiem-thu.mjs */
+  const dau = `
+const oGia = () => ({textContent:'', className:'', value:'', style:{},
+  classList:{add(){}, remove(){}, toggle(){}}, appendChild(){}, onclick:null, onchange:null});
+const document = {querySelector:oGia, querySelectorAll:()=>[], addEventListener(){}};
+`;
+  try{
+    const url = URL.createObjectURL(new Blob([dau, logic, hau], {type:'text/javascript'}));
+    try{
+      const w = new Worker(url);
+      w.__url = url;                   /* thu hồi khi terminate, không thu sớm kẻo worker chưa kịp nạp */
+      return w;
+    }catch(_){ URL.revokeObjectURL(url); return null; }
+  }catch(_){ return null; }
+}
+
+/* Ảnh chụp phần dữ liệu thuật toán cần — sao sâu để gửi sang worker,
+   worker sửa gì cũng không đụng vào trạng thái của trang. */
+const duLieuChoWorker = () => JSON.parse(JSON.stringify({
+  giaoVien:S.giaoVien, lop:S.lop, phanCong:S.phanCong, diemTruong:S.diemTruong,
+  monHoc:S.monHoc, phong:S.phong, lopDT:S.lopDT, khungGio:S.khungGio,
+  gvNghi:S.gvNghi, tkb:S.tkb
+}));
+
 function hopXepKy(){
   hop('Xếp kỹ — tìm nhiều phương án',
   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Máy thử đi thử lại hàng chục cách xếp
@@ -5585,7 +5655,7 @@ async function chayXepKy(giay, soPhuongAn){
    </div>
    <div class="gy" style="margin-top:11px">Bấm <b>Dừng lại</b> là giữ nguyên phương án tốt nhất
      tìm được tới lúc này. Không mất gì cả.</div>`,
-  [{ten:'Dừng lại',phu:1,lam:()=>{ huy=true; }}]);
+  [{ten:'Dừng lại',phu:1,lam:()=>{ huy=true; if(WK_XEP) WK_XEP.postMessage({loai:'huy'}); }}]);
 
   const veTien=t=>{
     const pt=Math.min(100, Math.round((performance.now()-t0)/(giay*10)));
@@ -5598,22 +5668,56 @@ async function chayXepKy(giay, soPhuongAn){
       `Còn khoảng <b>${Math.ceil(t.giayConLai)} giây</b>`;
   };
 
-  const g = xepDaiTung({giay, soPhuongAn});
-  let b = g.next();
-  while(!b.done){
-    veTien(b.value);
-    await nghiMotNhip();
-    b = g.next(huy ? false : undefined);
+  /* Kết thúc chung cho cả hai đường chạy. Đường worker: lưới của trang chưa
+     đổi trong lúc chạy, nạp phương án tốt nhất vào. Đường tại chỗ: xepDaiTung
+     đã tự nạp rồi, nạp lại cùng nội dung — vô hại. */
+  const ketThuc=kq=>{
+    dong();
+    DANG_XEP_KY = false;
+    PA_TIM = kq;
+    KQ_XEP = null;
+    const p0 = PA_TIM.phuongAn[0];
+    if(p0) napNhom(p0.anh);
+    bao(p0
+      ? `Đã thử ${PA_TIM.lanThu} cách trong ${PA_TIM.giay} giây, giữ lại ${PA_TIM.phuongAn.length} phương án.`
+      : 'Chưa tìm được phương án nào.', !p0);
+    ve();
+  };
+
+  /* Đường chính: Web Worker — tính toán ở luồng riêng, giao diện không giật.
+     Worker hỏng giữa chừng thì rơi về chạy tại chỗ, người dùng không phải làm gì. */
+  const w = taoWorkerXep();
+  if(w){
+    WK_XEP = w;
+    let daXong = false;
+    const thuDon = () => {
+      daXong = true; WK_XEP = null;
+      try{ w.terminate(); }catch(_){}
+      if(w.__url) URL.revokeObjectURL(w.__url);
+    };
+    w.onmessage = ev => {
+      const d = ev.data || {};
+      if(d.loai === 'tiendo') veTien(d.tin);
+      else if(d.loai === 'xong'){ thuDon(); ketThuc(d.ketQua); }
+      else if(d.loai === 'loi'){ thuDon(); chayTaiCho(); }
+    };
+    w.onerror = () => { if(!daXong){ thuDon(); chayTaiCho(); } };
+    w.postMessage({loai:'batdau', duLieu:duLieuChoWorker(), tuyChon:{giay, soPhuongAn}});
+    return;
   }
-  dong();
-  DANG_XEP_KY = false;
-  PA_TIM = b.value;
-  KQ_XEP = null;
-  const p0 = PA_TIM.phuongAn[0];
-  bao(p0
-    ? `Đã thử ${PA_TIM.lanThu} cách trong ${PA_TIM.giay} giây, giữ lại ${PA_TIM.phuongAn.length} phương án.`
-    : 'Chưa tìm được phương án nào.', !p0);
-  ve();
+  await chayTaiCho();
+
+  /* Đường lui: chạy ngay trên luồng chính, nhả nhịp giữa các lần thử như cũ */
+  async function chayTaiCho(){
+    const g = xepDaiTung({giay, soPhuongAn});
+    let b = g.next();
+    while(!b.done){
+      veTien(b.value);
+      await nghiMotNhip();
+      b = g.next(huy ? false : undefined);
+    }
+    ketThuc(b.value);
+  }
 }
 
 /* Bảng so các phương án, hiện ngay trên màn hình Xếp sau khi chạy xong */

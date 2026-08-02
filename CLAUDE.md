@@ -654,7 +654,17 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [x] Xuất TKB ra Excel/PDF theo lớp, theo giáo viên, theo điểm trường
 - [x] Khung giờ theo khối — `khung_gio.so_tiet_khoi`, khối nhỏ tan sớm hơn
 - [x] Tối ưu ràng buộc mềm bằng hoán đổi cục bộ sau bước xếp tham lam
-- [ ] Đưa thuật toán vào Web Worker khi số lớp > 60
+- [x] Xếp kỹ chạy trong **Web Worker** *(2/8/2026)*. Giữ quy ước một tệp:
+      Worker dựng từ Blob, mã lấy bằng `maVungLogic()` cắt vùng
+      `/*#region LOGIC*/` từ chính trang + document giả — đúng khuôn
+      `test/kiem-thu.mjs`. Không tạo được Worker (jsdom, trình duyệt cổ)
+      thì `chayXepKy()` tự chạy tại chỗ như cũ. Nút *Xếp nhanh* (<1 giây)
+      vẫn ở luồng chính, không đáng tách.
+      Kiểm bằng `node test/soi-worker.mjs` (Chrome thật — jsdom không có
+      Worker nên `npm run soi` chỉ kiểm được đường lui).
+      ⚠️ Bẫy khi viết phép thử: `PA_TIM`, `WK_XEP`, `DANG_XEP_KY` là `let`
+      mức trang, KHÔNG phải thuộc tính `window` — trong `p.evaluate()`
+      phải đọc bằng tên trần, đọc `window.PA_TIM` là ra biến khác.
 - [x] Màn hình tự đăng ký trường mới — `db/dang-ky-truong.sql`
 - [x] Mời thành viên qua giao diện — `db/edge-function-tai-khoan.ts`
 - [x] Hướng dẫn sử dụng theo vai trò trong app

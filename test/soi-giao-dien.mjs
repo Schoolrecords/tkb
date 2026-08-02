@@ -410,6 +410,17 @@ kt('Bấm "Dùng bản này" thì lưới đổi sang đúng phương án đó',
   w.document.querySelector('[data-dungpa="1"]').dispatchEvent(new w.Event('click', { bubbles: true }));
   return w.eval('diemToanCuc()') === pa[1].diem;
 })());
+kt('Cắt được vùng LOGIC từ chính trang để nạp vào Worker', (() => {
+  const ma = w.eval('maVungLogic()');
+  return typeof ma === 'string' && ma.includes('function* xepDaiTung')
+    && ma.includes('const NGUON') && !ma.includes('chayXepKy');
+})());
+kt('Vùng LOGIC cắt ra tự chạy được với document giả — đúng thứ Worker nạp',
+   w.eval(`new Function('document', maVungLogic() + '; return typeof xepDaiTung + "-" + typeof xepTuDong + "-" + typeof napNhom')(
+     {querySelector:()=>({textContent:'',className:'',style:{}}), querySelectorAll:()=>[], addEventListener(){}})`)
+   === 'function-function-function');
+kt('Trình duyệt không có Worker thì taoWorkerXep trả null, xếp kỹ vẫn chạy tại chỗ',
+   w.eval('typeof Worker') === 'undefined' && w.eval('taoWorkerXep()') === null);
 w.chuyen('xuatin');
 kt('Mỗi thẻ in đều có nút Tải Word đi kèm',
    !!w.document.querySelector('#btWordRong') && !!w.document.querySelector('#btWordLop') &&

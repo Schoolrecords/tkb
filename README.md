@@ -88,6 +88,8 @@ db/cong-bo.sql                mở quy tắc UPDATE để bấm được nút C�
 
 test/kiem-thu.mjs             bộ kiểm thử thuật toán và tầng dữ liệu
 test/soi-giao-dien.mjs        bấm thử giao diện trong trình duyệt giả (npm run soi)
+test/soi-worker.mjs           kiểm Web Worker xếp kỹ trong Chrome thật, chạy tay
+                              (jsdom không có Worker nên npm run soi không kiểm được)
 
 docs/thuat-toan.md            cách thuật toán xếp hoạt động
 docs/quy-tac-kiem-tra.md      10 quy tắc kiểm tra khả thi
