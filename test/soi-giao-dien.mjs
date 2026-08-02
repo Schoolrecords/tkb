@@ -734,13 +734,25 @@ w.chuyen('dieuhanh');
    Đó là thứ duy nhất có hạn giờ trong ngày — cô A ốm sáng nay, tám giờ vào
    tiết. Tiến độ xếp lịch thì tuần sau xem cũng được. Nhưng thời khóa biểu
    vẫn phải đứng TRƯỚC ba thẻ bước, đúng nguyên tắc "sản phẩm lên trước". */
-/* Sắp lại 3/8/2026 theo nhận xét "giao diện rời rạc": băng rôn mang tên
-   trường lên ĐẦU (nó neo cả trang), rồi tới thời khóa biểu — sản phẩm —
-   rồi mới tới việc cần xử lý. */
-kt('Băng rôn tên trường là khối ĐẦU TIÊN, không còn nằm dưới đáy', (() => {
+/* Sắp lại lần cuối 3/8/2026: BỎ HẲN băng rôn navy. Tên trường đã có ở
+   thanh trên cùng, số lớp và phiên bản đã có ở dải chỉ số và khối Việc cần
+   xử lý — băng rôn chỉ lặp lại thứ đã nói mà ăn mất 96px ngay trên lưới.
+   Mục tiêu chủ dự án: "tạo cho TKB không gian rộng hơn". */
+kt('Bỏ hẳn băng rôn navy — không còn khối nào lặp lại tên trường trên lưới',
+   !w.document.querySelector('#noiDung .bang-ron'));
+kt('Không có việc gấp thì THỜI KHÓA BIỂU là khối đầu tiên của trang', (() => {
   const nd = w.document.querySelector('#noiDung');
-  return nd.firstElementChild.classList.contains('bang-ron')
-    && /Thời khóa biểu/.test(nd.firstElementChild.textContent);
+  return nd.firstElementChild.classList.contains('the-luoi')
+    && !!nd.firstElementChild.querySelector('table');
+})());
+kt('Thẻ lưới KHÔNG còn dòng tiêu đề — nhường chiều cao cho bảng', (() => {
+  const the = w.document.querySelector('#noiDung .the-luoi');
+  return !the.querySelector('.the-d');
+})());
+kt('Nút "Xuất và in" nằm NGANG HÀNG với bốn thẻ chuyển', (() => {
+  const dai = w.document.querySelector('#noiDung .dai-xem');
+  const nut = dai && dai.querySelector('[data-di="xuatin"]');
+  return !!nut && dai.querySelectorAll('[data-dhxem]').length === 4;
 })());
 kt('Thời khóa biểu đứng TRƯỚC khối việc cần xử lý', ...((() => {
   const html = w.document.querySelector('#noiDung').innerHTML;
@@ -748,11 +760,9 @@ kt('Thời khóa biểu đứng TRƯỚC khối việc cần xử lý', ...((() 
   const iViec = html.indexOf('class="viec');
   return [iLuoi > 0 && iViec > 0 && iLuoi < iViec, `lưới ${iLuoi} · việc ${iViec}`];
 })()));
-kt('Không có ai báo nghỉ thì KHÔNG bày dải đỏ ở đầu trang', (() => {
-  return !w.document.querySelector('.br-gap')
-    && !w.document.querySelector('.bang-ron').classList.contains('gap');
-})());
-kt('Có người báo nghỉ thì băng rôn mang dải đỏ một dòng, bấm được', ...((() => {
+kt('Không có ai báo nghỉ thì KHÔNG bày dải đỏ — không tốn một pixel nào',
+   !w.document.querySelector('.br-gap'));
+kt('Có người báo nghỉ thì hiện dải đỏ một dòng ở ĐẦU trang, bấm được', ...((() => {
   /* Đây là cái giá của việc đẩy khối việc cần xử lý xuống dưới lưới —
      việc gấp vẫn phải đập vào mắt ngay đầu trang. */
   w.eval(`(() => {
@@ -765,7 +775,7 @@ kt('Có người báo nghỉ thì băng rôn mang dải đỏ một dòng, bấm
   const ok = !!dai && dai.dataset.di === 'daythay'
     && /giáo viên báo nghỉ chưa xử lý/.test(dai.textContent)
     && /tiết cần bố trí/.test(dai.textContent)
-    && w.document.querySelector('.bang-ron').classList.contains('gap');
+    && w.document.querySelector('#noiDung').firstElementChild === dai;
   w.eval('S.baoNghi = []; ve()');
   return [ok, dai ? dai.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : 'không có dải'];
 })()));
@@ -775,9 +785,12 @@ kt('Không ai báo nghỉ thì khối ấy nói thẳng ra, không để trống
     && !v.classList.contains('gap');
 })());
 kt('Xếp xong thì Bảng điều hành vẫn bày chính thời khóa biểu', (() => {
+  /* Canh CÁI LƯỚI chứ không canh dòng chữ "Thời khóa biểu": dòng tiêu đề
+     thẻ đã xoá 3/8/2026 để nhường chiều cao cho bảng. */
   const the = [...w.document.querySelectorAll('#noiDung .the')]
     .find(x => x.querySelector('.tt'));
-  return !!the && /Thời khóa biểu/.test(the.textContent);
+  return !!the && the.querySelectorAll('[data-dhxem]').length === 4
+    && the.querySelectorAll('.tt th').length > 10;
 })());
 kt('Thời khóa biểu vẫn đứng TRƯỚC ba thẻ bước — sản phẩm lên trước', (() => {
   const html = w.document.querySelector('#noiDung').innerHTML;
@@ -820,13 +833,28 @@ kt('Ô tìm kiếm chung nay nằm ở mục Giáo viên', (() => {
   w.chuyen('dieuhanh');
   return co;
 })());
-kt('Dải bốn chỉ số nằm TRÊN lưới thời khóa biểu', ...((() => {
+kt('Dải bốn chỉ số nay nằm DƯỚI lưới thời khóa biểu', ...((() => {
   const html = w.document.querySelector('#noiDung').innerHTML;
   const iSo = html.indexOf('class="dai-so'), iLuoi = html.indexOf('class="tt');
-  return [iSo > 0 && iLuoi > 0 && iSo < iLuoi, `số ${iSo} · lưới ${iLuoi}`];
+  return [iSo > 0 && iLuoi > 0 && iLuoi < iSo, `lưới ${iLuoi} · số ${iSo}`];
 })()));
 
 console.log('\n15h2. Bốn cách xem, chuyển TẠI CHỖ trên Bảng điều hành');
+kt('Thẻ chuyển và nút điểm trường cùng một hệ navy, không còn nền trắng', (() => {
+  /* Chủ dự án: "nhìn màu trắng không rõ". Cả dải nay cùng hệ navy, chỉ khác
+     độ đậm — chưa chọn là navy nhạt nổi khối, đang chọn là navy đậm. */
+  const css = w.document.documentElement.innerHTML;
+  const xem = css.slice(css.indexOf('.xem-nut{'), css.indexOf('.xem-nut{') + 320);
+  const dt  = css.slice(css.indexOf('.dt-nut{'),  css.indexOf('.dt-nut{')  + 320);
+  return /background:var\(--nav-nhat\)/.test(xem) && /color:#fff/.test(xem)
+    && /background:var\(--nav-nhat\)/.test(dt)  && /color:#fff/.test(dt)
+    && /--nav-nhat:#/.test(css);
+})());
+kt('Nhưng thẻ ĐANG CHỌN vẫn đậm hơn hẳn — hai tín hiệu, không chỉ một', (() => {
+  const css = w.document.documentElement.innerHTML;
+  return /\.xem-nut\.on\{background:var\(--nav\)/.test(css)
+    && /\.dt-nut\.on\{background:var\(--nav\)/.test(css);
+})());
 kt('Có đủ bốn thẻ chuyển cách xem', ...((() => {
   const v = [...w.document.querySelectorAll('[data-dhxem]')].map(b => b.dataset.dhxem);
   return [v.join() === 'toantruong,tkbkhoi,tkblop,tkbgv', v.join(' · ')];
@@ -1324,13 +1352,23 @@ kt('Thông tin trường nằm trong DỮ LIỆU NHÀ TRƯỜNG, không phải H
   const dl = [...w.document.querySelectorAll('.nh[data-nh="dl"] .mi')].map(x => x.dataset.t);
   return [m.dataset.nh === 'dl' && dl[0] === 'thongtin', dl.join(' · ')];
 })()));
-kt('Nhãn nhóm đọc được, không mờ hơn tên mục nằm dưới nó', (() => {
+kt('Nhãn nhóm NỔI KHỐI, mục con giảm nhẹ — thứ bậc không bị lộn ngược', (() => {
+  /* Canh THỨ BẬC chứ không canh con số cụ thể: nhãn nhóm phải có nền và
+     chữ trắng đậm; mục con thì KHÔNG có nền riêng, để nhãn nhóm nổi hơn.
+     Trước 3/8/2026 ngược lại — mục con là thẻ có nền và viền, nhãn nhóm
+     trong suốt, nên nhìn tổng thể cấp dưới nổi hơn cấp trên. */
   const css = w.document.documentElement.innerHTML;
-  const i = css.indexOf('.nhom{display:flex');
-  const kh = css.slice(i, i + 330);
-  /* .mi để 13.5px màu #DDE3F2; nhãn nhóm phải đậm hơn hẳn chứ không nhạt hơn */
-  return /font-size:11\.5px/.test(kh) && /font-weight:800/.test(kh)
-    && /color:#B9C4E4/.test(kh) && /border-top:1px solid/.test(kh);
+  const nhom = css.slice(css.indexOf('.nhom{display:flex'), css.indexOf('.nhom{display:flex') + 400);
+  const mi = css.slice(css.indexOf('.mi{display:flex'), css.indexOf('.mi{display:flex') + 400);
+  const nhomCoNen = /background:rgba\(255,255,255,\.1/.test(nhom) && /color:#fff/.test(nhom)
+    && /font-weight:800/.test(nhom);
+  const miNheDi = /background:none/.test(mi) && /border:0/.test(mi);
+  return nhomCoNen && miNheDi;
+})());
+kt('Mục đang mở vẫn nổi rõ — ngoại lệ duy nhất của việc giảm nhẹ', (() => {
+  const css = w.document.documentElement.innerHTML;
+  return /\.mi\.on\{background:var\(--nav-3\)/.test(css)
+    && /\.mi\.on::before\{[^}]*var\(--vang\)/.test(css);
 })());
 kt('Thanh bên gom đúng năm nhóm', ...((() => {
   const n = [...w.document.querySelectorAll('.nh')].map(x => x.dataset.nh);

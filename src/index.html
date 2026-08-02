@@ -24,6 +24,9 @@
 <style>
 :root{
   --nav:#1B2559; --nav-2:#243371; --nav-3:#2E3F86; --nav-mo:#8E9BC4;
+  /* Navy nhạt cho nút bấm trên nền trắng — cùng hệ với thanh bên, đủ tương
+     phản để đọc chữ trắng, và nhạt hơn --nav để nút đang chọn còn chỗ đậm hơn */
+  --nav-nhat:#4A5A9E; --nav-nhat-2:#3E4E8E; --nav-vien:#2C3A76;
   --nen:#F4F5F8; --the:#FFFFFF; --ke:#E6E9F0; --ke-2:#D5DAE6;
   --chu:#1B2559; --chu-mo:#78829D;
   --vang:#F5C542; --cam:#C4823A; --luc:#3D8C6C; --lam:#4A6FB5; --tim:#6E52BC;
@@ -90,13 +93,21 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
    tên mục nằm dưới nó thì thứ bậc bị lộn ngược.
    Nay 11.5px, chữ sáng hơn hẳn, và có vạch ngăn phía trên để năm khối tách
    bạch nhìn thấy ngay cả khi mọi nhóm cùng đóng. */
-.nhom{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
-  font-size:11.5px;font-weight:800;letter-spacing:.1em;color:#B9C4E4;
-  padding:11px 9px 9px;margin:8px 0 4px;background:none;border:0;border-radius:8px;
-  border-top:1px solid rgba(255,255,255,.09);
-  transition:color .16s,background .16s}
-.nh:first-child .nhom{margin-top:0;border-top:0}
-.nhom:hover{color:#fff;background:rgba(255,255,255,.08)}
+/* Nhãn nhóm là MỐC CHÍNH — phải nổi khối hơn mục con (sửa lần hai 3/8/2026).
+   Lần trước mới làm chữ đậm và sáng hơn, nhưng mục con vẫn là những tấm thẻ
+   có nền và viền, còn nhãn nhóm thì trong suốt — nên nhìn tổng thể vẫn thấy
+   mục con nổi hơn cấp trên nó. Chủ dự án nhận xét "có vẻ không rõ ràng".
+
+   Nay đảo hẳn thứ bậc: nhãn nhóm thành TẤM KHỐI có nền và vạch vàng bên
+   trái; mục con bỏ nền, bỏ viền, chỉ còn chữ — nhẹ đi để nhường vai. */
+.nhom{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
+  font-size:11.5px;font-weight:800;letter-spacing:.09em;color:#fff;
+  padding:11px 12px;margin:14px 0 6px;border:0;border-radius:10px;
+  background:rgba(255,255,255,.10);border-left:3px solid var(--vang);
+  transition:background .16s}
+.nh:first-child .nhom{margin-top:0}
+.nhom:hover{background:rgba(255,255,255,.17)}
+.nh.mo .nhom{background:rgba(255,255,255,.14)}
 .nhom .chev{width:15px;height:15px;flex:0 0 15px;stroke-width:2.4;margin-left:auto;
   transition:transform .2s;opacity:.75}
 .nh.mo .nhom .chev{transform:rotate(180deg)}
@@ -109,18 +120,21 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
 .nh:not(.mo) .nhom-ds{display:none}
 /* Mỗi mục là một tấm thẻ riêng — nổi khối, dễ bấm trên điện thoại,
    và mắt bắt được ranh giới giữa các mục mà không cần đường kẻ. */
-.mi{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;position:relative;
-  padding:12px 13px;border-radius:12px;font-size:13.5px;font-weight:500;color:#DDE3F2;margin-bottom:5px;
-  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);
-  transition:background .16s,border-color .16s,color .16s,transform .08s}
-.mi:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.16);color:#fff}
+/* Mục con GIẢM NHẸ để nhường vai cho nhãn nhóm: bỏ nền, bỏ viền, chỉ còn
+   chữ và biểu tượng. Thụt vào một chút cho thấy rõ nó nằm trong nhóm. */
+.mi{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;position:relative;
+  padding:10px 13px 10px 16px;border-radius:10px;font-size:13.5px;font-weight:500;
+  color:#C3CDE8;margin-bottom:2px;background:none;border:0;
+  transition:background .16s,color .16s,transform .08s}
+.mi:hover{background:rgba(255,255,255,.09);color:#fff}
 /* Bấm là nẩy LÊN một chút — cảm giác nút thật, lấy đúng từ bộ nhận diện AVATAR.
    Nhấn xuống là phản xạ quen của web; nẩy lên khiến nút như bật khỏi mặt phẳng,
    và trên cảm ứng thì ngón tay không che mất phản hồi. */
 .mi:active{transform:translateY(-2px)}
 .b:active{transform:translateY(-2px)}
 .nut-duoi:active,.x-hang:active,.bb-ds button:active{transform:translateY(-2px)}
-.mi.on{background:var(--nav-3);border-color:rgba(255,255,255,.22);color:#fff;font-weight:600;
+/* Mục ĐANG MỞ vẫn phải nổi rõ — nó là ngoại lệ duy nhất của việc giảm nhẹ */
+.mi.on{background:var(--nav-3);color:#fff;font-weight:600;
   box-shadow:0 4px 16px rgba(0,0,0,.26)}
 /* Vạch vàng bên trái đánh dấu mục đang mở */
 .mi.on::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);
@@ -193,11 +207,11 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 /* Băng rôn nay đứng ĐẦU trang (3/8/2026) nên bỏ khoảng cách dưới khi có
    dải đỏ đi kèm — hai thứ phải dính nhau thành một khối, không thì lại
    thành hai hộp rời, đúng thứ chủ dự án đang phàn nàn. */
-.bang-ron.gap{margin-bottom:0;border-radius:var(--r) var(--r) 0 0}
-/* Dải đỏ báo việc gấp — MỘT DÒNG, bấm được, dán liền dưới băng rôn */
+/* Dải đỏ báo việc gấp — MỘT DÒNG, bấm được, đứng độc lập ở đầu trang.
+   Băng rôn navy đã bỏ hẳn 3/8/2026 để nhường chiều cao cho lưới. */
 .br-gap{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;
-  background:var(--do);color:#fff;border:0;border-radius:0 0 var(--r) var(--r);
-  padding:12px 22px;margin-bottom:20px;font-size:13.5px;
+  background:var(--do);color:#fff;border:0;border-radius:var(--r);
+  padding:12px 20px;margin-bottom:16px;font-size:13.5px;
   box-shadow:var(--bong);transition:filter .16s}
 .br-gap:hover{filter:brightness(1.08)}
 .br-gap:active{transform:translateY(-2px)}
@@ -593,14 +607,18 @@ table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#C2C9D8;letter-spac
 
 /* Dải nút chuyển điểm trường trên các màn hình lưới rộng */
 .dai-dt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
-.dt-nut{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:11px;cursor:pointer;
-  border:1.5px solid var(--ke-2);background:var(--the);color:var(--chu);font-size:13.5px;font-weight:600;
-  font-family:inherit;transition:background .16s,border-color .16s}
-.dt-nut:hover{border-color:var(--lam)}
+/* Cùng hệ màu với .xem-nut — xem giải thích ở đó. Dải điểm trường và dải
+   thẻ chuyển nằm chồng nhau trên màn hình, hai kiểu khác nhau là rối mắt. */
+.dt-nut{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:10px;cursor:pointer;
+  border:0;background:var(--nav-nhat);color:#fff;font-size:13.5px;font-weight:600;
+  font-family:inherit;box-shadow:0 2px 0 var(--nav-vien);
+  transition:background .16s,box-shadow .12s,transform .08s}
+.dt-nut:hover{background:var(--nav-nhat-2)}
 .dt-nut:active{transform:translateY(-2px)}
-.dt-nut span{font-size:11.5px;font-weight:700;background:#EEF2FA;color:var(--chu-mo);
+.dt-nut span{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.2);color:#fff;
   padding:2px 8px;border-radius:20px}
-.dt-nut.on{background:var(--nav);border-color:var(--nav);color:#fff}
+.dt-nut.on{background:var(--nav);box-shadow:0 2px 0 rgba(0,0,0,.22)}
+.dt-nut.on span{background:rgba(255,255,255,.26)}
 .dt-nut.on span{background:rgba(255,255,255,.2);color:#fff}
 
 /* đèn báo tình trạng máy chủ + khối mã trong hộp thoại */
@@ -756,14 +774,29 @@ tr.pa-tot td{background:var(--xanh-nen)}
 /* ---------- Thẻ chuyển cách xem, ngay trong Bảng điều hành ----------
    Là THẺ chuyển tại chỗ, không phải nút điều hướng: bấm xong vẫn đứng đây,
    bấm sang thẻ khác được ngay. Trước đây chúng rời trang và không có đường
-   quay lại — đúng chỗ chủ dự án phàn nàn. */
-.dai-xem{display:flex;gap:2px;background:var(--nen);border:1px solid var(--ke);
-  border-radius:var(--r2);padding:3px;margin-bottom:12px;flex-wrap:wrap}
-.xem-nut{flex:1 1 auto;min-width:110px;min-height:38px;padding:8px 14px;cursor:pointer;
-  background:none;border:0;border-radius:8px;font-size:13.5px;font-weight:500;
-  color:var(--chu-mo);transition:background .16s,color .16s}
-.xem-nut:hover{background:var(--the);color:var(--chu)}
-.xem-nut.on{background:var(--nav);color:#fff;font-weight:700;box-shadow:var(--bong)}
+   quay lại — đúng chỗ chủ dự án phàn nàn.
+
+   MÀU (sửa 3/8/2026): thẻ chưa chọn trước đây trong suốt trên nền trắng nên
+   gần như không thấy — chủ dự án nói "nhìn màu trắng không rõ". Nay CẢ DẢI
+   cùng một hệ navy, chỉ khác độ đậm: chưa chọn là navy nhạt nổi khối, đang
+   chọn là navy đậm lún xuống. Nhìn ra ngay đâu là nút bấm được, và đâu là
+   nút đang mở — hai tín hiệu chứ không chỉ một. */
+.dai-xem{display:flex;gap:6px;background:var(--nen);border:1px solid var(--ke);
+  border-radius:var(--r2);padding:6px;margin-bottom:12px;flex-wrap:wrap}
+.xem-nut{flex:1 1 auto;min-width:110px;min-height:40px;padding:9px 14px;cursor:pointer;
+  background:var(--nav-nhat);border:0;border-radius:9px;font-size:13.5px;font-weight:600;
+  color:#fff;box-shadow:0 2px 0 var(--nav-vien);
+  transition:background .16s,box-shadow .12s,transform .08s}
+.xem-nut:hover{background:var(--nav-nhat-2)}
+.xem-nut:active{transform:translateY(-2px)}
+.xem-nut.on{background:var(--nav);font-weight:700;box-shadow:0 2px 0 rgba(0,0,0,.22)}
+/* Nút Xuất và in ngang hàng với bốn thẻ chuyển — không giãn theo, giữ
+   nguyên bề ngang để mắt tách được nó khỏi nhóm thẻ. */
+.xem-xuat{flex:0 0 auto;min-height:40px;margin-left:4px}
+/* Hàng phụ: dải chọn (điểm trường / khối / lớp / giáo viên) + nhãn số liệu */
+.dai-phu{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:34px}
+.dai-phu .meta{margin-left:auto;font-size:12px;color:var(--chu-mo);white-space:nowrap}
+.dai-phu .dai-dt{margin:0}
 .dh-chon{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .dh-chon .ip{flex:1 1 200px;max-width:340px}
 
@@ -4998,10 +5031,10 @@ function mDieuHanh(){
      xanh "không có ai báo nghỉ" — chiếm chỗ đẹp nhất để nói rằng không có
      gì xảy ra. Khi CÓ việc thật thì băng rôn mang dải đỏ ở ngay đầu trang,
      nên không ai bỏ sót; xem `bangRon()`. */
-  return bangRon(vc, ds.length)
-  + kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV.size)
+  return daiViecGap(vc)
   + kheSanPham
   + kheVieccanXuLy(vc, canhBao)
+  + kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV.size)
   + (coSanPham?'':thanhBuoc(0))+`
   <div class="dh">
   <div class="the-so" hidden>
@@ -5196,16 +5229,23 @@ function kheSanPhamHTML(ds, daXep, tongCan){
     meta=g?`${esc(g.hoTen)} · ${so} tiết/tuần`:'';
   }
 
+  /* KHÔNG có dòng tiêu đề thẻ (`.the-d`). Nó chỉ lặp lại tên trường — đã có
+     ở thanh trên cùng — nên xoá hẳn để nhường chiều cao cho lưới. Nút Xuất
+     và in dời lên ngang hàng với bốn thẻ chuyển, còn `meta` thu thành một
+     nhãn nhỏ cạnh dải chọn. */
   return `<div class="the the-rong the-luoi" style="margin-bottom:18px">
-    <div class="the-d"><h2>Thời khóa biểu ${esc(S.tenTruong)}</h2>
-      <span class="meta">${meta}${KHO.version?` · phiên bản ${KHO.version}`:''}</span>
-      <button class="b b-vang b-nho" data-di="xuatin">Xuất và in</button></div>
     <div class="the-t">
-      <div class="dai-xem">${THE_XEM.map(([v,t])=>
-        `<button class="xem-nut${v===xem?' on':''}" data-dhxem="${v}">${t}</button>`).join('')}</div>
-      ${dai}
-      <div class="${lopCoLuoi().trim()}" style="margin-top:12px">${luoi}</div>
-      <div class="gy" style="margin-top:10px">${
+      <div class="dai-xem">
+        ${THE_XEM.map(([v,t])=>
+          `<button class="xem-nut${v===xem?' on':''}" data-dhxem="${v}">${t}</button>`).join('')}
+        <button class="b b-vang xem-xuat" data-di="xuatin">Xuất và in</button>
+      </div>
+      <div class="dai-phu">
+        ${dai}
+        <span class="meta">${meta}${KHO.version?` · phiên bản ${KHO.version}`:''}</span>
+      </div>
+      <div class="${lopCoLuoi().trim()}" style="margin-top:10px">${luoi}</div>
+      <div class="gy" style="margin-top:9px">${
         KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
         :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.'
         :'Cuộn trong khung để xem hết.'}</div>
@@ -5222,24 +5262,23 @@ function kheSanPhamHTML(ds, daXep, tongCan){
    ngay dưới. Đây là cái giá phải trả cho việc đẩy khối "Việc cần xử lý"
    xuống dưới lưới: việc gấp vẫn phải đập vào mắt ở đầu trang, chỉ là gọn
    một dòng thay vì cả một khối. Bấm vào là nhảy thẳng tới màn hình Dạy thay. */
-function bangRon(vc, soLop){
-  const nay=new Date();
-  const gap=vc.soNghi>0;
-  return `<div class="bang-ron${gap?' gap':''}">
-    <div>
-      <div class="br-eb">✦ NĂM HỌC ${esc(S.namHoc||'').replace('-',' – ')}</div>
-      <div class="br-t">Thời khóa biểu ${esc(S.tenTruong)}</div>
-      <div class="br-p">${S.diemTruong.length} điểm trường · ${soLop} lớp ·
-        ${esc(TEN_NGUON[KHO.nguon])}${KHO.version?` · phiên bản ${KHO.version}`:''}</div>
-    </div>
-    <div class="br-ngay"><b>${nay.getDate()}/${nay.getMonth()+1}</b><span>${
-      ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'][nay.getDay()]}</span></div>
-  </div>
-  ${gap?`<button class="br-gap" data-di="daythay">
+function daiViecGap(vc){
+  /* Chỉ còn MỘT DÒNG ĐỎ, và chỉ khi thật sự có việc.
+
+     Băng rôn navy (tên trường · quy mô · ngày) đã BỎ HẲN 3/8/2026: tên
+     trường đã có ở thanh trên cùng, số lớp và phiên bản đã có ở dải chỉ số
+     và ở khối Việc cần xử lý — nó chỉ lặp lại thứ đã nói và ăn mất 96px
+     chiều cao ngay trên lưới. Chủ dự án: "tạo cho TKB không gian rộng hơn".
+
+     Nhưng dải đỏ thì GIỮ: nó là chỗ duy nhất báo việc gấp ở đầu trang sau
+     khi khối Việc cần xử lý lùi xuống dưới lưới. Không có việc thì không
+     chiếm một pixel nào. */
+  if(!vc.soNghi) return '';
+  return `<button class="br-gap" data-di="daythay">
     <span class="br-cham"></span>
     <b>${vc.soNghi} giáo viên báo nghỉ chưa xử lý</b>
     <span>${vc.soTiet} tiết cần bố trí — xem phương án dạy thay ›</span>
-  </button>`:''}`;
+  </button>`;
 }
 
 /* ---------- Khối VIỆC CẦN XỬ LÝ ----------

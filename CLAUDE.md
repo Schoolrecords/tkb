@@ -498,12 +498,39 @@ nhau, mà **băng rôn mang tên trường** — thứ neo cả trang — lại 
 đáy, sau cả lưới. Thứ tự nay:
 
 ```
-1. băng rôn navy    tên trường · quy mô · nguồn · phiên bản · ngày hôm nay
-2. dải bốn chỉ số   lớp · % đã xếp · giáo viên · điểm trường
-3. THỜI KHÓA BIỂU   bốn thẻ chuyển cách xem + lưới
-4. việc cần xử lý
+1. dải đỏ việc gấp  CHỈ hiện khi có giáo viên báo nghỉ chưa xử lý
+2. THỜI KHÓA BIỂU   bốn thẻ chuyển + nút Xuất và in cùng một hàng, rồi lưới
+3. việc cần xử lý
+4. dải bốn chỉ số   lớp · % đã xếp · giáo viên · điểm trường
 5. tiến độ · cảnh báo · điểm trường
 ```
+
+**Băng rôn navy đã BỎ HẲN, và thẻ lưới KHÔNG có dòng tiêu đề** *(3/8/2026)*.
+Cả hai chỉ lặp lại thứ đã nói ở chỗ khác — tên trường có sẵn ở thanh trên
+cùng, số lớp và phiên bản có ở dải chỉ số và khối Việc cần xử lý — mà ăn mất
+gần 200px chiều cao **ngay trên lưới**. Mục tiêu chủ dự án nêu thẳng: *"tạo
+cho TKB không gian rộng hơn"*.
+
+Nút **Xuất và in** dời lên **ngang hàng với bốn thẻ chuyển** (`.xem-xuat`,
+`flex:0 0 auto` để không giãn theo). Nhãn số liệu thu thành `.dai-phu .meta`
+nằm cuối hàng dải chọn.
+
+⚠️ **Dải đỏ việc gấp thì GIỮ.** Nó là chỗ duy nhất báo việc gấp ở đầu trang
+sau khi khối *Việc cần xử lý* lùi xuống dưới lưới. Không có việc thì
+`daiViecGap()` trả rỗng — không tốn một pixel nào. Đừng gỡ nó khi dọn giao
+diện: gỡ là hiệu trưởng mở app lên không còn chỗ nào báo cô A đang nghỉ.
+
+**Màu nút trên nền trắng: cùng một hệ navy, khác nhau độ đậm** *(3/8/2026)*.
+Thẻ chuyển và nút điểm trường trước đây nền trắng viền mảnh — chủ dự án:
+*"nhìn màu trắng không rõ"*. Nay chưa chọn là `--nav-nhat` nổi khối, đang
+chọn là `--nav` đậm hơn. Hai tín hiệu (màu đậm nhạt + đổ bóng), không chỉ một.
+
+**Thanh bên: nhãn nhóm nổi khối, mục con giảm nhẹ** *(sửa lần hai 3/8/2026)*.
+Lần đầu mới làm chữ nhãn nhóm đậm và sáng hơn, nhưng **mục con vẫn là những
+tấm thẻ có nền và viền** còn nhãn nhóm thì trong suốt — nhìn tổng thể vẫn
+thấy cấp dưới nổi hơn cấp trên. Nay đảo hẳn: nhãn nhóm có nền + vạch vàng
+bên trái; mục con bỏ nền, bỏ viền, chỉ còn chữ. Ngoại lệ duy nhất là mục
+**đang mở** — vẫn nổi rõ.
 
 **Bốn cách xem là THẺ CHUYỂN TẠI CHỖ, không phải nút rời trang** *(3/8/2026)*.
 Trước đó chúng là `data-di`: bấm *Theo lớp* là rời Bảng điều hành, và **không
