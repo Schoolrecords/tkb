@@ -190,6 +190,21 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .br-ngay{margin-left:auto;background:rgba(255,255,255,.11);border-radius:12px;padding:9px 16px;text-align:center;flex:0 0 auto}
 .br-ngay b{display:block;font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1}
 .br-ngay span{font-size:11px;color:#A9B7DC}
+/* Băng rôn nay đứng ĐẦU trang (3/8/2026) nên bỏ khoảng cách dưới khi có
+   dải đỏ đi kèm — hai thứ phải dính nhau thành một khối, không thì lại
+   thành hai hộp rời, đúng thứ chủ dự án đang phàn nàn. */
+.bang-ron.gap{margin-bottom:0;border-radius:var(--r) var(--r) 0 0}
+/* Dải đỏ báo việc gấp — MỘT DÒNG, bấm được, dán liền dưới băng rôn */
+.br-gap{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;
+  background:var(--do);color:#fff;border:0;border-radius:0 0 var(--r) var(--r);
+  padding:12px 22px;margin-bottom:20px;font-size:13.5px;
+  box-shadow:var(--bong);transition:filter .16s}
+.br-gap:hover{filter:brightness(1.08)}
+.br-gap:active{transform:translateY(-2px)}
+.br-gap b{font-weight:700}
+.br-gap>span:last-child{margin-left:auto;opacity:.9;font-size:12.5px}
+.br-cham{width:9px;height:9px;border-radius:50%;background:#fff;flex:0 0 9px;
+  animation:nhipdo 1.9s ease-in-out infinite}
 
 .the-so{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
 .ts{border-radius:var(--r);padding:15px 18px;color:#fff;position:relative;overflow:hidden;min-height:102px;box-shadow:var(--bong)}
@@ -4955,23 +4970,31 @@ function mDieuHanh(){
     </div>
   </div>`;
 
-  return dauTrang('Bảng điều hành',
-    coSanPham?'Việc cần xử lý, thời khóa biểu đang dùng và toàn cảnh công tác xếp'
+  /* ---------- Thứ tự trên màn hình (sắp lại 3/8/2026) ----------
+     Chủ dự án nhận xét "giao diện rời rạc": trang là một chồng hộp trắng rời
+     nhau, mà băng rôn mang TÊN TRƯỜNG — thứ neo cả trang — lại nằm mãi dưới
+     đáy. Nay:
+
+       1. băng rôn navy   tên trường · quy mô · phiên bản · ngày hôm nay
+       2. tiêu đề + phạm vi + ô tìm kiếm
+       3. THỜI KHÓA BIỂU  sản phẩm, thứ người dùng mở phần mềm để xem
+       4. việc cần xử lý + thao tác nhanh
+       5. số liệu, tiến độ, cảnh báo, điểm trường
+
+     Việc cần xử lý lùi xuống sau lưới vì phần lớn thời gian nó là một hộp
+     xanh "không có ai báo nghỉ" — chiếm chỗ đẹp nhất để nói rằng không có
+     gì xảy ra. Khi CÓ việc thật thì băng rôn mang dải đỏ ở ngay đầu trang,
+     nên không ai bỏ sót; xem `bangRon()`. */
+  return bangRon(vc, ds.length)
+  + dauTrang('Bảng điều hành',
+    coSanPham?'Thời khóa biểu đang dùng, việc cần xử lý và toàn cảnh công tác xếp'
              :'Toàn cảnh công tác xếp thời khóa biểu',true)
   + oTimChung()
+  + kheSanPham
   + kheVieccanXuLy(vc, canhBao)
   + kheThaoTacNhanh(coSanPham)
-  + kheSanPham+(coSanPham?'':thanhBuoc(0))+`
+  + (coSanPham?'':thanhBuoc(0))+`
   <div class="dh">
-  <div class="bang-ron">
-    <div>
-      <div class="br-eb">✦ NĂM HỌC 2026 – 2027</div>
-      <div class="br-t">Thời khóa biểu ${esc(S.tenTruong)}</div>
-      <div class="br-p">${S.diemTruong.length} điểm trường · ${ds.length} lớp · ${esc(TEN_NGUON[KHO.nguon])}${KHO.version?` · phiên bản ${KHO.version}`:''}</div>
-    </div>
-    <div class="br-ngay"><b>${nay.getDate()}/${nay.getMonth()+1}</b><span>${['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'][nay.getDay()]}</span></div>
-  </div>
-
   <div class="the-so">
     <div class="ts cam" data-di="lop"><div class="ts-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2"/></svg></div>
       <div class="ts-so">${ds.length}</div><div class="ts-n">Lớp học</div></div>
@@ -5032,7 +5055,36 @@ function mDieuHanh(){
   </div>`;
 }
 
-/* ---------- Khối VIỆC CẦN XỬ LÝ, đứng đầu Bảng điều hành ----------
+/* ---------- Băng rôn đầu trang ----------
+   Neo cả Bảng điều hành: tên trường, quy mô, nguồn dữ liệu, phiên bản, và
+   ngày hôm nay. Trước 3/8/2026 nó nằm dưới đáy, sau cả lưới thời khóa biểu —
+   đúng chỗ không ai nhìn.
+
+   Khi có giáo viên báo nghỉ chưa xử lý thì băng rôn mang thêm MỘT DÒNG ĐỎ
+   ngay dưới. Đây là cái giá phải trả cho việc đẩy khối "Việc cần xử lý"
+   xuống dưới lưới: việc gấp vẫn phải đập vào mắt ở đầu trang, chỉ là gọn
+   một dòng thay vì cả một khối. Bấm vào là nhảy thẳng tới màn hình Dạy thay. */
+function bangRon(vc, soLop){
+  const nay=new Date();
+  const gap=vc.soNghi>0;
+  return `<div class="bang-ron${gap?' gap':''}">
+    <div>
+      <div class="br-eb">✦ NĂM HỌC ${esc(S.namHoc||'').replace('-',' – ')}</div>
+      <div class="br-t">Thời khóa biểu ${esc(S.tenTruong)}</div>
+      <div class="br-p">${S.diemTruong.length} điểm trường · ${soLop} lớp ·
+        ${esc(TEN_NGUON[KHO.nguon])}${KHO.version?` · phiên bản ${KHO.version}`:''}</div>
+    </div>
+    <div class="br-ngay"><b>${nay.getDate()}/${nay.getMonth()+1}</b><span>${
+      ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'][nay.getDay()]}</span></div>
+  </div>
+  ${gap?`<button class="br-gap" data-di="daythay">
+    <span class="br-cham"></span>
+    <b>${vc.soNghi} giáo viên báo nghỉ chưa xử lý</b>
+    <span>${vc.soTiet} tiết cần bố trí — xem phương án dạy thay ›</span>
+  </button>`:''}`;
+}
+
+/* ---------- Khối VIỆC CẦN XỬ LÝ ----------
    §4: hiệu trưởng mở phần mềm ra phải thấy ngay việc cần làm, không phải
    thấy thống kê. Con số nào bằng 0 vẫn hiện — người dùng cần biết "không
    có ai báo nghỉ" chứ không phải nhìn một khoảng trống rồi tự đoán. */

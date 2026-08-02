@@ -491,6 +491,32 @@ chiếu `gvId` nội bộ với mã trong tệp Excel, và hai thứ ấy **tìn
 suốt vì `maGV` còn trống nên rơi về `g.id`. Đặt mã đọc được là lộ ngay. Bài học:
 phép thử so hai thứ *tình cờ bằng nhau* thì không kiểm được gì cả.
 
+#### Thứ tự Bảng điều hành — sắp lại *(3/8/2026)*
+
+Chủ dự án nhận xét *"giao diện rời rạc"*: trang là một chồng hộp trắng rời
+nhau, mà **băng rôn mang tên trường** — thứ neo cả trang — lại nằm mãi dưới
+đáy, sau cả lưới. Thứ tự nay:
+
+```
+1. băng rôn navy    tên trường · quy mô · nguồn · phiên bản · ngày hôm nay
+2. tiêu đề + phạm vi + ô tìm kiếm
+3. THỜI KHÓA BIỂU   sản phẩm — thứ người dùng mở phần mềm để xem
+4. việc cần xử lý + thao tác nhanh
+5. số liệu · tiến độ · cảnh báo · điểm trường
+```
+
+**Việc cần xử lý lùi xuống SAU lưới.** Ngày 2/8 nó được đặt lên đầu vì "thứ
+duy nhất có hạn giờ trong ngày". Đúng — nhưng phần lớn thời gian nó là một
+hộp xanh *"Hôm nay không có giáo viên báo nghỉ"*, tức là chiếm chỗ đẹp nhất
+để nói rằng **không có gì xảy ra**.
+
+**Cái giá phải trả, và cách trả:** việc gấp vẫn phải đập vào mắt ở đầu trang.
+Nên khi có giáo viên báo nghỉ chưa xử lý, `bangRon()` gắn thêm **một dòng đỏ
+dán liền dưới băng rôn** (`.br-gap`) — bấm được, nhảy thẳng tới Dạy thay. Một
+dòng thay cho cả một khối, và **không thêm hộp rời nào** vì nó dính vào băng
+rôn thành một khối (`.bang-ron.gap` bỏ bo góc dưới). Có phép thử canh cả hai
+trạng thái.
+
 #### Sản phẩm lên trước, quy trình lùi sau *(2/8/2026)*
 
 Chủ dự án nêu đúng chỗ hổng của quy trình ba bước: *"sản phẩm đầu ra quan

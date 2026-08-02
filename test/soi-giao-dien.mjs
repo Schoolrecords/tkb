@@ -734,11 +734,41 @@ w.chuyen('dieuhanh');
    Đó là thứ duy nhất có hạn giờ trong ngày — cô A ốm sáng nay, tám giờ vào
    tiết. Tiến độ xếp lịch thì tuần sau xem cũng được. Nhưng thời khóa biểu
    vẫn phải đứng TRƯỚC ba thẻ bước, đúng nguyên tắc "sản phẩm lên trước". */
-kt('Việc cần xử lý là khối đầu tiên, trước cả thời khóa biểu', (() => {
+/* Sắp lại 3/8/2026 theo nhận xét "giao diện rời rạc": băng rôn mang tên
+   trường lên ĐẦU (nó neo cả trang), rồi tới thời khóa biểu — sản phẩm —
+   rồi mới tới việc cần xử lý. */
+kt('Băng rôn tên trường là khối ĐẦU TIÊN, không còn nằm dưới đáy', (() => {
   const nd = w.document.querySelector('#noiDung');
-  const dau = nd.querySelector('.viec, .the');
-  return dau.classList.contains('viec') && /Việc cần xử lý/.test(dau.textContent);
+  return nd.firstElementChild.classList.contains('bang-ron')
+    && /Thời khóa biểu/.test(nd.firstElementChild.textContent);
 })());
+kt('Thời khóa biểu đứng TRƯỚC khối việc cần xử lý', ...((() => {
+  const html = w.document.querySelector('#noiDung').innerHTML;
+  const iLuoi = html.indexOf('class="tt');
+  const iViec = html.indexOf('class="viec');
+  return [iLuoi > 0 && iViec > 0 && iLuoi < iViec, `lưới ${iLuoi} · việc ${iViec}`];
+})()));
+kt('Không có ai báo nghỉ thì KHÔNG bày dải đỏ ở đầu trang', (() => {
+  return !w.document.querySelector('.br-gap')
+    && !w.document.querySelector('.bang-ron').classList.contains('gap');
+})());
+kt('Có người báo nghỉ thì băng rôn mang dải đỏ một dòng, bấm được', ...((() => {
+  /* Đây là cái giá của việc đẩy khối việc cần xử lý xuống dưới lưới —
+     việc gấp vẫn phải đập vào mắt ngay đầu trang. */
+  w.eval(`(() => {
+    const lop = Object.keys(S.tkb).find(l => S.tkb[l]['2-S-0']);
+    S.baoNghi = [{id:'bnX', gvId:S.tkb[lop]['2-S-0'].gvId, ngay:'2026-09-07',
+      buoi:'S', lyDo:'Nghỉ ốm', ghiChu:'', trangThai:'cho'}];
+    ve();
+  })()`);
+  const dai = w.document.querySelector('.br-gap');
+  const ok = !!dai && dai.dataset.di === 'daythay'
+    && /giáo viên báo nghỉ chưa xử lý/.test(dai.textContent)
+    && /tiết cần bố trí/.test(dai.textContent)
+    && w.document.querySelector('.bang-ron').classList.contains('gap');
+  w.eval('S.baoNghi = []; ve()');
+  return [ok, dai ? dai.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : 'không có dải'];
+})()));
 kt('Không ai báo nghỉ thì khối ấy nói thẳng ra, không để trống', (() => {
   const v = w.document.querySelector('#noiDung .viec');
   return /Hôm nay không có giáo viên báo nghỉ/.test(v.textContent)
