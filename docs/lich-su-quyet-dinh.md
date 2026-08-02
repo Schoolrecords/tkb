@@ -443,3 +443,18 @@ tên môn đã mang màu.
 Nguyên nhân là **Unicode tổ hợp**: chữ "ể" dán từ Excel có thể là `e` + dấu
 rời, nhìn y hệt nhưng không khớp chuỗi. Nay chuẩn hoá `normalize('NFC')` trước
 khi cắt, và gộp chín chỗ `.replace` rải rác thành một hàm dùng chung.
+
+**Vá tiếp `tenDiemNgan()` — và bài học về cách thay hàng loạt.** Bản đầu cắt
+tiền tố bằng biểu thức trên nguyên chữ CÓ DẤU, nên trượt đúng tên gõ ở dạng
+Unicode tổ hợp. Nay so khớp theo **TỪ đã bỏ dấu**: `Điểm trường`, `ĐIỂM TRƯỜNG`,
+`điểm  trường` (thừa dấu cách), `Ðiểm trường` (chữ Ð khác mã), và cả dạng dấu
+rời — tất cả ra cùng một kết quả. Chỉ cắt khi có ĐỦ hai từ và còn lại thứ gì
+đó, nên tên đặt là *"Điểm A"* không bị xén oan.
+
+⚠️ Bẫy thứ hai, đắt hơn: lần gộp chín chỗ `.replace` rải rác về một hàm đã
+**trượt đúng một chỗ** — `daiDiemLuoi()`, tức chính dải nút chủ dự án nhìn
+thấy. Chín chỗ kia đổi, chỗ thứ mười giữ nguyên biểu thức cũ, nên nút *Diễn
+Đồng* (dạng NFC) cắt đúng còn *Diễn Thái* (dạng tổ hợp) thì không — hai lỗi
+khác nhau trông y như một. Thay hàng loạt xong phải **đếm lại**: số chỗ thay
+được có khớp số mẫu đưa vào không. Từ nay có phép thử soi thẳng dải nút, dựng
+sẵn cả hai kiểu tên.

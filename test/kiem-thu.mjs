@@ -44,7 +44,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
   khongDau, tenTepXuat,
-  oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN,
+  oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN, tenDiemNgan,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
   duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan, datTaiKhoanGV,
   tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
@@ -68,7 +68,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
         khongDau, tenTepXuat,
-        oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay,
+        oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, tenDiemNgan,
         diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
         tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
@@ -752,6 +752,27 @@ kt('Bảng phân công: đủ 265 dòng và cộng đúng 710 tiết',
 const aDT = bangXuatDT();
 kt('Bảng tổng hợp điểm trường có đủ số liệu',
    aDT.length === 5 && aDT[4][1] === 25 && aDT[4][3] === 710);
+
+/* ---------- Rút gọn tên điểm trường ----------
+   Tên chính thức đều là "Điểm trường Diễn ...", nhưng trên màn hình phải
+   hiện gọn và ĐỒNG NHẤT — nơi ghi "Diễn Liên", nơi ghi "Điểm trường Diễn
+   Đồng" thì dải nút dài ngắn lệch nhau, trên điện thoại tràn hàng.
+
+   Bản trước dò bằng biểu thức trên nguyên chữ CÓ DẤU nên trượt đúng một
+   điểm trường, mà nhìn màn hình thì hai chuỗi giống hệt nhau — không ai
+   đoán ra. Nay cắt theo TỪ đã bỏ dấu, nên mọi cách gõ đều ra một kết quả. */
+kt('Cắt tiền tố "Điểm trường" dù gõ kiểu nào', [
+     ['Điểm trường Diễn Đồng', 'Diễn Đồng'],
+     ['Điểm trường Diễn Đồng'.normalize('NFD'), 'Diễn Đồng'],   /* dấu ở dạng rời */
+     ['điểm  trường   Diễn Đồng', 'Diễn Đồng'],                 /* thường + thừa dấu cách */
+     ['Ðiểm trường Diễn Đồng', 'Diễn Đồng'],                    /* chữ Ð khác mã */
+   ].every(([vao, ra]) => tenDiemNgan(vao).normalize('NFC') === ra),
+   [['Điểm trường Diễn Đồng'.normalize('NFD'), 'Ðiểm trường Diễn Đồng']
+     .map(x => tenDiemNgan(x))].join(' · '));
+kt('Tên không có tiền tố thì giữ nguyên, không cắt bừa',
+   tenDiemNgan('Diễn Liên') === 'Diễn Liên' && tenDiemNgan('Điểm A') === 'Điểm A');
+kt('Tên chỉ có đúng chữ "Điểm trường" thì giữ nguyên, không trả về ô rỗng',
+   tenDiemNgan('Điểm trường') === 'Điểm trường');
 
 kt('Bỏ dấu tiếng Việt để đặt tên tệp',
    khongDau('Trường Tiểu học Diễn Liên') === 'Truong-Tieu-hoc-Dien-Lien',

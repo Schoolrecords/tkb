@@ -871,7 +871,21 @@ function chuanCN(){
    (2/8/2026). Một hàm dùng chung, đừng viết .replace rải rác nữa. */
 function tenDiemNgan(ten){
   const s = String(ten||'').normalize('NFC').trim();
-  return s.replace(/^[ĐÐ]i[ểe]m\s+tr[ưu][ờo]ng\s*/i,'').trim() || s;
+  /* So khớp trên chữ ĐÃ BỎ DẤU, cắt theo TỪ chứ không theo mặt chữ. Bản
+     trước dò bằng biểu thức trên nguyên chữ có dấu nên chỉ cần lệch một cách
+     gõ là trượt — mà nhìn màn hình thì hai chuỗi giống hệt nhau, không ai
+     đoán ra. Cắt theo từ thì gõ hoa thường, thừa dấu cách, hay dấu ở dạng
+     rời đều ra cùng một kết quả. */
+  const bo = x => x.normalize('NFD').replace(/[̀-ͯ]/g,'')
+                   .replace(/[đð]/gi,'d').toLowerCase();
+  const tu = s.split(/\s+/);
+  let i = 0;
+  if(bo(tu[0]||'') === 'diem') i++;
+  if(bo(tu[i]||'') === 'truong') i++;
+  const con = tu.slice(i).join(' ');
+  /* Chỉ cắt khi có ĐỦ hai từ "điểm trường" và còn lại thứ gì đó để hiển thị —
+     điểm trường đặt tên trống trơn thì thà giữ nguyên còn hơn hiện ô rỗng. */
+  return (i === 2 && con) ? con : s;
 }
 const tenDT = id => tenDiemNgan(dtId(id)?.ten);
 
@@ -4657,7 +4671,7 @@ function daiDiemLuoi(){
   return `<div class="dai-dt">${ds.map(d=>{
     const n=lopTrongPV().filter(l=>S.lopDT[l.id]===d.id).length;
     return `<button class="dt-nut${d.id===S.dtLuoi?' on':''}" data-dtluoi="${d.id}">
-      ${esc(d.ten.replace(/^Điểm trường\s*/i,''))}<span>${n}</span></button>`;
+      ${esc(tenDiemNgan(d.ten))}<span>${n}</span></button>`;
   }).join('')}</div>`;
 }
 

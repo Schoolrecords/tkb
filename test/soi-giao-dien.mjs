@@ -838,6 +838,27 @@ console.log('\n17a. Lịch cá nhân tách SÁNG · CHIỀU; lưới rộng nh�
      !/CHIỀU/.test(nhan[0] || ''), nhan[0]);
   S.nguoiDung = vai;
 
+  /* Dải nút điểm trường phải ghi tên GỌN và ĐỒNG NHẤT. Tên chính thức đều là
+     "Điểm trường Diễn ...", nhưng nơi hiện đủ nơi hiện gọn thì nút dài ngắn
+     lệch nhau, trên điện thoại tràn hàng. Dựng lại đúng cả hai kiểu tên. */
+  if(S.diemTruong.length > 1){
+    const tenCu = S.diemTruong.map(d => d.ten);
+    /* Dải nút chỉ hiện khi người xem thấy được từ hai điểm trường trở lên —
+       PHT bị bó vào một điểm thì không có dải nào để soi. */
+    S.nguoiDung = { vaiTro: 'qt', gvId: null, diemTruongId: null };
+    S.phamVi = '';
+    S.diemTruong[0].ten = 'Điểm trường Diễn Đồng';
+    S.diemTruong[1].ten = 'Điểm trường Diễn Thái'.normalize('NFD');  /* dấu rời */
+    w.chuyen('toantruong');
+    const nut = [...w.document.querySelectorAll('.dt-nut')].map(x => x.textContent);
+    kt('Dải nút điểm trường không còn chữ "Điểm trường" thừa',
+       nut.length > 1 && nut.every(x => !/Điểm\s*trường/i.test(x.normalize('NFC'))),
+       nut.join(' | '));
+    kt('Cắt được cả tên gõ ở dạng dấu rời — nhìn giống hệt nhau nên rất dễ sót',
+       nut.some(x => /Diễn Thái/.test(x.normalize('NFC'))), nut.join(' | '));
+    S.diemTruong.forEach((d, i) => { d.ten = tenCu[i]; });
+  }
+
   /* Lưới rộng: ô có tiết không còn đeo thanh màu 3px. 25–60 cột mà ô nào cũng
      một thanh đậm thì cả bảng thành sọc — chủ dự án kêu "đường kẻ quá đậm". */
   w.chuyen('toantruong');
