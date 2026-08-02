@@ -738,6 +738,25 @@ alter table day_thay add column if not exists da_xem boolean not null default fa
 -- hình Dạy thay gom đúng nhóm, và huỷ thông báo thì biết gỡ tiết nào.
 alter table day_thay add column if not exists bao_nghi_id uuid references bao_nghi(id) on delete set null;
 
+-- ---------- Chốt chặn TUYỆT ĐỐI của §14 ----------
+-- "Tuyệt đối không cho phép một giáo viên được phân công dạy hai lớp trong
+-- cùng một tiết."
+--
+-- Phép kiểm trong app (xungDotDayThay) chạy trên S.dayThay của CHÍNH trình
+-- duyệt ấy. Hai cán bộ quản lý phân công cùng lúc ở hai máy thì cả hai đều
+-- thấy "sạch" và cả hai đều ghi được — không phép thử nào ở phía app đóng
+-- được lỗ này, vì mỗi bên chỉ biết trạng thái của mình.
+--
+-- Ràng buộc unique sẵn có là (truong_id, ngay, buoi, tiet, lop_id): nó chặn
+-- hai người ghi đè cùng MỘT LỚP, nhưng không chặn một GIÁO VIÊN bị gán vào
+-- hai lớp khác nhau cùng một tiết. Chỉ số dưới đây mới là chốt cuối.
+--
+-- `where gv_thay_id is not null` — lớp tự quản để trống người dạy, và nhiều
+-- lớp cùng tự quản một tiết là chuyện bình thường, không được chặn.
+create unique index if not exists ux_day_thay_gv_mot_tiet
+  on day_thay (truong_id, ngay, buoi, tiet, gv_thay_id)
+  where gv_thay_id is not null;
+
 -- Giáo viên phải TỰ bấm "Đã xem" được, nên cần một quy tắc UPDATE hẹp
 -- dành riêng cho họ. Quy tắc p_day_thay_sua của quản lý vẫn giữ nguyên.
 drop policy if exists p_day_thay_daxem on day_thay;
@@ -751,7 +770,9 @@ create policy p_day_thay_daxem on day_thay for update
   with check (truong_id = truong_cua_toi());
 
 -- ---------- Kiểm tra ----------
--- Phải ra 4 dòng quy tắc của bao_nghi:
+-- Phải ra 4 dòng quy tắc của bao_nghi, và chỉ số ux_day_thay_gv_mot_tiet
+-- phải tồn tại (soi bằng: select indexname from pg_indexes
+-- where tablename = 'day_thay').
 --   p_bao_nghi_doc (SELECT) · p_bao_nghi_gui (INSERT)
 --   p_bao_nghi_huy (DELETE) · p_bao_nghi_sua (UPDATE)
 select policyname as ten_quy_tac, cmd as ap_dung_cho

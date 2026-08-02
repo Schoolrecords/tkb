@@ -2053,6 +2053,26 @@ console.log('\n18. Báo nghỉ và phương án dạy thay');
   })());
 
   /* ----- Chưa nối máy chủ thì mọi đường ghi đều báo rõ ----- */
+  kt('Máy chủ từ chối vì trùng giáo viên một tiết thì dịch thành câu người đọc được',
+     await (async () => {
+    /* Chốt chặn cuối của §14 nằm ở chỉ số ux_day_thay_gv_mot_tiet trên máy
+       chủ — nó chỉ nổ khi hai người phân công cùng lúc, tình huống mà phép
+       kiểm phía app không thể thấy trước. Ở đây kiểm phần app PHẢI làm được:
+       dịch mã lỗi Postgres thành câu nói rõ chuyện gì và làm gì tiếp. */
+    const u2 = taoUngDung(documentGia, undefined, async () => {
+      const e = new Error('duplicate key value violates unique constraint "ux_day_thay_gv_mot_tiet"');
+      throw e;
+    });
+    u2.KHO.phien = {token: 'x', lamMoi: 'y'};
+    u2.KHO.nguoiDung = {id: 'nd1', truongId: 't1'};
+    u2.KHO.nguon = 'may-chu';
+    u2.KHO.cauHinh = {url: 'https://x', khoa: 'k'};
+    const r = await u2.luuDayThay([{ngay: '2026-09-07', buoi: 'S', tiet: 0,
+      lopId: 'l1', mon: 'Toán', gvVangId: 'g1', gvThayId: 'g2'}]);
+    return r.ok === false
+      && /vừa được người khác phân công/.test(r.thongBao)
+      && !/ux_day_thay_gv_mot_tiet/.test(r.thongBao);
+  })());
   kt('Chưa nối máy chủ: gửi báo nghỉ báo rõ, không văng lỗi', await (async () => {
     const r = await u.guiBaoNghi({gvId: gvCoTiet.id, ngay: T2, buoi: 'S', lyDo: 'Nghỉ ốm'});
     return r.ok === false && /máy chủ/i.test(r.thongBao);

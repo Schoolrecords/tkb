@@ -3839,6 +3839,15 @@ async function luuDayThay(ds){
     return {ok:true, ds:tra||[], thongBao:`Đã lưu ${ds.length} tiết dạy thay.`};
   }catch(e){
     const m=String(e?.message||'');
+    /* Máy chủ từ chối vì chỉ số ux_day_thay_gv_mot_tiet — nghĩa là người
+       khác vừa phân công chính giáo viên ấy vào đúng tiết ấy ở lớp khác,
+       SAU khi màn hình này dựng danh sách gợi ý. Đây là chốt chặn cuối của
+       §14 và nó chỉ nổ trong tình huống hai người làm cùng lúc; phép kiểm
+       phía app không thể thấy trước vì mỗi trình duyệt chỉ biết trạng thái
+       của mình. Nói thẳng chuyện gì xảy ra và cách xử lý. */
+    if(/ux_day_thay_gv_mot_tiet/i.test(m)) return {ok:false, thongBao:
+      'Không lưu được: một giáo viên trong danh sách vừa được người khác phân công '
+      + 'dạy lớp khác đúng tiết đó. Tải lại trang để lấy bản mới nhất rồi chọn người khác.'};
     if(/day_thay|relation|404/i.test(m)) return {ok:false,
       thongBao:'Máy chủ chưa có bảng dạy thay. Quản trị chạy db/day-thay.sql (có sẵn trong db/cai-dat.sql) một lần trong SQL Editor.'};
     return {ok:false, thongBao:dienGiaiLoi(e)};

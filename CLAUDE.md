@@ -561,6 +561,23 @@ tiết · đang ở điểm trường khác trong buổi ấy · đã kín `GIOI
 chọn, tiết cũ đang được dời đi nên không được tính là "người này đã bận" —
 đúng khuôn `dangChiemPhong(…, boLop)` của phòng chức năng.
 
+**Chốt chặn TUYỆT ĐỐI của §14 nằm ở CƠ SỞ DỮ LIỆU, không phải ở app**
+*(3/8/2026)*. Chỉ số `ux_day_thay_gv_mot_tiet` — unique trên
+`(truong_id, ngay, buoi, tiet, gv_thay_id) where gv_thay_id is not null`.
+
+Lý do: `xungDotDayThay()` đọc `S.dayThay` của **chính trình duyệt ấy**. Hai
+cán bộ quản lý phân công cùng lúc ở hai máy thì cả hai đều thấy "sạch" và cả
+hai đều ghi được — **không phép thử nào ở phía app đóng được lỗ này**, vì mỗi
+bên chỉ biết trạng thái của mình. Ràng buộc unique sẵn có
+`(truong_id, ngay, buoi, tiet, lop_id)` chặn hai người ghi đè cùng một LỚP,
+nhưng không chặn một GIÁO VIÊN bị gán vào hai lớp khác nhau cùng một tiết.
+
+Điều kiện `where gv_thay_id is not null` là bắt buộc: lớp tự quản để trống
+người dạy, và nhiều lớp cùng tự quản một tiết là chuyện bình thường.
+
+`luuDayThay()` dịch lỗi 23505 của chỉ số này thành câu người đọc được, không
+để lộ tên chỉ số ra màn hình.
+
 **Kiểm tra xung đột chạy HAI lần**: một lần lúc vẽ màn hình (để người dùng
 thấy vấn đề trong khi đang chọn, nút Xác nhận khoá luôn), một lần nữa ngay
 trước khi ghi. Danh sách gợi ý dựng lúc mở màn hình có thể đã cũ: người quản
