@@ -29,9 +29,14 @@ order by u.email;
 -- ---------- 2. Xoá ----------
 -- Xoá ở auth.users là bản ghi trong public.nguoi_dung tự đi theo
 -- (nguoi_dung.id references auth.users on delete cascade).
+--
+-- ⚠️ BẪY ĐÃ DÍNH (2/8/2026): viết `and id <> auth.uid()` thì chạy trong SQL
+--    Editor KHÔNG XOÁ ĐƯỢC DÒNG NÀO. SQL Editor chạy bằng quyền `postgres`
+--    nên auth.uid() trả NULL, mà `id <> NULL` cho ra *unknown* chứ không
+--    phải TRUE — mọi dòng đều rớt khỏi điều kiện. Phải bọc coalesce.
 delete from auth.users
 where email like '%@tkb.local'
-  and id <> auth.uid();          -- chốt chặn: không bao giờ tự xoá mình
+  and coalesce(id <> auth.uid(), true);   -- SQL Editor: xoá hết; gọi qua API: chừa chính mình
 
 -- ---------- 3. Kiểm tra sau khi chạy ----------
 -- Dòng đầu phải ra 0. Ba dòng sau phải giữ nguyên số cũ

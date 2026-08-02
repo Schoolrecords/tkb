@@ -127,13 +127,14 @@ export const SUPABASE_ANON = 'sb_publishable_...';
 khoá công khai, và GitHub Pages thiếu tệp này thì trang không đăng nhập được
 (xem ghi chú trong `.gitignore`).
 
-5. Vào **Authentication → Users**, bấm **Add user → Create new user**
-   (không phải *Send invitation*, dòng đó tạo tài khoản chưa có mật khẩu).
-   Nhớ bật **Auto confirm user**.
-6. Mở `db/khoi-tao.sql`, sửa ba chỗ có dấu `>>>`, rồi chạy trong SQL Editor.
-   Nó tạo bản ghi trường và nối tài khoản vừa tạo vào đó với quyền quản trị —
-   dò theo email nên không phải chép tay mã UUID. Kết quả phải ra đúng 1 dòng.
-7. Chạy `npm start`, bấm **Máy chủ dữ liệu** ở góc dưới bên trái, đăng nhập.
+5. Bật đăng nhập Google: theo các bước ghi ở đầu `db/ma-moi.sql` (tạo OAuth
+   client trên Google Cloud, dán Client ID/Secret vào Supabase → Authentication
+   → Providers → Google, thêm địa chỉ trang vào Redirect URLs).
+6. Mở `db/khoi-tao.sql`, sửa ba chỗ có dấu `>>>`, rồi chạy trong SQL Editor —
+   nó tạo bản ghi trường và nối tài khoản quản trị đầu tiên vào đó, dò theo
+   email nên không phải chép tay mã UUID. *(Hoặc bỏ qua bước này: đăng nhập
+   Google rồi bấm **Đăng ký trường mới** ngay trên giao diện.)*
+7. Chạy `npm start`, bấm **Đăng nhập bằng Google**.
 
 Mở `src/index.html` bằng đường dẫn `file://` thì trình duyệt không nạp được
 `cauhinh.js` — muốn nối máy chủ phải chạy qua `npm start`.
@@ -345,19 +346,30 @@ máy chủ Supabase, không có trong tệp nào.
 
 ---
 
-## Quản lý tài khoản
+## Quản lý tài khoản — đăng nhập bằng Google, cấp quyền bằng mã mời
 
-Mục **Giáo viên** → nút **Tài khoản đăng nhập**. Cấp tài khoản cho thầy cô,
-đặt lại mật khẩu, xoá tài khoản. Chọn tên từ danh sách giáo viên là phần mềm
-tự nối tài khoản với bản ghi giáo viên, đăng nhập vào thấy ngay lịch của mình.
+Từ 2/8/2026 phần mềm **chỉ có một cửa đăng nhập: Google**. Nhà trường không
+cấp, không giữ, không đặt lại mật khẩu của ai — mỗi thầy cô dùng Gmail của
+chính mình.
 
-Chức năng này cần **Edge Function** cài một lần:
+**Quy trình cấp quyền:** mục **Giáo viên** → **Tài khoản đăng nhập** →
+**Mã mời Google** → chọn tên thầy cô → *Tạo mã* → gửi mã 6 ký tự qua Zalo.
+Thầy cô bấm *Đăng nhập bằng Google*, gõ mã một lần là vào đúng lịch của mình.
+Mã dùng một lần, hạn 30 ngày, chưa dùng thì thu hồi được.
+
+**Thu quyền:** xoá tài khoản trong bảng danh sách. Gmail của thầy cô không bị
+đụng gì — trường quản *quyền*, không quản Gmail.
+
+Cần chạy một lần: `db/ma-moi.sql` (đã gộp trong `db/cai-dat.sql`) và bật
+Google provider trên Supabase — các bước ghi ở đầu `db/ma-moi.sql`.
+
+Chức năng liệt kê và xoá tài khoản cần **Edge Function** cài một lần:
 
 1. Supabase → **Edge Functions** → *Deploy a new function*
 2. Đặt tên đúng là **`tai-khoan`**
 3. Dán toàn bộ `db/edge-function-tai-khoan.ts`, bấm Deploy
 
-Tạo tài khoản cần khoá `service_role` — khoá bỏ qua mọi hàng rào. Khoá đó
+Xoá tài khoản cần khoá `service_role` — khoá bỏ qua mọi hàng rào. Khoá đó
 **không bao giờ được nằm trong trình duyệt**, nên việc này chạy trên máy chủ
 Supabase: trình duyệt gửi vé đăng nhập lên, hàm kiểm tra người gọi có phải quản
 trị của trường đó không, rồi mới thao tác. Trường A không chạm được tài khoản
@@ -384,22 +396,20 @@ có kiểm soát.
 
 ---
 
-## Cấp tài khoản hàng loạt cho giáo viên
+## Dọn tài khoản thử `@tkb.local`
 
-Gõ tay 35 lần thì không ai làm. Mục **Giáo viên** → **Tài khoản đăng nhập** →
-**Cấp hàng loạt cho giáo viên**.
+Cơ sở dữ liệu dựng trước 2/8/2026 còn các tài khoản tên tự sinh đuôi
+`@tkb.local` của quy trình cấp mật khẩu cũ. Dọn bằng:
 
-Máy sinh sẵn tên đăng nhập và mật khẩu cho những thầy cô chưa có tài khoản, tạo
-một loạt, rồi **in phiếu cắt phát** — mỗi thầy cô một ô trên khổ A4, có địa chỉ
-trang, tên đăng nhập và mật khẩu.
+```
+db/don-tai-khoan-thu.sql   →   dán vào SQL Editor, bấm Run
+```
 
-**Tên đăng nhập không cần hộp thư thật.** Dạng `trinh@tkb.local` — máy chủ không
-gửi thư nào tới đó, nó chỉ là tên đăng nhập cho gọn. Thầy cô không phải mở Gmail,
-không phải xác minh gì. Lấy chữ cuối của họ tên, bỏ dấu, viết thường; trùng thì
-thêm số — trường có bốn cặp trùng tên gọi nên chuyện này chắc chắn xảy ra
-(*Bùi Thị Dung* → `dung`, *Đặng Thị Dung* → `dung2`).
+Chỉ xoá **tài khoản đăng nhập**; bản ghi giáo viên, bảng phân công và mọi
+phiên bản thời khóa biểu giữ nguyên (`giao_vien.nguoi_dung_id` tự về `null`).
 
-**Mật khẩu bỏ các ký tự `i l o 0 1`** vì in ra giấy hay nhìn nhầm.
-
-⚠️ **In phiếu ngay sau khi cấp.** Mật khẩu chỉ hiện một lần; quên thì phải đặt
-lại từng người, máy chủ không lưu mật khẩu dạng đọc được.
+⚠️ **Bẫy đã dính:** chốt chặn "không tự xoá mình" phải viết
+`coalesce(id <> auth.uid(), true)`. Viết trần `id <> auth.uid()` thì chạy
+trong SQL Editor **không xoá được dòng nào** — SQL Editor chạy bằng quyền
+`postgres` nên `auth.uid()` là `NULL`, và `id <> NULL` cho ra *unknown* chứ
+không phải `TRUE`.
