@@ -505,8 +505,9 @@ kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của t
 console.log('\n15f. Đăng nhập Google và phễu demo');
 /* Giả có máy chủ nhưng chưa đăng nhập → màn chào */
 w.eval(`KHO.cauHinh={url:'https://gia.supabase.co',khoa:'k'}; S.trangHienTai='chao'; ve()`);
-kt('Màn chào có nút Google, nút mật khẩu và lối vào bản demo',
-   !!w.document.querySelector('#btChaoGoogle') && !!w.document.querySelector('#btChaoVao') &&
+kt('Màn chào: Google là nút lớn duy nhất, mật khẩu chỉ còn là link dự phòng',
+   w.document.querySelector('#btChaoGoogle')?.tagName === 'BUTTON' &&
+   w.document.querySelector('#btChaoVao')?.tagName === 'A' &&
    !!w.document.querySelector('#btChaoDemo'));
 w.document.querySelector('#btChaoDemo').dispatchEvent(new w.Event('click', { bubbles: true }));
 kt('Bấm demo là vào thẳng bảng điều hành với dữ liệu mẫu, có dải nổi nhắc',

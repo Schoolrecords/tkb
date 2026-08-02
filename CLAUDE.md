@@ -773,6 +773,17 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       `https://<dự-án>.supabase.co/auth/v1/callback`), dán Client ID/Secret
       vào Supabase → Authentication → Providers → Google, thêm địa chỉ
       trang vào Redirect URLs, và chạy lại `db/cai-dat.sql`.
+      ✅ *Đã cấu hình xong và chạy thật 2/8/2026* — OAuth client nằm ở Google
+      Cloud project `chungtran-51ccc` (App name: EduTech CT), Supabase vào
+      bằng GitHub `Schoolrecords`.
+- [x] **Quyết định 2/8/2026: Google là đường đăng nhập CHÍNH.** Chủ dự án
+      chốt: mỗi CBGV đều có Gmail cá nhân (như số điện thoại), cấp quyền đi
+      qua mã mời. Màn chào chỉ còn MỘT nút lớn (Google); đăng nhập mật khẩu
+      hạ thành link nhỏ "tài khoản trường cấp riêng" — GIỮ làm đường dự
+      phòng (máy dùng chung, sự cố Google), KHÔNG xoá mã. 37 tài khoản
+      `@tkb.local` trên máy chủ là dữ liệu thử, sẽ thay bằng mã mời khi nhập
+      danh sách thật. Ứng xử Gmail: trường quản QUYỀN chứ không quản Gmail —
+      thu quyền bằng nút xoá tài khoản, Gmail người dùng không bị đụng.
 - [x] Thanh bên gọn lại: bỏ ba nút ở đáy, chuyển vào đúng chỗ dùng *(1/8/2026)*
 - [x] Tên đơn vị mặc định là `Trường Tiểu học mới`, Diễn Liên thành điểm trường
 - [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức

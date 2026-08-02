@@ -3574,15 +3574,16 @@ function mChao(){
       </div>
       <div style="font-size:17px;font-weight:800;letter-spacing:-.02em">Mời đăng nhập</div>
       <div style="font-size:13.5px;color:var(--chu-mo);margin:8px auto 20px;max-width:400px;line-height:1.7">
-        Nhanh nhất là tài khoản Google có sẵn trên máy — một chạm, không mật khẩu.
-        Hoặc dùng email nhà trường cấp.</div>
-      <div style="display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto">
-        <button class="b" id="btChaoGoogle" style="padding:12px 20px;font-size:14.5px;background:#fff;
-          color:#1B2559;border:1.5px solid var(--ke-2);display:flex;gap:10px;align-items:center;justify-content:center">
+        Thầy cô dùng tài khoản Google (Gmail) có sẵn trên điện thoại —
+        một chạm là vào, không cần mật khẩu.</div>
+      <div style="max-width:320px;margin:0 auto">
+        <button class="b" id="btChaoGoogle" style="width:100%;padding:14px 20px;font-size:15.5px;
+          background:#fff;color:#1B2559;border:2px solid var(--ke-2);box-shadow:var(--bong);
+          display:flex;gap:11px;align-items:center;justify-content:center;font-weight:700">
           ${logoGG} Đăng nhập bằng Google</button>
-        <button class="b b-vang" id="btChaoVao" style="padding:12px 20px;font-size:14.5px">
-          Đăng nhập bằng mật khẩu</button>
       </div>
+      <div class="gy" style="margin-top:16px">Được trường cấp tài khoản riêng kèm mật khẩu?
+        <a href="#" id="btChaoVao" style="color:var(--lam);font-weight:600">Đăng nhập tại đây</a></div>
       ${KHO.loiCuoi?`<div class="canhbao do" style="margin-top:18px;text-align:left">
         <div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được máy chủ</b>
         <div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
@@ -4985,6 +4986,17 @@ const HD_ND = {
           <li><b>Lịch sử phiên bản</b> cho xem lại và khôi phục bản cũ. Khôi phục chỉ nạp lên màn hình, muốn chốt thì lưu lại thành bản mới.</li>
           <li><b>Nhật ký thao tác</b> ghi lại ai lưu, ai công bố, ai nhập dữ liệu, lúc nào — trường nhiều người cùng xếp thì nhìn vào đây là biết chuyện gì đã xảy ra.</li>
         </ul>`},
+      {t:'Cấp quyền vào phần mềm bằng Google', n:`
+        <p>Cách chính: vào hộp <b>Tài khoản</b> → nút <b>Mã mời Google</b> → chọn tên thầy cô →
+          <b>Tạo mã</b> → gửi mã 6 ký tự qua Zalo. Thầy cô đăng nhập Gmail của mình rồi gõ mã là
+          vào đúng lịch cá nhân — không phải cấp mật khẩu, không xác minh thư.</p>
+        <ul>
+          <li>Mỗi mã dùng đúng một lần, hạn 30 ngày; chưa dùng thì thu hồi được.</li>
+          <li>Thầy cô nghỉ việc, chuyển trường: xoá tài khoản trong hộp Tài khoản là mất quyền ngay —
+            Gmail của họ không bị ảnh hưởng gì.</li>
+          <li>Đổi Gmail: xoá tài khoản cũ rồi cấp mã mời mới.</li>
+          <li>Cách cũ (trường tự cấp email + mật khẩu) vẫn còn, làm đường dự phòng cho máy dùng chung.</li>
+        </ul>`},
       {t:'Dạy thay, dạy bù trong năm học', n:`
         <p>Giáo viên ốm hay đi công tác đột xuất: vào mục <b>Dạy thay</b>, chọn ngày, chọn người vắng,
           bấm <b>Tìm người dạy thay</b>. Máy liệt kê từng tiết bị trống và gợi ý người dạy thế —
@@ -5043,6 +5055,12 @@ const HD_ND = {
           <li>Nhập email và mật khẩu nhà trường cấp, bấm <b>Đăng nhập</b>.</li>
         </ol>
         <p>Đăng nhập xong phần mềm mở thẳng màn hình <b>Thời khóa biểu của tôi</b>.</p>`},
+      {t:'Đăng nhập bằng Google', n:`
+        <p>Bấm <b>Đăng nhập bằng Google</b> rồi chọn tài khoản Gmail có sẵn trên điện thoại —
+          không cần nhớ thêm mật khẩu nào.</p>
+        <p>Lần đầu tiên, phần mềm hỏi <b>mã mời</b>: đó là mã 6 ký tự nhà trường gửi cho thầy cô
+          (thường qua Zalo). Gõ mã một lần là từ đó mở trang lên thấy ngay lịch của mình.</p>
+        <p>Nên bật <b>xác minh 2 bước</b> cho Gmail và đăng xuất khi dùng máy tính chung.</p>`},
       {t:'Xem lịch dạy', n:`
         <p>Màn hình <b>Thời khóa biểu của tôi</b> bày cả tuần theo ngày. Ngày hôm nay được tô viền xanh.</p>
         <p>Mỗi tiết ghi rõ <b>buổi, số tiết, môn, lớp</b> và <b>điểm trường</b> — thầy cô nhìn là biết
@@ -5530,7 +5548,7 @@ function noiSuKien(){
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
 
   /* màn hình chào */
-  $('#btChaoVao')&&($('#btChaoVao').onclick=hopMayChu);
+  $('#btChaoVao')&&($('#btChaoVao').onclick=e=>{e.preventDefault();hopMayChu();});
   $('#btChaoTruongMoi')&&($('#btChaoTruongMoi').onclick=e=>{e.preventDefault();hopDangKyTruong();});
   $('#btChaoTruongMoi2')&&($('#btChaoTruongMoi2').onclick=hopDangKyTruong);
   $('#btChaoGoogle')&&($('#btChaoGoogle').onclick=()=>{
@@ -6641,21 +6659,24 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
        phải chạy qua máy chủ web — dùng lệnh <b>npm start</b>.</div>`,
     [{ten:'Đóng',lam:dong}]);
 
-  /* Đã có cấu hình nhưng chưa đăng nhập */
+  /* Đã có cấu hình nhưng chưa đăng nhập — Google là cửa chính,
+     mật khẩu là cửa dự phòng cho tài khoản trường cấp riêng */
   if(!coMayChu()){
-    hop('Đăng nhập máy chủ',
-      `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Dùng tài khoản nhà trường cấp.
-        Giáo viên đăng nhập sẽ mở thẳng màn hình thời khóa biểu của mình.</p>
+    hop('Đăng nhập',
+      `<button class="b" id="dnGoogle" style="width:100%;padding:13px 20px;background:#fff;color:#1B2559;
+         border:2px solid var(--ke-2);justify-content:center;font-weight:700;font-size:14.5px">
+         Đăng nhập bằng Google — một chạm, không mật khẩu</button>
+       <div style="display:flex;align-items:center;gap:12px;margin:16px 0 13px">
+         <div style="flex:1;height:1px;background:var(--ke)"></div>
+         <span style="font-size:12px;color:var(--chu-mo);white-space:nowrap">hoặc tài khoản trường cấp riêng</span>
+         <div style="flex:1;height:1px;background:var(--ke)"></div>
+       </div>
        <div class="on-l"><label>Email</label><input class="ip" id="dnEmail" type="email" autocomplete="username" placeholder="ten@truong.edu.vn" value="${esc(emailDaNho())}"></div>
        <div class="on-l"><label>Mật khẩu</label><input class="ip" id="dnMK" type="password" autocomplete="current-password"></div>
        <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px;font-weight:600">
          <input type="checkbox" id="dnNho" checked> Ghi nhớ tôi trên máy này</label>
        <div class="gy">Lần sau mở là vào thẳng, không phải gõ lại. Máy dùng chung thì bỏ tích này.</div>
        ${KHO.loiCuoi?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
-       <div style="margin-top:15px;padding-top:13px;border-top:1px solid var(--ke)">
-         <button class="b" id="dnGoogle" style="width:100%;background:#fff;color:#1B2559;
-           border:1.5px solid var(--ke-2);justify-content:center">Đăng nhập bằng Google — một chạm, không mật khẩu</button>
-       </div>
        <div class="gy" style="margin-top:12px">
          Trường chưa có trong hệ thống?
          <a href="#" id="dnTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
