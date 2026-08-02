@@ -776,14 +776,24 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       ✅ *Đã cấu hình xong và chạy thật 2/8/2026* — OAuth client nằm ở Google
       Cloud project `chungtran-51ccc` (App name: EduTech CT), Supabase vào
       bằng GitHub `Schoolrecords`.
-- [x] **Quyết định 2/8/2026: Google là đường đăng nhập CHÍNH.** Chủ dự án
+- [x] **Quyết định 2/8/2026: Google là đường đăng nhập DUY NHẤT.** Chủ dự án
       chốt: mỗi CBGV đều có Gmail cá nhân (như số điện thoại), cấp quyền đi
-      qua mã mời. Màn chào chỉ còn MỘT nút lớn (Google); đăng nhập mật khẩu
-      hạ thành link nhỏ "tài khoản trường cấp riêng" — GIỮ làm đường dự
-      phòng (máy dùng chung, sự cố Google), KHÔNG xoá mã. 37 tài khoản
-      `@tkb.local` trên máy chủ là dữ liệu thử, sẽ thay bằng mã mời khi nhập
-      danh sách thật. Ứng xử Gmail: trường quản QUYỀN chứ không quản Gmail —
-      thu quyền bằng nút xoá tài khoản, Gmail người dùng không bị đụng.
+      qua mã mời. **Toàn bộ giao diện mật khẩu đã GỠ BỎ** — không còn một ô
+      `input[type=password]` nào trong trang (có phép thử canh):
+      · Màn chào và hộp đăng nhập: chỉ một nút Google.
+      · Hộp *Tài khoản*: bỏ ô cấp tài khoản, bỏ nút *Đổi mật khẩu* và *Cấp
+        hàng loạt*; còn LIỆT KÊ · XOÁ · nút **Mã mời Google**.
+      · *Đăng ký trường mới*: bắt đăng nhập Google trước, không tạo mật khẩu.
+      · Đã xoá hẳn: `hopCapHangLoat`, `hopKetQuaHangLoat`, `trangInPhieu`,
+        `hopXacMinh`, `hopDoiMatKhau`, `dangKyTaiKhoan`, `themThanhVien`,
+        `datLaiMatKhau`, `tenDangNhapGV`, `matKhauNgauNhien` + mục 12 của
+        bộ kiểm thử. Edge Function còn `tao`/`doi_mat_khau` nhưng app không
+        gọi nữa.
+      · **GIỮ `dangNhap()` trong vùng DULIEU** làm chốt khẩn cấp (gọi được
+        từ console khi Google trục trặc) — không nút nào trỏ tới. Đừng xoá.
+      · 37 tài khoản thử `@tkb.local` dọn bằng `db/don-tai-khoan-thu.sql`.
+      Ứng xử Gmail: trường quản QUYỀN chứ không quản Gmail — thu quyền bằng
+      nút xoá tài khoản, Gmail người dùng không bị đụng.
 - [x] Thanh bên gọn lại: bỏ ba nút ở đáy, chuyển vào đúng chỗ dùng *(1/8/2026)*
 - [x] Tên đơn vị mặc định là `Trường Tiểu học mới`, Diễn Liên thành điểm trường
 - [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức

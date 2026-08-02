@@ -43,7 +43,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
-  khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien, taoICS, gapDongICS,
+  khongDau, tenTepXuat, taoICS, gapDongICS,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
   duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan,
@@ -67,7 +67,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
         apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
-        khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien, taoICS, gapDongICS,
+        khongDau, tenTepXuat, taoICS, gapDongICS,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay,
         diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
@@ -1062,43 +1062,9 @@ kt('Báo rõ lớp nào đang thiếu người chào cờ vì chủ nhiệm bậ
    kR11.vm.find(v => v.ma === 'R11')?.t);
 delete S.gvNghi[cnLop1.id];
 
-/* ---------- 12. Cấp tài khoản hàng loạt ---------- */
-console.log('\n12. Cấp tài khoản hàng loạt cho giáo viên');
-
-await taiDuLieu();          /* về lại 35 giáo viên thật */
-const tk = tenDangNhapGV(S.giaoVien, 'tkb.local');
-
-kt('Sinh đủ tên đăng nhập cho mọi giáo viên', tk.length === S.giaoVien.length,
-   `${tk.length} tài khoản`);
-kt('Không tên đăng nhập nào trùng nhau',
-   new Set(tk.map(x => x.ten)).size === tk.length,
-   `${new Set(tk.map(x => x.ten)).size} tên khác nhau`);
-kt('Tên đăng nhập không dấu, không khoảng trắng',
-   tk.every(x => /^[a-z][a-z0-9]*$/.test(x.ten)),
-   tk.slice(0, 4).map(x => x.ten).join(', ') + '…');
-
-/* Bốn cặp trùng tên gọi là chỗ dễ vỡ nhất — hai cô Dung phải ra hai tên khác nhau */
-const dung = tk.filter(x => /Dung$/.test(x.gv.hoTen));
-kt('Hai cô cùng tên "Dung" ra hai tên đăng nhập khác nhau',
-   dung.length === 2 && dung[0].ten !== dung[1].ten,
-   dung.map(x => `${x.gv.hoTen} → ${x.ten}`).join(' · '));
-
-const trungTen = {};
-S.giaoVien.forEach(g => {
-  const cuoi = g.hoTen.trim().split(/\s+/).pop();
-  (trungTen[cuoi] = trungTen[cuoi] || []).push(g.hoTen);
-});
-const soCapTrung = Object.values(trungTen).filter(a => a.length > 1).length;
-kt('Cả bốn cặp trùng tên đều tách được',
-   soCapTrung === 4 && new Set(tk.map(x => x.ten)).size === tk.length,
-   `${soCapTrung} cặp trùng, vẫn ra ${tk.length} tên riêng biệt`);
-
-const mk = Array.from({ length: 200 }, () => matKhauNgauNhien());
-kt('Mật khẩu đủ dài và không có ký tự dễ nhìn nhầm',
-   mk.every(x => x.length === 6 && !/[ilo01]/.test(x)),
-   'bỏ i · l · o · 0 · 1');
-kt('Mật khẩu không lặp lại nhau', new Set(mk).size > 190,
-   `${new Set(mk).size}/200 khác nhau`);
+/* Mục 12 cũ — cấp tài khoản hàng loạt bằng mật khẩu — GỠ BỎ 2/8/2026
+   cùng với tenDangNhapGV() và matKhauNgauNhien(). Quyền nay cấp bằng mã
+   mời (mục 6b), thầy cô đăng nhập bằng Gmail của chính mình. */
 
 /* ================================================================
    13. QUY TRÌNH BA BƯỚC, DANH MỤC MÔN, PHÒNG, SẢN PHẨM MỚI

@@ -505,10 +505,25 @@ kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của t
 console.log('\n15f. Đăng nhập Google và phễu demo');
 /* Giả có máy chủ nhưng chưa đăng nhập → màn chào */
 w.eval(`KHO.cauHinh={url:'https://gia.supabase.co',khoa:'k'}; S.trangHienTai='chao'; ve()`);
-kt('Màn chào: Google là nút lớn duy nhất, mật khẩu chỉ còn là link dự phòng',
+kt('Màn chào chỉ còn MỘT cửa: Google — không còn lối đăng nhập mật khẩu nào',
    w.document.querySelector('#btChaoGoogle')?.tagName === 'BUTTON' &&
-   w.document.querySelector('#btChaoVao')?.tagName === 'A' &&
+   !w.document.querySelector('#btChaoVao') &&
    !!w.document.querySelector('#btChaoDemo'));
+/* Không còn Ô NHẬP mật khẩu ở bất kỳ đâu — câu trấn an "không cần mật khẩu"
+   thì vẫn giữ, đó là điều người dùng cần nghe. */
+kt('Không còn ô nhập mật khẩu nào trong toàn bộ trang', (() => {
+  w.eval('hopMayChu()');
+  const con = w.document.querySelectorAll('input[type="password"]').length;
+  w.eval('dong()');
+  return con === 0 && !w.document.querySelector('#dnMK') && !w.document.querySelector('#tkMK');
+})());
+kt('Hộp đăng nhập chỉ còn nút Google và lối đăng ký trường mới', (() => {
+  w.eval('hopMayChu()');
+  const co = !!w.document.querySelector('#dnGoogle') && !!w.document.querySelector('#dnTruongMoi')
+    && !w.document.querySelector('#dnEmail');
+  w.eval('dong()');
+  return co;
+})());
 w.document.querySelector('#btChaoDemo').dispatchEvent(new w.Event('click', { bubbles: true }));
 kt('Bấm demo là vào thẳng bảng điều hành với dữ liệu mẫu, có dải nổi nhắc',
    w.eval('KHO.xemDemo') === true && w.eval('S.trangHienTai') === 'dieuhanh' &&

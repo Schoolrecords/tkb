@@ -2024,30 +2024,6 @@ async function dungMaMoi(ma){
   }
 }
 
-/* Tạo tài khoản mới trên máy chủ. Supabase gửi thư xác nhận nếu dự án bật
-   yêu cầu đó; tắt thì đăng nhập được ngay. */
-async function dangKyTaiKhoan(email, matKhau){
-  await taiCauHinh();
-  if(!KHO.cauHinh) return {ok:false, loi:'Chưa cấu hình máy chủ.'};
-  try{
-    const p=await goiAPI('/auth/v1/signup',
-      {method:'POST', body:JSON.stringify({email:String(email).trim(), password:matKhau})});
-    if(p?.access_token){
-      KHO.phien={token:p.access_token, lamMoi:p.refresh_token, uid:p.user?.id, email:p.user?.email};
-      return {ok:true, canXacNhan:false};
-    }
-    /* Không có vé ngay nghĩa là dự án bắt xác nhận email trước */
-    return {ok:true, canXacNhan:true};
-  }catch(e){
-    const m=String(e?.message||'');
-    if(/already registered|already exists/i.test(m))
-      return {ok:false, loi:'Email này đã có tài khoản. Hãy đăng nhập thay vì đăng ký.'};
-    if(/Password should be/i.test(m))
-      return {ok:false, loi:'Mật khẩu quá ngắn — cần ít nhất 6 ký tự.'};
-    return {ok:false, loi:dienGiaiLoi(e)};
-  }
-}
-
 /* Đăng ký một trường mới. Gọi hàm dang_ky_truong() trong Postgres —
    xem db/dang-ky-truong.sql để hiểu vì sao phải là hàm riêng. */
 async function dangKyTruong(tt){
@@ -2811,10 +2787,9 @@ async function goiTaiKhoan(than){
     return {ok:false, loi:dienGiaiLoi(e)};
   }
 }
+/* Chỉ còn LIỆT KÊ và XOÁ. Hai việc `tao` và `doi_mat_khau` của Edge Function
+   không dùng nữa từ 2/8/2026 — quyền cấp bằng mã mời, thu bằng nút xoá. */
 const dsThanhVien   = () => goiTaiKhoan({viec:'liet_ke'});
-const themThanhVien = tt => goiTaiKhoan({viec:'tao', email:tt.email, mat_khau:tt.matKhau,
-  ho_ten:tt.hoTen, vai_tro:tt.vaiTro, diem_truong_id:tt.diemTruongId||null, giao_vien_id:tt.gvId||null});
-const datLaiMatKhau = (id, mk) => goiTaiKhoan({viec:'doi_mat_khau', id, mat_khau:mk});
 const xoaThanhVien  = id => goiTaiKhoan({viec:'xoa', id});
 
 /* ---------- 4b. Nhật ký thao tác ----------
@@ -3231,30 +3206,9 @@ function khongDau(s){
     .replace(/đ/g,'d').replace(/Đ/g,'D')
     .replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 }
-/* ---------- Sinh tài khoản hàng loạt cho giáo viên ----------
-   Tên đăng nhập lấy chữ CUỐI của họ tên, bỏ dấu, viết thường — ngắn để gõ
-   trên điện thoại. Trùng thì thêm số: trường có bốn cặp trùng tên gọi nên
-   chuyện này chắc chắn xảy ra, không phải trường hợp hiếm. */
-function tenDangNhapGV(ds, mien){
-  const daDung=new Set(), r=[];
-  ds.forEach(g=>{
-    const chu=khongDau(g.hoTen).split('-').filter(Boolean);
-    const goc=(chu[chu.length-1]||'gv').toLowerCase();
-    let ten=goc, i=1;
-    while(daDung.has(ten)) ten=goc+(++i);
-    daDung.add(ten);
-    r.push({gv:g, ten, email:ten+'@'+mien});
-  });
-  return r;
-}
-
-/* Mật khẩu ngắn, dễ đọc dễ gõ. Bỏ i l o 0 1 vì in ra giấy hay nhìn nhầm. */
-function matKhauNgauNhien(n=6){
-  const bang='abcdefghjkmnpqrstuvwxyz23456789';
-  let s='';
-  for(let i=0;i<n;i++) s+=bang[Math.floor(Math.random()*bang.length)];
-  return s;
-}
+/* GỠ BỎ 2/8/2026: tenDangNhapGV() và matKhauNgauNhien() — hai hàm sinh tên
+   đăng nhập @tkb.local kèm mật khẩu cho việc cấp tài khoản hàng loạt. Nay
+   thầy cô đăng nhập bằng Gmail của chính mình, nhận quyền qua mã mời. */
 
 /* Tên tệp bản in/Word: TKB-<loại>-<tên trường>-<ngày>.<đuôi> */
 function tenTepIn(loai, duoi){
@@ -3582,8 +3536,8 @@ function mChao(){
           display:flex;gap:11px;align-items:center;justify-content:center;font-weight:700">
           ${logoGG} Đăng nhập bằng Google</button>
       </div>
-      <div class="gy" style="margin-top:16px">Được trường cấp tài khoản riêng kèm mật khẩu?
-        <a href="#" id="btChaoVao" style="color:var(--lam);font-weight:600">Đăng nhập tại đây</a></div>
+      <div class="gy" style="margin-top:16px">Lần đầu vào, phần mềm hỏi <b>mã mời</b> — mã 6 ký tự
+        nhà trường gửi cho thầy cô. Gõ một lần, những lần sau vào thẳng.</div>
       ${KHO.loiCuoi?`<div class="canhbao do" style="margin-top:18px;text-align:left">
         <div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được máy chủ</b>
         <div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
@@ -4995,7 +4949,8 @@ const HD_ND = {
           <li>Thầy cô nghỉ việc, chuyển trường: xoá tài khoản trong hộp Tài khoản là mất quyền ngay —
             Gmail của họ không bị ảnh hưởng gì.</li>
           <li>Đổi Gmail: xoá tài khoản cũ rồi cấp mã mời mới.</li>
-          <li>Cách cũ (trường tự cấp email + mật khẩu) vẫn còn, làm đường dự phòng cho máy dùng chung.</li>
+          <li>Phần mềm <b>không còn cấp mật khẩu</b> cho ai — nhà trường quản <b>quyền</b>,
+            không quản Gmail của thầy cô.</li>
         </ul>`},
       {t:'Dạy thay, dạy bù trong năm học', n:`
         <p>Giáo viên ốm hay đi công tác đột xuất: vào mục <b>Dạy thay</b>, chọn ngày, chọn người vắng,
@@ -5048,18 +5003,15 @@ const HD_ND = {
     ten:'Giáo viên',
     mo:'Thầy cô chỉ cần xem lịch dạy của mình. Không phải học gì thêm.',
     muc:[
-      {t:'Đăng nhập', n:`
+      {t:'Đăng nhập bằng Google', n:`
         <ol>
           <li>Mở địa chỉ nhà trường cấp, bằng điện thoại cũng được.</li>
-          <li>Bấm <b>Máy chủ dữ liệu</b> ở cuối danh sách bên trái.</li>
-          <li>Nhập email và mật khẩu nhà trường cấp, bấm <b>Đăng nhập</b>.</li>
+          <li>Bấm <b>Đăng nhập bằng Google</b>, chọn tài khoản Gmail của mình.</li>
+          <li>Lần đầu tiên, phần mềm hỏi <b>mã mời</b> — mã 6 ký tự nhà trường gửi cho thầy cô
+            (thường qua Zalo). Gõ mã, thế là xong.</li>
         </ol>
-        <p>Đăng nhập xong phần mềm mở thẳng màn hình <b>Thời khóa biểu của tôi</b>.</p>`},
-      {t:'Đăng nhập bằng Google', n:`
-        <p>Bấm <b>Đăng nhập bằng Google</b> rồi chọn tài khoản Gmail có sẵn trên điện thoại —
-          không cần nhớ thêm mật khẩu nào.</p>
-        <p>Lần đầu tiên, phần mềm hỏi <b>mã mời</b>: đó là mã 6 ký tự nhà trường gửi cho thầy cô
-          (thường qua Zalo). Gõ mã một lần là từ đó mở trang lên thấy ngay lịch của mình.</p>
+        <p>Từ đó mở trang lên là vào thẳng <b>Thời khóa biểu của tôi</b>, không phải gõ gì nữa.
+          Không cần nhớ thêm mật khẩu nào — phần mềm không có mật khẩu riêng.</p>
         <p>Nên bật <b>xác minh 2 bước</b> cho Gmail và đăng xuất khi dùng máy tính chung.</p>`},
       {t:'Xem lịch dạy', n:`
         <p>Màn hình <b>Thời khóa biểu của tôi</b> bày cả tuần theo ngày. Ngày hôm nay được tô viền xanh.</p>
@@ -5115,8 +5067,9 @@ function mHuongDan(){
     <h3><span class="hd-so">?</span>Gặp vướng mắc</h3>
     <p>Trang không mở được, hiện chữ <span class="hd-phim">ERR_CONNECTION_REFUSED</span>:
       máy chủ chưa chạy, báo người quản trị.</p>
-    <p>Đăng nhập báo sai mật khẩu: kiểm tra phím <span class="hd-phim">Caps Lock</span>,
-      vẫn không được thì nhờ quản trị đặt lại mật khẩu.</p>
+    <p>Đăng nhập Google xong mà phần mềm báo <b>chưa thuộc trường nào</b>: thầy cô chưa gõ
+      mã mời, hoặc gõ nhầm Gmail khác. Hỏi quản trị xin lại mã rồi bấm <b>Nhập mã mời của trường</b>.</p>
+    <p>Mã mời báo hết hạn: mã chỉ dùng một lần trong 30 ngày — nhờ quản trị tạo mã mới.</p>
     <p>Thấy dòng <b>“Đang chạy bằng dữ liệu mẫu”</b> trên băng xanh: phần mềm chưa nối được máy chủ,
       số liệu đang xem <b>không phải của trường</b> — báo quản trị trước khi dùng.</p>
   </div>`;
@@ -5548,7 +5501,6 @@ function noiSuKien(){
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
 
   /* màn hình chào */
-  $('#btChaoVao')&&($('#btChaoVao').onclick=e=>{e.preventDefault();hopMayChu();});
   $('#btChaoTruongMoi')&&($('#btChaoTruongMoi').onclick=e=>{e.preventDefault();hopDangKyTruong();});
   $('#btChaoTruongMoi2')&&($('#btChaoTruongMoi2').onclick=hopDangKyTruong);
   $('#btChaoGoogle')&&($('#btChaoGoogle').onclick=()=>{
@@ -6659,42 +6611,25 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
        phải chạy qua máy chủ web — dùng lệnh <b>npm start</b>.</div>`,
     [{ten:'Đóng',lam:dong}]);
 
-  /* Đã có cấu hình nhưng chưa đăng nhập — Google là cửa chính,
-     mật khẩu là cửa dự phòng cho tài khoản trường cấp riêng */
+  /* Đã có cấu hình nhưng chưa đăng nhập — chỉ một cửa: Google.
+     Đường mật khẩu đã gỡ khỏi giao diện (quyết định 2/8/2026): mỗi CBGV
+     đều có Gmail, cấp quyền bằng mã mời. Hàm dangNhap() vẫn còn trong
+     vùng DULIEU làm chốt khẩn cấp, nhưng không có nút nào gọi tới. */
   if(!coMayChu()){
     hop('Đăng nhập',
-      `<button class="b" id="dnGoogle" style="width:100%;padding:13px 20px;background:#fff;color:#1B2559;
-         border:2px solid var(--ke-2);justify-content:center;font-weight:700;font-size:14.5px">
-         Đăng nhập bằng Google — một chạm, không mật khẩu</button>
-       <div style="display:flex;align-items:center;gap:12px;margin:16px 0 13px">
-         <div style="flex:1;height:1px;background:var(--ke)"></div>
-         <span style="font-size:12px;color:var(--chu-mo);white-space:nowrap">hoặc tài khoản trường cấp riêng</span>
-         <div style="flex:1;height:1px;background:var(--ke)"></div>
-       </div>
-       <div class="on-l"><label>Email</label><input class="ip" id="dnEmail" type="email" autocomplete="username" placeholder="ten@truong.edu.vn" value="${esc(emailDaNho())}"></div>
-       <div class="on-l"><label>Mật khẩu</label><input class="ip" id="dnMK" type="password" autocomplete="current-password"></div>
-       <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px;font-weight:600">
-         <input type="checkbox" id="dnNho" checked> Ghi nhớ tôi trên máy này</label>
-       <div class="gy">Lần sau mở là vào thẳng, không phải gõ lại. Máy dùng chung thì bỏ tích này.</div>
-       ${KHO.loiCuoi?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
-       <div class="gy" style="margin-top:12px">
+      `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:15px">Dùng tài khoản Google (Gmail)
+        có sẵn trên máy — một chạm là vào, không phải nhớ thêm mật khẩu nào.</p>
+       <button class="b" id="dnGoogle" style="width:100%;padding:14px 20px;background:#fff;color:#1B2559;
+         border:2px solid var(--ke-2);justify-content:center;font-weight:700;font-size:15px">
+         Đăng nhập bằng Google</button>
+       <div class="gy" style="margin-top:14px">Lần đầu vào, phần mềm hỏi <b>mã mời</b> —
+         mã 6 ký tự người quản trị gửi cho thầy cô. Chưa có mã thì hỏi nhà trường.</div>
+       ${KHO.loiCuoi?`<div class="canhbao do" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t"><b>Lần trước chưa nối được</b><div class="cb-g">${esc(KHO.loiCuoi)}</div></div></div>`:''}
+       <div class="gy" style="margin-top:13px;padding-top:12px;border-top:1px solid var(--ke)">
          Trường chưa có trong hệ thống?
          <a href="#" id="dnTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
          — chỉ dùng một lần khi mở tài khoản cho một trường, không phải việc của thầy cô.</div>`,
-      [{ten:'Huỷ',phu:1,lam:dong},
-       {ten:'Đăng nhập',lam:async e=>{
-        const em=$('#dnEmail').value.trim(), mk=$('#dnMK').value;
-        if(!em||!mk) return bao('Nhập email và mật khẩu',true);
-        const b=e.currentTarget; b.disabled=true; b.textContent='Đang đăng nhập…';
-        const kq=await dangNhap(em, mk, $('#dnNho')?.checked!==false);
-        if(!kq.ok){ b.disabled=false; b.textContent='Đăng nhập'; return bao(kq.loi,true); }
-        const t=await taiDuLieu();
-        KQ_XEP=null; dong(); capNhatTaiKhoan();
-        bao(`Chào ${kq.nguoiDung.hoTen}. ${t.thongBao}`, !t.ok);
-        chuyen(kq.nguoiDung.vaiTro==='giao_vien'?'cuatoi':'dieuhanh');
-      }}]);
-    const mk=$('#dnMK');
-    if(mk) mk.onkeydown=e=>{ if(e.key==='Enter') $('#hopC').lastChild.click(); };
+      [{ten:'Đóng',phu:1,lam:dong}]);
     const lk=$('#dnTruongMoi');
     if(lk) lk.onclick=e=>{ e.preventDefault(); hopDangKyTruong(); };
     const gg=$('#dnGoogle');
@@ -6732,14 +6667,13 @@ async function hopTaiKhoan(){
       nên phải đăng nhập mới xem và cấp được.</p>
      <div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
        <b>Đăng nhập bằng tài khoản quản trị của nhà trường</b>
-       <div class="cb-g">Không phải tài khoản định cấp cho thầy cô — tài khoản đó chưa tồn tại,
-         mình sắp tạo nó. Dùng email và mật khẩu quản trị đã có.</div></div></div>
+       <div class="cb-g">Dùng Gmail đã được cấp quyền quản trị của trường.</div></div></div>
      <div class="gy" style="margin-top:11px">Phần mềm đang chạy bằng ${esc(TEN_NGUON[KHO.nguon])},
        nên số liệu trên màn hình chưa phải của trường.</div>`,
     [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đăng nhập',lam:hopMayChu}]);
 
   hop('Tài khoản đăng nhập','<div class="trong-hop">Đang tải danh sách…</div>',
-    [{ten:'Đóng',lam:dong},{ten:'Mã mời Google',phu:1,lam:hopMaMoi}]);
+    [{ten:'Đóng',lam:dong}]);
   const kq=await dsThanhVien();
   if(!kq.ok) return void($('#hopN').innerHTML=
     `<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
@@ -6756,213 +6690,36 @@ function veHopTaiKhoan(ds){
      ${ds.length?ds.map(x=>`<tr><td><b>${esc(x.ho_ten)}</b></td><td>${esc(x.email||'—')}</td>
        <td>${esc(TEN[x.vai_tro]||x.vai_tro)}${x.diem_truong_id?`<br><span style="font-size:11px;color:var(--chu-mo)">${esc(dtId(x.diem_truong_id)?.ten||'')}</span>`:''}</td>
        <td class="phai" style="white-space:nowrap">
-         <button class="b b-vien b-nho" data-doimk="${x.id}" data-ten="${esc(x.ho_ten)}">Đổi mật khẩu</button>
-         ${x.id===KHO.nguoiDung.id?'':`<button class="b b-vien b-nho" data-xoatk="${x.id}" data-ten="${esc(x.ho_ten)}" style="color:var(--do)">Xoá</button>`}
+         ${x.id===KHO.nguoiDung.id?'<span class="tag">Đang dùng</span>'
+           :`<button class="b b-vien b-nho" data-xoatk="${x.id}" data-ten="${esc(x.ho_ten)}" style="color:var(--do)">Xoá</button>`}
        </td></tr>`).join('')
       :'<tr><td colspan="4" style="text-align:center;color:var(--chu-mo);padding:22px">Chưa có tài khoản nào ngoài thầy cô</td></tr>'}
     </tbody></table></div>
 
     <div style="border-top:1px solid var(--ke);padding-top:15px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:11px">Cấp tài khoản mới</div>
-      <div class="cot2" style="gap:12px">
-        <div class="on-l"><label>Họ và tên</label>
-          <select class="ip" id="tkGV" style="width:100%">
-            <option value="">— Gõ tay tên khác —</option>
-            ${[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'))
-              .map(g=>`<option value="${g.id}">${esc(g.hoTen)}</option>`).join('')}
-          </select>
-          <input class="ip" id="tkTen" placeholder="Họ và tên" style="width:100%;margin-top:7px;display:none"></div>
-        <div class="on-l"><label>Vai trò</label>
-          <select class="ip" id="tkVai" style="width:100%">
-            <option value="giao_vien">Giáo viên — chỉ xem lịch của mình</option>
-            <option value="pho_hieu_truong">Phó hiệu trưởng</option>
-            <option value="hieu_truong">Hiệu trưởng — toàn trường</option>
-            <option value="quan_tri">Quản trị — toàn trường</option>
-          </select></div>
-      </div>
-      <div class="on-l" id="tkODT" style="display:none"><label>Phụ trách điểm trường</label>
-        <select class="ip" id="tkDT" style="width:100%">
-          <option value="">Chuyên môn toàn trường — không bó phạm vi</option>
-          ${S.diemTruong.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}
-        </select></div>
-      <div class="cot2" style="gap:12px">
-        <div class="on-l"><label>Email</label><input class="ip" id="tkEmail" type="email" style="width:100%"></div>
-        <div class="on-l"><label>Mật khẩu ban đầu</label><input class="ip" id="tkMK" style="width:100%" placeholder="ít nhất 6 ký tự"></div>
-      </div>
-      <div class="gy">Tài khoản dùng được ngay, không phải xác nhận email. Báo mật khẩu cho thầy cô
-        và dặn đổi lại sau lần đăng nhập đầu.</div>
+      <div class="canhbao ok"><div class="cb-ic">i</div><div class="cb-t">
+        <b>Cấp quyền bằng mã mời</b>
+        <div class="cb-g">Thầy cô đăng nhập bằng <b>Gmail của chính mình</b> — nhà trường không cấp
+          mật khẩu cho ai nữa. Bấm <b>Mã mời Google</b> ở dưới để tạo mã 6 ký tự rồi gửi qua Zalo.
+          Xoá tài khoản ở bảng trên là thu quyền ngay, Gmail của thầy cô không bị ảnh hưởng gì.</div>
+      </div></div>
     </div>`;
   $('#hopC').innerHTML='';
   [{ten:'Đóng',phu:1,lam:dong},
-   {ten:`Cấp hàng loạt cho giáo viên`,phu:1,lam:()=>hopCapHangLoat(ds)},
-   {ten:'Cấp tài khoản',lam:async e=>{
-    const gv=$('#tkGV').value, vai=$('#tkVai').value;
-    const hoTen = gv ? (gvId(gv)?.hoTen||'') : $('#tkTen').value.trim();
-    const email=$('#tkEmail').value.trim(), mk=$('#tkMK').value;
-    if(!hoTen||!email||!mk) return bao('Điền đủ họ tên, email và mật khẩu',true);
-    if(mk.length<6) return bao('Mật khẩu cần ít nhất 6 ký tự',true);
-    const b=e.currentTarget, cu=b.textContent; b.disabled=true; b.textContent='Đang cấp…';
-    const kq=await themThanhVien({email, matKhau:mk, hoTen, vaiTro:vai,
-      diemTruongId: vai==='pho_hieu_truong' ? ($('#tkDT').value||null) : null,
-      gvId: gv||null});
-    b.disabled=false; b.textContent=cu;
-    if(!kq.ok) return bao(kq.loi,true);
-    if(kq.can_xac_minh) return hopXacMinh(hoTen, email, mk, kq.lien_ket);
-    bao(kq.thong_bao||'Đã cấp tài khoản');
-    const lai=await dsThanhVien(); if(lai.ok) veHopTaiKhoan(lai.data||[]);
-  }}].forEach(x=>{const b=document.createElement('button');
+   {ten:'Mã mời Google',lam:hopMaMoi}
+  ].forEach(x=>{const b=document.createElement('button');
     b.className='b '+(x.phu?'b-vien':'b-ch'); b.textContent=x.ten; b.onclick=x.lam; $('#hopC').appendChild(b);});
 
-  /* Chọn tên trong danh sách hay gõ tay; vai trò PHT thì hiện ô điểm trường */
-  const gvSel=$('#tkGV'), vaiSel=$('#tkVai');
-  gvSel.onchange=()=>{ $('#tkTen').style.display = gvSel.value?'none':'block'; };
-  vaiSel.onchange=()=>{ $('#tkODT').style.display = vaiSel.value==='pho_hieu_truong'?'block':'none'; };
-
-  $$('[data-doimk]').forEach(b=>b.onclick=()=>hopDoiMatKhau(b.dataset.doimk, b.dataset.ten));
   $$('[data-xoatk]').forEach(b=>b.onclick=()=>hopXoaTaiKhoan(b.dataset.xoatk, b.dataset.ten));
 }
 
-/* ---------- Cấp tài khoản hàng loạt cho giáo viên ----------
-   Gõ tay 35 lần thì không ai làm. Máy sinh sẵn tên đăng nhập và mật khẩu,
-   tạo một loạt, rồi in phiếu cắt phát cho từng thầy cô. */
-function hopCapHangLoat(daCo){
-  const coRoi=new Set((daCo||[]).map(x=>String(x.ho_ten||'').trim()));
-  const chuaCo=S.giaoVien.filter(g=>!coRoi.has(g.hoTen.trim()));
-  if(!chuaCo.length) return hop('Cấp hàng loạt',
-    `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
-      <b>Cả ${S.giaoVien.length} giáo viên đều đã có tài khoản</b>
-      <div class="cb-g">Không còn ai để cấp thêm.</div></div></div>`,
-    [{ten:'Đóng',lam:()=>hopTaiKhoan()}]);
-
-  const mienMD='tkb.local';
-  const ds=tenDangNhapGV(chuaCo, mienMD).map(x=>({...x, matKhau:matKhauNgauNhien()}));
-  hop(`Cấp tài khoản cho ${chuaCo.length} giáo viên`,
-    `<p style="font-size:13px;margin-bottom:13px">Máy sinh sẵn tên đăng nhập và mật khẩu cho
-      ${chuaCo.length} thầy cô chưa có tài khoản. Xong thì in phiếu cắt phát cho từng người.</p>
-
-     <div class="on-l"><label>Đuôi tên đăng nhập</label>
-       <input class="ip" id="hlMien" value="${mienMD}" style="width:100%">
-       <div class="gy"><b>Không cần hộp thư thật.</b> Máy chủ không gửi thư nào tới địa chỉ này —
-         nó chỉ là tên đăng nhập cho gọn. Thầy cô không phải mở Gmail, không phải xác minh gì.</div></div>
-
-     <div class="bang" style="max-height:38vh"><table class="dl"><thead><tr>
-       <th>Giáo viên</th><th>Tên đăng nhập</th><th>Mật khẩu</th></tr></thead><tbody>
-       ${ds.map(x=>`<tr><td>${esc(x.gv.hoTen)}${x.gv.cn?` <span style="color:var(--chu-mo)">· CN ${esc(tenCN(x.gv))}</span>`:''}</td>
-         <td style="font-family:ui-monospace,Consolas,monospace">${esc(x.email)}</td>
-         <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(x.matKhau)}</b></td></tr>`).join('')}
-     </tbody></table></div>
-
-     <div class="canhbao" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t">
-       <b>In phiếu ngay sau khi cấp</b>
-       <div class="cb-g">Mật khẩu chỉ hiện một lần này. Quên thì phải đặt lại từng người,
-         không xem lại được — máy chủ không lưu mật khẩu dạng đọc được.</div></div></div>
-
-     <div id="hlTien" style="display:none;margin-top:13px">
-       <div class="tien"><i id="hlThanh" style="width:0%"></i></div>
-       <div class="gy" id="hlChu" style="margin-top:7px"></div>
-     </div>`,
-    [{ten:'Huỷ',phu:1,lam:()=>hopTaiKhoan()},
-     {ten:`Cấp ${chuaCo.length} tài khoản`,lam:async e=>{
-       const mien=($('#hlMien').value||mienMD).trim().replace(/^@/,'');
-       const b=e.currentTarget; b.disabled=true;
-       $('#hlTien').style.display='block';
-       const xong=[], hong=[];
-       for(let i=0;i<ds.length;i++){
-         const x=ds[i], email=x.ten+'@'+mien;
-         $('#hlThanh').style.width=Math.round(i/ds.length*100)+'%';
-         $('#hlChu').textContent=`Đang cấp ${i+1}/${ds.length} — ${x.gv.hoTen}`;
-         b.textContent=`Đang cấp ${i+1}/${ds.length}…`;
-         const kq=await themThanhVien({email, matKhau:x.matKhau, hoTen:x.gv.hoTen,
-           vaiTro:'giao_vien', gvId:x.gv.id});
-         if(kq.ok) xong.push({hoTen:x.gv.hoTen, cn:tenCN(x.gv), email, matKhau:x.matKhau});
-         else hong.push({hoTen:x.gv.hoTen, loi:kq.loi});
-       }
-       $('#hlThanh').style.width='100%';
-       hopKetQuaHangLoat(xong, hong);
-     }}]);
-}
-
-function hopKetQuaHangLoat(xong, hong){
-  PHIEU=xong;
-  hop('Đã cấp xong',
-    `<div class="canhbao ${hong.length?'':'ok'}"><div class="cb-ic">${hong.length?'!':'✓'}</div><div class="cb-t">
-      <b>Cấp được ${xong.length} tài khoản${hong.length?`, hỏng ${hong.length}`:''}</b>
-      <div class="cb-g">${xong.length?'Bấm <b>In phiếu</b> ngay bây giờ — mật khẩu chỉ hiện lần này.'
-        :'Không cấp được tài khoản nào.'}</div></div></div>
-     ${hong.length?`<div class="bang" style="max-height:20vh;margin-top:12px"><table class="dl"><tbody>
-       ${hong.map(x=>`<tr><td><b>${esc(x.hoTen)}</b></td><td>${esc(x.loi)}</td></tr>`).join('')}
-     </tbody></table></div>`:''}
-     ${xong.length?`<div class="bang" style="max-height:34vh;margin-top:12px"><table class="dl"><thead><tr>
-       <th>Giáo viên</th><th>Tên đăng nhập</th><th>Mật khẩu</th></tr></thead><tbody>
-       ${xong.map(x=>`<tr><td>${esc(x.hoTen)}</td>
-         <td style="font-family:ui-monospace,Consolas,monospace">${esc(x.email)}</td>
-         <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(x.matKhau)}</b></td></tr>`).join('')}
-     </tbody></table></div>`:''}`,
-    [{ten:'Đóng',phu:1,lam:dong},
-     ...(xong.length?[{ten:'In phiếu',lam:()=>inRa(trangInPhieu(xong), `${xong.length} phiếu tài khoản`)}]:[])]);
-}
-
-let PHIEU=[];
-/* Phiếu cắt phát: mỗi thầy cô một ô, 2 cột trên khổ A4 dọc */
-function trangInPhieu(ds){
-  const dc=(typeof location!=='undefined'&&location.origin!=='null')
-    ? location.origin+location.pathname.replace(/\/[^/]*$/,'/') : '';
-  return `<div class="tr-in"><div class="in-d">
-      <div class="in-d1">${esc(S.tenTruong)}</div>
-      <div class="in-d2">Phiếu tài khoản xem thời khóa biểu</div>
-      <div class="in-d3">Năm học ${esc(S.namHoc||'')} · cắt theo đường kẻ, phát cho từng thầy cô</div>
-    </div>
-    <div class="phieu">${ds.map(x=>`<div class="ph">
-      <div class="ph-t">${esc(x.hoTen)}${x.cn?` · Chủ nhiệm ${esc(x.cn)}`:''}</div>
-      <div class="ph-d">Mở địa chỉ</div><div class="ph-v">${esc(dc)}</div>
-      <div class="ph-d">Tên đăng nhập</div><div class="ph-v"><b>${esc(x.email)}</b></div>
-      <div class="ph-d">Mật khẩu</div><div class="ph-v"><b>${esc(x.matKhau)}</b></div>
-      <div class="ph-g">Đăng nhập một lần, lần sau mở là thấy lịch ngay.</div>
-    </div>`).join('')}</div></div>`;
-}
-
-/* Tài khoản quản lý vừa tạo — bày liên kết xác minh để quản trị gửi đi */
-function hopXacMinh(ten, email, matKhau, lienKet){
-  hop('Đã tạo tài khoản cho '+ten,
-    `<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
-      <b>Tài khoản quản lý phải xác minh email trước khi đăng nhập</b>
-      <div class="cb-g">Người này dựng và sửa được thời khóa biểu của cả trường, nên cửa vào
-        phải chắc: họ phải mở đúng hộp thư đó và bấm liên kết. Giáo viên thì không cần bước này.</div></div></div>
-
-     <div class="hang" style="margin-top:14px">Email <b>${esc(email)}</b></div>
-     <div class="hang">Mật khẩu <b>${esc(matKhau)}</b></div>
-
-     ${lienKet?`<div style="margin-top:15px">
-       <div style="font-weight:700;font-size:13.5px;margin-bottom:7px">Liên kết xác minh — gửi cho người này</div>
-       <textarea class="ip" id="xmLK" readonly rows="3"
-         style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;resize:vertical">${esc(lienKet)}</textarea>
-       <div class="gy">Gửi qua Zalo hay tin nhắn cũng được, không nhất thiết phải qua thư điện tử.
-         Họ bấm liên kết là xác minh xong, rồi đăng nhập bằng email và mật khẩu ở trên.</div>
-     </div>`:`<div class="gy" style="margin-top:13px">Máy chủ đã gửi thư xác minh tới ${esc(email)}.
-       Nhắc người này mở hộp thư, kể cả thư mục Spam.</div>`}`,
-    [{ten:'Xong',phu:1,lam:async()=>{ dong();
-        const lai=await dsThanhVien(); if(lai.ok){ hopTaiKhoan(); } }},
-     ...(lienKet?[{ten:'Chép liên kết',lam:()=>{
-        const o=$('#xmLK'); o.select(); o.setSelectionRange(0,99999);
-        try{ document.execCommand('copy'); bao('Đã chép liên kết'); }
-        catch(e){ bao('Bôi đen rồi bấm Ctrl+C',true); }
-     }}]:[])]);
-}
-
-function hopDoiMatKhau(id, ten){
-  hop('Đặt lại mật khẩu',
-    `<p style="font-size:13px;margin-bottom:13px">Đặt mật khẩu mới cho <b>${esc(ten)}</b>.
-      Nhớ báo lại cho thầy cô đó.</p>
-     <div class="on-l"><label>Mật khẩu mới</label><input class="ip" id="mkMoi" style="width:100%" placeholder="ít nhất 6 ký tự"></div>`,
-    [{ten:'Huỷ',phu:1,lam:()=>hopTaiKhoan()},{ten:'Đặt lại',lam:async e=>{
-      const mk=$('#mkMoi').value;
-      if(mk.length<6) return bao('Mật khẩu cần ít nhất 6 ký tự',true);
-      const b=e.currentTarget; b.disabled=true; b.textContent='Đang đặt…';
-      const kq=await datLaiMatKhau(id, mk);
-      if(!kq.ok){ b.disabled=false; b.textContent='Đặt lại'; return bao(kq.loi,true); }
-      dong(); bao(`Đã đặt lại mật khẩu cho ${ten}`);
-    }}]);
-}
+/* Cấp tài khoản bằng mật khẩu — GỠ BỎ 2/8/2026.
+   Trước đây quản trị sinh sẵn tên đăng nhập @tkb.local kèm mật khẩu, cấp
+   hàng loạt rồi in phiếu cắt phát. Nay thầy cô đăng nhập bằng Gmail của
+   chính mình và nhận quyền qua MÃ MỜI (xem hopMaMoi) — nhà trường không
+   cấp, không giữ, không đặt lại mật khẩu của ai nữa.
+   Mã cũ (hopCapHangLoat, hopKetQuaHangLoat, trangInPhieu, hopXacMinh,
+   hopDoiMatKhau) tra lại trong lịch sử git nếu cần. */
 
 function hopXoaTaiKhoan(id, ten){
   hop('Xoá tài khoản',
@@ -7055,12 +6812,22 @@ async function hopMaMoi(){
 
 /* Đăng ký trường mới — dành cho trường thứ hai trở đi */
 function hopDangKyTruong(){
+  /* Phải đăng nhập Google trước — người đăng ký sẽ thành quản trị của trường,
+     và tài khoản đó chính là Gmail họ vừa dùng. Không tạo mật khẩu nào nữa. */
+  if(!KHO.phien) return hop('Đăng nhập trước đã',
+    `<p style="font-size:13px;margin-bottom:14px">Đăng ký trường mới cần biết <b>ai</b> là người
+      đăng ký — người đó sẽ thành quản trị của trường.</p>
+     <div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
+       <b>Đăng nhập bằng Google trước, rồi quay lại đăng ký</b>
+       <div class="cb-g">Tài khoản Gmail vừa đăng nhập sẽ là tài khoản quản trị của trường mới.</div>
+     </div></div>`,
+    [{ten:'Huỷ',phu:1,lam:dong},
+     {ten:'Đăng nhập bằng Google',lam:()=>{ const k=dangNhapGoogle(); if(!k.ok) bao(k.loi,true); }}]);
+
   hop('Đăng ký trường mới',
     `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Dành cho trường chưa có trong hệ thống.
-      Người đăng ký thành quản trị của trường đó. Mỗi tài khoản chỉ thuộc một trường.</p>
-     <div class="on-l"><label>Email</label><input class="ip" id="dkEmail" type="email" placeholder="hieutruong@truong.edu.vn"></div>
-     <div class="on-l"><label>Mật khẩu</label><input class="ip" id="dkMK" type="password" placeholder="ít nhất 6 ký tự">
-       <div class="gy">Đây là mật khẩu đăng nhập phần mềm về sau. Ghi lại cẩn thận.</div></div>
+      Tài khoản <b>${esc(KHO.phien.email||'')}</b> sẽ thành quản trị của trường này.
+      Mỗi tài khoản chỉ thuộc một trường.</p>
      <div class="on-l"><label>Họ và tên người đăng ký</label><input class="ip" id="dkHoTen" placeholder="Nguyễn Văn A"></div>
      <div class="on-l"><label>Tên trường</label><input class="ip" id="dkTen" placeholder="Trường Tiểu học ..."></div>
      <div class="on-l"><label>Mã trường</label><input class="ip" id="dkMa" placeholder="THABC">
@@ -7075,19 +6842,10 @@ function hopDangKyTruong(){
          tên cũ hay tên cơ quan chủ quản trước đây.</div></div></div>`,
     [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đăng ký',lam:async e=>{
       const v=id=>$(id).value.trim();
-      const em=v('#dkEmail'), mk=$('#dkMK').value, hoTen=v('#dkHoTen'), ten=v('#dkTen'), ma=v('#dkMa');
-      if(!em||!mk||!hoTen||!ten||!ma) return bao('Điền đủ email, mật khẩu, họ tên, tên trường và mã trường',true);
+      const hoTen=v('#dkHoTen'), ten=v('#dkTen'), ma=v('#dkMa');
+      if(!hoTen||!ten||!ma) return bao('Điền đủ họ tên, tên trường và mã trường',true);
       const b=e.currentTarget, cu=b.textContent;
-      b.disabled=true; b.textContent='Đang tạo tài khoản…';
-      /* Có tài khoản rồi thì đăng nhập, chưa có thì tạo mới */
-      let vao=await dangNhap(em,mk);
-      if(!vao.ok){
-        const dk=await dangKyTaiKhoan(em,mk);
-        if(!dk.ok){ b.disabled=false; b.textContent=cu; return bao(dk.loi,true); }
-        if(dk.canXacNhan){ b.disabled=false; b.textContent=cu;
-          return bao('Đã gửi thư xác nhận tới '+em+'. Mở thư, bấm liên kết rồi quay lại đăng ký tiếp.'); }
-      }
-      b.textContent='Đang tạo trường…';
+      b.disabled=true; b.textContent='Đang tạo trường…';
       const kq=await dangKyTruong({ten, maTruong:ma, hoTen, xa:v('#dkXa'), tinh:v('#dkTinh')});
       if(!kq.ok){ b.disabled=false; b.textContent=cu; return bao(kq.loi,true); }
       const t=await taiDuLieu();
