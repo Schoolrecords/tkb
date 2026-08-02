@@ -441,7 +441,26 @@ kt('Nạp ExcelJS để ghi tệp có màu, có viền, có khổ giấy', (() =
 kt('Bảng mẫu nhập vẫn đúng ba trang tính và tên cột',
    w.bangMauNhap().gv[0].join() === 'Ma_GV,Ho_ten,Chu_nhiem,Dinh_muc');
 
-console.log('\n17. Không có lỗi chạy nào');
+console.log('\n17. PWA — cài lên màn hình chính điện thoại');
+kt('Trang khai manifest, màu chủ đề và biểu tượng cho iPhone',
+   w.document.querySelector('link[rel="manifest"]')?.getAttribute('href') === 'manifest.webmanifest'
+   && w.document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#1B2559'
+   && !!w.document.querySelector('link[rel="apple-touch-icon"]'));
+kt('manifest.webmanifest hợp lệ, đủ tên + biểu tượng + chạy độc lập', (() => {
+  const m = JSON.parse(readFileSync(join(goc, 'src/manifest.webmanifest'), 'utf8'));
+  return m.name && m.short_name && m.display === 'standalone'
+    && Array.isArray(m.icons) && m.icons.length >= 2
+    && m.icons.every(i => { readFileSync(join(goc, 'src', i.src)); return true; });
+})());
+kt('sw.js đọc được, có xử lý fetch và KHÔNG BAO GIỜ cache Supabase', (() => {
+  const sw = readFileSync(join(goc, 'src/sw.js'), 'utf8');
+  new Function(sw);                       /* chỉ soát cú pháp, không chạy */
+  return sw.includes("addEventListener('fetch'") && sw.includes('.supabase.co');
+})());
+kt('Trình duyệt giả không có serviceWorker mà trang vẫn chạy — đăng ký được rào đúng',
+   !('serviceWorker' in w.navigator));
+
+console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');
 

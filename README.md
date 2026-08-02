@@ -69,6 +69,11 @@ src/index.html                toàn bộ ứng dụng, một file, không cần 
                               vùng /*#region QUYEN*/  là phân quyền giao diện
                               vùng /*#region XUAT*/   là dựng bảng để xuất
 src/cauhinh.mau.js            mẫu cấu hình máy chủ — chép thành src/cauhinh.js
+src/manifest.webmanifest      khai báo PWA — cài app lên màn hình chính điện thoại
+src/sw.js                     service worker: mạng trước kho sau, mất mạng vẫn mở
+                              được trang; không bao giờ cache Supabase
+src/bieu-tuong-192.png        biểu tượng app khi cài lên máy (192 và 512 px)
+src/bieu-tuong-512.png
 
 data/truong-dien-lien.json    dữ liệu thật: 25 lớp · 35 GV · 265 dòng · 710 tiết
 data/mau-nhap-pcgd.xlsx       mẫu Excel đúng định dạng nhập liệu
@@ -90,6 +95,8 @@ test/kiem-thu.mjs             bộ kiểm thử thuật toán và tầng dữ li
 test/soi-giao-dien.mjs        bấm thử giao diện trong trình duyệt giả (npm run soi)
 test/soi-worker.mjs           kiểm Web Worker xếp kỹ trong Chrome thật, chạy tay
                               (jsdom không có Worker nên npm run soi không kiểm được)
+test/soi-pwa.mjs              kiểm PWA trong Chrome thật: đăng ký service worker,
+                              ngắt mạng tải lại vẫn mở, không cache Supabase
 
 docs/thuat-toan.md            cách thuật toán xếp hoạt động
 docs/quy-tac-kiem-tra.md      10 quy tắc kiểm tra khả thi

@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Thời khóa biểu năm học 2026–2027</title>
+<!-- PWA: giáo viên cài app lên màn hình chính, mất mạng vẫn mở được trang.
+     Hai tệp đi kèm là ngoại lệ có chủ đích của quy ước một tệp:
+     service worker theo chuẩn web bắt buộc phải là tệp riêng cùng nguồn. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1B2559">
+<link rel="apple-touch-icon" href="bieu-tuong-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TKB">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -6302,6 +6311,13 @@ async function khoiDong(){
   else if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);
 }
 khoiDong();
+
+/* Đăng ký service worker — chỉ khi chạy qua http/https (mở bằng file://
+   hay trong trình duyệt giả của npm run soi thì bỏ qua, không lỗi gì).
+   Đường dẫn tương đối để chạy được cả ở gốc lẫn dưới /tkb/ của GitHub Pages. */
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').catch(()=>{ /* không có SW vẫn chạy bình thường */ });
+}
 </script>
 </body>
 </html>

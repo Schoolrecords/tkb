@@ -665,6 +665,15 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       ⚠️ Bẫy khi viết phép thử: `PA_TIM`, `WK_XEP`, `DANG_XEP_KY` là `let`
       mức trang, KHÔNG phải thuộc tính `window` — trong `p.evaluate()`
       phải đọc bằng tên trần, đọc `window.PA_TIM` là ra biến khác.
+- [x] **PWA** — giáo viên cài app lên màn hình chính, mất mạng vẫn mở được
+      trang *(2/8/2026)*. Ba tệp thêm vào `src/`: `manifest.webmanifest`,
+      `sw.js`, `bieu-tuong-192/512.png` — ngoại lệ có chủ đích của quy ước
+      một tệp, vì chuẩn web bắt buộc service worker là tệp riêng cùng nguồn.
+      `sw.js` chạy **mạng trước, kho sau** (không bao giờ kẹt bản cũ) và
+      **tuyệt đối không cache Supabase** (dữ liệu trường phải luôn tươi).
+      Đăng ký chỉ khi chạy qua http/https — mở `file://` hay jsdom thì bỏ
+      qua êm. Kiểm bằng `node test/soi-pwa.mjs` (Chrome thật: đăng ký,
+      ngắt mạng tải lại vẫn mở, kho không dính Supabase).
 - [x] Màn hình tự đăng ký trường mới — `db/dang-ky-truong.sql`
 - [x] Mời thành viên qua giao diện — `db/edge-function-tai-khoan.ts`
 - [x] Hướng dẫn sử dụng theo vai trò trong app
