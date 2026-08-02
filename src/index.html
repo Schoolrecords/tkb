@@ -458,6 +458,19 @@ table.tt td.goc,table.tt th.canh{position:sticky;left:0;z-index:2;background:#F7
 table.tt td b{display:block;font-weight:700;font-size:11.5px}
 table.tt td span{display:block;font-size:10.5px;color:var(--chu-mo)}
 table.tt tr.het td{border-bottom:2px solid var(--ke-2)}
+/* Vạch đậm giữa hai NGÀY — mốc lớn nhất khi mắt quét dọc bảng 30 dòng */
+table.tt tr.het-ngay td{border-bottom:3px solid var(--nav-mo)}
+/* Dải khối gộp ô trên tên lớp. Hai hàng tiêu đề cùng dính, nên hàng dưới
+   phải lùi xuống đúng chiều cao hàng trên — chốt cứng 26px cho khớp. */
+table.tt.co-khoi thead tr.dai-khoi th{top:0;height:26px;z-index:5;
+  background:var(--nav);color:#fff;font-size:10.5px;letter-spacing:.06em;
+  text-align:center;border-right:1px solid rgba(255,255,255,.22)}
+table.tt.co-khoi thead tr.dai-khoi th.goc{background:var(--nav);z-index:6}
+table.tt.co-khoi thead tr:nth-child(2) th{top:26px}
+/* Ô "nghỉ": kẻ sọc mờ để mắt bỏ qua ngay, khỏi phải đọc từng chữ.
+   Vẫn giữ chữ — bỏ trống thì lẫn với tiết chưa xếp. */
+table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#C2C9D8;letter-spacing:.04em;
+  background:repeating-linear-gradient(135deg,#F7F9FD,#F7F9FD 5px,#EFF3FA 5px,#EFF3FA 10px)}
 
 /* đèn báo tình trạng máy chủ + khối mã trong hộp thoại */
 .cham-mc{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#8E9BC4;box-shadow:0 0 0 3px rgba(255,255,255,.09)}
@@ -1582,6 +1595,36 @@ function dongBoPhongTin(){
    Mã lớp mang tiền tố điểm trường nên ba điểm trường cùng có lớp "1A" vẫn
    phân biệt được — đúng nguyên tắc tham chiếu bằng mã, không bằng tên. */
 const CHU_LOP='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+/* Mã lớp trông có xấu không — dùng để mời người dùng đặt lại.
+   Cơ sở dữ liệu dựng trước khi có cột `ma_lop` để trống ô đó, nên phần mềm
+   phải bày tạm mã UUID của máy chủ: một chuỗi 36 ký tự vô nghĩa nằm chình
+   ình giữa bảng. Mã lớp là thứ NGƯỜI đọc và gõ vào Excel, không phải mã máy. */
+const maXauXi = l => {
+  const m=String(l.maLop||l.id||'');
+  return !l.maLop || m.length>14 || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(m);
+};
+/* Tiền tố lấy chữ đầu các từ trong tên điểm trường: "Điểm trường Diễn Liên" → DL */
+function tienToDT(ten){
+  const chu=khongDau(String(ten||'').replace(/^\s*Điểm\s+trường\s*/i,''))
+    .split('-').filter(Boolean);
+  return chu.map(x=>x[0]).join('').toUpperCase().slice(0,3) || 'DT';
+}
+/* Đặt lại mã cho các lớp có mã xấu: <tiền tố điểm trường>-<tên lớp>.
+   Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id` nên không xê dịch gì. */
+function datLaiMaLop(){
+  const daCo=new Set(S.lop.map(l=>l.maLop).filter(Boolean));
+  let doi=0;
+  S.lop.forEach(l=>{
+    if(!maXauXi(l)) return;
+    daCo.delete(l.maLop);
+    const goc=tienToDT(dtId(S.lopDT[l.id])?.ten)+'-'+String(l.ten||'').replace(/\s+/g,'');
+    let m=goc, i=1;
+    while(daCo.has(m)) m=goc+'-'+(++i);
+    daCo.add(m); l.maLop=m; doi++;
+  });
+  return doi;
+}
+
 function sinhLop(khoi, so, tienTo, dt){
   const r=[], n=Math.max(0,Math.min(26,+so||0));
   for(let i=0;i<n;i++){
@@ -3648,9 +3691,7 @@ function mDieuHanh(){
         <button class="b b-vien" data-di="tkbkhoi">Theo khối</button>
         <button class="b b-vang" data-di="xuatin">Xuất và in</button>
       </div>
-      <div style="max-height:46vh;overflow:auto;border:1px solid var(--ke);border-radius:var(--r2)">
-        ${luoiRongHTML(ds,true)}
-      </div>
+      ${luoiRongHTML(xepTheoKhoi(ds),true,'46vh')}
       <div class="gy" style="margin-top:10px">Cuộn trong khung để xem hết.
         ${KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
           :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.':''}</div>
@@ -4163,24 +4204,48 @@ function hopTimDayThay(){
    ================================================================== */
 
 /* Bảng dùng chung cho cả hai màn hình. `ds` đã sắp sẵn thứ tự cột. */
-function luoiRongHTML(ds, ghiKhoi){
+/* Lưới rộng — GƯƠNG MẶT của sản phẩm. Bốn thứ làm nó đọc được ở quy mô
+   25–60 cột × 30 dòng, và cả ba đều là chuyện đọc chứ không phải trang trí:
+
+   1. Tiêu đề DÍNH cả hai chiều: hàng tên lớp dính đỉnh, cột giờ dính trái.
+      Cuộn tới giữa bảng mà không biết đang xem lớp nào, tiết nào thì bảng
+      vô dụng. ⚠️ Vì vậy KHUNG CUỘN PHẢI LÀ `.tt-boc`, đừng bọc thêm một
+      khung cuộn nữa bên ngoài — hai khung lồng nhau là tiêu đề trôi mất.
+      Cần giới hạn chiều cao thì truyền tham số `cao`.
+   2. Dải KHỐI gộp ô phía trên tên lớp — 25 cột liền nhau không có mốc thì
+      mắt lạc; dải khối chia bảng thành năm mảng nhìn ra ngay.
+   3. Vạch đậm giữa các NGÀY, vạch nhạt giữa hai buổi trong ngày.
+   4. Ô "nghỉ" kẻ sọc mờ: mắt nhận ra ngay là "khối này tan rồi", không
+      phải đọc từng chữ. Vẫn giữ chữ *nghỉ* — bỏ trống thì lẫn với tiết
+      chưa xếp, đó là lỗi đọc sai đã nêu trong bản giao việc. */
+function luoiRongHTML(ds, ghiKhoi, cao){
   if(!ds.length) return `<div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
     <b>Không có lớp nào trong phạm vi đang xem</b></div></div>`;
   const bb=buoiBat();
   const hang=dongGio();
-  return `<div class="tt-boc"><table class="tt">
-    <thead><tr><th class="goc">Giờ</th>
-      ${ds.map(l=>`<th>${esc(tenLopDay(l.id))}${ghiKhoi?`<span style="display:block;font-weight:400;
-        font-size:10px;color:var(--chu-mo)">Khối ${khoiCuaLop(l)}</span>`:''}</th>`).join('')}
+  /* Gộp cột theo khối để dựng dải phía trên — ds phải đã sắp theo khối */
+  const daiKhoi=[];
+  ds.forEach(l=>{
+    const k=khoiCuaLop(l), cuoi=daiKhoi[daiKhoi.length-1];
+    if(cuoi && cuoi.k===k) cuoi.n++; else daiKhoi.push({k, n:1});
+  });
+  return `<div class="tt-boc"${cao?` style="max-height:${cao}"`:''}><table class="tt${ghiKhoi?' co-khoi':''}">
+    <thead>
+      ${ghiKhoi?`<tr class="dai-khoi"><th class="goc"></th>
+        ${daiKhoi.map(x=>`<th colspan="${x.n}">Khối ${x.k}</th>`).join('')}</tr>`:''}
+      <tr><th class="goc">Giờ</th>
+      ${ds.map(l=>`<th>${esc(tenLopDay(l.id))}</th>`).join('')}
     </tr></thead><tbody>
     ${hang.map((o,i)=>{
       const k=bb.find(x=>x.thu===o.thu&&x.buoi===o.buoi);
-      const cuoiBuoi = !hang[i+1] || hang[i+1].thu!==o.thu || hang[i+1].buoi!==o.buoi;
-      return `<tr class="${cuoiBuoi?'het':''}">
+      const sau=hang[i+1];
+      const hetNgay = !sau || sau.thu!==o.thu;
+      const hetBuoi = !hetNgay && sau.buoi!==o.buoi;
+      return `<tr class="${hetNgay?'het-ngay':hetBuoi?'het':''}">
         <td class="goc">${TAT_THU[o.thu]} ${o.buoi==='S'?'sáng':'chiều'} · ${o.tiet}</td>
         ${ds.map(l=>{
           if(k && o.tiet>soTietBuoi(k,khoiCuaLop(l)))
-            return '<td style="background:#F7F9FD;color:#C6CCDA;text-align:center">nghỉ</td>';
+            return '<td class="o-nghi-t">nghỉ</td>';
           const v=S.tkb[l.id]?.[o.khoa];
           if(!v) return '<td></td>';
           const g=gvId(v.gvId);
@@ -5266,6 +5331,7 @@ function mLopHoc(){
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btSinhLop">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Tạo lớp hàng loạt</button>
     <button class="b b-vien" id="btThemLop">Thêm một lớp</button>
+    ${ds.some(l=>maXauXi(l))?`<button class="b b-vien" id="btDatLaiMa" style="color:var(--cam)">Đặt lại mã lớp</button>`:''}
     <span style="font-size:12.5px;color:var(--chu-mo)">${ds.length} lớp · ${Object.keys(theoKhoi).length} khối</span>`)
    :nhanChiXem('thêm và sửa lớp học')+'<div style="margin-bottom:14px"></div>')+`
   ${!ds.length?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
@@ -5775,6 +5841,27 @@ function noiSuKien(){
   /* Lớp học */
   $('#btSinhLop')&&($('#btSinhLop').onclick=hopSinhLop);
   $('#btThemLop')&&($('#btThemLop').onclick=hopThemLop);
+  $('#btDatLaiMa')&&($('#btDatLaiMa').onclick=()=>{
+    const xau=S.lop.filter(maXauXi);
+    hop('Đặt lại mã lớp',
+      `<p style="font-size:13px;margin-bottom:12px"><b>${xau.length} lớp</b> đang mang mã do máy
+        chủ tự sinh — chuỗi dài vô nghĩa, khó đọc và khó gõ vào Excel.</p>
+       <div class="bang" style="max-height:34vh"><table class="dl"><thead><tr>
+         <th>Lớp</th><th>Mã hiện tại</th><th>Mã mới</th></tr></thead><tbody>
+       ${xau.slice(0,12).map(l=>`<tr><td><b>${esc(tenLopDay(l.id))}</b></td>
+         <td style="font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--chu-mo)">${esc(String(l.maLop||l.id).slice(0,20))}…</td>
+         <td style="font-family:ui-monospace,Consolas,monospace"><b>${esc(tienToDT(dtId(S.lopDT[l.id])?.ten)+'-'+String(l.ten||'').replace(/\\s+/g,''))}</b></td></tr>`).join('')}
+       ${xau.length>12?`<tr><td colspan="3" style="color:var(--chu-mo)">…và ${xau.length-12} lớp khác</td></tr>`:''}
+       </tbody></table></div>
+       <div class="gy" style="margin-top:11px">Chỉ đổi <b>mã lớp</b> — thứ để đối chiếu với tệp Excel.
+        Tên lớp, chủ nhiệm, phân công và thời khóa biểu giữ nguyên hoàn toàn.
+        ${coMayChu()&&duocSuaNguon()?'Bấm <b>Lưu</b> sau đó để ghi lên máy chủ.':''}</div>`,
+      [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đặt lại mã',lam:()=>{
+        const n=datLaiMaLop(); dong();
+        bao(`Đã đặt lại mã cho ${n} lớp.${coMayChu()&&duocSuaNguon()?' Bấm Lưu để ghi lên máy chủ.':''}`);
+        ve();
+      }}]);
+  });
   $$('[data-lopten]').forEach(x=>x.onchange=e=>{
     const l=lopId(x.dataset.lopten); if(!l) return;
     const t=e.target.value.trim(); if(!t) return bao('Tên lớp không được để trống',true);

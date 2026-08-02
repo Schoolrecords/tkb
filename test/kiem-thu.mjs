@@ -50,7 +50,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
   chuanMon, laMonNang, laMonNhe, monCanPhong,
   coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
-  taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh,
+  taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi };`;
@@ -74,7 +74,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
         chuanMon, laMonNang, laMonNhe, monCanPhong,
         coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
-        taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh,
+        taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi } = taoUngDung(documentGia);
@@ -912,6 +912,35 @@ kt('Chưa nối máy chủ thì không ghi được, báo rõ',
    ghiKhi.ok === false && ghiKhi.thongBao.length > 20, ghiKhi.thongBao);
 
 /* Ghi thật lên máy chủ giả — đây mới là đường mở cho trường thứ hai */
+/* ---------- 10a. Đặt lại mã lớp xấu ----------
+   Cơ sở dữ liệu dựng trước khi có cột ma_lop để trống ô đó, nên bảng Lớp học
+   bày ra mã UUID 36 ký tự của máy chủ — thứ người dùng phải gõ vào Excel. */
+console.log('\n10a. Đặt lại mã lớp do máy chủ tự sinh');
+{
+  const u = taoUngDung(documentGia);
+  u.S.diemTruong = [{ id: 'dt1', ten: 'Điểm trường Diễn Liên', phongTin: true },
+                    { id: 'dt2', ten: 'Điểm trường Diễn Đồng', phongTin: false }];
+  u.S.lop = [{ id: 'u1', ten: '2A', khoi: 2, maLop: '' },
+             { id: 'u2', ten: '2B', khoi: 2, maLop: '9ef6de95-589a-4a9f-86a9-3e56c1dc4a5c' },
+             { id: 'u3', ten: '2A', khoi: 2, maLop: 'DD-2A' }];
+  u.S.lopDT = { u1: 'dt1', u2: 'dt1', u3: 'dt2' };
+
+  kt('Nhận ra mã xấu: bỏ trống hoặc UUID của máy chủ',
+     u.maXauXi(u.S.lop[0]) && u.maXauXi(u.S.lop[1]) && !u.maXauXi(u.S.lop[2]));
+  kt('Tiền tố lấy chữ đầu tên điểm trường, bỏ chữ "Điểm trường"',
+     u.tienToDT('Điểm trường Diễn Liên') === 'DL' &&
+     u.tienToDT('Điểm trường Diễn Đồng') === 'DD',
+     'Diễn Liên → DL · Diễn Đồng → DD');
+
+  const doi = u.datLaiMaLop();
+  kt('Đặt lại đúng số lớp cần đổi, mã mới đọc được ngay',
+     doi === 2 && u.S.lop[0].maLop === 'DL-2A' && u.S.lop[1].maLop === 'DL-2B',
+     `${doi} lớp · ${u.S.lop.map(l => l.maLop).join(' · ')}`);
+  kt('Mã đang đẹp thì không đụng tới', u.S.lop[2].maLop === 'DD-2A');
+  kt('Mã mới không trùng nhau — hai điểm trường cùng có lớp 2A vẫn phân biệt được',
+     new Set(u.S.lop.map(l => l.maLop)).size === 3);
+}
+
 /* ---------- 10b. Mẫu ma trận một trang ---------- */
 console.log('\n10b. Mẫu Excel ma trận một trang');
 

@@ -260,7 +260,7 @@ kt('Máy nhận ra điểm trường nào có phòng Tin học',
 console.log('\n10. Sản phẩm toàn trường và theo khối');
 w.eval('KQ_XEP = xepTuDong(0)');
 w.chuyen('toantruong');
-const cotTT = w.document.querySelectorAll('.tt thead th').length - 1;
+const cotTT = w.document.querySelectorAll('.tt thead tr:last-child th').length - 1;
 kt('Bảng toàn trường đủ một cột cho mỗi lớp',
    cotTT === w.eval('lopTrongPV().length'), `${cotTT} cột lớp`);
 kt('Bảng toàn trường có ô tiết thật, không rỗng',
@@ -268,7 +268,7 @@ kt('Bảng toàn trường có ô tiết thật, không rỗng',
    `${w.document.querySelectorAll('.tt tbody td b').length} ô có tiết`);
 w.chuyen('tkbkhoi');
 kt('Màn hình theo khối tự chọn sẵn một khối', S.khoiXem != null, `khối ${S.khoiXem}`);
-const cotK = w.document.querySelectorAll('.tt thead th').length - 1;
+const cotK = w.document.querySelectorAll('.tt thead tr:last-child th').length - 1;
 kt('Bảng theo khối chỉ hiện lớp của khối đó',
    cotK === w.eval(`lopTheoKhoi(${S.khoiXem}).length`), `${cotK} lớp`);
 kt('Bản in toàn trường dựng được và dùng khổ rộng', (() => {
@@ -366,7 +366,7 @@ kt('Khai thêm phòng Tin học cho điểm trường đó là xếp trọn vẹ
 })(), (() => { const r = w.eval('KQ_XEP'); return `${r.daXep}/${r.tongCan} tiết · ${r.giay} giây`; })());
 kt('Bảng toàn trường hiện đủ cột cho cả hai điểm trường', (() => {
   w.chuyen('toantruong');
-  return w.document.querySelectorAll('.tt thead th').length - 1 === S.lop.length;
+  return w.document.querySelectorAll('.tt thead tr:last-child th').length - 1 === S.lop.length;
 })(), `${S.lop.length} cột lớp`);
 
 console.log('\n14. Bản in đúng khổ giấy và đủ thể thức');
@@ -702,3 +702,4 @@ kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0
 
 console.log(`\n\x1b[1mKết quả soi giao diện: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
 process.exit(hong ? 1 : 0);
+

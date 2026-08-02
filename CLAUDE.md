@@ -285,6 +285,33 @@ nguyên ảnh gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px.
 cho **Thông tin trường · Môn học · Phòng học** — tệp Excel không chứa ba thứ đó,
 bày nút nhập ở đấy là hứa hão.
 
+#### Lưới rộng — GƯƠNG MẶT của sản phẩm *(trang điểm 2/8/2026)*
+
+`luoiRongHTML(ds, ghiKhoi, cao)` là thứ khách hàng nhìn đầu tiên. Bốn điều
+làm nó đọc được ở quy mô 25–60 cột × 30 dòng, cả bốn là chuyện ĐỌC chứ
+không phải trang trí:
+
+1. **Tiêu đề dính hai chiều** — hàng tên lớp dính đỉnh, cột giờ dính trái.
+   ⚠️ Khung cuộn PHẢI là `.tt-boc`. Bọc thêm một khung cuộn nữa bên ngoài
+   là tiêu đề trôi mất — đã dính thật khi nhúng lưới vào Bảng điều hành.
+   Cần giới hạn chiều cao thì truyền tham số `cao`, đừng bọc div.
+2. **Dải KHỐI gộp ô** phía trên tên lớp (nền navy). 25 cột liền nhau không
+   mốc thì mắt lạc; dải khối chia bảng thành năm mảng nhìn ra ngay. Hai
+   hàng tiêu đề cùng dính nên hàng dưới chốt cứng `top:26px`.
+   Truyền `ds` đã sắp theo khối (`xepTheoKhoi`), không thì dải vỡ vụn.
+3. **Vạch đậm giữa các NGÀY** (`tr.het-ngay`), vạch nhạt giữa hai buổi.
+4. **Ô "nghỉ" kẻ sọc mờ** — mắt nhận ra ngay là "khối này tan rồi". Vẫn
+   giữ chữ *nghỉ*: bỏ trống thì lẫn với tiết chưa xếp.
+
+#### Mã lớp phải là mã NGƯỜI đọc được *(2/8/2026)*
+
+Cơ sở dữ liệu dựng trước khi có cột `ma_lop` để trống ô đó, nên bảng Lớp học
+bày ra mã UUID 36 ký tự của máy chủ — mà mã lớp chính là thứ người dùng phải
+gõ vào tệp Excel. Nút **Đặt lại mã lớp** (chỉ hiện khi có mã xấu) đổi thành
+`<tiền tố điểm trường>-<tên lớp>`: `DL-2A`, `DD-2A`. Ba hàm: `maXauXi()`
+nhận diện, `tienToDT()` lấy chữ đầu tên điểm trường, `datLaiMaLop()` đổi và
+chống trùng. Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id`.
+
 #### Sản phẩm lên trước, quy trình lùi sau *(2/8/2026)*
 
 Chủ dự án nêu đúng chỗ hổng của quy trình ba bước: *"sản phẩm đầu ra quan
