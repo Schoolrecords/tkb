@@ -706,6 +706,92 @@ kt('Nạp ExcelJS để ghi tệp có màu, có viền, có khổ giấy', (() =
 kt('Bảng mẫu nhập vẫn đúng ba trang tính và tên cột',
    w.bangMauNhap().gv[0].join() === 'Ma_GV,Ho_ten,Chu_nhiem,Dinh_muc');
 
+console.log('\n16b. Ô tìm kiếm trong danh sách dài');
+/* Gõ vào ô tìm kiếm rồi phát sự kiện input đúng như trình duyệt thật */
+const goTim = (inp, chu) => {
+  inp.value = chu;
+  inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+};
+const hangHien = ma => [...w.document.querySelectorAll(`#${ma} [data-loctu]`)]
+  .filter(h => h.style.display !== 'none');
+
+kt('Danh sách ngắn KHÔNG bày ô tìm kiếm, danh sách dài thì có',
+   w.oLoc('bX', 4, 'lớp', 'tìm…') === '' && w.oLoc('bX', 40, 'lớp', 'tìm…').includes('data-loc="bX"'));
+kt('Tìm bỏ dấu, không phân biệt hoa thường; nhiều từ khoá là phép VÀ',
+   w.khopLoc('Nguyễn Thị Hương', 'huong') && w.khopLoc('Nguyễn Thị Hương', 'NGUYEN huong')
+   && !w.khopLoc('Nguyễn Thị Hương', 'huong lan') && w.khopLoc('Lớp 1A · Diễn Đồng', 'dien dong'));
+
+w.chuyen('lop');
+const oLop = w.document.querySelector('[data-loc="bLop"]');
+kt('Màn hình Lớp học có ô tìm kiếm kèm số đếm',
+   !!oLop && /^\d+ lớp$/.test(w.document.querySelector('[data-locdem="bLop"]').textContent));
+const maMotLop = hangHien('bLop')[0].dataset.loctu.split(' ')[0];
+goTim(oLop, maMotLop);
+kt(`Gõ mã lớp "${maMotLop}" thì chỉ còn đúng dòng lớp ấy`, hangHien('bLop').length === 1);
+kt('Số đếm đổi thành dạng "còn / tổng" và được tô đậm',
+   /^1\/\d+ lớp$/.test(w.document.querySelector('[data-locdem="bLop"]').textContent)
+   && w.document.querySelector('[data-locdem="bLop"]').classList.contains('hep'));
+kt('LỌC TẠI CHỖ — không vẽ lại màn hình, ô tìm kiếm vẫn là chính nó',
+   w.document.querySelector('[data-loc="bLop"]') === oLop && oLop.value === maMotLop);
+goTim(oLop, 'khong-co-lop-nao-ten-the-nay');
+kt('Không dòng nào khớp thì hiện dải nhắc, không để bảng trống trơn', (() => {
+  const r = w.document.querySelector('[data-locrong="bLop"]');
+  return hangHien('bLop').length === 0 && r.classList.contains('hien') && /Không có lớp nào khớp/.test(r.textContent);
+})());
+kt('Bấm nút × là trả lại đủ danh sách', (() => {
+  w.document.querySelector('[data-locxoa="bLop"]').dispatchEvent(new w.Event('click', { bubbles: true }));
+  const tong = w.document.querySelectorAll('#bLop [data-loctu]').length;
+  return oLop.value === '' && hangHien('bLop').length === tong
+    && !w.document.querySelector('[data-locrong="bLop"]').classList.contains('hien');
+})());
+
+w.chuyen('giaovien');
+const oGV = w.document.querySelector('[data-loc="bGV"]');
+/* Thầy cô gõ điện thoại rất ít khi bỏ dấu đúng — bỏ dấu vẫn phải ra người cần tìm */
+const aiDo = w.eval('S.giaoVien')[0].hoTen;
+const khongDauTen = aiDo.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase();
+goTim(oGV, khongDauTen);
+kt(`Gõ không dấu "${khongDauTen}" vẫn tìm ra "${aiDo}"`,
+   hangHien('bGV').some(h => h.dataset.loctu.includes(aiDo)));
+goTim(oGV, '');
+
+w.chuyen('phancong');
+const fTim = w.document.querySelector('#fTim');
+const monMotDong = w.eval('S.phanCong')[0].mon;
+kt('Bảng phân công có ô tìm kiếm chung với hai ô lọc cũ', !!fTim);
+/* Ô này dò cả tên giáo viên lẫn môn, nên gõ "Tiếng Anh" còn ra dòng của cô
+   Ngọc Anh — đúng ý. Điều phải canh là KHÔNG SÓT: mọi dòng của môn ấy đều còn. */
+kt(`Lọc theo môn "${monMotDong}" không sót dòng nào của môn ấy`, (() => {
+  goTim(fTim, monMotDong);
+  const con = [...w.document.querySelectorAll('#bPC tbody tr')].length;
+  const can = w.eval('S.phanCong').filter(p => p.mon === monMotDong).length;
+  return can > 0 && con >= can && con < w.eval('S.phanCong').length;
+})());
+/* Gõ mã lớp — thứ không bao giờ trùng với tên người — thì lọc phải sạch tuyệt đối */
+kt(`Gõ mã lớp "${maMotLop}" thì mọi dòng còn lại đều của đúng lớp ấy`, (() => {
+  goTim(fTim, maMotLop);
+  const o = [...w.document.querySelectorAll('#bPC tbody tr')];
+  const ten = w.eval('S.lop').find(l => l.maLop === maMotLop).ten;
+  return o.length > 0 && o.every(tr => tr.children[1].textContent.trim() === ten);
+})());
+goTim(fTim, monMotDong);
+kt('Ô tóm tắt đếm lại theo bộ lọc, không giữ số cũ',
+   /^\d+ dòng · \d+ tiết$/.test(w.document.querySelector('#tomTat').textContent));
+kt('Vẽ lại bảng phân công KHÔNG cướp con trỏ đang gõ — ô tìm kiếm nằm ngoài #bPC',
+   w.document.querySelector('#fTim') === fTim && fTim.value === monMotDong);
+goTim(fTim, '');
+
+w.chuyen('tkbgv');
+const oSel = w.document.querySelector('[data-locsel="selGV"]');
+kt('Ô chọn giáo viên dài đi kèm ô tìm kiếm riêng', !!oSel);
+kt('Lọc ô chọn thì mục đang xem KHÔNG BAO GIỜ bị giấu — không để ô chọn trống trơn', (() => {
+  goTim(oSel, 'zzz-khong-co-ai');
+  const sel = w.document.querySelector('#selGV');
+  const dangChon = [...sel.options].find(o => o.value === sel.value);
+  return !dangChon.hidden && [...sel.options].filter(o => !o.hidden).length === 1;
+})());
+goTim(oSel, '');
+
 console.log('\n17. PWA — cài lên màn hình chính điện thoại');
 kt('Trang khai manifest, màu chủ đề và biểu tượng cho iPhone',
    w.document.querySelector('link[rel="manifest"]')?.getAttribute('href') === 'manifest.webmanifest'

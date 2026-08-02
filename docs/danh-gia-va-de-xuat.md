@@ -275,7 +275,10 @@ sự thì hiện phải quay lại Excel.
 
 - Bảng tra cập nhật **tăng dần** trong `xepTuDong()` (hiện dựng lại toàn bộ cho
   mỗi tiết) — làm việc này **trước** Web Worker, rẻ hơn và giữ mã dễ đọc.
-- Ô tìm kiếm cho danh sách ~100 giáo viên sau sáp nhập.
+- ~~Ô tìm kiếm cho danh sách ~100 giáo viên sau sáp nhập.~~ **Xong 2/8/2026** —
+  làm sớm hơn dự kiến vì nó chặn ngay việc nhập dữ liệu thật của ba trường.
+  Mười màn hình có ô tìm kiếm, tìm không dấu, lọc tại chỗ; xem `tkb-app/CLAUDE.md`
+  mục 3 · *Ô tìm kiếm trong danh sách dài*.
 - Nhiều phương án phân bổ lớp về điểm trường, đặt cạnh nhau để so — đây mới là
   quyết định đắt nhất của hiệu trưởng sau sáp nhập.
 - Gói dịch vụ, thanh toán — **sau** khi có ý kiến pháp lý như đã ghi trong mục

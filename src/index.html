@@ -450,6 +450,25 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 
 /* ---------- Bảng khai báo dùng chung cho các màn hình Bước 1 ---------- */
 .kb-thanh{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:13px}
+
+/* ---------- Ô tìm kiếm trong danh sách dài ----------
+   Sau sáp nhập ba trường là ~60 lớp và ~100 giáo viên. Cuộn tay tìm một người
+   trong bảng dài bằng ngón cái trên điện thoại là việc không ai muốn làm. */
+.loc{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+.loc-o{position:relative;flex:1 1 240px;max-width:360px}
+.loc-o svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;
+  stroke:var(--chu-mo);fill:none;stroke-width:2;pointer-events:none}
+.loc-o input{width:100%;padding-left:33px}
+/* Nút xoá của input[type=search] mỗi trình duyệt một kiểu; ta tự vẽ cho đều */
+.loc-o input::-webkit-search-cancel-button{-webkit-appearance:none}
+.loc-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;
+  color:var(--chu-mo);font-size:17px;line-height:1;cursor:pointer;padding:3px 7px;display:none}
+.loc-o.co-chu .loc-x{display:block}
+.loc-dem{font-size:12.5px;color:var(--chu-mo);white-space:nowrap}
+.loc-dem.hep{color:var(--nav);font-weight:700}
+.loc-rong{display:none;padding:26px 16px;text-align:center;color:var(--chu-mo);font-size:13px;
+  background:var(--the);border:1px solid var(--ke);border-radius:var(--r);margin-top:-1px}
+.loc-rong.hien{display:block}
 .dl td .ip{padding:6px 9px;font-size:12.5px}
 .x-hang{background:none;border:none;color:var(--do);font-size:17px;line-height:1;cursor:pointer;padding:2px 6px}
 .x-hang:hover{filter:brightness(.8)}
@@ -3630,6 +3649,126 @@ function dauTrang(tieu,phu,pv){
   return `<div class="dau-trang"><div><h1>${tieu}</h1><div class="dau-p">${phu}</div></div>${chon}</div>`;
 }
 
+/* ==================================================================
+   Ô TÌM KIẾM DÙNG CHUNG CHO DANH SÁCH DÀI
+
+   Sau sáp nhập ba trường: ~60 lớp, ~100 giáo viên, ~600 dòng phân công.
+   Cuộn tay tìm "cô Hương" giữa bảng dài là việc thường xuyên nhất trên các
+   màn hình khai báo, mà lại là việc phần mềm chưa hề đỡ.
+
+   Bốn quyết định của bộ này:
+
+   a) LỌC TẠI CHỖ, KHÔNG VẼ LẠI MÀN HÌNH. Gõ một phím mà gọi `ve()` thì ô
+      tìm kiếm bị dựng lại, con trỏ nhảy ra ngoài và trên điện thoại bàn
+      phím đóng sập. Nên `locBang()` chỉ bật/tắt `display` của từng dòng.
+
+   b) TÌM KHÔNG DẤU, KHÔNG PHÂN BIỆT HOA THƯỜNG. Gõ "huong" phải ra
+      "Nguyễn Thị Hương" — thầy cô gõ điện thoại rất ít khi bỏ dấu đúng.
+
+   c) NHIỀU TỪ KHOÁ LÀ PHÉP VÀ. "huong 3a" ra đúng dòng cô Hương dạy lớp 3A,
+      không ra tất cả những gì chứa "huong" hoặc "3a".
+
+   d) DANH SÁCH NGẮN THÌ KHÔNG BÀY Ô TÌM KIẾM. Trường một điểm, 10 lớp thì
+      ô tìm kiếm chỉ là thứ vướng mắt. Ngưỡng đặt ở NGUONG_LOC.
+   ================================================================== */
+const NGUONG_LOC = 12;
+
+/* Chuẩn hoá chuỗi để so khớp: bỏ dấu, đ→d, về chữ thường, giữ nguyên khoảng
+   trắng (khác `khongDau()` vốn dùng để đặt TÊN TỆP nên nuốt hết dấu cách). */
+function chuTim(s){
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase();
+}
+/* Mọi từ khoá đều phải có mặt thì mới coi là khớp */
+function khopLoc(noiDung, tim){
+  const t=chuTim(tim).trim();
+  if(!t) return true;
+  const g=chuTim(noiDung);
+  return t.split(/\s+/).every(x=>g.includes(x));
+}
+/* Gộp các mẩu thành chuỗi để dò — dùng ngay trong `data-loctu` của mỗi dòng */
+function tuLoc(...manh){ return esc(manh.filter(Boolean).join(' ')); }
+
+/* Dựng ô tìm kiếm. `dich` là id của bảng (hoặc khung) chứa các phần tử mang
+   `data-loctu`. Trả rỗng khi danh sách còn ngắn. */
+function oLoc(dich, so, donVi, goiY){
+  if(so<NGUONG_LOC) return '';
+  return `<div class="loc">
+    <div class="loc-o">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+      <input class="ip" type="search" data-loc="${esc(dich)}" data-donvi="${esc(donVi)}"
+        placeholder="${esc(goiY)}" autocomplete="off" spellcheck="false">
+      <button class="loc-x" type="button" data-locxoa="${esc(dich)}" title="Xoá ô tìm kiếm">&times;</button>
+    </div>
+    <span class="loc-dem" data-locdem="${esc(dich)}">${so} ${esc(donVi)}</span>
+  </div>`;
+}
+/* Dòng "không có kết quả" — đặt ngay dưới bảng, chỉ hiện khi lọc hết sạch */
+function locRong(dich){
+  return `<div class="loc-rong" data-locrong="${esc(dich)}"></div>`;
+}
+
+/* Chạy lọc trên bảng của một ô tìm kiếm */
+function locBang(inp){
+  const dich=inp.dataset.loc, khung=document.getElementById(dich);
+  if(!khung) return;
+  const tim=inp.value, donVi=inp.dataset.donvi||'dòng';
+  const hang=khung.querySelectorAll('[data-loctu]');
+  let hien=0;
+  hang.forEach(h=>{
+    const ok=khopLoc(h.dataset.loctu, tim);
+    h.style.display = ok?'':'none';
+    if(ok) hien++;
+  });
+  const dem=document.querySelector(`[data-locdem="${dich}"]`);
+  if(dem){
+    const hep=tim.trim().length>0;
+    dem.textContent = hep ? `${hien}/${hang.length} ${donVi}` : `${hang.length} ${donVi}`;
+    dem.classList.toggle('hep', hep);
+  }
+  const rong=document.querySelector(`[data-locrong="${dich}"]`);
+  if(rong){
+    rong.classList.toggle('hien', hang.length>0 && hien===0);
+    rong.textContent = `Không có ${donVi} nào khớp “${tim.trim()}”.`;
+  }
+  inp.closest('.loc-o')?.classList.toggle('co-chu', tim.length>0);
+}
+
+/* Lọc các mục của một ô chọn dài (Thời khóa biểu theo lớp / theo giáo viên).
+   Mục đang chọn KHÔNG BAO GIỜ bị giấu — giấu đi thì ô chọn hiện ra trống
+   trơn, người dùng tưởng mất dữ liệu. */
+function locChon(inp){
+  const sel=document.getElementById(inp.dataset.locsel);
+  if(!sel) return;
+  const tim=inp.value;
+  let hien=0;
+  [...sel.options].forEach(o=>{
+    const ok = o.value===sel.value || !o.value || khopLoc(o.dataset.loctu||o.textContent, tim);
+    o.hidden = !ok;
+    if(ok && o.value) hien++;
+  });
+  const dem=document.querySelector(`[data-locdem="${inp.dataset.locsel}"]`);
+  if(dem){
+    const hep=tim.trim().length>0;
+    dem.textContent = hep ? `${hien}/${sel.options.length} ${inp.dataset.donvi||''}`.trim() : '';
+    dem.classList.toggle('hep', hep);
+  }
+  inp.closest('.loc-o')?.classList.toggle('co-chu', tim.length>0);
+}
+
+/* Ô tìm kiếm đi kèm một ô chọn — cùng dạng nhưng lọc `<option>`.
+   `khung` để nơi gọi tự định bề ngang: nằm trong thanh công cụ thì co giãn,
+   nằm chồng trên một ô chọn rộng cả thẻ thì phải rộng bằng nó. */
+function oLocChon(idSel, so, donVi, goiY, khung='flex:1 1 180px;max-width:240px'){
+  if(so<NGUONG_LOC) return '';
+  return `<div class="loc-o" style="${khung}">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+    <input class="ip" type="search" data-locsel="${esc(idSel)}" data-donvi="${esc(donVi)}"
+      placeholder="${esc(goiY)}" autocomplete="off" spellcheck="false">
+    <button class="loc-x" type="button" data-locxoa="${esc(idSel)}" title="Xoá ô tìm kiếm">&times;</button>
+  </div>`;
+}
+
 /* ---------- Thanh tiến trình ba bước ----------
    Trước đây nhóm khai báo dữ liệu nằm CUỐI thanh bên, sau cả mục Trợ giúp —
    việc phải làm đầu tiên lại ở chỗ cuối cùng. Nay thứ tự thanh bên đi đúng
@@ -4067,7 +4206,9 @@ function mTKBLop(){
     suaDuoc?'Chạm một tiết rồi chạm ô muốn chuyển tới — làm được cả trên điện thoại. Trên máy tính vẫn kéo thả như cũ.'
       :'Lớp này ngoài phạm vi của thầy cô nên chỉ xem, không chỉnh được.',true)+dieuHuongBuoc('tkblop')+`
   <div class="tkb-thanh">
-    <select class="ip" id="selLop">${ds.map(l=>`<option value="${l.id}" ${l.id===S.lopXem?'selected':''}>Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}</select>
+    ${oLocChon('selLop',ds.length,'lớp','Tìm lớp…')}
+    <select class="ip" id="selLop">${ds.map(l=>`<option value="${l.id}" ${l.id===S.lopXem?'selected':''}
+      data-loctu="${tuLoc(l.ten,l.maLop,dtId(S.lopDT[l.id])?.ten)}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}</select>
     <span class="tag dt d${iDT(S.lopDT[lp])}">${esc(dtId(S.lopDT[lp])?.ten||'')}</span>
     <span class="tag ${dem>=can?'ok':'canh'}">${dem}/${can} tiết</span>
     ${soGhim?`<span class="tag ok">📌 ${soGhim} tiết đã ghim</span>`:''}
@@ -4116,7 +4257,9 @@ function mTKBGV(){
     S.phamVi?`Các giáo viên có tiết tại ${esc(dtId(S.phamVi)?.ten||'')}. Lịch hiện đủ cả tuần, kể cả buổi họ dạy ở nơi khác.`
       :'Kiểm tra lịch dạy và số buổi phải có mặt của từng giáo viên.',true)+dieuHuongBuoc('tkbgv')+`
   <div class="tkb-thanh">
-    <select class="ip" id="selGV">${cds.map(x=>`<option value="${x.id}" ${x.id===S.gvXem?'selected':''}>${esc(x.hoTen)}</option>`).join('')}</select>
+    ${oLocChon('selGV',cds.length,'giáo viên','Tìm giáo viên…')}
+    <select class="ip" id="selGV">${cds.map(x=>`<option value="${x.id}" ${x.id===S.gvXem?'selected':''}
+      data-loctu="${tuLoc(x.hoTen,x.maGV,tenCN(x))}">${esc(x.hoTen)}</option>`).join('')}</select>
     <span class="tag">${Object.keys(lich).length} tiết/tuần</span>
     <span class="tag ${soBuoi>=8?'canh':'ok'}">${soBuoi} buổi có mặt</span>
     ${g?.cn?`<span class="tag ok">Chủ nhiệm ${esc(tenCN(g))}</span>`:''}
@@ -4228,7 +4371,11 @@ function mDayThay(){
         <div class="on-l" style="margin:0"><label>Ngày</label>
           <input type="date" class="ip" id="dtNgay" value="${esc(S.dtNgay)}"></div>
         <div class="on-l" style="margin:0"><label>Giáo viên vắng</label>
-          <select class="ip" id="dtGV">${cds.map(g=>`<option value="${g.id}" ${g.id===S.dtGV?'selected':''}>${esc(g.hoTen)}</option>`).join('')}</select></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            ${oLocChon('dtGV',cds.length,'giáo viên','Tìm giáo viên…')}
+            <select class="ip" id="dtGV">${cds.map(g=>`<option value="${g.id}" ${g.id===S.dtGV?'selected':''}
+              data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(g.hoTen)}</option>`).join('')}</select>
+          </div></div>
         <label style="display:flex;gap:7px;align-items:center;font-size:13px;cursor:pointer">
           <input type="checkbox" id="dtBuoiS" checked> Buổi sáng</label>
         <label style="display:flex;gap:7px;align-items:center;font-size:13px;cursor:pointer">
@@ -4502,9 +4649,11 @@ function mXuatIn(){
       <div class="the-d"><h2>In theo lớp</h2><span class="meta">${ds.length} lớp</span></div>
       <div class="the-t">
         <div class="on-l"><label>Chọn lớp</label>
-          <select class="ip" id="inChonLop" style="width:100%">
+          ${oLocChon('inChonLop',ds.length,'lớp','Tìm lớp…','width:100%')}
+          <select class="ip" id="inChonLop" style="width:100%;margin-top:7px">
             <option value="">Tất cả ${ds.length} lớp — mỗi lớp một trang</option>
-            ${ds.map(l=>`<option value="${l.id}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}
+            ${ds.map(l=>`<option value="${l.id}"
+              data-loctu="${tuLoc(l.ten,l.maLop,dtId(S.lopDT[l.id])?.ten)}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}
           </select></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-ch" id="btInLopMoi" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>In / lưu PDF</button><button class="b b-vien" id="btWordLop" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12l1.2 5 1.3-3.6 1.3 3.6 1.2-5"/></svg>Tải Word</button></div>
@@ -4518,10 +4667,11 @@ function mXuatIn(){
       <div class="the-d"><h2>In theo giáo viên</h2><span class="meta">${dsGV.length} người</span></div>
       <div class="the-t">
         <div class="on-l"><label>Chọn giáo viên</label>
-          <select class="ip" id="inChonGV" style="width:100%">
+          ${oLocChon('inChonGV',dsGV.length,'giáo viên','Tìm giáo viên…','width:100%')}
+          <select class="ip" id="inChonGV" style="width:100%;margin-top:7px">
             <option value="">Tất cả ${dsGV.length} giáo viên — mỗi người một trang</option>
             ${[...dsGV].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'))
-              .map(g=>`<option value="${g.id}">${esc(g.hoTen)}</option>`).join('')}
+              .map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(g.hoTen)}</option>`).join('')}
           </select></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-ch" id="btInGV" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>In / lưu PDF</button><button class="b b-vien" id="btWordGV" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12l1.2 5 1.3-3.6 1.3 3.6 1.2-5"/></svg>Tải Word</button></div>
@@ -5194,8 +5344,13 @@ const HD_ND = {
         </div>
         <p style="margin-top:11px">Khai xong mỗi màn hình nhớ bấm <b>Lưu lên máy chủ</b>, không thì tải lại
           trang là mất.</p>
+        <p><b>Tìm nhanh trong danh sách dài:</b> trường sáp nhập có tới sáu chục lớp và
+          gần trăm thầy cô. Mỗi bảng dài đều có <b>ô tìm kiếm</b> ở phía trên — gõ vài chữ
+          là danh sách rút gọn ngay, <b>không cần gõ dấu</b>. Gõ <i>huong</i> ra
+          <i>Nguyễn Thị Hương</i>; gõ <i>1a dien dong</i> ra đúng lớp 1A của điểm trường
+          Diễn Đồng. Bấm dấu <b>×</b> trong ô là trở lại danh sách đủ.</p>
         <p><b>Nhanh hơn:</b> trường đã có bảng phân công trong Excel thì dùng nút
-          <b>Nhập dữ liệu Excel</b> ở cuối thanh bên — một lần là xong cả chín mục.
+          <b>Nhập từ Excel</b> ngay trên thanh công cụ của màn hình đang mở — một lần là xong cả chín mục.
           Gộp nhiều trường vào một đơn vị thì mỗi lớp phải có <b>Ma_lop</b> riêng
           (ví dụ <i>DL-1A</i>, <i>DD-1A</i>, <i>DT-1A</i>). <b>Tên lớp thì được phép trùng nhau</b> giữa các
           điểm trường — màn hình tự ghi kèm nơi học để khỏi lẫn.</p>
@@ -5487,14 +5642,15 @@ function mLopHoc(){
       <b>Chưa có lớp nào</b>
       <div class="cb-g">Bấm <b>Tạo lớp hàng loạt</b>: khai mỗi khối có mấy lớp là máy tự sinh 1A–1E,
         2A–2E… và tự đặt mã theo điểm trường.</div></div></div>`:''}
-  <div class="bang" style="max-height:66vh"><table class="dl"><thead><tr>
+  ${oLoc('bLop',ds.length,'lớp','Tìm mã lớp, tên lớp, điểm trường, chủ nhiệm…')}
+  <div class="bang" style="max-height:66vh"><table class="dl" id="bLop"><thead><tr>
     <th>Mã lớp</th><th>Tên lớp</th><th class="phai">Khối</th><th>Điểm trường</th>
     <th>Giáo viên chủ nhiệm</th><th class="phai">Tiết/tuần</th>${sua?'<th></th>':''}</tr></thead><tbody>
   ${[1,2,3,4,5].flatMap(k=>(theoKhoi[k]||[])).concat(ds.filter(l=>!(l.khoi>=1&&l.khoi<=5))).map(l=>{
     const cn=cnCuaLop(l.id);
     const tiet=S.phanCong.filter(p=>p.lopId===l.id).reduce((s,p)=>s+p.soTiet,0);
     const lech=tiet-(CHUAN_KHOI[l.khoi]||0);
-    return `<tr>
+    return `<tr data-loctu="${tuLoc(l.maLop,l.ten,'khối '+l.khoi,dtId(S.lopDT[l.id])?.ten,cn?.hoTen)}">
       <td><code style="font-size:12px;color:var(--chu-mo)">${esc(l.maLop||l.id)}</code></td>
       <td>${sua?`<input class="ip" data-lopten="${l.id}" value="${esc(l.ten)}" style="width:92px">`
                :`<b>${esc(l.ten)}</b>`}</td>
@@ -5512,7 +5668,8 @@ function mLopHoc(){
           title="${lech?`Lệch ${lech>0?'+':''}${lech} so với chuẩn ${CHUAN_KHOI[l.khoi]||0}`:'Đúng chuẩn'}">${tiet}</td>
       ${sua?`<td class="phai"><button class="x-hang" data-xoalop="${l.id}" title="Xoá lớp">&times;</button></td>`:''}
     </tr>`;}).join('')}
-  </tbody></table></div>`;
+  </tbody></table></div>
+  ${locRong('bLop')}`;
 }
 
 /* ---------- 3.8c Môn học ---------- */
@@ -5532,12 +5689,13 @@ function mMonHoc(){
       <b>${laMonNgoai.length} môn có trong bảng phân công nhưng chưa có trong danh mục</b>
       <div class="cb-g">${esc(laMonNgoai.join(' · '))} — vẫn xếp được, nhưng chưa có màu riêng và chưa
         khai được số tiết chuẩn. Bấm <b>Thêm môn</b> để bổ sung.</div></div></div>`:''}
-  <div class="bang" style="max-height:66vh"><table class="dl"><thead><tr>
+  ${oLoc('bMon',ds.length,'môn','Tìm tên môn hay loại phòng…')}
+  <div class="bang" style="max-height:66vh"><table class="dl" id="bMon"><thead><tr>
     <th>Môn học</th><th>Màu</th><th style="text-align:center">Ưu tiên<br>sáng sớm</th>
     <th style="text-align:center">Tránh đầu<br>cuối buổi</th><th>Phòng cần</th>
     ${[1,2,3,4,5].map(k=>`<th class="phai">K${k}</th>`).join('')}
     <th class="phai">Đang xếp</th>${sua?'<th></th>':''}</tr></thead><tbody>
-  ${ds.map((m,i)=>`<tr>
+  ${ds.map((m,i)=>`<tr data-loctu="${tuLoc(m.ten,m.phong)}">
     <td><span class="${esc(m.mau)}" style="display:inline-block;width:11px;height:11px;border-radius:4px;
         background:var(--mc);margin-right:8px;vertical-align:-1px"></span>
       ${sua?`<input class="ip" data-monten="${i}" value="${esc(m.ten)}" style="width:120px">`:`<b>${esc(m.ten)}</b>`}</td>
@@ -5556,6 +5714,7 @@ function mMonHoc(){
     ${sua?`<td class="phai"><button class="x-hang" data-xoamon="${i}" title="Xoá môn">&times;</button></td>`:''}
   </tr>`).join('')}
   </tbody></table></div>
+  ${locRong('bMon')}
   <div class="gy" style="margin-top:11px"><b>Ưu tiên sáng sớm</b> — Toán, Tiếng Việt: máy đẩy về tiết 1–3 buổi sáng.
     <b>Tránh đầu cuối buổi</b> — GDTC, Mỹ thuật, Âm nhạc: không xếp tiết cuối sáng hay tiết 1 chiều.
     <b>Phòng cần</b> — ghi tên loại phòng (ví dụ <i>Tin học</i>) thì máy cảnh báo khi điểm trường chưa có phòng ấy.</div>`;
@@ -5579,14 +5738,15 @@ function mPhongHoc(){
       <b>Chưa khai phòng nào — máy đang dùng ô tích “Có phòng Tin học” ở mục Điểm trường</b>
       <div class="cb-g">Khai bảng phòng thì cảnh báo chính xác hơn: biết được điểm trường nào thiếu
         phòng gì, chứ không chỉ riêng phòng Tin.</div></div></div>`:''}
-  <div class="bang"><table class="dl"><thead><tr>
+  ${oLoc('bPhong',ds.length,'phòng','Tìm tên phòng, điểm trường hay môn…')}
+  <div class="bang"><table class="dl" id="bPhong"><thead><tr>
     <th>Tên phòng</th><th>Điểm trường</th><th>Dùng cho môn</th><th class="phai">Tiết/tuần cần</th>${sua?'<th></th>':''}
   </tr></thead><tbody>
   ${ds.length?ds.map(p=>{
     const i=S.phong.indexOf(p);
     const can=S.phanCong.filter(x=>monCanPhong(x.mon)===p.mon && S.lopDT[x.lopId]===p.dtId)
       .reduce((s,x)=>s+x.soTiet,0);
-    return `<tr>
+    return `<tr data-loctu="${tuLoc(p.ten,dtId(p.dtId)?.ten,p.mon)}">
       <td>${sua?`<input class="ip" data-phongten="${i}" value="${esc(p.ten)}" style="width:170px">`:`<b>${esc(p.ten)}</b>`}</td>
       <td>${sua?`<select class="ip" data-phongdt="${i}" style="width:100%;max-width:190px">
           ${S.diemTruong.map(d=>`<option value="${d.id}" ${p.dtId===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}</select>`
@@ -5598,6 +5758,7 @@ function mPhongHoc(){
     </tr>`;}).join('')
    :`<tr><td colspan="${sua?5:4}" style="color:var(--chu-mo);text-align:center;padding:22px">Chưa có phòng nào</td></tr>`}
   </tbody></table></div>
+  ${locRong('bPhong')}
   <datalist id="dsCanPhong">${canPhong.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
   <div class="gy" style="margin-top:11px">Máy đối chiếu cột <b>Dùng cho môn</b> với ô <b>Phòng cần</b>
     trong mục Môn học. Điểm trường có tiết Tin học mà không có phòng Tin học thì quy tắc
@@ -5640,15 +5801,18 @@ function mGiaoVien(){
     <button class="b b-vien" id="btTaiKhoan">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M18 8h5M20.5 5.5v5"/></svg>
     Tài khoản đăng nhập</button>`):'')+`
-  <div class="bang" style="max-height:66vh"><table class="dl"><thead><tr><th>Họ và tên</th>
+  ${oLoc('bGV',ds.length,'giáo viên','Tìm họ tên, mã, lớp chủ nhiệm, điểm trường…')}
+  <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr><th>Họ và tên</th>
     <th class="phai">Định mức</th><th>Chủ nhiệm</th><th>Điểm trường</th>
     <th class="phai">Lớp</th><th class="phai">Tiết/tuần</th><th class="phai">Buổi cần</th><th>Tình trạng</th>
     ${duocSuaNguon()?'<th></th>':''}</tr></thead><tbody>
   ${ds.map(x=>{
     const sua=duocSuaNguon();
+    const tinh=x.thieu?'Thiếu buổi':x.tong>x.g.dinhMuc?'Vượt định mức':'Bình thường';
     const tag=x.thieu?'<span class="tag do">Thiếu buổi</span>'
       :x.tong>x.g.dinhMuc?'<span class="tag canh">Vượt định mức</span>':'<span class="tag ok">Bình thường</span>';
-    return `<tr>
+    return `<tr data-loctu="${tuLoc(x.g.hoTen,x.g.maGV,tenCN(x.g),
+        Object.keys(x.tDT).map(d=>dtId(d)?.ten).join(' '),tinh)}">
       <td>${sua?`<input class="ip" data-gvten="${x.g.id}" value="${esc(x.g.hoTen)}" style="width:190px">`
                :`<b>${esc(x.g.hoTen)}</b>`}</td>
       <td class="phai">${sua?`<input class="ip" type="number" min="1" max="40" data-gvdm="${x.g.id}"
@@ -5661,6 +5825,7 @@ function mGiaoVien(){
       ${sua?`<td class="phai"><button class="x-hang" data-xoagv="${x.g.id}" title="Xoá giáo viên">&times;</button></td>`:''}
     </tr>`;}).join('')}
   </tbody></table></div>
+  ${locRong('bGV')}
   <div class="gy" style="margin-top:11px">Chủ nhiệm đặt ở mục <b>Lớp học</b> — mỗi lớp chọn một người,
     máy tự gỡ ràng buộc cũ nên không ai chủ nhiệm hai lớp.</div>`;
 }
@@ -5673,21 +5838,39 @@ function mPhanCong(){
     <button class="b b-vien" id="btPCTheoGV">Phân công nhanh cho một giáo viên</button>`)
    :nhanChiXem('sửa bảng phân công')+'<div style="margin-bottom:14px"></div>')+`
   <div class="tkb-thanh">
+    <div class="loc-o" style="flex:1 1 220px;max-width:320px">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+      <input class="ip" type="search" id="fTim" placeholder="Tìm tên giáo viên, lớp, môn…"
+        autocomplete="off" spellcheck="false">
+      <button class="loc-x" type="button" id="fTimXoa" title="Xoá ô tìm kiếm">&times;</button>
+    </div>
     <select class="ip" id="fGV"><option value="">Tất cả giáo viên</option>
       ${[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi')).map(g=>`<option value="${g.id}">${esc(g.hoTen)}</option>`).join('')}</select>
     <select class="ip" id="fLop"><option value="">Tất cả lớp</option>
       ${ds.map(l=>`<option value="${l.id}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}</select>
     <span id="tomTat" style="font-size:12.5px;color:var(--chu-mo)"></span>
   </div>
-  <div class="bang" style="max-height:60vh"><table class="dl" id="bPC"></table></div>`;
+  <div class="bang" style="max-height:60vh"><table class="dl" id="bPC"></table></div>
+  <div class="loc-rong" data-locrong="bPC"></div>`;
 }
+/* Bảng phân công vẽ lại theo bộ lọc chứ không ẩn dòng như các bảng khác:
+   600 dòng thì dựng lại DOM rẻ hơn giữ hết trong trang rồi ẩn đi. Ô tìm kiếm
+   `#fTim` nằm NGOÀI `#bPC` nên vẽ lại không cướp con trỏ đang gõ. */
 function bangPC(){
-  const fg=$('#fGV')?.value||'', fl=$('#fLop')?.value||'';
+  const fg=$('#fGV')?.value||'', fl=$('#fLop')?.value||'', ft=$('#fTim')?.value||'';
   const trongPV=lopTrongPV();
   const sua=duocSuaNguon();
   const ds=S.phanCong.map((p,i)=>({p,i}))
-    .filter(({p})=>trongPV.some(l=>l.id===p.lopId)&&(!fg||p.gvId===fg)&&(!fl||p.lopId===fl));
+    .filter(({p})=>trongPV.some(l=>l.id===p.lopId)&&(!fg||p.gvId===fg)&&(!fl||p.lopId===fl)
+      && khopLoc([gvId(p.gvId)?.hoTen, lopId(p.lopId)?.ten, lopId(p.lopId)?.maLop,
+                  dtId(S.lopDT[p.lopId])?.ten, p.mon].filter(Boolean).join(' '), ft));
   if($('#tomTat')) $('#tomTat').textContent=`${ds.length} dòng · ${ds.reduce((s,x)=>s+x.p.soTiet,0)} tiết`;
+  $('#fTimXoa')?.parentElement.classList.toggle('co-chu', ft.length>0);
+  const rong=$('[data-locrong="bPC"]');
+  if(rong){
+    rong.classList.toggle('hien', !ds.length && S.phanCong.length>0);
+    rong.textContent='Không có dòng phân công nào khớp bộ lọc đang đặt.';
+  }
   $('#bPC').innerHTML=`<thead><tr><th>Giáo viên</th><th>Lớp</th><th>Điểm trường</th><th>Môn</th>
     <th class="phai">Tiết/tuần</th><th class="phai">Chuẩn</th>${sua?'<th></th>':''}</tr></thead><tbody>
   ${ds.map(({p,i})=>{
@@ -5774,14 +5957,15 @@ function mBuoiBan(){
       ${coMayChu()?'<button class="b b-ch b-nho" id="btLuuBan">Lưu lên máy chủ</button>':''}
     </div>`:''}
   </div>
-  <div class="bang" style="max-height:70vh"><table class="dl"><thead><tr>
+  ${oLoc('bBan',ds.length,'giáo viên','Tìm họ tên hay lớp chủ nhiệm…')}
+  <div class="bang" style="max-height:70vh"><table class="dl" id="bBan"><thead><tr>
     <th style="min-width:190px">Giáo viên</th>
     ${bb.map(k=>`<th class="giua" style="width:62px">${TAT_THU[k.thu]}<br><span style="font-weight:500;text-transform:none">${k.buoi==='S'?'sáng':'chiều'}</span></th>`).join('')}
     <th class="giua" style="width:74px">Còn lại</th></tr></thead><tbody>
   ${ds.map(g=>{
     const ban=new Set(S.gvNghi[g.id]||[]);
     const con=bb.length-ban.size;
-    return `<tr><td><b>${esc(g.hoTen)}</b>${g.cn?`<span style="color:var(--chu-mo)"> · CN ${esc(tenCN(g))}</span>`:''}</td>
+    return `<tr data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}"><td><b>${esc(g.hoTen)}</b>${g.cn?`<span style="color:var(--chu-mo)"> · CN ${esc(tenCN(g))}</span>`:''}</td>
       ${bb.map(k=>{
         const kb=khoaB(k);
         return `<td class="giua"><input type="checkbox" data-ban="${g.id}|${kb}"
@@ -5791,6 +5975,7 @@ function mBuoiBan(){
       <td class="giua"><b class="${nhieu(g)?'do':''}" style="${nhieu(g)?'color:var(--do)':''}">${con}</b></td></tr>`;
   }).join('')}
   </tbody></table></div>
+  ${locRong('bBan')}
   ${ds.some(nhieu)?`<div class="canhbao" style="margin-top:14px"><div class="cb-ic">~</div><div class="cb-t">
     <b>${ds.filter(nhieu).length} thầy cô bận từ nửa số buổi trở lên</b>
     <div class="cb-g">${esc(ds.filter(nhieu).map(g=>`${g.hoTen} (${soBan(g)}/${bb.length})`).join(' · '))}.
@@ -5809,6 +5994,16 @@ function noiSuKien(){
   $('#selToi')&&($('#selToi').onchange=e=>{S.nguoiDung.gvId=e.target.value;ve();});
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
   $$('[data-dtluoi]').forEach(b=>b.onclick=()=>{ S.dtLuoi=b.dataset.dtluoi; ve(); });
+
+  /* Ô tìm kiếm trong danh sách dài — lọc TẠI CHỖ, tuyệt đối không gọi ve():
+     vẽ lại màn hình sau mỗi phím là con trỏ nhảy ra và bàn phím điện thoại
+     đóng sập ngay từ chữ cái đầu. */
+  $$('[data-loc]').forEach(i=>{ i.oninput=()=>locBang(i); locBang(i); });
+  $$('[data-locsel]').forEach(i=>{ i.oninput=()=>locChon(i); });
+  $$('[data-locxoa]').forEach(b=>b.onclick=()=>{
+    const i=b.parentElement.querySelector('input'); if(!i) return;
+    i.value=''; (i.dataset.loc?locBang:locChon)(i); i.focus();
+  });
 
   /* màn hình chào */
   $('#btChaoTruongMoi')&&($('#btChaoTruongMoi').onclick=e=>{e.preventDefault();hopDangKyTruong();});
@@ -5944,6 +6139,8 @@ function noiSuKien(){
     bao('Đã xoá điểm trường'); ve();});
   if($('#bPC')){ bangPC();
     $('#fGV').onchange=bangPC; $('#fLop').onchange=bangPC;
+    $('#fTim').oninput=bangPC;
+    $('#fTimXoa').onclick=()=>{ $('#fTim').value=''; bangPC(); $('#fTim').focus(); };
     $('#bPC').onchange=e=>{ if(e.target.dataset.pc){
       S.phanCong[+e.target.dataset.pc].soTiet=Math.max(0,+e.target.value||0); ve(); }};
     /* Nút xoá dòng bắt ở mức bảng: bangPC() vẽ lại nhiều lần, nối từng nút thì sót */

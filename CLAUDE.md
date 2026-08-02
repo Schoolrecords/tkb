@@ -390,6 +390,41 @@ Ba hàm giữ quy trình này:
 - `dieuHuongBuoc()` **trả rỗng cho vai trò giáo viên**. Họ chỉ vào xem lịch,
   bày lối đi sang màn hình khác là làm khó họ.
 
+#### Ô tìm kiếm trong danh sách dài *(2/8/2026)*
+
+Sau sáp nhập là ~60 lớp, ~86 giáo viên, ~600 dòng phân công. Việc thường
+xuyên nhất trên các màn hình khai báo — *tìm cô Hương* — lại là việc phần
+mềm chưa hề đỡ: chỉ có cuộn tay, bằng ngón cái, trên điện thoại.
+
+Bốn quyết định của bộ này, cả bốn đều có phép thử:
+
+1. **Lọc tại chỗ, không gọi `ve()`.** Vẽ lại màn hình sau mỗi phím là con trỏ
+   nhảy ra ngoài và bàn phím điện thoại đóng sập ngay từ chữ cái đầu.
+   `locBang()` chỉ bật/tắt `display` của từng dòng.
+2. **Tìm không dấu, không phân biệt hoa thường** — `chuTim()`. Thầy cô gõ
+   điện thoại rất ít khi bỏ dấu đúng; gõ `huong` phải ra *Nguyễn Thị Hương*.
+3. **Nhiều từ khoá là phép VÀ** — `khopLoc()`. `1a dien dong` ra đúng một dòng.
+4. **Danh sách ngắn thì KHÔNG bày ô tìm kiếm** (`NGUONG_LOC = 12`). Trường một
+   điểm, 10 lớp thì ô tìm kiếm chỉ là thứ vướng mắt.
+
+| Hàm | Việc |
+|---|---|
+| `oLoc(id, số, đơn vị, gợi ý)` | dựng ô tìm kiếm cho một **bảng**; trả rỗng khi danh sách còn ngắn |
+| `locRong(id)` | dải *"Không có … nào khớp"* — không để bảng trống trơn |
+| `tuLoc(...mảnh)` | gộp các mẩu thành `data-loctu` của mỗi dòng |
+| `oLocChon(idSel, …)` · `locChon()` | bản dành cho **ô chọn** dài, lọc `<option>` |
+
+Hai chỗ dễ sai khi sửa vùng này:
+
+- **Mục đang chọn không bao giờ bị giấu** trong `locChon()`. Giấu đi thì ô
+  chọn hiện ra trống trơn và người dùng tưởng mất dữ liệu.
+- **Bảng phân công đi đường khác.** 600 dòng thì vẽ lại rẻ hơn giữ hết trong
+  trang rồi ẩn, nên `bangPC()` lọc thẳng trong dữ liệu. Ô `#fTim` vì thế phải
+  nằm **ngoài** `#bPC` — để trong thì mỗi phím gõ là mất con trỏ.
+
+Chỗ đã gắn: Lớp học · Giáo viên · Môn học · Phòng học · Buổi bận · Phân công ·
+TKB theo lớp · TKB theo giáo viên · Dạy thay · Xuất và in.
+
 Ảnh chụp 13 màn hình: **`docs/anh-giao-dien/`**, chụp lại bằng
 `node docs/anh-giao-dien/chup.mjs` (Chrome thật, không tải thêm trình duyệt).
 Khác `npm run soi` ở chỗ đó chạy trình duyệt giả để **kiểm** lỗi, còn tệp này
@@ -811,9 +846,11 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [x] Ghim tiết chỉnh tay + hoàn tác 20 bước *(1/8/2026)*
 - [x] Màn hình **Buổi bận** — ràng buộc cứng số 7 nay nhập được từ giao diện
       *(1/8/2026 — `mBuoiBan()`, `luuBuoiBan()`, ghi thẳng vào `gv_nghi`)*
+- [x] **Ô tìm kiếm cho danh sách dài** *(2/8/2026)* — 10 màn hình, tìm không
+      dấu, lọc tại chỗ không cướp con trỏ. Xem mục 3.
 - [x] Phép thử giao diện thật `npm run soi` (jsdom)
-- [x] CI trên GitHub Actions: mỗi lần đẩy mã chạy đủ `npm test` (192) +
-      `npm run soi` (95) *(2/8/2026 — `.github/workflows/kiem-thu.yml`;
+- [x] CI trên GitHub Actions: mỗi lần đẩy mã chạy đủ `npm test` (233) +
+      `npm run soi` (159) *(2/8/2026 — `.github/workflows/kiem-thu.yml`;
       kiểm thử đỏ thì đừng triển khai)*
       ⚠️ Thư mục dự án nằm trong vùng đồng bộ đám mây: dịch vụ đồng bộ từng
       chèn 117 tệp `desktop.ini` vào `.git/` làm git báo `bad object
