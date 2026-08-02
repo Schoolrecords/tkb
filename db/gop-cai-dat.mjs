@@ -25,6 +25,7 @@ const NGUON = [
   'schema.sql',          // bảng + RLS + luu_tkb
   'mon-hoc-phong.sql',   // danh mục môn, bảng phòng (dùng truong_cua_toi)
   'cong-bo.sql',         // quy tắc UPDATE để bấm được nút Công bố
+  'day-thay.sql',        // phân công dạy thay theo ngày
   'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
 ];
 
@@ -70,7 +71,7 @@ const dich = join(thuMuc, 'cai-dat.sql');
 if (process.argv.includes('--kiem')) {
   const hienCo = existsSync(dich) ? readFileSync(dich, 'utf8').replace(/\r\n/g, '\n') : '';
   if (hienCo === ketQua) {
-    console.log('db/cai-dat.sql khớp với bốn tệp nguồn — đạt.');
+    console.log(`db/cai-dat.sql khớp với ${NGUON.length} tệp nguồn — đạt.`);
   } else {
     console.error('db/cai-dat.sql LỆCH so với tệp nguồn.');
     console.error('Cách sửa: chạy `node db/gop-cai-dat.mjs` rồi commit lại.');

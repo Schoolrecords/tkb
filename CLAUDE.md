@@ -103,7 +103,15 @@ gv_nghi       id, truong_id, giao_vien_id, thu, buoi
 tkb_phien_ban id, truong_id, version, nguoi_sua, du_lieu(jsonb), tao_luc
 nguoi_dung    id, truong_id, ho_ten, email, vai_tro, diem_truong_id
 nhat_ky       id, truong_id, nguoi_dung_id, hanh_dong, thoi_diem, du_lieu_cu
+day_thay      id, truong_id, ngay(date), buoi, tiet, lop_id, mon,
+              gv_vang_id, gv_thay_id(null=lớp tự quản), ghi_chu, nguoi_tao
 ```
+
+**`day_thay` là bảng theo NGÀY, không phải theo tuần** *(2/8/2026 —
+`db/day-thay.sql`)*: cô A ốm sáng thứ Ba 15/9 là chuyện của một ngày, tuyệt
+đối không sửa vào khuôn TKB tuần. Cả trường đọc được (giáo viên phải thấy
+tiết mình dạy thay), chỉ quản lý ghi; trùng khoá (ngày·buổi·tiết·lớp) thì
+`luuDayThay()` ghi đè qua `on_conflict` + `resolution=merge-duplicates`.
 
 **`mon_hoc` và `phong` là hai bảng thêm sau** *(1/8/2026 — `db/mon-hoc-phong.sql`)*.
 Trước đó danh mục môn nằm cứng trong mã (`MON_LOP`, `MON_NANG`, `MON_NHE`) nên
@@ -698,8 +706,8 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       `desktop.ini` trong `.git/` (an toàn, chỉ là tệp hiển thị của Windows).
       Gặp lại lỗi ấy thì làm đúng vậy, đừng `git init` lại.
 - [x] Bộ cài trọn gói `db/cai-dat.sql` — dựng CSDL cho trường mới chỉ còn
-      MỘT lần dán *(2/8/2026)*. Tệp sinh tự động từ bốn tệp nguồn
-      (schema · mon-hoc-phong · cong-bo · dang-ky-truong) bằng
+      MỘT lần dán *(2/8/2026)*. Tệp sinh tự động từ năm tệp nguồn
+      (schema · mon-hoc-phong · cong-bo · day-thay · dang-ky-truong) bằng
       `node db/gop-cai-dat.mjs`; CI chạy `--kiem` nên sửa tệp nguồn mà quên
       sinh lại là đỏ ngay. Đừng sửa tay `cai-dat.sql`.
 - [x] **Quy trình ba bước** — thanh bên xếp theo trình tự làm việc, thanh tiến
@@ -724,15 +732,33 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - [ ] Nhập lớp và giáo viên THẬT của Diễn Đồng, Diễn Thái khi danh sách chốt.
       Đường đã thông: gộp ba bảng phân công vào một tệp Excel, cột `Ma_lop` đặt
       tiền tố theo trường (`DL-1A`, `DD-1A`, `DT-1A`), `Ten_lop` giữ nguyên.
+
+### Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)
+- [x] 1. Module dạy thay / dạy bù *(xong 2/8/2026 — xem trên)*
+- [ ] 2. **Mẫu Excel một trang kiểu ma trận**: mỗi dòng một giáo viên, các môn
+      là cột đánh dấu tích (`x`), kèm cột buổi cố định và danh sách lớp dạy —
+      số tiết suy từ tiết chuẩn CT GDPT 2018 đã có trong `S.monHoc`; cho phép
+      ghi đè kiểu `Toán:3` khi lệch chuẩn. Giữ song song với mẫu 3 trang.
+- [ ] 3. **Đăng nhập Google + phễu demo**: thêm (không thay) đăng nhập
+      email/mật khẩu; người đăng nhập chưa thuộc trường nào thấy TKB demo
+      tương tác + hai lối "Nhập mã mời của trường" / "Đăng ký trường mới" —
+      chống lặp lại sự cố tài khoản mồ côi.
 - [x] Thanh bên gọn lại: bỏ ba nút ở đáy, chuyển vào đúng chỗ dùng *(1/8/2026)*
 - [x] Tên đơn vị mặc định là `Trường Tiểu học mới`, Diễn Liên thành điểm trường
 - [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức
 
 ### Đề xuất tiếp theo — xem `docs/danh-gia-va-de-xuat.md`
-- [ ] **Dạy thay / dạy bù** — khoảng trống lớn nhất về sản phẩm. Untis gọi đây
-      là module được dùng nhiều nhất thế giới; nó biến phần mềm từ *mỗi năm một
-      lần* thành *mỗi tuần một lần*, và ràng buộc điểm trường khiến gợi ý người
-      dạy thay ở đây chính xác hơn hẳn làm tay.
+- [x] **Dạy thay / dạy bù** *(2/8/2026)* — tính năng giữ người dùng quay lại
+      hằng tuần. Màn hình **Dạy thay** (nhóm TRONG NĂM HỌC, chỉ quản lý thấy):
+      chọn ngày + người vắng + buổi → `tietVangCua()` liệt kê tiết trống →
+      `goiYDayThay()` gợi ý người dạy thế, **lọc cứng đúng ràng buộc lõi**
+      (trống tiết · không có tiết ở điểm trường khác cùng buổi · không đăng ký
+      bận), chấm điểm mềm (đang có mặt tại điểm trường +50 · đã dạy lớp +30 ·
+      đúng môn +20 · chủ nhiệm +15 · trừ theo số tiết trong ngày) và trả kèm
+      lý do — máy gợi ý, người quyết. Lối thoát "Lớp tự quản" khi không bố trí
+      được. Giáo viên được phân thấy dải báo ngay đầu màn *Của tôi*. Phép thử
+      tất định đáng nhớ: giờ chào cờ cả 25 chủ nhiệm đều bận → gợi ý chỉ còn
+      giáo viên bộ môn rảnh.
 - [x] Màn hình nhật ký thao tác *(2/8/2026 — xem mục 9 ở trên)*
 - [x] In tổng hợp toàn trường một tờ *(1/8/2026)* · [x] xuất `.ics` cho lịch
       điện thoại *(2/8/2026 — `taoICS()` trong vùng XUAT, RFC 5545 chuẩn:

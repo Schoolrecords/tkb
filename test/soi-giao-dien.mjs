@@ -452,6 +452,46 @@ kt('taoICS chạy ngay trong trang, dựng được sự kiện có múi giờ V
   return t.includes('BEGIN:VEVENT') && t.includes('TZID:Asia/Ho_Chi_Minh')
     && t.includes('RRULE:FREQ=WEEKLY');
 })());
+
+console.log('\n15d. Dạy thay, dạy bù');
+w.chuyen('daythay');
+kt('Màn hình Dạy thay đủ bộ: chọn ngày, chọn người vắng, hai buổi, nút tìm',
+   !!w.document.querySelector('#dtNgay') && !!w.document.querySelector('#dtGV') &&
+   !!w.document.querySelector('#dtBuoiS') && !!w.document.querySelector('#dtBuoiC') &&
+   !!w.document.querySelector('#btTimThay'));
+kt('Chưa có phân công nào thì nói rõ việc cần làm, không để trống',
+   /Chưa có phân công nào/.test(w.document.querySelector('#noiDung').textContent));
+/* Chọn thứ Hai 7/9/2026 và một giáo viên đang có tiết, bấm tìm */
+w.eval(`(() => {
+  const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];
+  S.dtGV = co.gvId; S.dtNgay = '2026-09-07';
+  document.querySelector('#dtNgay').value = '2026-09-07';
+  document.querySelector('#dtGV').value = co.gvId;
+})()`);
+w.document.querySelector('#btTimThay').dispatchEvent(new w.Event('click', { bubbles: true }));
+kt('Bấm tìm là mở hộp gợi ý, mỗi tiết một ô chọn kèm lối thoát "Lớp tự quản"',
+   !!w.document.querySelector('#dtChon0') &&
+   /Lớp tự quản/.test(w.document.querySelector('#hopN').innerHTML) &&
+   /tiết cần người dạy thế/.test(w.document.querySelector('#hopN').textContent));
+kt('Chưa nối máy chủ mà bấm Lưu thì báo rõ, hộp vẫn giữ nguyên lựa chọn', await (async () => {
+  const nutLuu = [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Lưu phân công');
+  nutLuu.dispatchEvent(new w.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  return /Chưa nối máy chủ/.test(w.document.querySelector('#bao').textContent) &&
+         !!w.document.querySelector('#dtChon0');
+})());
+w.eval('dong()');
+kt('Giáo viên được phân dạy thay thấy dải báo ngay trên màn hình Của tôi', (() => {
+  w.eval(`(() => {
+    const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];
+    S.dayThay = [{id:'x1', ngay:'2099-01-05', buoi:'S', tiet:1, lopId:Object.keys(S.tkb)[0],
+                  mon:'Toán', gvVangId:'ai-do', gvThayId:S.nguoiDung.gvId || S.giaoVien[0].id}];
+  })()`);
+  w.chuyen('cuatoi');
+  const co = /tiết dạy thay sắp tới/.test(w.document.querySelector('#noiDung').textContent);
+  w.eval('S.dayThay = []');
+  return co;
+})());
 w.chuyen('xuatin');
 kt('Mỗi thẻ in đều có nút Tải Word đi kèm',
    !!w.document.querySelector('#btWordRong') && !!w.document.querySelector('#btWordLop') &&

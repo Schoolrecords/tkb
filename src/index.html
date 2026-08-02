@@ -556,6 +556,9 @@ table.tt tr.het td{border-bottom:2px solid var(--ke-2)}
   <button class="mi" data-t="cuatoi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>Thời khóa biểu của tôi</button>
   <button class="mi" data-t="xuatin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>Xuất và in</button>
 
+  <div class="nhom">TRONG NĂM HỌC</div>
+  <button class="mi" data-t="daythay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 9a8 8 0 0114-3.5"/><path d="M20 4v4h-4"/><path d="M20 15a8 8 0 01-14 3.5"/><path d="M4 20v-4h4"/></svg>Dạy thay <span class="n" id="nDayThay">0</span></button>
+
   <div class="nhom">TRỢ GIÚP</div>
   <button class="mi" data-t="huongdan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114 2.1c-.9.6-1.6 1-1.6 2.2"/><path d="M12 17.2h.01"/></svg>Hướng dẫn sử dụng</button>
 
@@ -662,6 +665,7 @@ let S = {
   monHoc:dsMonMacDinh(),
   phong:[],             /* rỗng = chưa khai phòng riêng, chỉ dùng cờ phongTin của điểm trường */
   lopDT:{}, khungGio:[], tkb:{}, gvNghi:{},
+  dayThay:[],           /* phân công dạy thay theo ngày — bảng day_thay trên máy chủ */
   nguoiDung:{vaiTro:'qt', gvId:null, diemTruongId:null},
   phamVi:'', trangHienTai:'dieuhanh', lopXem:null, gvXem:null, khoiXem:null,
   oChon:null            /* ô đang chọn trong lưới lớp — lối chỉnh tay trên điện thoại */
@@ -1463,6 +1467,56 @@ function xepDai(tuyChon={}){
 }
 
 /* ==================================================================
+   1b9. DẠY THAY — gợi ý người dạy thế cho một ngày cụ thể
+   ------------------------------------------------------------------
+   Lọc cứng đúng các ràng buộc của thời khóa biểu: đang trống ô giờ đó,
+   KHÔNG có tiết ở điểm trường khác trong cùng buổi (ràng buộc lõi một
+   giáo viên · một buổi · một điểm trường), và không đăng ký bận buổi đó.
+   Chấm điểm mềm để xếp hạng, trả kèm lý do — máy gợi ý, người quyết.
+   ================================================================== */
+
+/* Các tiết của giáo viên vắng trong một thứ, gói theo các buổi được chọn */
+function tietVangCua(gvVangId, thu, dsBuoi){
+  const r=[];
+  Object.entries(S.tkb).forEach(([lp,o])=>Object.entries(o).forEach(([k,v])=>{
+    if(v.gvId!==gvVangId) return;
+    const [t,b,i]=k.split('-');
+    if(+t===+thu && dsBuoi.includes(b)) r.push({thu:+t, buoi:b, i:+i, khoa:k, lopId:lp, mon:v.mon});
+  }));
+  r.sort((a,b)=>(a.buoi===b.buoi ? a.i-b.i : a.buoi==='S'?-1:1));
+  return r;
+}
+
+function goiYDayThay(o, lopId, gvVangId, lichSan){
+  const lich = lichSan || lichTraGV();
+  const dtLop = S.lopDT[lopId];
+  const kB = `${o.thu}-${o.buoi}`;
+  const cn = cnCuaLop(lopId);
+  const uv=[];
+  S.giaoVien.forEach(g=>{
+    if(g.id===gvVangId) return;
+    const oGV = lich[g.id]||{};
+    if(oGV[o.khoa]) return;                                   /* đang dạy tiết đó */
+    if((S.gvNghi[g.id]||[]).includes(kB)) return;             /* bận buổi đó */
+    /* điểm trường họ đứng lớp trong buổi đó — có mặt nơi khác là loại */
+    const dtBuoi = new Set(Object.keys(oGV).filter(k=>k.startsWith(kB+'-')).map(k=>S.lopDT[oGV[k]]));
+    if(dtBuoi.size && !dtBuoi.has(dtLop)) return;
+    let diem=0; const lyDo=[];
+    if(dtBuoi.has(dtLop)){ diem+=50; lyDo.push('đang có mặt tại điểm trường'); }
+    else lyDo.push('trống cả buổi');
+    if(S.phanCong.some(p=>p.gvId===g.id && p.lopId===lopId)){ diem+=30; lyDo.push('đã dạy lớp này'); }
+    if(S.phanCong.some(p=>p.gvId===g.id && p.mon===o.mon)){ diem+=20; lyDo.push('dạy môn '+o.mon); }
+    if(cn && cn.id===g.id){ diem+=15; lyDo.push('chủ nhiệm lớp'); }
+    const tietNgay=Object.keys(oGV).filter(k=>k.startsWith(o.thu+'-')).length;
+    diem-=tietNgay*2;
+    lyDo.push(`${tietNgay} tiết trong ngày`);
+    uv.push({gv:g, diem, lyDo});
+  });
+  uv.sort((a,b)=>b.diem-a.diem || a.gv.hoTen.localeCompare(b.gv.hoTen,'vi'));
+  return uv;
+}
+
+/* ==================================================================
    1c. PHÒNG CHỨC NĂNG, SINH LỚP HÀNG LOẠT, TIẾN ĐỘ BA BƯỚC
    ------------------------------------------------------------------
    Ba nhóm hàm thuần, không đụng DOM — `npm test` kiểm được thẳng.
@@ -1938,10 +1992,16 @@ function tuMayChu(hang){
     id:p.id, ten:p.ten, dtId:p.diem_truong_id, mon:p.mon||''
   }));
 
+  /* Bảng thêm sau (db/day-thay.sql) — chưa nâng cấp thì mảng rỗng */
+  const dayThay = (hang.day_thay||[]).map(d=>({
+    id:d.id, ngay:d.ngay, buoi:d.buoi, tiet:+d.tiet, lopId:d.lop_id, mon:d.mon,
+    gvVangId:d.gv_vang_id, gvThayId:d.gv_thay_id||null, ghiChu:d.ghi_chu||''
+  }));
+
   return {
     tenTruong:hang.truong?.ten || '',
     namHoc:hang.truong?.nam_hoc || '', xa:hang.truong?.xa || '', tinh:hang.truong?.tinh || '',
-    giaoVien, lop, diemTruong, lopDT, gvNghi, monHoc, phong,
+    giaoVien, lop, diemTruong, lopDT, gvNghi, monHoc, phong, dayThay,
     khungGio:(hang.khung_gio||[]).map(k=>({
       thu:+k.thu, buoi:k.buoi, tiet:+k.so_tiet, bat:k.bat!==false,
       tietKhoi:k.so_tiet_khoi || null      /* null → chuanKhungGio() cho mọi khối bằng nhau */
@@ -1970,6 +2030,7 @@ function napVaoS(dl){
      hình phân công lấy danh sách môn từ đây. Bảng phòng thì rỗng cũng được. */
   S.monHoc    = dl.monHoc?.length ? dl.monHoc.map(m=>({...m})) : dsMonMacDinh();
   S.phong     = (dl.phong||[]).map(p=>({...p}));
+  S.dayThay   = (dl.dayThay||[]).map(d=>({...d}));
 
   /* Lớp chưa gán điểm trường thì về điểm đầu tiên, để không có lớp nào lạc chỗ */
   const macDinh = S.diemTruong[0].id;
@@ -2089,7 +2150,7 @@ async function taiTuMayChu(){
   const t = KHO.nguoiDung.truongId;
   const bang = (b, them='') => goiAPI(`/rest/v1/${b}?truong_id=eq.${t}&select=*${them}`);
   const [truong, diem_truong, khung_gio, giao_vien, lop, phan_cong, gv_nghi,
-         mon_hoc, phong, pb, cb] = await Promise.all([
+         mon_hoc, phong, day_thay, pb, cb] = await Promise.all([
     goiAPI(`/rest/v1/truong?id=eq.${t}&select=*`),
     bang('diem_truong','&order=thu_tu.asc,ten.asc'),
     bang('khung_gio','&order=thu.asc,buoi.asc'),
@@ -2097,10 +2158,11 @@ async function taiTuMayChu(){
     bang('lop','&order=ten.asc'),
     bang('phan_cong'),
     bang('gv_nghi'),
-    /* Hai bảng thêm sau — cơ sở dữ liệu chưa chạy db/mon-hoc-phong.sql thì
-       trả về rỗng chứ không được làm hỏng cả lần tải */
+    /* Các bảng thêm sau — cơ sở dữ liệu chưa nâng cấp thì trả về rỗng
+       chứ không được làm hỏng cả lần tải */
     bang('mon_hoc','&order=thu_tu.asc,ten.asc').catch(()=>[]),
     bang('phong','&order=ten.asc').catch(()=>[]),
+    bang('day_thay','&order=ngay.desc&limit=300').catch(()=>[]),
     goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&select=version,du_lieu,tao_luc,cong_bo&order=version.desc&limit=1`),
     /* Bản đang công bố — để màn hình nói rõ giáo viên đang xem bản nào */
     goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true&select=version&limit=1`).catch(()=>[])
@@ -2109,7 +2171,7 @@ async function taiTuMayChu(){
     throw new Error('Trường chưa có lớp nào trong cơ sở dữ liệu. Nhập bảng phân công trước đã.');
 
   napVaoS(tuMayChu({truong:truong?.[0], diem_truong, khung_gio, giao_vien, lop,
-                    phan_cong, gv_nghi, mon_hoc, phong}));
+                    phan_cong, gv_nghi, mon_hoc, phong, day_thay}));
   KHO.version = +pb?.[0]?.version || 0;
   KHO.banCongBo = +cb?.[0]?.version || 0;
   const d = pb?.[0]?.du_lieu ? docTKB(pb[0].du_lieu) : {nap:0, boQua:0};
@@ -2416,6 +2478,38 @@ async function luuBuoiBan(gvNghi){
     return {ok:true, so:hang.length,
       thongBao:hang.length?`Đã lưu ${hang.length} buổi bận lên máy chủ.`
                           :'Đã xoá hết đánh dấu buổi bận trên máy chủ.'};
+  }catch(e){ return {ok:false, thongBao:dienGiaiLoi(e)}; }
+}
+
+/* ---------- 5c. Dạy thay ----------
+   Ghi phân công dạy thay của một ngày cụ thể lên bảng day_thay. Trùng
+   (ngày · buổi · tiết · lớp) thì ghi đè bản cũ — sửa lại là chuyện thường. */
+async function luuDayThay(ds){
+  if(!coMayChu()) return {ok:false,
+    thongBao:'Chưa nối máy chủ nên chưa lưu được. Đăng nhập rồi lưu lại.'};
+  if(KHO.nguon!=='may-chu') return {ok:false,
+    thongBao:'Đang chạy dữ liệu mẫu nên chưa lưu được — mã lớp, mã giáo viên không phải của trường.'};
+  try{
+    const than = ds.map(d=>({truong_id:KHO.nguoiDung.truongId, ngay:d.ngay, buoi:d.buoi,
+      tiet:d.tiet, lop_id:d.lopId, mon:d.mon, gv_vang_id:d.gvVangId,
+      gv_thay_id:d.gvThayId||null, ghi_chu:d.ghiChu||null, nguoi_tao:KHO.nguoiDung.id}));
+    const tra = await goiAPI('/rest/v1/day_thay?on_conflict=truong_id,ngay,buoi,tiet,lop_id',
+      {method:'POST', headers:{Prefer:'resolution=merge-duplicates,return=representation'},
+       body:JSON.stringify(than)});
+    ghiNhatKy('day_thay', {so:ds.length, ngay:ds[0]?.ngay});
+    return {ok:true, ds:tra||[], thongBao:`Đã lưu ${ds.length} tiết dạy thay.`};
+  }catch(e){
+    const m=String(e?.message||'');
+    if(/day_thay|relation|404/i.test(m)) return {ok:false,
+      thongBao:'Máy chủ chưa có bảng dạy thay. Quản trị chạy db/day-thay.sql (có sẵn trong db/cai-dat.sql) một lần trong SQL Editor.'};
+    return {ok:false, thongBao:dienGiaiLoi(e)};
+  }
+}
+async function xoaDayThay(id){
+  if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
+  try{
+    await goiAPI(`/rest/v1/day_thay?id=eq.${id}`, {method:'DELETE'});
+    return {ok:true, thongBao:'Đã xoá phân công dạy thay.'};
   }catch(e){ return {ok:false, thongBao:dienGiaiLoi(e)}; }
 }
 
@@ -2941,6 +3035,7 @@ function ve(){
     : t==='tkblop'    ? mTKBLop()
     : t==='tkbgv'     ? mTKBGV()
     : t==='cuatoi'    ? mCuaToi()
+    : t==='daythay'   ? mDayThay()
     : t==='toantruong'? mToanTruong()
     : t==='tkbkhoi'   ? mTKBKhoi()
     : t==='xuatin'    ? mXuatIn()
@@ -2974,6 +3069,8 @@ function capNhatDem(){
   $('#nPhong').textContent=(S.phong||[]).filter(p=>!S.phamVi||p.dtId===S.phamVi).length;
   $('#nPC').textContent=S.phanCong.filter(trongPV).length;
   $('#nBan').textContent=gvTrongPV().reduce((s,g)=>s+(S.gvNghi[g.id]||[]).length,0);
+  const nDT2=$('#nDayThay');
+  if(nDT2) nDT2.textContent=(S.dayThay||[]).filter(x=>x.ngay>=ngayISO(new Date())).length;
   $('#slChuong').textContent=KT.vm.filter(v=>v.muc!=='goi').length;
   /* Chưa đăng nhập thì không hé lộ tên trường hay bất kỳ số liệu nào */
   const chuaVao=canDangNhap();
@@ -3479,6 +3576,16 @@ function mCuaToi(){
       <div><b>${dts.length}</b><span>điểm trường</span></div>
     </div>
   </div>
+  ${(()=>{  /* dạy thay sắp tới của chính thầy cô — mới nhìn đã thấy */
+    const hn=ngayISO(new Date());
+    const toi=(S.dayThay||[]).filter(x=>x.gvThayId===id && x.ngay>=hn)
+      .sort((a,b)=>a.ngay.localeCompare(b.ngay)||(a.buoi===b.buoi?a.tiet-b.tiet:a.buoi==='S'?-1:1));
+    return toi.length?`<div class="canhbao" style="margin-bottom:12px"><div class="cb-ic">!</div><div class="cb-t">
+      <b>Thầy cô có ${toi.length} tiết dạy thay sắp tới</b>
+      <div class="cb-g">${toi.map(x=>`${esc(TEN_THU[thuTuISO(x.ngay)]||'')} ${esc(dinhDangNgay(x.ngay))} ·
+        ${x.buoi==='S'?'sáng':'chiều'} tiết ${x.tiet+1} — ${esc(x.mon)} lớp ${esc(tenLopDay(x.lopId))}
+        (thay ${esc(gvId(x.gvVangId)?.hoTen||'')})`).join('<br>')}</div></div></div>`:'';
+  })()}
   ${tong?`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
     <button class="b b-vien b-nho" id="btICSToi">Đưa vào lịch điện thoại</button></div>
   <div class="tuan">${THU.map(t=>{
@@ -3502,6 +3609,104 @@ function mCuaToi(){
 /* Giáo viên chỉ thấy lịch của chính mình, không chọn xem lịch người khác.
    Muốn xem bằng vai trò khác thì đăng xuất rồi đăng nhập bằng tài khoản đó. */
 const chiXemLichMinh = () => quyen().laGV;
+
+/* ---------- 3.5b Dạy thay, dạy bù ----------
+   Việc lặp lại hằng tuần trong năm học: cô A ốm sáng mai, ai dạy thế tiết
+   nào. Máy lọc đúng ràng buộc (trống tiết · không vướng điểm trường ·
+   không bận) rồi gợi ý; người quản lý quyết và lưu; thầy cô dạy thay
+   thấy ngay trên màn hình Của tôi. */
+const ngayISO = d => { const s=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${s(d.getMonth()+1)}-${s(d.getDate())}`; };
+const dinhDangNgay = iso => { const p=String(iso).split('-'); return `${p[2]}/${p[1]}`; };
+const thuTuISO = iso => new Date(iso+'T00:00:00').getDay()+1;   /* CN=1, thứ Hai=2 */
+
+function mDayThay(){
+  const homNay=ngayISO(new Date());
+  if(!S.dtNgay) S.dtNgay=homNay;
+  const cds=[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+  if(!S.dtGV||!cds.some(g=>g.id===S.dtGV)) S.dtGV=cds[0]?.id||'';
+  const sapToi=S.dayThay.filter(x=>x.ngay>=homNay)
+    .sort((a,b)=>a.ngay.localeCompare(b.ngay)||(a.buoi===b.buoi?a.tiet-b.tiet:a.buoi==='S'?-1:1));
+  const daQua=S.dayThay.length-sapToi.length;
+  return dauTrang('Dạy thay, dạy bù',
+    'Giáo viên nghỉ đột xuất — chọn ngày, chọn người vắng, máy gợi ý ai dạy thế từng tiết.',false)+`
+  <div class="the">
+    <div class="the-d"><h2>Phân công cho một ngày</h2></div>
+    <div class="the-t">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="on-l" style="margin:0"><label>Ngày</label>
+          <input type="date" class="ip" id="dtNgay" value="${esc(S.dtNgay)}"></div>
+        <div class="on-l" style="margin:0"><label>Giáo viên vắng</label>
+          <select class="ip" id="dtGV">${cds.map(g=>`<option value="${g.id}" ${g.id===S.dtGV?'selected':''}>${esc(g.hoTen)}</option>`).join('')}</select></div>
+        <label style="display:flex;gap:7px;align-items:center;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="dtBuoiS" checked> Buổi sáng</label>
+        <label style="display:flex;gap:7px;align-items:center;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="dtBuoiC" checked> Buổi chiều</label>
+        <button class="b b-ch" id="btTimThay">Tìm người dạy thay</button>
+      </div>
+      <div class="gy" style="margin-top:11px">Máy chỉ gợi ý người <b>trống tiết</b>, <b>không vướng
+        điểm trường</b> trong buổi đó và <b>không đăng ký bận</b>. Quyết định cuối cùng là của người phân công.</div>
+    </div>
+  </div>
+  <div class="the" style="margin-top:15px">
+    <div class="the-d"><h2>Phân công sắp tới</h2>
+      <span class="meta">${sapToi.length} tiết${daQua?` · ${daQua} tiết đã qua`:''}</span></div>
+    <div class="the-t">
+    ${sapToi.length?`<div class="bang"><table class="dl"><thead><tr>
+      <th>Ngày</th><th>Buổi · tiết</th><th>Lớp</th><th>Môn</th><th>Vắng</th><th>Dạy thay</th><th></th></tr></thead><tbody>
+      ${sapToi.map(x=>`<tr>
+        <td style="white-space:nowrap">${esc(TEN_THU[thuTuISO(x.ngay)]||'')} ${esc(dinhDangNgay(x.ngay))}</td>
+        <td>${x.buoi==='S'?'Sáng':'Chiều'} · ${x.tiet+1}</td>
+        <td>${esc(tenLopDay(x.lopId))}</td><td>${esc(x.mon)}</td>
+        <td>${esc(gvId(x.gvVangId)?.hoTen||'—')}</td>
+        <td>${x.gvThayId?`<b>${esc(gvId(x.gvThayId)?.hoTen||'—')}</b>`:'<span class="tag canh">Lớp tự quản</span>'}</td>
+        <td class="phai">${x.id?`<button class="b b-vien b-nho" data-xoadt="${x.id}">Xoá</button>`:''}</td></tr>`).join('')}
+      </tbody></table></div>`
+    :`<div class="trong-hop"><b>Chưa có phân công nào sắp tới</b>Chọn ngày và giáo viên vắng ở trên rồi bấm “Tìm người dạy thay”.</div>`}
+    </div>
+  </div>`;
+}
+
+function hopTimDayThay(){
+  const gv=gvId($('#dtGV')?.value||S.dtGV);
+  const ngay=$('#dtNgay')?.value||S.dtNgay;
+  if(!gv) return bao('Chọn giáo viên vắng trước đã.',true);
+  if(!ngay) return bao('Chọn ngày trước đã.',true);
+  const thu=thuTuISO(ngay);
+  if(thu<2||thu>6) return bao(`Ngày ${dinhDangNgay(ngay)} rơi vào cuối tuần — không có tiết nào để dạy thay.`,true);
+  const dsBuoi=[...($('#dtBuoiS')?.checked?['S']:[]), ...($('#dtBuoiC')?.checked?['C']:[])];
+  if(!dsBuoi.length) return bao('Chọn ít nhất một buổi.',true);
+  const tiet=tietVangCua(gv.id, thu, dsBuoi);
+  if(!tiet.length) return bao(`${gv.hoTen} không có tiết nào ${TEN_THU[thu]} ở buổi đã chọn — không cần phân dạy thay.`,true);
+  const lich=lichTraGV();
+  const goiY=tiet.map(o=>({o, uv:goiYDayThay(o, o.lopId, gv.id, lich).slice(0,6)}));
+  hop(`Dạy thay ${TEN_THU[thu]} ${dinhDangNgay(ngay)} — ${gv.hoTen}`,`
+    <p style="font-size:13px;color:var(--chu-mo);margin-bottom:12px">${tiet.length} tiết cần người dạy thế.
+      Gợi ý xếp theo mức thuận tiện — đầu danh sách là người đang có mặt tại điểm trường và quen lớp nhất.</p>
+    <div class="bang" style="max-height:52vh"><table class="dl"><thead><tr>
+      <th>Tiết</th><th>Lớp · môn</th><th>Người dạy thay</th></tr></thead><tbody>
+    ${goiY.map((x,i)=>`<tr>
+      <td style="white-space:nowrap">${x.o.buoi==='S'?'Sáng':'Chiều'} · ${x.o.i+1}</td>
+      <td style="white-space:nowrap"><b>${esc(tenLopDay(x.o.lopId))}</b> · ${esc(x.o.mon)}</td>
+      <td><select class="ip" id="dtChon${i}" style="width:100%;min-width:220px">
+        ${x.uv.map((u,j)=>`<option value="${u.gv.id}" ${j===0?'selected':''}>${esc(u.gv.hoTen)} — ${esc(u.lyDo.slice(0,2).join(', '))}</option>`).join('')}
+        <option value="" ${x.uv.length?'':'selected'}>— Lớp tự quản (không có người) —</option>
+      </select></td></tr>`).join('')}
+    </tbody></table></div>`,
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Lưu phân công',lam:async()=>{
+    const ds=goiY.map((x,i)=>({ngay, buoi:x.o.buoi, tiet:x.o.i, lopId:x.o.lopId, mon:x.o.mon,
+      gvVangId:gv.id, gvThayId:$('#dtChon'+i)?.value||null}));
+    const kq=await luuDayThay(ds);
+    if(!kq.ok) return bao(kq.thongBao,true);
+    /* Gộp vào trạng thái — bản mới ghi đè theo khoá (ngày · buổi · tiết · lớp) */
+    const khoaCua=x=>`${x.ngay}|${x.buoi}|${x.tiet}|${x.lopId}`;
+    const moi=(kq.ds||[]).map(d=>({id:d.id, ngay:d.ngay, buoi:d.buoi, tiet:+d.tiet,
+      lopId:d.lop_id, mon:d.mon, gvVangId:d.gv_vang_id, gvThayId:d.gv_thay_id||null, ghiChu:d.ghi_chu||''}));
+    const co=new Set(moi.map(khoaCua));
+    S.dayThay=[...S.dayThay.filter(x=>!co.has(khoaCua(x))), ...moi];
+    dong(); bao(kq.thongBao); ve();
+  }}]);
+}
 
 /* ---------- 3.6 Xuất và in ---------- */
 /* ==================================================================
@@ -4307,6 +4512,13 @@ const HD_ND = {
           <li><b>Lịch sử phiên bản</b> cho xem lại và khôi phục bản cũ. Khôi phục chỉ nạp lên màn hình, muốn chốt thì lưu lại thành bản mới.</li>
           <li><b>Nhật ký thao tác</b> ghi lại ai lưu, ai công bố, ai nhập dữ liệu, lúc nào — trường nhiều người cùng xếp thì nhìn vào đây là biết chuyện gì đã xảy ra.</li>
         </ul>`},
+      {t:'Dạy thay, dạy bù trong năm học', n:`
+        <p>Giáo viên ốm hay đi công tác đột xuất: vào mục <b>Dạy thay</b>, chọn ngày, chọn người vắng,
+          bấm <b>Tìm người dạy thay</b>. Máy liệt kê từng tiết bị trống và gợi ý người dạy thế —
+          chỉ gợi ý người <b>trống tiết</b>, <b>đang không ở điểm trường khác</b> trong buổi đó và
+          <b>không đăng ký bận</b>; ưu tiên người đang có mặt sẵn tại điểm trường và quen lớp.</p>
+        <p>Bấm <b>Lưu phân công</b> là xong: thầy cô dạy thay mở lịch cá nhân lên thấy ngay tiết được giao.
+          Thời khóa biểu tuần <b>không đổi</b> — dạy thay chỉ áp cho đúng ngày đó.</p>`},
       {t:'Bước 3 — Bốn sản phẩm và cách in', n:`
         <p>Xếp xong là có ngay bốn bản, đúng bốn thứ nhà trường vẫn cần:</p>
         <div class="hd-buoc">
@@ -4362,7 +4574,9 @@ const HD_ND = {
         <p>Màn hình <b>Thời khóa biểu của tôi</b> bày cả tuần theo ngày. Ngày hôm nay được tô viền xanh.</p>
         <p>Mỗi tiết ghi rõ <b>buổi, số tiết, môn, lớp</b> và <b>điểm trường</b> — thầy cô nhìn là biết
           sáng mai phải đến đâu.</p>
-        <p>Phía trên có ba con số: tổng số tiết trong tuần, số buổi phải có mặt, số điểm trường phải đi.</p>`},
+        <p>Phía trên có ba con số: tổng số tiết trong tuần, số buổi phải có mặt, số điểm trường phải đi.</p>
+        <p>Được phân <b>dạy thay</b> tiết nào thì ngay đầu màn hình có dải báo ghi rõ ngày, tiết, lớp, môn —
+          không cần chờ ai nhắn.</p>`},
       {t:'In lịch của mình', n:`
         <p>Vào <b>Xuất và in</b>, thẻ <b>In theo giáo viên</b>, chọn tên mình rồi bấm <b>In / lưu PDF</b>.</p>
         <p>Muốn lưu vào điện thoại thì trong hộp in chọn <b>Lưu dưới dạng PDF</b>.</p>`},
@@ -4879,6 +5093,17 @@ function noiSuKien(){
     inRa(trangInGV(S.gvXem), gvId(S.gvXem)?.hoTen||''));
   $('#btICSGV')&&($('#btICSGV').onclick=()=>taiICS(S.gvXem));
   $('#btICSToi')&&($('#btICSToi').onclick=()=>taiICS(S.nguoiDung.gvId||S.giaoVien[0]?.id));
+
+  /* Dạy thay — hai ô chọn chỉ ghi vào S, không vẽ lại từng phím */
+  $('#dtNgay')&&($('#dtNgay').onchange=e=>{S.dtNgay=e.target.value;});
+  $('#dtGV')&&($('#dtGV').onchange=e=>{S.dtGV=e.target.value;});
+  $('#btTimThay')&&($('#btTimThay').onclick=hopTimDayThay);
+  $$('[data-xoadt]').forEach(b=>b.onclick=async()=>{
+    const kq=await xoaDayThay(b.dataset.xoadt);
+    if(!kq.ok) return bao(kq.thongBao,true);
+    S.dayThay=S.dayThay.filter(x=>x.id!==b.dataset.xoadt);
+    bao(kq.thongBao); ve();
+  });
 
   /* chạm chọn — chạm đặt: lối chỉnh tay dùng được trên điện thoại */
   $$('[data-cham]').forEach(el=>{
@@ -6326,7 +6551,8 @@ const MO_TA_HANH_DONG = {
   cong_bo:            d=>`Công bố phiên bản ${d.version ?? '—'} cho giáo viên`,
   rut_cong_bo:        d=>`Rút công bố phiên bản ${d.version ?? '—'}`,
   nhap_du_lieu_nguon: d=>`Nhập dữ liệu nguồn: ${d.lop ?? 0} lớp · ${d.giaoVien ?? 0} giáo viên · ${d.phanCong ?? 0} dòng phân công`,
-  luu_buoi_ban:       d=>`Cập nhật buổi bận của giáo viên (${d.so ?? 0} dòng)`
+  luu_buoi_ban:       d=>`Cập nhật buổi bận của giáo viên (${d.so ?? 0} dòng)`,
+  day_thay:           d=>`Phân công dạy thay ${d.so ?? 0} tiết cho ngày ${d.ngay ?? '—'}`
 };
 async function hopNhatKy(){
   hop('Nhật ký thao tác','<div class="trong-hop">Đang tải…</div>',[{ten:'Đóng',lam:dong}]);

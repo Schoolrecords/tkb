@@ -38,6 +38,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   S, xepTuDong, kiemTra, buoiBat, KHO, NGUON, khungGioMacDinh,
   taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat, taiNhatKy,
   tuMayChu, napVaoS, dongGoiTKB, docTKB,
+  tietVangCua, goiYDayThay, luuDayThay, xoaDayThay,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
@@ -59,13 +60,14 @@ const taoUngDung = (doc, win, layMang) =>
 
 const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiNhatKy,
+        tietVangCua, goiYDayThay, luuDayThay,
         tuMayChu, napVaoS, dongGoiTKB, docTKB,
         quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
         apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
         khongDau, tenTepXuat, tenDangNhapGV, matKhauNgauNhien, taoICS, gapDongICS,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay,
-        diemToanCuc, toiUuHoanDoi, laGhim,
+        diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
         tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
         chuanMon, laMonNang, laMonNhe, monCanPhong,
@@ -261,7 +263,8 @@ console.log('\n6. Nói chuyện với máy chủ (máy chủ giả)');
 let veHienHanh = 'VE1', soLanRPC = 0, daLamMoiVe = false;
 /* Ghi lại mọi thứ máy chủ giả nhận được, để phép thử soi lại đúng sai */
 const GHI = { diemTruong: [], khungGio: null, giaoVien: null, lop: null, phanCong: null,
-              xoaPhanCong: 0, congBo: [], gvNghi: null, xoaNghi: 0, nhatKy: [] };
+              xoaPhanCong: 0, congBo: [], gvNghi: null, xoaNghi: 0, nhatKy: [],
+              dayThay: [], xoaDayThay: 0 };
 const dap = (du, ma = 200) => ({ ok: ma < 400, status: ma, text: async () => JSON.stringify(du) });
 const BAN_LUU = {
   3: { version: 3, ghi_chu: '5/5 tiết', tao_luc: '2026-07-30T02:15:00Z',
@@ -305,6 +308,16 @@ async function mangGia(url, opt = {}) {
 
   if (opt.method === 'DELETE' && co('/gv_nghi')) { GHI.xoaNghi++; return dap(null, 204); }
   if (opt.method === 'POST' && co('/gv_nghi')) { GHI.gvNghi = than; return dap(null, 201); }
+
+  if (co('/day_thay')) {
+    if (opt.method === 'POST') {
+      const moi = than.map((h, i) => ({ id: 'dt-uuid-' + (GHI.dayThay.length + i), ...h }));
+      GHI.dayThay.push(...moi);
+      return dap(moi, 201);
+    }
+    if (opt.method === 'DELETE') { GHI.xoaDayThay++; return dap(null, 204); }
+    return dap(GHI.dayThay);
+  }
 
   if (co('/nguoi_dung?')) return dap([{ id: 'u1', ho_ten: 'Trần Thanh Chung', email: 'c@t.vn',
     vai_tro: 'pho_hieu_truong', truong_id: 't1', diem_truong_id: null, truong: { ten: HANG.truong.ten } }]);
@@ -419,6 +432,28 @@ kt('Nhật ký đọc được — lưu và công bố đều để lại vết,
    `${nkMC.ds.length} dòng, mới nhất: ${nkMC.ds[0]?.hanhDong}`);
 kt('Chưa nối máy chủ thì nhật ký nói rõ cách có nó, không đổ lỗi',
    await taiNhatKy().then(r => r.ok === false && /Chưa nối máy chủ/.test(r.thongBao)));
+
+/* ---------- Dạy thay: ghi và xoá trên máy chủ ---------- */
+const dtLuu = await MC.luuDayThay([
+  { ngay: '2026-09-08', buoi: 'S', tiet: 1, lopId: 'l1', mon: 'Toán', gvVangId: 'g1', gvThayId: 'g2' },
+  { ngay: '2026-09-08', buoi: 'S', tiet: 2, lopId: 'l1', mon: 'Tiếng Việt', gvVangId: 'g1', gvThayId: null }
+]);
+kt('Lưu dạy thay: máy chủ nhận đủ dòng, trả về bản ghi có id, ghi cả nhật ký',
+   dtLuu.ok === true && GHI.dayThay.length === 2 &&
+   GHI.dayThay[0].gv_thay_id === 'g2' && GHI.dayThay[1].gv_thay_id === null &&
+   dtLuu.ds.every(d => d.id) &&
+   GHI.nhatKy.some(h => h.hanh_dong === 'day_thay' && h.du_lieu_cu?.so === 2),
+   dtLuu.thongBao);
+const dtXoa = await MC.xoaDayThay('dt-uuid-0');
+kt('Xoá được một phân công dạy thay', dtXoa.ok === true && GHI.xoaDayThay === 1);
+kt('Đang chạy dữ liệu mẫu thì chặn lưu dạy thay — không ghi mã lớp mẫu lên máy chủ', await (async () => {
+  const nguon = MC.KHO.nguon; MC.KHO.nguon = 'nhung';
+  const kq = await MC.luuDayThay([{ ngay: '2026-09-08', buoi: 'S', tiet: 1, lopId: 'l1', mon: 'Toán', gvVangId: 'g1' }]);
+  MC.KHO.nguon = nguon;
+  return kq.ok === false && /dữ liệu mẫu/.test(kq.thongBao);
+})());
+kt('Chưa nối máy chủ thì dạy thay báo rõ, không văng lỗi',
+   await luuDayThay([]).then(r => r.ok === false && /Chưa nối máy chủ/.test(r.thongBao)));
 
 /* Tình huống thật đã gặp: đăng nhập được nhưng trường trên máy chủ chưa có lớp
    nên phần mềm quay về dữ liệu mẫu. Lưới lúc đó dựng trên mã lớp và mã giáo
@@ -591,6 +626,40 @@ kt('Gấp dòng dài rồi mở lại ra đúng chuỗi ban đầu', (() => {
 })());
 kt('Giáo viên không có tiết thì trả chuỗi rỗng, không tạo tệp rác',
    taoICS('khong-ai-ca') === '' && taoICS(S.giaoVien[0].id, { tuNgay: '2026-09-07' }).length > 0);
+
+/* ---------- Dạy thay: gợi ý người dạy thế ----------
+   Chạy trên lưới thật vừa xếp trọn 710/710 ở trên. */
+const gvCN1A = S.giaoVien.find(g => g.cn === 'lop_1A');
+const vangT2 = tietVangCua(gvCN1A.id, 2, ['S', 'C']);
+kt('Liệt kê đúng các tiết của giáo viên vắng trong ngày, sáng trước chiều sau',
+   vangT2.length > 0 &&
+   vangT2.every(o => S.tkb[o.lopId][o.khoa]?.gvId === gvCN1A.id) &&
+   vangT2.every((o, i) => i === 0 ||
+     (vangT2[i - 1].buoi === 'S' && o.buoi === 'C') ||
+     (o.buoi === vangT2[i - 1].buoi && o.i >= vangT2[i - 1].i)),
+   `${vangT2.length} tiết trong thứ Hai`);
+
+/* Tiết chào cờ (thứ Hai sáng tiết 1): CẢ 25 giáo viên chủ nhiệm đều đang
+   đứng lớp mình — ứng viên dạy thay chỉ có thể là giáo viên bộ môn rảnh. */
+const chaoCo = vangT2.find(o => o.buoi === 'S' && o.i === 0);
+const uvChaoCo = goiYDayThay(chaoCo, chaoCo.lopId, gvCN1A.id);
+kt('Giờ chào cờ mọi chủ nhiệm đều bận — gợi ý chỉ còn giáo viên bộ môn rảnh', (() => {
+  const lich = lichTraGV();
+  return uvChaoCo.length > 0 &&
+    uvChaoCo.every(u => u.gv.id !== gvCN1A.id) &&
+    uvChaoCo.every(u => !lich[u.gv.id]?.[chaoCo.khoa]) &&        /* trống tiết đó */
+    uvChaoCo.every(u => !u.gv.cn);                               /* không ai là chủ nhiệm */
+})(), `${uvChaoCo.length} ứng viên, đầu bảng: ${uvChaoCo[0]?.gv.hoTen}`);
+kt('Ứng viên xếp hạng giảm dần theo điểm, kèm lý do đọc được',
+   uvChaoCo.every((u, i) => i === 0 || u.diem <= uvChaoCo[i - 1].diem) &&
+   uvChaoCo.every(u => u.lyDo.length > 0));
+kt('Người đăng ký bận buổi đó không bao giờ được gợi ý', (() => {
+  const dau = uvChaoCo[0]?.gv.id; if (!dau) return false;
+  S.gvNghi[dau] = ['2-S'];
+  const sau = goiYDayThay(chaoCo, chaoCo.lopId, gvCN1A.id);
+  delete S.gvNghi[dau];
+  return !sau.some(u => u.gv.id === dau);
+})());
 
 /* ---------- 9. Tối ưu bằng hoán đổi cục bộ ---------- */
 console.log('\n9. Tối ưu bằng hoán đổi cục bộ');
