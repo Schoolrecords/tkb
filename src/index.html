@@ -291,6 +291,14 @@ button.o-ghim:hover{transform:scale(1.2)}
 .tiet-ca{border-radius:9px;padding:8px 10px;background:color-mix(in srgb,var(--mc,#4A6FB5) 10%,#fff);
   border-left:3px solid var(--mc,#4A6FB5)}
 .tiet-ca .st{font-size:10px;font-weight:700;color:var(--chu-mo);letter-spacing:.05em}
+/* Nhãn buổi trong lịch cá nhân. Dùng lại đúng bộ màu đã quy ước ở lưới rộng:
+   sáng lạnh, chiều ấm — thầy cô đọc bản in rồi mở app lên thấy cùng một mã màu. */
+.bnhom+.bnhom{margin-top:11px;padding-top:11px;border-top:1px dashed var(--ke-2)}
+.bnhan{display:flex;align-items:center;gap:7px;margin-bottom:7px;padding:4px 9px;border-radius:7px;
+  font-size:10px;font-weight:800;letter-spacing:.09em;background:#EEF2FA;color:var(--nav)}
+.bnhan span{margin-left:auto;font-weight:600;letter-spacing:0;color:var(--chu-mo)}
+.bnhom.chieu .bnhan{background:#FBF3E6;color:var(--cam)}
+.bnhom.chieu .bnhan span{color:#A98A5F}
 .tiet-ca .sm{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 76%,#000)}
 .tiet-ca .sl{font-size:11px;color:var(--chu-mo)}
 .ngay-trong{font-size:12px;color:var(--chu-mo);text-align:center;padding:16px 0}
@@ -479,8 +487,14 @@ table.tt{border-collapse:separate;border-spacing:0;font-size:11.5px;width:max-co
    Kẻ NGANG chỉ dẫn dòng — xanh rất nhạt, NÉT ĐỨT, mảnh hơn kẻ dọc.
    Thứ tự đậm nhạt là có chủ ý: ranh giới giữa hai LỚP quan trọng hơn ranh
    giới giữa hai TIẾT, vì nhầm cột là đọc nhầm cả lớp. */
-table.tt th,table.tt td{border-right:1px solid #D6DEEC;border-bottom:1px dashed #DDE9F6;padding:5px 7px;
+table.tt th,table.tt td{border-right:1px solid #E3EAF4;border-bottom:1px dashed #E7F0FA;padding:5px 7px;
   white-space:nowrap;background:var(--the)}
+/* Ô CÓ TIẾT: màu môn nhận diện bằng CHỮ, cộng một vạch mảnh — KHÔNG phải một
+   thanh 3px đậm như bản trước. Lưới rỗng thì nhẹ nhàng, nhưng 25–60 cột mà ô
+   nào cũng đeo một thanh đậm thì cả bảng thành sọc, chính chỗ chủ dự án kêu
+   "đường kẻ quá đậm" (2/8/2026). Màu vẫn còn nguyên, chỉ nhẹ tay hơn. */
+table.tt td.o-mau{border-left:2px solid color-mix(in srgb,var(--mc,#4A6FB5) 32%,#fff)}
+table.tt td.o-mau b{color:color-mix(in srgb,var(--mc,#4A6FB5) 74%,#000)}
 /* Hai cột trái dính: Thứ (gộp ô cả ngày) rồi tới Tiết */
 table.tt .c-thu2{position:sticky;left:0;z-index:2;width:44px;min-width:44px;
   background:#EEF2FA;font-weight:800;font-size:12px;text-align:center;color:var(--nav);
@@ -498,8 +512,8 @@ table.tt td b{display:block;font-weight:700;font-size:11.5px}
 table.tt td span{display:block;font-size:10.5px;color:var(--chu-mo)}
 /* Hết một buổi và hết một ngày thì kẻ LIỀN, đậm dần — đây là hai mốc thật
    sự cần thấy, khác hẳn nét đứt mờ giữa các tiết trong cùng buổi. */
-table.tt tr.het td{border-bottom:1.5px solid #C3CEE2}
-table.tt tr.het-ngay td{border-bottom:2.5px solid var(--nav-mo)}
+table.tt tr.het td{border-bottom:1.5px solid #D3DCEA}
+table.tt tr.het-ngay td{border-bottom:2px solid #AEBBD4}
 /* Dải khối gộp ô trên tên lớp. Hai hàng tiêu đề cùng dính, nên hàng dưới
    phải lùi xuống đúng chiều cao hàng trên — chốt cứng 26px cho khớp. */
 table.tt.co-khoi thead tr.dai-khoi th{top:0;height:26px;z-index:5;
@@ -700,6 +714,8 @@ const DINH_MUC = 23;
 const THU = [2,3,4,5,6];
 const TEN_THU = {2:'Thứ Hai',3:'Thứ Ba',4:'Thứ Tư',5:'Thứ Năm',6:'Thứ Sáu'};
 const TAT_THU = {2:'T2',3:'T3',4:'T4',5:'T5',6:'T6'};
+/* Thứ tự buổi trong một ngày — sáng trước chiều, không nơi nào được đảo */
+const BUOI_NGAY = [['S','SÁNG'],['C','CHIỀU']];
 const MON_LOP = {'Tiếng Việt':'m-tv','Toán':'m-toan','Tiếng Anh':'m-ta','HDTN':'m-hdtn',
   'GDTC':'m-gdtc','TNXH':'m-tnxh','Đạo Đức':'m-dd','Âm nhạc':'m-an','Mỹ thuật':'m-mt',
   'LS&ĐL':'m-ls','Khoa học':'m-kh','Tin học':'m-th','CN':'m-cn'};
@@ -4468,11 +4484,25 @@ function mCuaToi(){
     const a=lich[t]||[];
     return `<div class="ngay ${t===thuNay?'homnay':''}">
       <div class="ngay-d"><b>${TEN_THU[t]}</b><span>${a.length} tiết${t===thuNay?' · hôm nay':''}</span></div>
-      <div class="ngay-t">${a.length?a.map(x=>`<div class="tiet-ca ${mLop(x.mon)}">
-        <div class="st">${x.b==='S'?'SÁNG':'CHIỀU'} · TIẾT ${x.i+1}</div>
-        <div class="sm">${esc(x.mon)}</div>
-        <div class="sl">Lớp ${esc(lopId(x.lp)?.ten)} · ${esc(dtId(S.lopDT[x.lp])?.ten.replace('Điểm trường ',''))}</div>
-      </div>`).join(''):'<div class="ngay-trong">Không có tiết</div>'}</div></div>`;
+      <div class="ngay-t">${a.length
+        /* Tách SÁNG và CHIỀU thành hai khối có nhãn, ngăn nhau bằng một vạch.
+           Trước đây các tiết xếp thành một chồng liền, buổi chỉ ghi chữ nhỏ
+           trong từng thẻ — thầy cô phải đọc từng dòng mới biết đâu là ranh
+           giới sáng/chiều. Nay nhìn một cái là thấy, và chữ trong thẻ gọn đi
+           vì buổi đã nói ở nhãn nhóm rồi. */
+        ? BUOI_NGAY.map(([b,ten])=>{
+            const ds=a.filter(x=>x.b===b);
+            if(!ds.length) return '';
+            return `<div class="bnhom ${b==='S'?'sang':'chieu'}">
+              <div class="bnhan">${ten}<span>${ds.length} tiết</span></div>
+              ${ds.map(x=>`<div class="tiet-ca ${mLop(x.mon)}">
+                <div class="st">Tiết ${x.i+1}</div>
+                <div class="sm">${esc(x.mon)}</div>
+                <div class="sl">Lớp ${esc(lopId(x.lp)?.ten)} · ${esc(dtId(S.lopDT[x.lp])?.ten.replace('Điểm trường ',''))}</div>
+              </div>`).join('')}
+            </div>`;
+          }).join('')
+        :'<div class="ngay-trong">Không có tiết</div>'}</div></div>`;
   }).join('')}</div>`
   :(()=>{ const l=lyDoTrongLich(id); return `<div class="the"><div class="the-t">
       <div class="canhbao ${l.nang?'do':''}"><div class="cb-ic">${l.nang?'!':'i'}</div><div class="cb-t">
@@ -4744,8 +4774,8 @@ function luoiRongHTML(ds, ghiKhoi, cao){
           const v=S.tkb[l.id]?.[o.khoa];
           if(!v) return '<td></td>';
           const g=gvId(v.gvId);
-          return `<td class="${mLop(v.mon)}" style="border-left:3px solid var(--mc)">
-            <b>${esc(v.mon)}</b><span>${esc(g?tenTat(g.hoTen):'')}</span></td>`;
+          return `<td class="${mLop(v.mon)} o-mau"><b>${esc(v.mon)}</b>`
+            +`<span>${esc(g?tenTat(g.hoTen):'')}</span></td>`;
         }).join('')}
       </tr>`;}).join('')}
   </tbody></table></div>`;

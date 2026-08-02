@@ -811,6 +811,47 @@ kt('sw.js đọc được, có xử lý fetch và KHÔNG BAO GIỜ cache Supabas
 kt('Trình duyệt giả không có serviceWorker mà trang vẫn chạy — đăng ký được rào đúng',
    !('serviceWorker' in w.navigator));
 
+console.log('\n17a. Lịch cá nhân tách SÁNG · CHIỀU; lưới rộng nhẹ tay hơn');
+{
+  const vai = { ...S.nguoiDung };
+  /* Chọn một giáo viên có dạy cả sáng lẫn chiều */
+  const coCaHai = S.giaoVien.find(g => {
+    const b = new Set();
+    Object.values(S.tkb).forEach(o => Object.entries(o).forEach(([k, v]) => {
+      if (v.gvId === g.id) b.add(k.split('-')[1]);
+    }));
+    return b.has('S') && b.has('C');
+  });
+  S.nguoiDung = { vaiTro: 'gv', gvId: coCaHai.id, diemTruongId: null };
+  w.chuyen('cuatoi');
+  const nhan = [...w.document.querySelectorAll('.bnhan')].map(x => x.textContent);
+  kt('Mỗi ngày tách thành khối SÁNG và khối CHIỀU có nhãn riêng',
+     nhan.some(x => /SÁNG/.test(x)) && nhan.some(x => /CHIỀU/.test(x)),
+     `${nhan.length} nhãn buổi`);
+  kt('Nhãn buổi đếm đúng số tiết của buổi đó', (() => {
+    const nhom = w.document.querySelector('.bnhom');
+    const so = +(nhom.querySelector('.bnhan span').textContent.match(/\d+/) || [0])[0];
+    return so === nhom.querySelectorAll('.tiet-ca').length;
+  })());
+  kt('Thẻ tiết bỏ chữ SÁNG/CHIỀU thừa — nhãn nhóm đã nói rồi',
+     [...w.document.querySelectorAll('.tiet-ca .st')]
+       .every(x => /^Tiết \d+$/.test(x.textContent.trim())),
+     w.document.querySelector('.tiet-ca .st')?.textContent);
+  kt('Buổi sáng luôn đứng trước buổi chiều',
+     !/CHIỀU/.test(nhan[0] || ''), nhan[0]);
+  S.nguoiDung = vai;
+
+  /* Lưới rộng: ô có tiết không còn đeo thanh màu 3px. 25–60 cột mà ô nào cũng
+     một thanh đậm thì cả bảng thành sọc — chủ dự án kêu "đường kẻ quá đậm". */
+  w.chuyen('toantruong');
+  const oCoTiet = [...w.document.querySelectorAll('table.tt td.o-mau')];
+  kt('Ô có tiết dùng lớp màu chung, không nhét style thanh 3px vào từng ô',
+     oCoTiet.length > 0 && oCoTiet.every(o => !/border-left:\s*3px/.test(o.getAttribute('style') || '')),
+     `${oCoTiet.length} ô`);
+  kt('Màu môn vẫn còn — nhận diện bằng chữ và vạch mảnh, không mất đi',
+     oCoTiet.every(o => /\bm-[a-z]+\b/.test(o.className)));
+}
+
 console.log('\n17b. Lịch trống thì phải nói ĐÚNG vì sao trống');
 /* Sự cố 2/8/2026: một cô giáo nhập mã mời xong, vào được phần mềm, thấy đúng
    tên mình, nhưng màn hình Của tôi trắng trơn kèm dòng "Nhà trường chưa xếp
