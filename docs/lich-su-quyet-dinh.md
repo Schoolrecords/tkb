@@ -33,8 +33,23 @@ Những việc dựng nền, làm xong trước khi nhật ký bắt đầu ghi 
 - [x] Phép thử giao diện thật `npm run soi` (jsdom)
 - [x] Danh mục môn và bảng phòng thành dữ liệu — `db/mon-hoc-phong.sql`
 - [x] Định mức theo từng giáo viên (`dinhMucCua`), R01 · R08 tôn trọng
+- [x] **CẦN NGƯỜI THẬT BẤM — không tự động hoá được:** vào phần mềm bấm
+      **"Công bố cho giáo viên"** (hoặc chạy `db/cong-bo.sql` rồi
+      `db/cong-bo-ngay.sql`). Cả 5 phiên bản trên máy chủ đang `cong_bo=false`,
+      mà `p_tkb_doc` chỉ cho giáo viên đọc bản đã công bố. Mã, nút bấm và quy
+      tắc UPDATE đều đã xong và đã có phép thử — chỉ thiếu một cú bấm có đăng
+      nhập quản trị.
+      ✅ **Xong 2/8/2026.** Chủ dự án đã bấm. Nay là 8 phiên bản (con số 5 ở
+      trên là trạng thái lúc viết), **phiên bản 7 đang công bố** — lưu 15:15
+      ngày 31/7/2026, 710 tiết. Soi bằng `db/soi-du-lieu.sql`: **25/25 lớp
+      trong bản còn khớp bảng `lop`**, nghĩa là bản công bố lành, không phải
+      bản rác dựng trên dữ liệu mẫu.
+      ⚠️ Công bố xong **vẫn chưa ai xem được**, vì một lý do khác hẳn: cả cơ
+      sở dữ liệu mới có MỘT tài khoản vai trò `quan_tri`, chưa có tài khoản
+      giáo viên nào. Hai chuyện này dễ lẫn — công bố là mở CỬA, cấp tài khoản
+      là đưa CHÌA. Thiếu cái nào cũng không vào được.
 
-### Từ phần *Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)*
+### Từ phần *Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)*
 
 - [x] Tên đơn vị mặc định là `Trường Tiểu học mới`, Diễn Liên thành điểm trường
 
@@ -66,11 +81,11 @@ Những việc dựng nền, làm xong trước khi nhật ký bắt đầu ghi 
 - [x] Chạy thử được ở quy mô thật khi chưa có danh sách CBGV — nút **Tạo dữ
       liệu thử** *(1/8/2026)*. Kịch bản 25+17+18 = 60 lớp xếp trọn 1698/1698.
 
-### Từ phần *Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)*
+### Từ phần *Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)*
 
 - [x] Thanh bên gọn lại: bỏ ba nút ở đáy, chuyển vào đúng chỗ dùng *(1/8/2026)*
 
-### Từ phần *Đề xuất tiếp theo — xem `docs/danh-gia-va-de-xuat.md`*
+### Từ phần *Đề xuất tiếp theo — xem `docs/danh-gia-va-de-xuat.md`*
 
 - [x] Phòng chức năng thành **ràng buộc cứng thật** *(1/8/2026)* — `datDuoc()`,
       `doiChoDuoc()`, `kiemTraChuyen()` đều chặn; thêm quy tắc R12 báo thiếu
@@ -119,7 +134,7 @@ Những việc dựng nền, làm xong trước khi nhật ký bắt đầu ghi 
       `node db/gop-cai-dat.mjs`; CI chạy `--kiem` nên sửa tệp nguồn mà quên
       sinh lại là đỏ ngay. Đừng sửa tay `cai-dat.sql`.
 
-### Từ phần *Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)*
+### Từ phần *Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)*
 
 - [x] 1. Module dạy thay / dạy bù *(xong 2/8/2026 — xem trên)*
 - [x] 2. **Mẫu Excel một trang kiểu ma trận** *(2/8/2026)*. Trang `PHAN_CONG`:
@@ -182,7 +197,7 @@ Những việc dựng nền, làm xong trước khi nhật ký bắt đầu ghi 
       Ứng xử Gmail: trường quản QUYỀN chứ không quản Gmail — thu quyền bằng
       nút xoá tài khoản, Gmail người dùng không bị đụng.
 
-### Từ phần *Đề xuất tiếp theo — xem `docs/danh-gia-va-de-xuat.md`*
+### Từ phần *Đề xuất tiếp theo — xem `docs/danh-gia-va-de-xuat.md`*
 
 - [x] **Dạy thay / dạy bù** *(2/8/2026)* — tính năng giữ người dùng quay lại
       hằng tuần. Màn hình **Dạy thay** (nhóm TRONG NĂM HỌC, chỉ quản lý thấy):
@@ -216,3 +231,11 @@ Những việc dựng nền, làm xong trước khi nhật ký bắt đầu ghi 
       phải **khớp tuyệt đối** với bản dựng lại (so cả ba bảng, đã sắp khoá),
       và lưới xếp xong không có ô nào hai giáo viên / ai vướng hai điểm trường
       một buổi. Sai một ly ở đây là hai giáo viên chung một ô mà không ai biết.
+
+- [x] **Chạy `db/mon-hoc-phong.sql`** một lần trong Supabase SQL Editor. Chưa
+      chạy thì app vẫn chạy bằng danh mục mặc định, chỉ là màn hình Môn học và
+      Phòng học chưa lưu được lên máy chủ.
+      ✅ **Xong 2/8/2026.** Không phải chạy riêng: `db/mon-hoc-phong.sql` đã
+      nằm trong bộ cài gộp `db/cai-dat.sql` mà chủ dự án dán một lần. Soi
+      bằng `db/soi-cai-dat.sql`: đủ **14/14 bảng** (có `mon_hoc` và `phong`),
+      RLS bật hết. Từ nay màn hình Môn học và Phòng học lưu được lên máy chủ.

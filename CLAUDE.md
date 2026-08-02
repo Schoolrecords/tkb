@@ -805,19 +805,19 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 > Sắp sửa vào một vùng mã cũ thì đọc tệp ấy trước.
 > Đề xuất chưa đưa vào lộ trình: xem `docs/danh-gia-va-de-xuat.md`.
 
-- [ ] **CẦN NGƯỜI THẬT BẤM — không tự động hoá được:** vào phần mềm bấm
-      **"Công bố cho giáo viên"** (hoặc chạy `db/cong-bo.sql` rồi
-      `db/cong-bo-ngay.sql`). Cả 5 phiên bản trên máy chủ đang `cong_bo=false`,
-      mà `p_tkb_doc` chỉ cho giáo viên đọc bản đã công bố. Mã, nút bấm và quy
-      tắc UPDATE đều đã xong và đã có phép thử — chỉ thiếu một cú bấm có đăng
-      nhập quản trị.
+- [ ] **Phát quyền cho 35 thầy cô Diễn Liên** — việc DUY NHẤT đang chặn người
+      dùng thật *(chốt lại 2/8/2026)*. Thời khóa biểu đã công bố (phiên bản 7)
+      nhưng cả cơ sở dữ liệu mới có **một tài khoản vai trò `quan_tri`**, chưa
+      thầy cô nào có đường vào. Ba đường đang để ngỏ, chủ dự án chưa chốt:
+      · phát mã mời tay, từng người một — làm được ngay, 35 lần thao tác;
+      · nút *tạo mã hàng loạt* — một cú bấm ra bảng 35 mã, chép hoặc tải Excel;
+      · **link mời cả trường** — một link dán nhóm Zalo, thầy cô bấm rồi tự
+        nhận tên mình. Thiết kế đã bàn xong ngày 2/8 (chế độ *Nhẹ*: nhận tên
+        là thấy lịch ngay, quản lý soi lại sau), **chưa viết dòng mã nào**.
 - [ ] Nhập lớp và giáo viên THẬT của Diễn Đồng, Diễn Thái khi danh sách chốt.
       Đường đã thông: gộp ba bảng phân công vào một tệp Excel, cột `Ma_lop` đặt
       tiền tố theo trường (`DL-1A`, `DD-1A`, `DT-1A`), `Ten_lop` giữ nguyên.
 - [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức
-- [ ] **Chạy `db/mon-hoc-phong.sql`** một lần trong Supabase SQL Editor. Chưa
-      chạy thì app vẫn chạy bằng danh mục mặc định, chỉ là màn hình Môn học và
-      Phòng học chưa lưu được lên máy chủ.
 
 ## 10. Việc KHÔNG làm
 
