@@ -1934,6 +1934,15 @@ function dienGiaiLoi(e){
     return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại rồi lưu tiếp.';
   if(/permission denied|row-level security|violates/i.test(m))
     return 'Tài khoản không có quyền làm việc này. Chỉ cán bộ quản lý mới sửa được dữ liệu.';
+  /* Cơ sở dữ liệu dựng trước một bản nâng cấp nào đó thì thiếu hẳn một cột.
+     PostgREST báo bằng tiếng Anh và tên cột kỹ thuật — dịch sang việc phải làm. */
+  const thieuCot = m.match(/Could not find the '([^']+)' column of '([^']+)'/i);
+  if(thieuCot) return `Cơ sở dữ liệu của trường còn thiếu cột "${thieuCot[1]}" ở bảng "${thieuCot[2]}" `
+    +'— đây là cơ sở dữ liệu dựng từ bản cũ. Quản trị mở Supabase → SQL Editor, '
+    +'dán toàn bộ db/cai-dat.sql rồi bấm Run một lần là xong. Dữ liệu đang có không mất gì.';
+  if(/schema cache/i.test(m))
+    return 'Máy chủ chưa nhận ra bảng hoặc cột vừa thêm. Chạy lại db/cai-dat.sql trong SQL Editor, '
+      +'rồi thử lại sau một phút.';
   return m || 'Máy chủ trả về lỗi không rõ nguyên nhân.';
 }
 

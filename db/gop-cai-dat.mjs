@@ -23,6 +23,9 @@ const thuMuc = dirname(fileURLToPath(import.meta.url));
 // Thứ tự QUAN TRỌNG: các tệp sau dùng hàm/bảng của tệp trước.
 const NGUON = [
   'schema.sql',          // bảng + RLS + luu_tkb
+  'ma-lop.sql',          // NÂNG CẤP: thêm cột ma_lop cho CSDL dựng trước 1/8/2026
+                         // — `create table if not exists` không thêm cột vào
+                         //   bảng đã có, thiếu nó là mọi lệnh ghi lớp đều đổ
   'mon-hoc-phong.sql',   // danh mục môn, bảng phòng (dùng truong_cua_toi)
   'cong-bo.sql',         // quy tắc UPDATE để bấm được nút Công bố
   'day-thay.sql',        // phân công dạy thay theo ngày
@@ -48,7 +51,6 @@ ${NGUON.map((t, i) => `--   ${i + 1}. db/${t}`).join('\n')}
 --
 -- KHÔNG gồm các tệp tiện ích tình huống (chạy riêng khi cần):
 --   db/khoi-tao.sql            tạo trường bằng tay, không qua giao diện
---   db/ma-lop.sql              nâng cấp CSDL dựng trước 1/8/2026
 --   db/du-lieu-dien-lien.sql   nạp dữ liệu mẫu Diễn Liên
 --   db/cong-bo-ngay.sql · soi-loi-cong-bo.sql · sua-tai-khoan-mo-coi.sql
 --   · dat-lai-mat-khau.sql     công cụ xử lý sự cố
