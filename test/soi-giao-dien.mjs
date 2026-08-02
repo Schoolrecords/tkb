@@ -374,10 +374,28 @@ kt('Khai thêm phòng Tin học cho điểm trường đó là xếp trọn vẹ
   const r = w.eval('KQ_XEP = xepTuDong()');
   return r.daXep === r.tongCan && r.chuaXep.length === 0;
 })(), (() => { const r = w.eval('KQ_XEP'); return `${r.daXep}/${r.tongCan} tiết · ${r.giay} giây`; })());
-kt('Bảng toàn trường hiện đủ cột cho cả hai điểm trường', (() => {
+/* Nhiều điểm trường thì lưới KHÔNG gộp hết vào một bảng — 60 cột đọc không
+   nổi. Mặc định bày một điểm trường, có dải nút chuyển. Bản gộp cả trường
+   chỉ còn ở đường Xuất và in. */
+kt('Nhiều điểm trường thì lưới bày MỘT điểm, có dải nút chuyển', (() => {
   w.chuyen('toantruong');
-  return w.document.querySelectorAll('.tt thead tr:last-child th').length - 2 === S.lop.length;
-})(), `${S.lop.length} cột lớp`);
+  const nut = w.document.querySelectorAll('[data-dtluoi]');
+  const cot = w.document.querySelectorAll('.tt thead tr:last-child th').length - 2;
+  const dang = w.eval('S.dtLuoi');
+  const lopCuaDiem = S.lop.filter(l => S.lopDT[l.id] === dang).length;
+  return nut.length === S.diemTruong.length && cot === lopCuaDiem && cot < S.lop.length;
+})(), `${S.diemTruong.length} điểm trường`);
+kt('Bấm sang điểm trường khác thì lưới đổi theo', (() => {
+  const nut = [...w.document.querySelectorAll('[data-dtluoi]')];
+  const khac = nut.find(b => b.dataset.dtluoi !== w.eval('S.dtLuoi'));
+  khac.dispatchEvent(new w.Event('click', { bubbles: true }));
+  const cot = w.document.querySelectorAll('.tt thead tr:last-child th').length - 2;
+  return w.eval('S.dtLuoi') === khac.dataset.dtluoi &&
+    cot === S.lop.filter(l => S.lopDT[l.id] === khac.dataset.dtluoi).length;
+})());
+kt('Xuất và in vẫn gộp TOÀN BỘ lớp của trường, không bị dải nút cắt bớt',
+   w.eval('luoiToanTruong(xepTheoKhoi(lopTrongPV()))')[3].length - 3 === S.lop.length,
+   `${S.lop.length} lớp trong tệp xuất`);
 
 console.log('\n14. Bản in đúng khổ giấy và đủ thể thức');
 const KHO_TEN = { doc: 'A4 dọc', ngang: 'A4 ngang', rong: 'A3 ngang' };

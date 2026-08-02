@@ -456,9 +456,11 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 /* ---------- Lưới toàn trường: cuộn ngang trong khung, thân trang không cuộn ---------- */
 .tt-boc{overflow:auto;max-height:74vh;border:1px solid var(--ke);border-radius:var(--r);background:var(--the)}
 table.tt{border-collapse:separate;border-spacing:0;font-size:11.5px;width:max-content;min-width:100%}
-/* Kẻ DỌC mảnh, kẻ NGANG rõ — mắt đọc bảng này theo hàng (một tiết, xem
-   các lớp học gì), nên hàng phải tách bạch còn cột chỉ cần gợi ý. */
-table.tt th,table.tt td{border-right:1px solid #EEF1F7;border-bottom:1px solid var(--ke-2);padding:5px 7px;
+/* Kẻ DỌC tách lớp — nét liền, đủ rõ để mắt biết đây là cột khác.
+   Kẻ NGANG chỉ dẫn dòng — xanh rất nhạt, NÉT ĐỨT, mảnh hơn kẻ dọc.
+   Thứ tự đậm nhạt là có chủ ý: ranh giới giữa hai LỚP quan trọng hơn ranh
+   giới giữa hai TIẾT, vì nhầm cột là đọc nhầm cả lớp. */
+table.tt th,table.tt td{border-right:1px solid #D6DEEC;border-bottom:1px dashed #DDE9F6;padding:5px 7px;
   white-space:nowrap;background:var(--the)}
 /* Hai cột trái dính: Thứ (gộp ô cả ngày) rồi tới Tiết */
 table.tt .c-thu2{position:sticky;left:0;z-index:2;width:44px;min-width:44px;
@@ -475,9 +477,10 @@ table.tt td.goc,table.tt th.canh{position:sticky;left:0;z-index:2;background:#F7
   font-size:11px;text-align:center;color:var(--chu-mo)}
 table.tt td b{display:block;font-weight:700;font-size:11.5px}
 table.tt td span{display:block;font-size:10.5px;color:var(--chu-mo)}
-table.tt tr.het td{border-bottom:2px solid var(--ke-2)}
-/* Vạch đậm giữa hai NGÀY — mốc lớn nhất khi mắt quét dọc bảng 30 dòng */
-table.tt tr.het-ngay td{border-bottom:3px solid var(--nav-mo)}
+/* Hết một buổi và hết một ngày thì kẻ LIỀN, đậm dần — đây là hai mốc thật
+   sự cần thấy, khác hẳn nét đứt mờ giữa các tiết trong cùng buổi. */
+table.tt tr.het td{border-bottom:1.5px solid #C3CEE2}
+table.tt tr.het-ngay td{border-bottom:2.5px solid var(--nav-mo)}
 /* Dải khối gộp ô trên tên lớp. Hai hàng tiêu đề cùng dính, nên hàng dưới
    phải lùi xuống đúng chiều cao hàng trên — chốt cứng 26px cho khớp. */
 table.tt.co-khoi thead tr.dai-khoi th{top:0;height:26px;z-index:5;
@@ -489,6 +492,18 @@ table.tt.co-khoi thead tr:nth-child(2) th{top:26px}
    Vẫn giữ chữ — bỏ trống thì lẫn với tiết chưa xếp. */
 table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#C2C9D8;letter-spacing:.04em;
   background:repeating-linear-gradient(135deg,#F7F9FD,#F7F9FD 5px,#EFF3FA 5px,#EFF3FA 10px)}
+
+/* Dải nút chuyển điểm trường trên các màn hình lưới rộng */
+.dai-dt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+.dt-nut{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:11px;cursor:pointer;
+  border:1.5px solid var(--ke-2);background:var(--the);color:var(--chu);font-size:13.5px;font-weight:600;
+  font-family:inherit;transition:background .16s,border-color .16s}
+.dt-nut:hover{border-color:var(--lam)}
+.dt-nut:active{transform:translateY(-2px)}
+.dt-nut span{font-size:11.5px;font-weight:700;background:#EEF2FA;color:var(--chu-mo);
+  padding:2px 8px;border-radius:20px}
+.dt-nut.on{background:var(--nav);border-color:var(--nav);color:#fff}
+.dt-nut.on span{background:rgba(255,255,255,.2);color:#fff}
 
 /* đèn báo tình trạng máy chủ + khối mã trong hộp thoại */
 .cham-mc{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#8E9BC4;box-shadow:0 0 0 3px rgba(255,255,255,.09)}
@@ -719,6 +734,7 @@ let S = {
   dayThay:[],           /* phân công dạy thay theo ngày — bảng day_thay trên máy chủ */
   nguoiDung:{vaiTro:'qt', gvId:null, diemTruongId:null},
   phamVi:'', trangHienTai:'dieuhanh', lopXem:null, gvXem:null, khoiXem:null,
+  dtLuoi:'',            /* điểm trường đang xem trên lưới rộng — xem lopChoLuoi() */
   oChon:null            /* ô đang chọn trong lưới lớp — lối chỉnh tay trên điện thoại */
 };
 /* Lưới thật của Trường TH Diễn Liên, đối chiếu từ bản kết xuất SmartScheduler
@@ -3778,7 +3794,8 @@ function mDieuHanh(){
         <button class="b b-vien" data-di="tkbkhoi">Theo khối</button>
         <button class="b b-vang" data-di="xuatin">Xuất và in</button>
       </div>
-      ${luoiRongHTML(xepTheoKhoi(ds),true,'46vh')}
+      ${daiDiemLuoi()}
+      ${luoiRongHTML(xepTheoKhoi(lopChoLuoi()),true,'46vh')}
       <div class="gy" style="margin-top:10px">Cuộn trong khung để xem hết.
         ${KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
           :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.':''}</div>
@@ -4292,6 +4309,33 @@ function hopTimDayThay(){
    giờ cuộn ngang, đúng nguyên tắc mobile-first.
    ================================================================== */
 
+/* ---------- Lưới rộng xem TỪNG ĐIỂM TRƯỜNG ----------
+   Ba điểm trường gộp một bảng là 60 cột: quá dày, đọc không nổi, và thực tế
+   cũng không ai cần — người phụ trách một điểm trường chỉ quan tâm điểm của
+   mình. Nên MÀN HÌNH mặc định bày một điểm trường, có dải nút chuyển qua
+   lại. Bản gộp cả trường vẫn còn nguyên, nhưng chỉ ở đường XUẤT VÀ IN —
+   nơi nó đúng vai: tờ A3 dán bảng tin. */
+function dsDiemChoLuoi(){
+  const ds=dtTrongPV();
+  if(!S.dtLuoi || !ds.some(d=>d.id===S.dtLuoi)) S.dtLuoi = ds.length>1 ? ds[0].id : '';
+  return ds;
+}
+const lopChoLuoi = () => {
+  const ds=lopTrongPV();
+  dsDiemChoLuoi();
+  return S.dtLuoi ? ds.filter(l=>S.lopDT[l.id]===S.dtLuoi) : ds;
+};
+/* Dải nút chuyển điểm trường — chỉ hiện khi trường có nhiều hơn một điểm */
+function daiDiemLuoi(){
+  const ds=dsDiemChoLuoi();
+  if(ds.length<2) return '';
+  return `<div class="dai-dt">${ds.map(d=>{
+    const n=lopTrongPV().filter(l=>S.lopDT[l.id]===d.id).length;
+    return `<button class="dt-nut${d.id===S.dtLuoi?' on':''}" data-dtluoi="${d.id}">
+      ${esc(d.ten.replace(/^Điểm trường\s*/i,''))}<span>${n}</span></button>`;
+  }).join('')}</div>`;
+}
+
 /* Bảng dùng chung cho cả hai màn hình. `ds` đã sắp sẵn thứ tự cột. */
 /* Lưới rộng — GƯƠNG MẶT của sản phẩm. Bốn thứ làm nó đọc được ở quy mô
    25–60 cột × 30 dòng, và cả ba đều là chuyện đọc chứ không phải trang trí:
@@ -4354,12 +4398,15 @@ function luoiRongHTML(ds, ghiKhoi, cao){
 }
 
 function mToanTruong(){
-  const ds=xepTheoKhoi(lopTrongPV());
+  const ds=xepTheoKhoi(lopChoLuoi());
+  const nhieuDiem=dsDiemChoLuoi().length>1;
   const can=S.phanCong.filter(p=>ds.some(l=>l.id===p.lopId)).reduce((s,p)=>s+p.soTiet,0);
   const xep=ds.reduce((s,l)=>s+Object.keys(S.tkb[l.id]||{}).length,0);
   return dauTrang('Thời khóa biểu toàn trường',
-    'Tất cả các lớp trên một bảng — tờ để dán bảng tin. Cuộn ngang trong khung để xem hết.',true)+
-  dieuHuongBuoc('toantruong')+`
+    nhieuDiem?'Xem theo từng điểm trường cho dễ đọc. Bản gộp cả trường nằm ở mục Xuất và in.'
+             :'Tất cả các lớp trên một bảng — tờ để dán bảng tin. Cuộn ngang trong khung để xem hết.',true)+
+  dieuHuongBuoc('toantruong')+
+  daiDiemLuoi()+`
   <div class="tkb-thanh">
     <span style="font-size:12.5px;color:var(--chu-mo)">${ds.length} lớp ·
       ${khoiDangCo(ds).length} khối · <b class="${xep<can?'':''}">${xep}/${can}</b> tiết đã xếp</span>
@@ -5761,6 +5808,7 @@ function noiSuKien(){
   $('#selGV')&&($('#selGV').onchange=e=>{S.gvXem=e.target.value;ve();});
   $('#selToi')&&($('#selToi').onchange=e=>{S.nguoiDung.gvId=e.target.value;ve();});
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
+  $$('[data-dtluoi]').forEach(b=>b.onclick=()=>{ S.dtLuoi=b.dataset.dtluoi; ve(); });
 
   /* màn hình chào */
   $('#btChaoTruongMoi')&&($('#btChaoTruongMoi').onclick=e=>{e.preventDefault();hopDangKyTruong();});

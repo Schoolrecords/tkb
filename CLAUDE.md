@@ -308,8 +308,23 @@ cả ngày** (`rowspan`) rồi tới **cột Tiết** (`S1…S4`, `C1…C3`, ô 
 nhạt). Hai cột đều dính trái — cột thứ hai phải khai `left:44px` khớp đúng bề
 ngang cột thứ nhất, lệch một pixel là chồng lên nhau.
 
-Kẻ **dọc mảnh, ngang rõ**: mắt đọc bảng này theo HÀNG (một tiết, xem các lớp
-học gì), nên hàng phải tách bạch còn cột chỉ cần gợi ý.
+**Kẻ dọc liền, kẻ ngang nét đứt xanh nhạt** *(chốt 2/8/2026 theo mẫu chủ dự
+án gửi)*. Thứ tự đậm nhạt là có chủ ý: ranh giới giữa hai **LỚP** quan trọng
+hơn ranh giới giữa hai **TIẾT** — nhầm cột là đọc nhầm cả lớp, còn nhầm dòng
+thì đã có cột Tiết dính bên trái đỡ. Hết buổi và hết ngày mới kẻ liền đậm dần
+(1.5px → 2.5px), đó là hai mốc thật sự cần thấy.
+
+#### Lưới trên MÀN HÌNH bày từng điểm trường, bản gộp để IN *(2/8/2026)*
+
+Ba điểm trường gộp một bảng là **60 cột** — chủ dự án nhận xét *"quá dày và
+rối"*, và đúng: người phụ trách một điểm trường chỉ quan tâm điểm của mình.
+Nay `lopChoLuoi()` lọc theo `S.dtLuoi`, `daiDiemLuoi()` dựng dải nút chuyển
+(chỉ hiện khi có nhiều hơn một điểm trường, kèm số lớp mỗi nơi). Bảng điều
+hành và màn *Toàn trường* đều dùng nó.
+
+Bản **gộp cả trường vẫn còn nguyên** nhưng chỉ ở đường **Xuất và in** — nơi
+nó đúng vai: tờ A3 dán bảng tin. Có phép thử canh việc này (`luoiToanTruong`
+phải luôn đủ cột cho mọi lớp, không bị dải nút cắt bớt).
 
 #### Không bao giờ để mất việc chưa lưu *(2/8/2026)*
 
