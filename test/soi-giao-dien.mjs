@@ -517,6 +517,22 @@ kt('Không còn ô nhập mật khẩu nào trong toàn bộ trang', (() => {
   w.eval('dong()');
   return con === 0 && !w.document.querySelector('#dnMK') && !w.document.querySelector('#tkMK');
 })());
+/* Lỗi thật trên iPhone 2/8/2026: mở trang bằng địa chỉ thiếu dấu / cuối thì
+   redirect_to lệch với Redirect URLs của Supabase, đăng nhập xong bị ném về
+   Site URL và rơi vào trang 404 của GitHub. */
+kt('Đường về sau đăng nhập Google luôn là thư mục có dấu / cuối', (() => {
+  const th = w.eval('duongVeChuan');
+  return th({ origin: 'https://a.github.io', pathname: '/tkb' }) === 'https://a.github.io/tkb/'
+    && th({ origin: 'https://a.github.io', pathname: '/tkb/' }) === 'https://a.github.io/tkb/'
+    && th({ origin: 'http://localhost:5173', pathname: '/src/index.html' }) === 'http://localhost:5173/src/'
+    && th({ origin: 'https://a.github.io', pathname: '/' }) === 'https://a.github.io/';
+})());
+kt('Địa chỉ đăng nhập Google mang theo đúng đường về đã chuẩn hoá', (() => {
+  const d = w.eval(`(()=>{KHO.cauHinh={url:'https://x.supabase.co',khoa:'k'};return diaChiDangNhapGoogle()})()`);
+  return d.includes('provider=google') &&
+    d.includes('redirect_to=' + encodeURIComponent(w.eval('duongVeChuan(location)')));
+})());
+
 kt('Hộp đăng nhập chỉ còn nút Google và lối đăng ký trường mới', (() => {
   w.eval('hopMayChu()');
   const co = !!w.document.querySelector('#dnGoogle') && !!w.document.querySelector('#dnTruongMoi')

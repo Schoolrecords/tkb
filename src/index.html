@@ -477,14 +477,23 @@ table.tt tr.het td{border-bottom:2px solid var(--ke-2)}
     font-size:8.5px;letter-spacing:.1em;white-space:nowrap;flex:0 0 auto;
     border-left:1px solid rgba(255,255,255,.14)}
   .nhom:first-of-type{border-left:none}
-  .mi{width:auto;white-space:nowrap;margin:0}
-  .thanh{padding:11px 14px;gap:11px}
-  .thanh-bt{width:38px;height:38px;flex:0 0 38px;font-size:18px;border-radius:10px}
-  .thanh-t{font-size:13px}
-  .thanh-p{font-size:11px}
-  .thanh-phai{gap:8px}
-  .chuong{width:38px;height:38px}
-  #btDangNhapTren{padding:9px 13px;font-size:13px}
+  /* Dải ngang phải THẤP: nó nằm dán đỉnh màn hình, cao thêm một dòng là
+     người dùng mất một dòng nội dung ở mọi màn hình. Nút gọn lại, biểu
+     tượng giấu đi — trên dải ngang chữ mới là thứ dẫn đường. */
+  .mi{width:auto;white-space:nowrap;margin:0;padding:8px 12px;font-size:12.5px;gap:0}
+  .mi svg{display:none}
+  .mi .n{margin-left:7px}
+  .thanh{padding:10px 12px;gap:10px}
+  .thanh-bt{width:34px;height:34px;flex:0 0 34px;font-size:18px;border-radius:9px}
+  /* Tên trường không được đẩy nút Đăng nhập xuống dòng: cho phép co lại và
+     cắt bằng dấu ba chấm. Ảnh chụp trên iPhone cho thấy tiêu đề gãy ba dòng. */
+  .thanh>div:nth-child(2){min-width:0;flex:1 1 auto}
+  .thanh-t{font-size:12.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .thanh-p{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .thanh-phai{gap:7px}
+  .chuong{width:36px;height:36px}
+  #btDangNhapTren{padding:8px 12px;font-size:12.5px}
   main{padding:16px 14px 50px;min-width:0;max-width:100vw;overflow-x:hidden}
   .tuan{grid-template-columns:1fr}
   .dh-duoi{grid-template-columns:1fr}
@@ -1940,10 +1949,25 @@ async function vaoLaiBangVeNho(){
    đúng trang này kèm vé trong phần #hash của địa chỉ. Không thư viện ngoài,
    không khoá bí mật nào chạm trình duyệt. Điều kiện: dự án Supabase đã bật
    Google provider — các bước bật ghi ở đầu db/ma-moi.sql. */
+/* Đường về sau khi Google xác thực xong. Phải là THƯ MỤC có dấu / cuối,
+   khớp y hệt một dòng trong Redirect URLs của Supabase — sai một ký tự là
+   Supabase bỏ qua rồi ném về Site URL.
+
+   ĐÃ DÍNH THẬT (2/8/2026): mở trang bằng địa chỉ không có dấu / cuối
+   (…github.io/tkb) thì `location.pathname` là `/tkb`, redirect_to thành
+   `…/tkb` — lệch với dòng `…/tkb/` đã khai, Supabase ném về Site URL và
+   người dùng rơi vào trang 404 của GitHub. Nay tự chuẩn hoá: bỏ tên tệp
+   nếu có, còn lại luôn thêm dấu / cuối. */
+function duongVeChuan(loc){
+  let p=String(loc?.pathname||'/');
+  if(/\.html?$/i.test(p)) p=p.replace(/[^/]*$/,'');    /* …/src/index.html → …/src/ */
+  else if(!p.endsWith('/')) p+='/';                    /* …/tkb → …/tkb/ */
+  return String(loc?.origin||'')+p;
+}
 function diaChiDangNhapGoogle(){
   if(!KHO.cauHinh) return '';
   const w=cuaSo(); if(!w) return '';
-  const ve=String(w.location.origin+w.location.pathname);
+  const ve=duongVeChuan(w.location);
   return `${KHO.cauHinh.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(ve)}`;
 }
 function dangNhapGoogle(){
