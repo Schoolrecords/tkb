@@ -409,3 +409,37 @@ trả ra một con số.
 Đã thêm luật vào `db/soat-sql.mjs`: bắt `min()`/`max()` trên mọi cột khai kiểu
 `uuid`, chỉ luôn cách viết đúng (`min(id::text)::uuid`). Có thử bằng một tệp
 SQL cố tình sai — luật bắt được.
+
+### Tinh chỉnh sau khi thầy cô dùng thật (2/8/2026, chiều muộn)
+
+Bốn chỗ chủ dự án chỉ ra sau khi công bố thời khóa biểu và cô giáo đầu tiên
+mở app lên xem.
+
+**1. Thẻ tiết dính liền nhau.** Ngay lần tách SÁNG/CHIỀU đầu tiên: các thẻ
+tiết chuyển vào trong `.bnhom`, mà `.bnhom` không khai `gap` — nên chúng thừa
+hưởng khoảng cách của khối mới (không có) chứ không phải của `.ngay-t`. Hai
+tiết cùng môn nằm cạnh nhau thì hai nền trùng màu dính thành một khối, nhìn
+ra một tiết dài. Vá: `.bnhom{display:flex;flex-direction:column;gap:7px}` và
+cho mỗi thẻ một **viền khép kín** — nền nhạt không thôi là chưa đủ để tách.
+
+**2. Bỏ chức năng xuất `.ics`.** *"App các cô cũng mở được trên điện thoại,
+không cần tính năng này nữa."* Đúng: PWA đã cho cài thẳng lên màn hình chính,
+nên một đường xuất lịch nữa chỉ là thứ phải nuôi mà không ai dùng. Gỡ cả hai
+nút, hàm `taoICS`/`taiICS`/`gapDongICS` và bảy phép thử. Còn một phép thử
+canh chiều ngược lại: không ai được dựng lại nửa vời (nút mà thiếu hàm thì
+bấm vào văng lỗi).
+
+**3. Lưới rộng: bỏ HẲN vạch màu ở ô có tiết.** Hai lần chỉnh trước đều vấp:
+3px thì cả bảng thành sọc, hạ xuống 2px vẫn là 25–60 vạch dọc chồng lên lưới.
+Mẫu chủ dự án chốt chính là lưới RỖNG của Diễn Thái — chỉ còn kẻ ô thật mảnh.
+Nay màu môn nhận diện **duy nhất bằng chữ tên môn**; vạch nào cũng thừa khi
+tên môn đã mang màu.
+
+**4. `tenDiemNgan()` — bỏ tiền tố "Điểm trường" ở MỌI chỗ hiển thị.** Trường
+đặt tên không thống nhất: *Diễn Liên*, *Diễn Thái*, nhưng *Điểm trường Diễn
+Đồng* — dải nút dài ngắn lệch nhau, trên điện thoại thì tràn hàng.
+
+⚠️ Bẫy đáng nhớ: mã cũ đã có `.replace(/^Điểm trường\s*/i,'')` mà vẫn cắt hụt.
+Nguyên nhân là **Unicode tổ hợp**: chữ "ể" dán từ Excel có thể là `e` + dấu
+rời, nhìn y hệt nhưng không khớp chuỗi. Nay chuẩn hoá `normalize('NFC')` trước
+khi cắt, và gộp chín chỗ `.replace` rải rác thành một hàm dùng chung.

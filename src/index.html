@@ -288,13 +288,23 @@ button.o-ghim:hover{transform:scale(1.2)}
 .ngay-d span{font-size:10.5px;color:var(--chu-mo)}
 .ngay.homnay .ngay-d span{color:#A9B7DC}
 .ngay-t{padding:9px;display:flex;flex-direction:column;gap:7px;min-height:90px}
-.tiet-ca{border-radius:9px;padding:8px 10px;background:color-mix(in srgb,var(--mc,#4A6FB5) 10%,#fff);
+/* Mỗi tiết là một thẻ CÓ VIỀN KHÉP KÍN. Nền nhạt không thôi là chưa đủ:
+   hai tiết cùng môn nằm sát nhau thì hai nền trùng màu dính thành một khối,
+   nhìn ra một tiết dài chứ không phải hai tiết. Viền cộng khoảng hở mới tách
+   được (chủ dự án chỉ ra 2/8/2026). */
+.tiet-ca{border-radius:9px;padding:8px 10px;background:color-mix(in srgb,var(--mc,#4A6FB5) 9%,#fff);
+  border:1px solid color-mix(in srgb,var(--mc,#4A6FB5) 26%,#fff);
   border-left:3px solid var(--mc,#4A6FB5)}
 .tiet-ca .st{font-size:10px;font-weight:700;color:var(--chu-mo);letter-spacing:.05em}
 /* Nhãn buổi trong lịch cá nhân. Dùng lại đúng bộ màu đã quy ước ở lưới rộng:
    sáng lạnh, chiều ấm — thầy cô đọc bản in rồi mở app lên thấy cùng một mã màu. */
-.bnhom+.bnhom{margin-top:11px;padding-top:11px;border-top:1px dashed var(--ke-2)}
-.bnhan{display:flex;align-items:center;gap:7px;margin-bottom:7px;padding:4px 9px;border-radius:7px;
+/* ⚠️ PHẢI có gap: .ngay-t có gap của nó, nhưng các thẻ tiết nay nằm TRONG
+   .bnhom nên thừa hưởng gap của .bnhom chứ không phải của cha. Thiếu dòng
+   này là các thẻ dính liền thành một khối liền mạch, không đọc ra ranh giới
+   giữa hai tiết — đã dính thật ngay lần đầu tách buổi (2/8/2026). */
+.bnhom{display:flex;flex-direction:column;gap:7px}
+.bnhom+.bnhom{margin-top:12px;padding-top:12px;border-top:1px dashed var(--ke-2)}
+.bnhan{display:flex;align-items:center;gap:7px;padding:4px 9px;border-radius:7px;
   font-size:10px;font-weight:800;letter-spacing:.09em;background:#EEF2FA;color:var(--nav)}
 .bnhan span{margin-left:auto;font-weight:600;letter-spacing:0;color:var(--chu-mo)}
 .bnhom.chieu .bnhan{background:#FBF3E6;color:var(--cam)}
@@ -489,12 +499,13 @@ table.tt{border-collapse:separate;border-spacing:0;font-size:11.5px;width:max-co
    giới giữa hai TIẾT, vì nhầm cột là đọc nhầm cả lớp. */
 table.tt th,table.tt td{border-right:1px solid #E3EAF4;border-bottom:1px dashed #E7F0FA;padding:5px 7px;
   white-space:nowrap;background:var(--the)}
-/* Ô CÓ TIẾT: màu môn nhận diện bằng CHỮ, cộng một vạch mảnh — KHÔNG phải một
-   thanh 3px đậm như bản trước. Lưới rỗng thì nhẹ nhàng, nhưng 25–60 cột mà ô
-   nào cũng đeo một thanh đậm thì cả bảng thành sọc, chính chỗ chủ dự án kêu
-   "đường kẻ quá đậm" (2/8/2026). Màu vẫn còn nguyên, chỉ nhẹ tay hơn. */
-table.tt td.o-mau{border-left:2px solid color-mix(in srgb,var(--mc,#4A6FB5) 32%,#fff)}
-table.tt td.o-mau b{color:color-mix(in srgb,var(--mc,#4A6FB5) 74%,#000)}
+/* Ô CÓ TIẾT: màu môn nhận diện DUY NHẤT bằng chữ tên môn. Không vạch, không
+   nền — mẫu chủ dự án chốt là chính lưới rỗng của Diễn Thái: chỉ còn kẻ ô
+   thật mảnh, đọc ra ngay mà mắt không bị cắt.
+   Hai bản trước đều vấp chỗ này: 3px thì cả bảng thành sọc, hạ xuống 2px vẫn
+   là 25–60 vạch dọc chồng lên lưới. Vạch nào cũng thừa khi tên môn đã mang
+   màu rồi. */
+table.tt td.o-mau b{color:color-mix(in srgb,var(--mc,#4A6FB5) 76%,#000)}
 /* Hai cột trái dính: Thứ (gộp ô cả ngày) rồi tới Tiết */
 table.tt .c-thu2{position:sticky;left:0;z-index:2;width:44px;min-width:44px;
   background:#EEF2FA;font-weight:800;font-size:12px;text-align:center;color:var(--nav);
@@ -849,11 +860,26 @@ function chuanCN(){
 }
 /* Tên lớp để hiển thị. Trùng tên với lớp ở điểm trường khác thì ghi kèm nơi
    học, còn không thì để trơn cho gọn. */
+/* Tên điểm trường rút gọn cho mọi chỗ hiển thị: bỏ tiền tố "Điểm trường".
+   Trường đặt tên không thống nhất — "Diễn Liên", "Diễn Thái", nhưng
+   "Điểm trường Diễn Đồng" — nên dải nút và các thẻ dài ngắn lệch nhau, trên
+   điện thoại thì tràn hàng.
+
+   ⚠️ PHẢI chuẩn hoá NFC trước khi cắt. Chữ "Điểm" gõ trên máy khác hoặc dán
+   từ Excel có thể ở dạng tổ hợp (ể = e + dấu rời), nhìn y hệt nhau nhưng
+   không khớp chuỗi — đúng lý do bản trước cắt hụt đúng một điểm trường
+   (2/8/2026). Một hàm dùng chung, đừng viết .replace rải rác nữa. */
+function tenDiemNgan(ten){
+  const s = String(ten||'').normalize('NFC').trim();
+  return s.replace(/^[ĐÐ]i[ểe]m\s+tr[ưu][ờo]ng\s*/i,'').trim() || s;
+}
+const tenDT = id => tenDiemNgan(dtId(id)?.ten);
+
 function tenLopDay(id){
   const l=lopId(id); if(!l) return '';
   const trung=S.lop.some(x=>x.id!==id && x.ten===l.ten);
   const d=dtId(S.lopDT[id])?.ten||'';
-  return trung && d ? `${l.ten} · ${d.replace('Điểm trường ','')}` : l.ten;
+  return trung && d ? `${l.ten} · ${tenDiemNgan(d)}` : l.ten;
 }
 const chuCai=h=>String(h).trim().split(/\s+/).slice(-2).map(x=>x[0]).join('').toUpperCase();
 const buoiBat=()=>S.khungGio.filter(k=>k.bat);
@@ -3368,7 +3394,7 @@ function luoiTheoGV(ds){
     a.push([TEN_THU[o.thu], o.buoi==='S'?'Sáng':'Chiều', o.tiet,
       ...ds.map(g=>{
         const v=lich[g.id]?.[o.khoa]; if(!v) return '';
-        const dt=nhieuDiem?dtId(S.lopDT[v.lp])?.ten.replace('Điểm trường ',''):'';
+        const dt=nhieuDiem?tenDT(S.lopDT[v.lp]):'';
         return v.mon+' — '+(lopId(v.lp)?.ten||'')+(dt?' ('+dt+')':'');
       })]);
   });
@@ -3595,87 +3621,6 @@ function tenTepXuat(duoi){
   return `TKB-${khongDau(S.tenTruong)}-${n.getFullYear()}${s(n.getMonth()+1)}${s(n.getDate())}.${duoi}`;
 }
 
-/* ---------- Xuất .ics — đưa lịch dạy vào ứng dụng Lịch trên điện thoại ----------
-   Chuẩn RFC 5545, Google Calendar và Lịch iPhone đều nhận. Mỗi tiết là một
-   sự kiện lặp HẰNG TUẦN tới hết năm học (31/5 của năm sau trong S.namHoc).
-
-   Giờ từng tiết là GIỜ GẦN ĐÚNG theo khung phổ biến của tiểu học: tiết 35
-   phút + nghỉ 5 phút, sáng từ 7:30, chiều từ 14:00 — mô hình dữ liệu không
-   có giờ đồng hồ của từng trường. Trường khác giờ thì sửa GIO_ICS dưới đây. */
-const GIO_ICS = {S:[7,30], C:[14,0], phutTiet:35, phutNghi:5};
-
-/* Thoát ký tự theo RFC 5545: dấu phẩy, chấm phẩy, gạch chéo ngược, xuống dòng */
-const escICS = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;')
-  .replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
-
-/* Đếm byte UTF-8 không cần TextEncoder — chạy được cả Node lẫn trình duyệt cũ:
-   mỗi %XX trong encodeURIComponent là đúng một byte */
-const soByteICS = s => encodeURIComponent(s).replace(/%[0-9A-F]{2}/gi,'x').length;
-
-/* Gấp dòng đúng chuẩn: dòng đầu ≤75 byte, dòng nối bắt đầu bằng một dấu cách */
-function gapDongICS(dong){
-  const ra=[]; let hien='';
-  for(const ch of dong){
-    if(soByteICS(hien+ch) > (ra.length?74:75)){ ra.push(hien); hien=ch; }
-    else hien+=ch;
-  }
-  ra.push(hien);
-  return ra.join('\r\n ');
-}
-
-function taoICS(idGV, tuyChon={}){
-  const g=gvId(idGV); if(!g) return '';
-  const tiet=[];
-  Object.entries(S.tkb).forEach(([lp,o])=>Object.entries(o).forEach(([k,v])=>{
-    if(v.gvId===idGV){ const [t,b,i]=k.split('-'); tiet.push({thu:+t, buoi:b, i:+i, lp, mon:v.mon}); }
-  }));
-  if(!tiet.length) return '';
-  tiet.sort((a,b)=>a.thu-b.thu || (a.buoi===b.buoi ? a.i-b.i : a.buoi==='S'?-1:1));
-
-  /* Tuần bắt đầu: từ tuyChon.tuNgay (YYYY-MM-DD, để kiểm thử tất định) hoặc hôm nay */
-  const goc = tuyChon.tuNgay ? new Date(tuyChon.tuNgay+'T00:00:00') : new Date();
-  const s2 = n=>String(n).padStart(2,'0');
-  const ngayThu = t => {                 /* ngày đầu tiên >= goc rơi đúng thứ t (2 = Thứ Hai) */
-    const d=new Date(goc);
-    while(d.getDay() !== (t-1)%7) d.setDate(d.getDate()+1);
-    return `${d.getFullYear()}${s2(d.getMonth()+1)}${s2(d.getDate())}`;
-  };
-  const gioTiet = (buoi,i) => {
-    const dau = GIO_ICS[buoi][0]*60 + GIO_ICS[buoi][1] + i*(GIO_ICS.phutTiet+GIO_ICS.phutNghi);
-    const hm = x=>`${s2(Math.floor(x/60))}${s2(x%60)}00`;
-    return [hm(dau), hm(dau+GIO_ICS.phutTiet)];
-  };
-  /* UNTIL phải ghi giờ UTC: 23:59:59 ngày 31/5 giờ Việt Nam = 16:59:59Z */
-  const nam = String(S.namHoc||'').match(/(\d{4})\D+(\d{4})/);
-  const namCuoi = nam ? +nam[2] : goc.getFullYear()+1;
-
-  const dong = [
-    'BEGIN:VCALENDAR','VERSION:2.0',
-    'PRODID:-//TKB truong tieu hoc//VI','CALSCALE:GREGORIAN',
-    `X-WR-CALNAME:${escICS('Lịch dạy — '+g.hoTen)}`,
-    'BEGIN:VTIMEZONE','TZID:Asia/Ho_Chi_Minh','BEGIN:STANDARD',
-    'DTSTART:19700101T000000','TZOFFSETFROM:+0700','TZOFFSETTO:+0700',
-    'TZNAME:+07','END:STANDARD','END:VTIMEZONE'
-  ];
-  tiet.forEach(x=>{
-    const [batDau,ketThuc]=gioTiet(x.buoi,x.i), ngay=ngayThu(x.thu);
-    const dt=dtId(S.lopDT[x.lp]);
-    dong.push(
-      'BEGIN:VEVENT',
-      `UID:tkb-${idGV}-${x.thu}-${x.buoi}-${x.i}@tkb`,
-      `DTSTAMP:${ngayThu(2)}T000000Z`,
-      `DTSTART;TZID=Asia/Ho_Chi_Minh:${ngay}T${batDau}`,
-      `DTEND;TZID=Asia/Ho_Chi_Minh:${ngay}T${ketThuc}`,
-      `RRULE:FREQ=WEEKLY;UNTIL=${namCuoi}0531T165959Z`,
-      `SUMMARY:${escICS(x.mon+' — Lớp '+tenLopDay(x.lp))}`);
-    if(dt) dong.push(`LOCATION:${escICS(dt.ten)}`);
-    dong.push(
-      `DESCRIPTION:${escICS(`Tiết ${x.i+1} buổi ${x.buoi==='S'?'sáng':'chiều'}`)}`,
-      'END:VEVENT');
-  });
-  dong.push('END:VCALENDAR');
-  return dong.map(gapDongICS).join('\r\n')+'\r\n';
-}
 /*#endregion XUAT*/
 
 /* ==================================================================
@@ -4397,7 +4342,7 @@ function mTKBGV(){
     if(!v) return `<div class="o-trong"></div>`;
     const dt=S.lopDT[v.lp];
     return `<div class="o-tiet ${mLop(v.mon)}"><div class="o-mon">${esc(v.mon)}</div>
-      <div class="o-gv">Lớp ${esc(lopId(v.lp)?.ten)} · ${esc(dtId(dt)?.ten.replace('Điểm trường ',''))}</div></div>`;
+      <div class="o-gv">Lớp ${esc(lopId(v.lp)?.ten)} · ${esc(tenDT(dt))}</div></div>`;
   };
   let bang=`<div class="luoi-boc"><table class="tkb"><thead><tr><th class="gt">Buổi</th><th style="width:52px">Tiết</th>
     ${THU.map(t=>`<th>${TEN_THU[t]}</th>`).join('')}</tr></thead><tbody>`;
@@ -4417,7 +4362,6 @@ function mTKBGV(){
     <span class="tag">${Object.keys(lich).length} tiết/tuần</span>
     <span class="tag ${soBuoi>=8?'canh':'ok'}">${soBuoi} buổi có mặt</span>
     ${g?.cn?`<span class="tag ok">Chủ nhiệm ${esc(tenCN(g))}</span>`:''}
-    <button class="b b-vien b-nho" id="btICSGV" style="margin-left:auto">Đưa vào lịch điện thoại</button>
     <button class="b b-vien b-nho" id="btInGVNay">In / lưu PDF</button>
   </div>
   ${Object.keys(lich).length ? '' : (()=>{ const l=lyDoTrongLich(S.gvXem,false);
@@ -4477,10 +4421,7 @@ function mCuaToi(){
       <div class="cb-g">${toi.map(x=>`${esc(TEN_THU[thuTuISO(x.ngay)]||'')} ${esc(dinhDangNgay(x.ngay))} ·
         ${x.buoi==='S'?'sáng':'chiều'} tiết ${x.tiet+1} — ${esc(x.mon)} lớp ${esc(tenLopDay(x.lopId))}
         (thay ${esc(gvId(x.gvVangId)?.hoTen||'')})`).join('<br>')}</div></div></div>`:'';
-  })()}
-  ${tong?`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="b b-vien b-nho" id="btICSToi">Đưa vào lịch điện thoại</button></div>
-  <div class="tuan">${THU.map(t=>{
+  })()}${tong?`<div class="tuan">${THU.map(t=>{
     const a=lich[t]||[];
     return `<div class="ngay ${t===thuNay?'homnay':''}">
       <div class="ngay-d"><b>${TEN_THU[t]}</b><span>${a.length} tiết${t===thuNay?' · hôm nay':''}</span></div>
@@ -4498,7 +4439,7 @@ function mCuaToi(){
               ${ds.map(x=>`<div class="tiet-ca ${mLop(x.mon)}">
                 <div class="st">Tiết ${x.i+1}</div>
                 <div class="sm">${esc(x.mon)}</div>
-                <div class="sl">Lớp ${esc(lopId(x.lp)?.ten)} · ${esc(dtId(S.lopDT[x.lp])?.ten.replace('Điểm trường ',''))}</div>
+                <div class="sl">Lớp ${esc(lopId(x.lp)?.ten)} · ${esc(tenDT(S.lopDT[x.lp]))}</div>
               </div>`).join('')}
             </div>`;
           }).join('')
@@ -5427,21 +5368,6 @@ ${kieu}
   bao('Đã tải '+tenTep);
 }
 
-/* Tải lịch dạy của một giáo viên thành tệp .ics — mở tệp là ứng dụng Lịch
-   trên điện thoại tự nhận. Nội dung dựng ở taoICS() trong vùng XUAT. */
-function taiICS(idGV){
-  const g=gvId(idGV);
-  if(!g) return bao('Chưa chọn giáo viên nào.', true);
-  const nd=taoICS(idGV);
-  if(!nd) return bao(`Chưa có tiết nào trong lịch của ${g.hoTen} — xếp thời khóa biểu trước đã.`, true);
-  const ten=`TKB-${khongDau(g.hoTen)}.ics`;
-  const b=new Blob([nd], {type:'text/calendar;charset=utf-8'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(b); a.download=ten;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 400);
-  bao(`Đã tải ${ten} — mở tệp là ứng dụng Lịch tự nhận, các tiết lặp hằng tuần tới hết năm học.`);
-}
 
 /* Bảng lưới: cột = thứ, dòng = buổi/tiết. lay(thu,buoi,tiet) trả nội dung ô. */
 /* Truyền `khoi` để bản in của một lớp chỉ hiện đúng số tiết khối đó học;
@@ -5534,7 +5460,7 @@ function trangInGV(id){
        `${soTiet} tiết/tuần · ${soBuoi} buổi có mặt`],
       bangIn((t,b,i)=>{
         const v=o[`${t}-${b}-${i}`]; if(!v) return '';
-        const dt=nhieuDiem?dtId(S.lopDT[v.lp])?.ten.replace('Điểm trường ','')||'':'';
+        const dt=nhieuDiem?tenDT(S.lopDT[v.lp]):'';
         return `<b>${esc(v.mon)}</b><span>Lớp ${esc(lopId(v.lp)?.ten||'')}${dt?' · '+esc(dt):''}</span>`;
       }), 'doc');
   }).join('');
@@ -5896,7 +5822,7 @@ function mLopHoc(){
         :l.khoi}</td>
       <td>${sua?`<select class="ip" data-lopdt="${l.id}" style="width:100%;max-width:190px">
           ${S.diemTruong.map(d=>`<option value="${d.id}" ${S.lopDT[l.id]===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}</select>`
-        :`<span class="tag dt d${iDT(S.lopDT[l.id])}">${esc(dtId(S.lopDT[l.id])?.ten.replace('Điểm trường ','')||'')}</span>`}</td>
+        :`<span class="tag dt d${iDT(S.lopDT[l.id])}">${esc(tenDT(S.lopDT[l.id]))}</span>`}</td>
       <td>${sua?`<select class="ip" data-lopcn="${l.id}" style="width:100%;max-width:210px">
           <option value="">— chưa phân công —</option>
           ${dsGV.map(g=>`<option value="${g.id}" ${cn?.id===g.id?'selected':''}>${esc(g.hoTen)}</option>`).join('')}</select>`
@@ -5987,7 +5913,7 @@ function mPhongHoc(){
       <td>${sua?`<input class="ip" data-phongten="${i}" value="${esc(p.ten)}" style="width:170px">`:`<b>${esc(p.ten)}</b>`}</td>
       <td>${sua?`<select class="ip" data-phongdt="${i}" style="width:100%;max-width:190px">
           ${S.diemTruong.map(d=>`<option value="${d.id}" ${p.dtId===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}</select>`
-        :`<span class="tag dt d${iDT(p.dtId)}">${esc(dtId(p.dtId)?.ten.replace('Điểm trường ','')||'')}</span>`}</td>
+        :`<span class="tag dt d${iDT(p.dtId)}">${esc(tenDT(p.dtId))}</span>`}</td>
       <td>${sua?`<input class="ip" data-phongmon="${i}" value="${esc(p.mon||'')}" list="dsCanPhong" style="width:140px">`
         :esc(p.mon||'—')}</td>
       <td class="phai">${can}</td>
@@ -6056,7 +5982,7 @@ function mGiaoVien(){
       <td class="phai">${sua?`<input class="ip" type="number" min="1" max="40" data-gvdm="${x.g.id}"
           value="${x.g.dinhMuc||DINH_MUC}" style="width:64px;text-align:right">`:(x.g.dinhMuc||DINH_MUC)}</td>
       <td>${esc(tenCN(x.g)||'—')}</td>
-      <td>${Object.keys(x.tDT).map(d=>`<span class="tag dt d${iDT(d)}">${esc(dtId(d)?.ten.replace('Điểm trường ','')||'')}</span>`).join(' ')}</td>
+      <td>${Object.keys(x.tDT).map(d=>`<span class="tag dt d${iDT(d)}">${esc(tenDT(d))}</span>`).join(' ')}</td>
       <td class="phai">${x.soLop}</td>
       <td class="phai" style="${x.tong>x.g.dinhMuc?'color:var(--do);font-weight:700':''}">${x.tong}</td>
       <td class="phai">${x.buoiCan}/${x.buoiCo}</td><td>${tag}</td>
@@ -6114,7 +6040,7 @@ function bangPC(){
   ${ds.map(({p,i})=>{
     const ch=chuanMon(p.mon, lopId(p.lopId)?.khoi);
     return `<tr><td>${esc(gvId(p.gvId)?.hoTen||'—')}</td><td><b>${esc(lopId(p.lopId)?.ten||'—')}</b></td>
-    <td><span class="tag dt d${iDT(S.lopDT[p.lopId])}">${esc(dtId(S.lopDT[p.lopId])?.ten.replace('Điểm trường ','')||'')}</span></td>
+    <td><span class="tag dt d${iDT(S.lopDT[p.lopId])}">${esc(tenDT(S.lopDT[p.lopId]))}</span></td>
     <td>${esc(p.mon)}</td>
     <td class="phai">${sua
       ?`<input class="ip" type="number" min="0" max="20" value="${p.soTiet}" data-pc="${i}" style="width:70px;text-align:right">`
@@ -6292,16 +6218,6 @@ function noiSuKien(){
     inRa(trangInLop(S.lopXem), 'lớp '+(lopId(S.lopXem)?.ten||'')));
   $('#btInGVNay')&&($('#btInGVNay').onclick=()=>
     inRa(trangInGV(S.gvXem), gvId(S.gvXem)?.hoTen||''));
-  $('#btICSGV')&&($('#btICSGV').onclick=()=>taiICS(S.gvXem));
-  /* Lấy đúng người màn hình đang hiện, không tự chọn lại lần nữa: hai nơi tính
-     ra hai người khác nhau là tải về nhầm lịch mà không ai hay. Vai trò giáo
-     viên chưa nối hồ sơ đã bị thieuHoSoGV() chặn từ đầu màn hình, nên nhánh
-     rơi về người đầu danh sách chỉ dành cho cán bộ quản lý đang xem thử. */
-  $('#btICSToi')&&($('#btICSToi').onclick=()=>{
-    const id=S.nguoiDung.gvId||S.giaoVien[0]?.id;
-    if(!id) return bao('Chưa có giáo viên nào để lấy lịch.',true);
-    taiICS(id);
-  });
 
   /* Dạy thay — hai ô chọn chỉ ghi vào S, không vẽ lại từng phím */
   $('#dtNgay')&&($('#dtNgay').onchange=e=>{S.dtNgay=e.target.value;});
@@ -6521,7 +6437,7 @@ function noiSuKien(){
   $('#btThemPhong')&&($('#btThemPhong').onclick=hopThemPhong);
   $('#btPhongTuDT')&&($('#btPhongTuDT').onclick=()=>{
     S.phong=S.diemTruong.filter(d=>d.phongTin).map((d,i)=>({
-      id:'ph'+(i+1), ten:'Phòng Tin học · '+d.ten.replace('Điểm trường ',''), dtId:d.id, mon:'Tin học'}));
+      id:'ph'+(i+1), ten:'Phòng Tin học · '+tenDiemNgan(d.ten), dtId:d.id, mon:'Tin học'}));
     if(!S.phong.length) return bao('Chưa điểm trường nào được đánh dấu có phòng Tin học',true);
     bao(`Đã tạo ${S.phong.length} phòng Tin học từ các điểm trường`); ve(); });
   $$('[data-phongten]').forEach(x=>x.onchange=e=>{

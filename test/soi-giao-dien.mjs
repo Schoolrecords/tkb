@@ -465,21 +465,18 @@ kt('Mã hành động dịch thành câu tiếng Việt đọc được', (() =>
 })());
 w.eval('dong()');
 
-console.log('\n15c. Xuất .ics cho lịch điện thoại');
+console.log('\n15c. Chức năng xuất .ics đã gỡ bỏ');
+/* Gỡ 2/8/2026 theo yêu cầu chủ dự án: thầy cô mở thẳng app trên điện thoại
+   được rồi (đã có PWA cài lên màn hình chính), nên một đường xuất lịch nữa
+   chỉ là thứ phải nuôi mà không ai dùng. Phép thử canh để không ai vô tình
+   dựng lại nửa vời — nút mà không còn hàm là bấm vào văng lỗi. */
 w.chuyen('tkbgv');
-kt('Màn hình Theo giáo viên có nút Đưa vào lịch điện thoại',
-   !!w.document.querySelector('#btICSGV'));
+kt('Màn hình Theo giáo viên không còn nút Đưa vào lịch điện thoại',
+   !w.document.querySelector('#btICSGV'));
 w.chuyen('cuatoi');
-kt('Màn hình Của tôi cũng có nút ấy',
-   !!w.document.querySelector('#btICSToi'));
-kt('taoICS chạy ngay trong trang, dựng được sự kiện có múi giờ Việt Nam', (() => {
-  const t = w.eval(`(() => {
-    const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];
-    return co ? taoICS(co.gvId, {tuNgay:'2026-09-07'}) : '';
-  })()`);
-  return t.includes('BEGIN:VEVENT') && t.includes('TZID:Asia/Ho_Chi_Minh')
-    && t.includes('RRULE:FREQ=WEEKLY');
-})());
+kt('Màn hình Của tôi cũng vậy', !w.document.querySelector('#btICSToi'));
+kt('Không còn sót hàm dựng .ics nào trong trang',
+   w.eval("typeof taoICS + typeof taiICS") === 'undefinedundefined');
 
 console.log('\n15d. Dạy thay, dạy bù');
 w.chuyen('daythay');
@@ -848,7 +845,7 @@ console.log('\n17a. Lịch cá nhân tách SÁNG · CHIỀU; lưới rộng nh�
   kt('Ô có tiết dùng lớp màu chung, không nhét style thanh 3px vào từng ô',
      oCoTiet.length > 0 && oCoTiet.every(o => !/border-left:\s*3px/.test(o.getAttribute('style') || '')),
      `${oCoTiet.length} ô`);
-  kt('Màu môn vẫn còn — nhận diện bằng chữ và vạch mảnh, không mất đi',
+  kt('Màu môn vẫn còn — nhận diện bằng chữ tên môn, không mất đi',
      oCoTiet.every(o => /\bm-[a-z]+\b/.test(o.className)));
 }
 
