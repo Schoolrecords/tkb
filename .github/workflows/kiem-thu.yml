@@ -29,6 +29,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Bộ cài db/cai-dat.sql khớp tệp nguồn
+        run: node db/gop-cai-dat.mjs --kiem
+
       - name: Thuật toán và dữ liệu (npm test)
         run: npm test
 

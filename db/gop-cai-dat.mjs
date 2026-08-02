@@ -1,0 +1,82 @@
+// ============================================================
+// Gộp bốn tệp SQL lõi thành db/cai-dat.sql — bộ cài một lần dán
+// ------------------------------------------------------------
+// Vì sao cần: dựng cơ sở dữ liệu cho một trường mới từng phải dán
+// tay nhiều tệp SQL theo đúng thứ tự — quên một tệp là app chạy
+// được nhưng thiếu tính năng ngầm (màn hình Môn học không lưu,
+// nút Công bố không bấm được...). Nút thắt số 1 khi nhân rộng.
+//
+// Cách dùng:
+//   node db/gop-cai-dat.mjs          sinh lại db/cai-dat.sql
+//   node db/gop-cai-dat.mjs --kiem   chỉ kiểm tra, lệch thì báo lỗi
+//                                    (CI chạy chế độ này)
+//
+// Sửa SQL thì sửa ở BỐN TỆP NGUỒN rồi chạy lại tệp này.
+// Đừng sửa thẳng db/cai-dat.sql — lần sinh sau sẽ đè mất.
+// ============================================================
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const thuMuc = dirname(fileURLToPath(import.meta.url));
+
+// Thứ tự QUAN TRỌNG: các tệp sau dùng hàm/bảng của tệp trước.
+const NGUON = [
+  'schema.sql',          // bảng + RLS + luu_tkb
+  'mon-hoc-phong.sql',   // danh mục môn, bảng phòng (dùng truong_cua_toi)
+  'cong-bo.sql',         // quy tắc UPDATE để bấm được nút Công bố
+  'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
+];
+
+const doc = t => readFileSync(join(thuMuc, t), 'utf8').replace(/\r\n/g, '\n');
+
+const dau = `-- ============================================================
+-- BỘ CÀI ĐẶT TRỌN GÓI — dán MỘT LẦN cho một dự án Supabase mới
+-- ------------------------------------------------------------
+-- TỆP SINH TỰ ĐỘNG từ bốn tệp nguồn, sinh lại bằng:
+--     node db/gop-cai-dat.mjs
+-- Đừng sửa tay tệp này; sửa tệp nguồn tương ứng rồi sinh lại.
+--
+-- Cách dùng: Supabase → SQL Editor → dán toàn bộ tệp → Run.
+-- Chạy lại lần nữa cũng không sao — mọi lệnh đều tự bỏ qua phần
+-- đã có (create if not exists / or replace / drop policy if exists).
+--
+-- Gồm, theo thứ tự:
+${NGUON.map((t, i) => `--   ${i + 1}. db/${t}`).join('\n')}
+--
+-- KHÔNG gồm các tệp tiện ích tình huống (chạy riêng khi cần):
+--   db/khoi-tao.sql            tạo trường bằng tay, không qua giao diện
+--   db/ma-lop.sql              nâng cấp CSDL dựng trước 1/8/2026
+--   db/du-lieu-dien-lien.sql   nạp dữ liệu mẫu Diễn Liên
+--   db/cong-bo-ngay.sql · soi-loi-cong-bo.sql · sua-tai-khoan-mo-coi.sql
+--   · dat-lai-mat-khau.sql     công cụ xử lý sự cố
+--   db/edge-function-tai-khoan.ts  cấp tài khoản hàng loạt (Edge Function,
+--                              triển khai riêng theo README)
+-- ============================================================
+`;
+
+const than = NGUON.map(t => `
+
+-- ############################################################
+-- ###  ${t}
+-- ############################################################
+
+${doc(t).trim()}
+`).join('');
+
+const ketQua = dau + than + '\n';
+const dich = join(thuMuc, 'cai-dat.sql');
+
+if (process.argv.includes('--kiem')) {
+  const hienCo = existsSync(dich) ? readFileSync(dich, 'utf8').replace(/\r\n/g, '\n') : '';
+  if (hienCo === ketQua) {
+    console.log('db/cai-dat.sql khớp với bốn tệp nguồn — đạt.');
+  } else {
+    console.error('db/cai-dat.sql LỆCH so với tệp nguồn.');
+    console.error('Cách sửa: chạy `node db/gop-cai-dat.mjs` rồi commit lại.');
+    process.exit(1);
+  }
+} else {
+  writeFileSync(dich, ketQua);
+  console.log(`Đã sinh db/cai-dat.sql (${Math.round(ketQua.length / 1024)} KB) từ ${NGUON.length} tệp nguồn.`);
+}

@@ -75,6 +75,9 @@ data/mau-nhap-pcgd.xlsx       mẫu Excel đúng định dạng nhập liệu
 data/ketxuat-smartscheduler-*.xlsx
                               bản kết xuất gốc của SmartScheduler, dùng đối chiếu
 
+db/cai-dat.sql                BỘ CÀI TRỌN GÓI — dán một lần cho dự án Supabase
+                              mới. Sinh tự động, đừng sửa tay (xem dòng dưới)
+db/gop-cai-dat.mjs            sinh lại cai-dat.sql từ bốn tệp nguồn; CI canh khớp
 db/schema.sql                 PostgreSQL cho Supabase, đa trường, có RLS
 db/khoi-tao.sql               tạo trường + nối tài khoản đăng nhập, chạy một lần
 db/du-lieu-dien-lien.sql      nạp 25 lớp · 35 GV · 265 dòng lên máy chủ
@@ -95,7 +98,9 @@ docs/quy-tac-kiem-tra.md      10 quy tắc kiểm tra khả thi
 ## Dựng cơ sở dữ liệu
 
 1. Tạo project mới trên Supabase, chọn vùng Singapore.
-2. Vào **SQL Editor**, dán toàn bộ `db/schema.sql`, chạy.
+2. Vào **SQL Editor**, dán toàn bộ `db/cai-dat.sql`, chạy. Một tệp này gộp
+   đủ bốn phần: schema + RLS, danh mục môn và bảng phòng, quy tắc Công bố,
+   hàm đăng ký trường mới. Chạy lại lần nữa cũng không hỏng gì.
 3. Vào **Settings → API Keys**, lấy `Project URL` và **khoá công khai**:
    dự án mới là khung **Publishable key** (`sb_publishable_...`), dự án cũ là
    khung **anon public** (`eyJhbGciOi...`). Phần mềm nhận cả hai đời khoá.
@@ -109,7 +114,9 @@ export const SUPABASE_URL  = 'https://xxxxx.supabase.co';
 export const SUPABASE_ANON = 'sb_publishable_...';
 ```
 
-`src/cauhinh.js` đã nằm trong `.gitignore`.
+`src/cauhinh.js` cố ý **không** nằm trong `.gitignore` — khoá trong đó là
+khoá công khai, và GitHub Pages thiếu tệp này thì trang không đăng nhập được
+(xem ghi chú trong `.gitignore`).
 
 5. Vào **Authentication → Users**, bấm **Add user → Create new user**
    (không phải *Send invitation*, dòng đó tạo tài khoản chưa có mật khẩu).
