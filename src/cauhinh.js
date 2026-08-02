@@ -3,7 +3,9 @@
    ------------------------------------------------------------------
    Dự án Supabase: tkb-dien-lien (Singapore) · tạo ngày 31/07/2026
 
-   Tệp này KHÔNG được đẩy lên GitHub — đã nằm trong .gitignore.
+   Tệp này CỐ Ý được đưa lên GitHub (xem ghi chú trong .gitignore):
+   khoá dưới đây là khoá công khai, và GitHub Pages thiếu tệp này
+   thì trang không đăng nhập được.
    Đổi máy chủ thì sửa hai dòng dưới rồi tải lại trang.
 
    SUPABASE_ANON là khoá CÔNG KHAI (publishable). Để ở trình duyệt

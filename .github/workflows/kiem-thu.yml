@@ -1,0 +1,39 @@
+# ============================================================
+# Chạy toàn bộ kiểm thử mỗi lần đẩy mã
+# ------------------------------------------------------------
+# Hai bộ, cả hai phải sạch thì mới coi là đạt:
+#   npm test     — 192 phép thử thuật toán + dữ liệu (không cần gói nào)
+#   npm run soi  — 95 phép thử bấm nút trên giao diện thật (cần jsdom,
+#                  cài tại chỗ vì dự án cố ý không có dependency)
+#
+# Đây là lưới an toàn cho mốc bắt buộc trong CLAUDE.md mục 5:
+# 710/710 tiết, 0 xung đột. Kiểm thử đỏ thì đừng triển khai.
+# ============================================================
+name: Kiểm thử
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  kiem-thu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Thuật toán và dữ liệu (npm test)
+        run: npm test
+
+      - name: Cài jsdom cho bộ soi giao diện
+        run: npm install --no-save jsdom
+
+      - name: Giao diện thật (npm run soi)
+        run: npm run soi
