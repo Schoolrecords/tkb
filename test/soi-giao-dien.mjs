@@ -502,6 +502,29 @@ kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của t
     `${r.tongTiet} tiết = chuẩn đang khai (${mong})`];
 })()));
 
+console.log('\n15g. Ngăn kéo điều hướng trên điện thoại');
+kt('Có nút ☰ và nền mờ; mặc định ngăn kéo đóng',
+   !!w.document.querySelector('#btMenu') && !!w.document.querySelector('#manMenu') &&
+   !w.document.body.classList.contains('mo-menu'));
+w.document.querySelector('#btMenu').dispatchEvent(new w.Event('click', { bubbles: true }));
+kt('Bấm ☰ là mở ngăn kéo', w.document.body.classList.contains('mo-menu'));
+w.document.querySelector('#manMenu').dispatchEvent(new w.Event('click', { bubbles: true }));
+kt('Chạm nền mờ là đóng lại', !w.document.body.classList.contains('mo-menu'));
+kt('Chọn một mục thì ngăn kéo tự đóng — không che mất màn hình vừa mở', (() => {
+  w.document.querySelector('#btMenu').dispatchEvent(new w.Event('click', { bubbles: true }));
+  w.chuyen('lop');
+  return !w.document.body.classList.contains('mo-menu') && w.eval('S.trangHienTai') === 'lop';
+})());
+kt('Thanh trên đủ bộ: logo, tên trường tách riêng để co giãn được',
+   !!w.document.querySelector('.thanh-bt img') && !!w.document.querySelector('.thanh-ten'));
+kt('Không có cảnh báo nào thì badge chuông ẩn hẳn, không hiện số 0', (() => {
+  const cu = w.eval('KT.vm');
+  w.eval('KT.vm = []; capNhatDem()');
+  const an = w.document.querySelector('#slChuong').style.display === 'none';
+  w.eval('KT = kiemTra(); capNhatDem()');
+  return an;
+})());
+
 console.log('\n15f. Đăng nhập Google và phễu demo');
 /* Giả có máy chủ nhưng chưa đăng nhập → màn chào */
 w.eval(`KHO.cauHinh={url:'https://gia.supabase.co',khoa:'k'}; S.trangHienTai='chao'; ve()`);

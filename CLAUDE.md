@@ -239,6 +239,25 @@ việc lặt vặt:
 | Đổi vai trò xem thử | **bỏ hẳn** *(1/8/2026)* | đăng nhập vai nào là vai đó; muốn xem vai khác thì đăng xuất rồi đăng nhập lại. Một lối vào, không có cửa sau |
 | — | chấm xanh trên thẻ tài khoản | vẫn báo tình trạng máy chủ, không tốn một dòng nào |
 
+#### Trên điện thoại: NGĂN KÉO, không phải dải ngang *(sửa 2/8/2026)*
+
+Bản trước thu thanh bên thành **dải cuộn ngang dán đỉnh màn hình**. Sai từ
+gốc, và chủ dự án nói đúng một câu là ra: *"dải điều hướng có ai sắp xếp
+chạy ngang phía trên bao giờ đâu"*. Ba cái sai:
+- Bắt người dùng **vuốt ngang** mới tìm được mục — không phần mềm nào làm vậy.
+- Nhãn nhóm phải **xoay dọc** mới vừa chỗ, đọc rất khó.
+- Dải ấy ăn mất một khoảng cao ở **mọi** màn hình, kể cả khi không dùng tới.
+
+Nay là **ngăn kéo trượt từ trái** (`body.mo-menu`), mở bằng nút ☰ ở thanh
+trên: giữ nguyên menu dọc y như máy tính, kể cả logo và thẻ tài khoản, nhãn
+nhóm nằm ngang đọc bình thường. Đóng khi chọn mục (`chuyen()` gọi
+`dongMenu()`), chạm nền mờ, hoặc bấm Escape. Không mục nào hiện thì giấu
+luôn nút ☰ — bấm ra khoảng navy trống là trải nghiệm tệ nhất.
+
+⚠️ **Nhắm phần tử trong `.thanh` bằng TÊN LỚP, đừng `nth-child`.** Thêm nút
+☰ vào đầu làm `.thanh>div:nth-child(2)` trượt từ ô tên trường sang ô logo,
+logo co về 0 và biến mất. Nay là `.thanh-ten`.
+
 **Ba tầng như bộ nhận diện AVATAR** *(1/8/2026)*: `aside` không cuộn nữa
 (`overflow:hidden`); đầu trang và thẻ tài khoản đứng yên, chỉ `<nav class="dsmuc">`
 ở giữa cuộn (`flex:1;overflow-y:auto`). Trước đây cả thanh bên cuộn nên tên
@@ -628,6 +647,12 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - Không dùng framework, không build step. Một file `index.html` chạy được ngay.
 - CSS dùng biến trong `:root`, đặt tên tiếng Việt (`--nen`, `--chu`, `--ke`).
 - Mọi chuỗi hiển thị đi qua hàm `esc()` trước khi chèn vào HTML.
+- **HTML tĩnh trong trang phải TRUNG TÍNH** *(2/8/2026)*. Trước khi
+  `khoiDong()` chạy xong, người dùng nhìn thấy đúng những gì viết cứng trong
+  `<body>` — trên điện thoại mạng chậm là vài giây. Bản cũ viết cứng
+  `TRƯỜNG TIỂU HỌC DIỄN LIÊN` và badge chuông `0`, nên ai mở trang cũng thấy
+  tên một trường thật hiện ra rồi mới biến mất — vừa lộ dữ liệu, vừa nhìn
+  như phần mềm lỗi. Nay là `THỜI KHÓA BIỂU` / `Đang tải…` / badge rỗng.
 - Ngôn ngữ giao diện: động từ chủ động, câu ngắn, không viết hoa toàn bộ trừ
   nhãn nhỏ. Lỗi phải nói rõ *chuyện gì xảy ra* và *cách sửa*, không xin lỗi.
 - **Nói quy định hiện hành như một sự thật, không kể tiến trình** *(1/8/2026)*.

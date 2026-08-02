@@ -73,6 +73,9 @@ await chup('09-xuat-in',             { cao: 1000, lam: async p => { await xep(p)
 await chup('10-dt-bang-dieu-hanh',   { rong: 412, cao: 900, lam: di('dieuhanh') });
 await chup('11-dt-lop-hoc',          { rong: 412, cao: 900, lam: di('lop') });
 await chup('12-dt-toan-truong',      { rong: 412, cao: 900, lam: async p => { await xep(p); await di('toantruong')(p); } });
+/* Ngăn kéo đang mở — lối điều hướng chính trên điện thoại từ 2/8/2026 */
+await chup('17-dt-ngan-keo', { rong: 412, cao: 900, lam: async p => {
+  await di('dieuhanh')(p); await p.click('#btMenu'); await p.waitForTimeout(350); } });
 
 /* Hai màn hình giữ các việc chuyển ra khỏi thanh bên */
 await chup('14-thong-tin-truong', { cao: 1000, lam: di('thongtin') });
