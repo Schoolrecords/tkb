@@ -59,7 +59,9 @@ for (const t of dsTep) {
   const ma = boChuThich(doc(t));
   for (const m of ma.matchAll(/create type\s+(\w+)\s+as enum\s*\(([^)]*)\)/gi))
     ENUM[m[1]] = [...m[2].matchAll(/'([^']*)'/g)].map(x => x[1]);
-  for (const m of ma.matchAll(/create table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?(\w+)/gi))
+  /* `temp`/`temporary` cũng là bảng thật trong phiên làm việc — bỏ sót thì
+     tệp nào dùng bảng tạm cũng bị kêu oan là "bảng lạ". */
+  for (const m of ma.matchAll(/create\s+(?:temp(?:orary)?\s+|unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?(\w+)/gi))
     BANG.add(m[1].toLowerCase());
 }
 /* Cột nào khai kiểu enum thì nhớ lại — đây là chỗ dò ngược khi thấy so sánh */
