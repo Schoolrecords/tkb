@@ -1632,6 +1632,12 @@ function tienToDT(ten){
    Tên lớp đứng trước vì đó là thứ người dùng tìm; sắp theo mã cũng ra
    đúng thứ tự lớp. Chọn dấu `_` để không lẫn với gạch nối trong tên. */
 const maLopTu = (ten, dtTen) => String(ten||'').replace(/\s+/g,'')+'_'+tienToDT(dtTen);
+/* Chuẩn hoá mã lớp NGAY KHI NẠP DỮ LIỆU — không đợi người dùng bấm nút.
+   Cơ sở dữ liệu dựng trước khi có cột `ma_lop` để trống ô đó, và phần mềm
+   từng bày mã UUID 36 ký tự ra bảng Lớp học lẫn tệp Excel xuất ra. Mã lớp
+   là thứ NGƯỜI đọc và gõ; không bao giờ được để mã máy lọt ra màn hình. */
+const chuanMaLop = () => datLaiMaLop();
+
 /* Đặt lại mã cho các lớp đang mang mã xấu. Chỉ đụng `maLop` — mọi tham
    chiếu khác đi bằng `id` nên không xê dịch gì. */
 function datLaiMaLop(){
@@ -2271,6 +2277,8 @@ function napVaoS(dl){
     S.tkb[l.id] = {};
   });
   chuanCN();
+  /* Mã lớp phải đọc được ngay từ lúc nạp — cần lopDT nên đặt sau vòng trên */
+  S.soMaVuaDat = chuanMaLop();
   S.phamVi=''; S.lopXem=null; S.gvXem=null;
   return S;
 }
@@ -2406,11 +2414,16 @@ async function taiTuMayChu(){
   KHO.banCongBo = +cb?.[0]?.version || 0;
   chotVanTay();                    /* mốc so sánh: vừa tải về thì chưa có gì để lưu */
   const d = pb?.[0]?.du_lieu ? docTKB(pb[0].du_lieu) : {nap:0, boQua:0};
+  /* Máy chủ cũ để trống ma_lop → vừa tự đặt mã đọc được. Nói ra để người
+     dùng biết còn một cú bấm Lưu nữa thì mã mới nằm hẳn trên máy chủ. */
+  const nhacMa = S.soMaVuaDat
+    ? ` Đã tự đặt mã đọc được cho ${S.soMaVuaDat} lớp — vào mục Lớp học bấm Lưu để chốt.`
+    : '';
   return {
     ok:true, nguon:'may-chu', version:KHO.version, soTiet:d.nap, boQua:d.boQua,
-    thongBao: KHO.version
+    thongBao: (KHO.version
       ? `Đã tải phiên bản ${KHO.version} — ${d.nap} tiết${d.boQua?`, bỏ ${d.boQua} ô không còn hợp lệ`:''}.`
-      : `Đã tải dữ liệu ${S.lop.length} lớp. Chưa có phiên bản thời khóa biểu nào.`
+      : `Đã tải dữ liệu ${S.lop.length} lớp. Chưa có phiên bản thời khóa biểu nào.`) + nhacMa
   };
 }
 
@@ -2754,11 +2767,22 @@ async function ghiDuLieuNguon(dl){
     const cnCua={}; dl.giaoVien.forEach(g=>{ if(g.cn) cnCua[g.cn]=g.id; });
     const tenDiemCua=id=>dl.diemTruong.find(d=>d.id===dl.lopDT[id])?.ten;
     const maCua=l=>l.maLop||l.id;
-    await gop('lop', dl.lop.map(l=>({
-      truong_id:t, ma_lop:maCua(l), ten:l.ten, khoi:l.khoi,
-      diem_truong_id:maDT[tenDiemCua(l.id)],
-      gvcn_id:maGV[cnCua[l.id]] || null
-    })), 'truong_id,ma_lop');
+    const hangLop=l=>({truong_id:t, ma_lop:maCua(l), ten:l.ten, khoi:l.khoi,
+      diem_truong_id:maDT[tenDiemCua(l.id)], gvcn_id:maGV[cnCua[l.id]] || null});
+    /* ⚠️ BẪY CHẾT NGƯỜI khi ĐỔI MÃ LỚP. Upsert theo khoá tự nhiên
+       (truong_id, ma_lop) chỉ đúng khi mã không đổi. Lớp đã nằm trên máy chủ
+       mà nay mang mã mới thì không khớp dòng cũ → máy chủ THÊM lớp mới, nhân
+       đôi cả danh sách. Nên tách hai đường:
+         · Lớp đã có trên máy chủ (id là UUID thật) → upsert theo `id`,
+           sửa đúng dòng cũ dù mã có đổi.
+         · Lớp mới khai trong app (id do app tự đặt) → upsert theo mã như cũ. */
+    const laUUID=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
+    const daCoTrenSv=dl.lop.filter(l=>laUUID(l.id));
+    const lopMoiKhai=dl.lop.filter(l=>!laUUID(l.id));
+    if(daCoTrenSv.length)
+      await gop('lop', daCoTrenSv.map(l=>({id:l.id, ...hangLop(l)})), 'id');
+    if(lopMoiKhai.length)
+      await gop('lop', lopMoiKhai.map(hangLop), 'truong_id,ma_lop');
     const lopSv=await goiAPI(`/rest/v1/lop?truong_id=eq.${t}&select=id,ma_lop,ten`);
     const maLop={}; (lopSv||[]).forEach(l=>maLop[l.ma_lop]=l.id);
 

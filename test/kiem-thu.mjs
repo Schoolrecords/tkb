@@ -300,7 +300,12 @@ async function mangGia(url, opt = {}) {
   }
   if (opt.method === 'POST' && co('/khung_gio')) { GHI.khungGio = than; return dap(null, 201); }
   if (opt.method === 'POST' && co('/giao_vien')) { GHI.giaoVien = than; return dap(null, 201); }
-  if (opt.method === 'POST' && co('/lop?')) { GHI.lop = than; return dap(null, 201); }
+  if (opt.method === 'POST' && co('/lop?')) {
+    GHI.lop = (GHI.lop || []).concat(than);
+    GHI.lopTheoKhoa = (GHI.lopTheoKhoa || []).concat(
+      than.map(h => ({ khoa: (url.match(/on_conflict=([^&]*)/) || [])[1] || '', hang: h })));
+    return dap(null, 201);
+  }
   if (opt.method === 'DELETE' && co('/phan_cong')) { GHI.xoaPhanCong++; return dap(null, 204); }
   if (opt.method === 'POST' && co('/phan_cong')) { GHI.phanCong = than; return dap(null, 201); }
   /* Đọc lại sau khi ghi, để tầng dữ liệu lấy mã UUID mà nối phân công */
@@ -965,8 +970,12 @@ kt('Vòng khép kín: xuất ma trận rồi nhập lại — 0 lỗi, đủ 35 
    rtDL.soLoi === 0 && rtDL.giaoVien.length === 35 && rtDL.lop.length === 25 &&
    rtDL.phanCong.length === 265 && rtDL.tongTiet === 710,
    `${rtDL.soLoi} lỗi · ${rtDL.phanCong.length} dòng · ${rtDL.tongTiet} tiết`);
+/* Tệp Excel tham chiếu lớp bằng MÃ LỚP, còn S.phanCong bằng id nội bộ —
+   ánh xạ ngược trước khi so, không thì so mã với id. */
 kt('Từng dòng phân công khớp nguyên bản — đúng người, đúng lớp, đúng môn, đúng tiết', (() => {
-  const bo = new Set(rtDL.phanCong.map(p => `${p.gvId}|${p.lopId}|${p.mon}|${p.soTiet}`));
+  const idCua = {}; S.lop.forEach(l => { idCua[l.maLop || l.id] = l.id; });
+  const bo = new Set(rtDL.phanCong.map(p =>
+    `${p.gvId}|${idCua[p.lopId] || p.lopId}|${p.mon}|${p.soTiet}`));
   return S.phanCong.every(p => bo.has(`${p.gvId}|${p.lopId}|${p.mon}|${p.soTiet}`));
 })());
 kt('Chủ nhiệm giữ nguyên qua vòng xuất nhập',
@@ -1068,6 +1077,26 @@ kt('Tệp 3 trang không có buổi bận thì không đụng gì tới bảng g
   await MC.ghiDuLieuNguon(tep);            /* gvNghi rỗng */
   return GHI.xoaNghi === truoc;
 })());
+
+/* ⚠️ Bẫy chết người khi ĐỔI MÃ LỚP. Lớp đã nằm trên máy chủ (id là UUID
+   thật) phải ghi theo khoá `id`; ghi theo mã thì mã MỚI không khớp dòng cũ,
+   máy chủ thêm dòng mới và nhân đôi cả danh sách lớp. */
+kt('Đổi mã lớp rồi lưu: lớp cũ ghi theo id, lớp mới ghi theo mã — không nhân đôi',
+   await (async () => {
+     const truoc = (GHI.lopTheoKhoa || []).length;
+     const uuid = 'e0258f1f-0a3b-4fe4-80fd-284c9fd56941';
+     await MC.ghiDuLieuNguon({ ...tep,
+       lop: [{ id: uuid, ten: '1A', khoi: 1, maLop: '1A_DL' },
+             { id: 'lop_1B_DL', ten: '1B', khoi: 1, maLop: '1B_DL' }],
+       lopDT: { [uuid]: tep.diemTruong[0].id, lop_1B_DL: tep.diemTruong[0].id } });
+     const moi = (GHI.lopTheoKhoa || []).slice(truoc);
+     const theoId = moi.filter(x => x.khoa === 'id');
+     const theoMa = moi.filter(x => x.khoa === 'truong_id,ma_lop');
+     return theoId.length === 1 && theoId[0].hang.id === uuid &&
+            theoId[0].hang.ma_lop === '1A_DL' &&
+            theoMa.length === 1 && theoMa[0].hang.ma_lop === '1B_DL' &&
+            !('id' in theoMa[0].hang);
+   })(), 'lớp cũ sửa đúng dòng, lớp mới thêm bình thường');
 
 /* Buổi bận là ràng buộc CỨNG: máy không được xếp tiết nào vào đó */
 napVaoS(tuMayChu(HANG));          /* g2 đã đăng ký bận sáng thứ Ba */
