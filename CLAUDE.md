@@ -735,10 +735,22 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 
 ### Lộ trình đã duyệt 2/8/2026 (thứ tự chủ dự án chốt)
 - [x] 1. Module dạy thay / dạy bù *(xong 2/8/2026 — xem trên)*
-- [ ] 2. **Mẫu Excel một trang kiểu ma trận**: mỗi dòng một giáo viên, các môn
-      là cột đánh dấu tích (`x`), kèm cột buổi cố định và danh sách lớp dạy —
-      số tiết suy từ tiết chuẩn CT GDPT 2018 đã có trong `S.monHoc`; cho phép
-      ghi đè kiểu `Toán:3` khi lệch chuẩn. Giữ song song với mẫu 3 trang.
+- [x] 2. **Mẫu Excel một trang kiểu ma trận** *(2/8/2026)*. Trang `PHAN_CONG`:
+      TT · Ma_GV · Ho_ten · Chu_nhiem · Lop_day · Buoi_ban · mỗi môn một cột.
+      Quy ước ô: trống = không dạy; `x` = dạy ở mọi lớp trong Lop_day (trống
+      thì lấy lớp chủ nhiệm); ghi danh sách lớp = dạy đúng các lớp ấy. **Số
+      tiết không phải ghi** — lấy tiết chuẩn theo khối từ `S.monHoc` (danh mục
+      hiện hành của trường, không phải hằng cứng). Ma_GV bỏ trống thì tự đặt
+      GV01…, họ tên lặp thì bắt ghi mã; một người được nhiều dòng khi các môn
+      khác bộ lớp. Trang DANH_SACH_LOP tùy chọn (bắt buộc khi nhiều điểm
+      trường); không có thì lớp tự dựng, khối theo chữ số trong tên. Cột
+      Buoi_ban (T2-S, T5-C) đổ vào `gv_nghi`, `ghiDuLieuNguon()` nay đẩy cả
+      buổi bận lên máy chủ khi tệp có. `duLieuTuMaTran()` bung ma trận thành
+      ba bảng rồi đi CHUNG đường `duLieuTuBang()` — một đường soát lỗi duy
+      nhất. Phép thử vàng: xuất ma trận từ dữ liệu thật rồi nhập lại ra đúng
+      265 dòng · 710 tiết, khớp từng dòng. Lệch chuẩn thì sửa trong app sau
+      nhập hoặc dùng mẫu 3 trang (bỏ ý ghi đè `Toán:3` — thêm cú pháp là thêm
+      chỗ gõ sai).
 - [ ] 3. **Đăng nhập Google + phễu demo**: thêm (không thay) đăng nhập
       email/mật khẩu; người đăng nhập chưa thuộc trường nào thấy TKB demo
       tương tác + hai lối "Nhập mã mời của trường" / "Đăng ký trường mới" —

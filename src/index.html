@@ -2344,6 +2344,142 @@ function duLieuTuBang(hangGV, hangLop, hangPC){
   };
 }
 
+/* ---------- 5a. Nhập từ mẫu MA TRẬN một trang ----------
+   Mỗi dòng một giáo viên, mỗi môn một cột. Quy ước ô:
+     · trống      = không dạy môn đó
+     · "x"        = dạy môn đó ở TẤT CẢ các lớp trong cột Lop_day
+                    (Lop_day trống thì lấy lớp chủ nhiệm)
+     · danh sách  = dạy môn đó ở đúng các lớp ghi trong ô, ví dụ "3A, 3B"
+   SỐ TIẾT máy tự lấy tiết chuẩn CT GDPT 2018 theo khối — người kẻ bảng
+   không phải nhớ 27·27·28·30·30. Trang DANH_SACH_LOP là TÙY CHỌN: không có
+   thì máy tự dựng lớp từ các tên xuất hiện, khối lấy theo chữ số trong tên.
+   Bung xong thành ba bảng chuẩn thì mọi soát lỗi còn lại đi chung một
+   đường duLieuTuBang() — không có lối nhập thứ hai lệch quy tắc. */
+function duLieuTuMaTran(hangMT, hangLop){
+  const loi=[];
+  const chu=x=>String(x??'').trim();
+  const CO_DINH=['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban'];
+  const laTick=v=>/^(x|✓|✔|v)$/i.test(chu(v));
+  const tach=s=>chu(s).split(/[,;·]+/).map(x=>x.trim()).filter(Boolean);
+
+  /* Cột nào không thuộc bộ cố định thì là một môn — phải có trong danh mục */
+  const monDung=new Map((S.monHoc||[]).map(m=>[m.ten, m.chuan||{}]));
+  const cotMon=[...new Set(hangMT.flatMap(r=>Object.keys(r)))]
+    .filter(c=>!CO_DINH.includes(c));
+  cotMon.filter(c=>!monDung.has(c)).forEach(c=>
+    loi.push(`PHAN_CONG: cột "${c}" không có trong danh mục môn — khai thêm ở mục Môn học, hoặc sửa lại tên cột`));
+
+  /* Lớp: có trang DANH_SACH_LOP thì theo trang ấy, tên chỉ nhận khi trỏ đúng
+     một lớp; không có trang thì tự dựng từ các tên xuất hiện trong bảng */
+  const tuSinh=!(hangLop&&hangLop.length);
+  const lopRow=tuSinh?[]:hangLop.map(r=>({...r}));
+  const coLop=new Map(), tenNhieu=new Set();
+  if(!tuSinh){
+    const theoTen={};
+    lopRow.forEach(r=>{
+      const ma=chu(r.Ma_lop), ten=chu(r.Ten_lop);
+      if(ma) coLop.set(ma, ma);
+      if(ten&&ma) (theoTen[ten]=theoTen[ten]||[]).push(ma);
+    });
+    Object.entries(theoTen).forEach(([ten,ds])=>{
+      if(ds.length===1){ if(!coLop.has(ten)) coLop.set(ten, ds[0]); }
+      else tenNhieu.add(ten);
+    });
+  }
+  const nhanLop=(t,noi)=>{
+    const x=chu(t);
+    if(coLop.has(x)) return coLop.get(x);
+    if(tenNhieu.has(x)){ loi.push(`${noi}: có nhiều lớp cùng tên "${x}" ở các điểm trường khác nhau — ghi Ma_lop cho rõ`); return null; }
+    if(tuSinh){
+      const k=(x.match(/[1-5]/)||[])[0];
+      if(!k){ loi.push(`${noi}: không đoán được khối của lớp "${x}" — tên lớp cần chứa số khối (1A, DL-3B…), hoặc kèm trang DANH_SACH_LOP`); return null; }
+      coLop.set(x,x);
+      lopRow.push({Ma_lop:x, Ten_lop:x, Khoi:+k, Diem_truong:''});
+      return x;
+    }
+    loi.push(`${noi}: không có lớp "${x}" trong DANH_SACH_LOP`);
+    return null;
+  };
+  const khoiCua=ma=>{ const r=lopRow.find(x=>chu(x.Ma_lop)===ma); return +(r?.Khoi)||0; };
+
+  /* Gộp dòng theo mã giáo viên — một người được phép chiếm nhiều dòng khi
+     dạy các môn ở những bộ lớp khác nhau. Thiếu mã thì tự đặt GV01, GV02…
+     nhưng họ tên lặp lại mà không có mã thì phải hỏi, không đoán bừa. */
+  const gvGop=new Map(), thuTu=[];
+  const maSan=new Set(hangMT.map(r=>chu(r.Ma_GV)).filter(Boolean));
+  const tenKhongMa={};
+  hangMT.forEach(r=>{ const t=chu(r.Ho_ten);
+    if(t&&!chu(r.Ma_GV)) tenKhongMa[t]=(tenKhongMa[t]||0)+1; });
+  let dem=0; const maTuDong={};
+
+  hangMT.forEach((r,i)=>{
+    const dong=i+2, ten=chu(r.Ho_ten);
+    let ma=chu(r.Ma_GV);
+    if(!ma&&!ten){
+      if(CO_DINH.concat(cotMon).some(c=>chu(r[c]))) loi.push(`PHAN_CONG dòng ${dong}: thiếu Ho_ten`);
+      return;
+    }
+    if(!ma){
+      if(tenKhongMa[ten]>1){ loi.push(`PHAN_CONG dòng ${dong}: "${ten}" xuất hiện ở nhiều dòng không có mã — ghi Ma_GV để máy biết có phải cùng một người không`); return; }
+      if(!(ten in maTuDong)){
+        do{ dem++; }while(maSan.has('GV'+String(dem).padStart(2,'0')));
+        maTuDong[ten]='GV'+String(dem).padStart(2,'0');
+      }
+      ma=maTuDong[ten];
+    }
+    let g=gvGop.get(ma);
+    if(!g){ g={ma, ten, cn:'', nghi:new Set(), mon:{}}; gvGop.set(ma,g); thuTu.push(g); }
+    if(!g.ten&&ten) g.ten=ten;
+
+    const cn=chu(r.Chu_nhiem);
+    if(cn&&!g.cn){
+      const maCN=nhanLop(cn, `PHAN_CONG dòng ${dong} cột Chu_nhiem`);
+      if(maCN) g.cn=maCN;
+    }
+    const banTho=chu(r.Buoi_ban);
+    if(banTho){
+      let conLai=banTho;
+      for(const m of banTho.matchAll(/T?\s*([2-7])\s*[-–.]?\s*([SC])/gi)){
+        g.nghi.add(`${m[1]}-${m[2].toUpperCase()}`);
+        conLai=conLai.replace(m[0],'');
+      }
+      if(/[A-Za-z0-9]/.test(conLai))
+        loi.push(`PHAN_CONG dòng ${dong}: không hiểu Buoi_ban "${banTho}" — ghi kiểu T2-S (thứ Hai sáng) · T5-C (thứ Năm chiều), cách nhau dấu phẩy`);
+    }
+    const lopDay=tach(r.Lop_day).map(t=>nhanLop(t,`PHAN_CONG dòng ${dong} cột Lop_day`)).filter(Boolean);
+    cotMon.forEach(monTen=>{
+      if(!monDung.has(monTen)) return;
+      const o=chu(r[monTen]); if(!o) return;
+      let ds;
+      if(laTick(o)){
+        ds=lopDay.length?lopDay:(g.cn?[g.cn]:null);
+        if(!ds) return void loi.push(`PHAN_CONG dòng ${dong}, môn ${monTen}: đánh "x" nhưng cột Lop_day trống và không có lớp chủ nhiệm`);
+      }else{
+        ds=tach(o).map(t=>nhanLop(t,`PHAN_CONG dòng ${dong}, môn ${monTen}`)).filter(Boolean);
+        if(!ds.length) return;
+      }
+      const s=(g.mon[monTen]=g.mon[monTen]||new Set());
+      ds.forEach(l=>s.add(l));
+    });
+  });
+
+  /* Bung thành ba bảng chuẩn — số tiết là tiết chuẩn theo khối của lớp */
+  const gvRows=thuTu.map(g=>({Ma_GV:g.ma, Ho_ten:g.ten, Chu_nhiem:g.cn, Dinh_muc:''}));
+  const pcRows=[];
+  thuTu.forEach(g=>Object.entries(g.mon).forEach(([mon,s])=>[...s].forEach(ma=>{
+    const k=khoiCua(ma);
+    const st=+(monDung.get(mon)?.[k] ?? monDung.get(mon)?.[String(k)]);
+    if(!(st>0)) return void loi.push(
+      `${g.ten||g.ma}: môn ${mon} không có tiết chuẩn cho khối ${k||'?'} (lớp ${ma}) — bỏ dấu ở ô đó, hoặc dùng mẫu 3 trang nếu cố ý ghi số tiết riêng`);
+    pcRows.push({Ma_GV:g.ma, Ma_lop:ma, Mon:mon, So_tiet:st});
+  })));
+
+  const dl=duLieuTuBang(gvRows, lopRow, pcRows);
+  const gvNghi={}; thuTu.forEach(g=>{ if(g.nghi.size) gvNghi[g.ma]=[...g.nghi]; });
+  return {...dl, gvNghi, maTran:true,
+    loi:[...loi, ...dl.loi].slice(0,12), soLoi:loi.length+dl.soLoi};
+}
+
 /* Ghi bộ dữ liệu nguồn lên máy chủ.
    Giáo viên và lớp dò theo khoá tự nhiên (ma_gv, ten) nên GIỮ NGUYÊN mã UUID
    — nhờ vậy các phiên bản thời khóa biểu đã lưu vẫn đọc được sau khi nhập lại.
@@ -2434,6 +2570,20 @@ async function ghiDuLieuNguon(dl){
                     mon:p.mon||null}))
           .filter(r=>r.diem_truong_id))}))
       .catch(()=>{});
+    }
+
+    /* 6b. Buổi bận — chỉ mẫu ma trận mới mang theo (cột Buoi_ban). Có thì
+       thay mới như phân công; tệp 3 trang không có nên không đụng gì cả. */
+    const dsNghi=Object.entries(dl.gvNghi||{});
+    if(dsNghi.length){
+      await goiAPI(`/rest/v1/gv_nghi?truong_id=eq.${t}`,
+        {method:'DELETE', headers:{Prefer:'return=minimal'}});
+      const hangNghi=dsNghi.flatMap(([ma,ds])=>ds.map(k=>{
+        const p=k.split('-');
+        return {truong_id:t, giao_vien_id:maGV[ma], thu:+p[0], buoi:p[1]};
+      })).filter(r=>r.giao_vien_id);
+      if(hangNghi.length) await goiAPI('/rest/v1/gv_nghi',
+        {method:'POST', headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangNghi)});
     }
 
     /* Còn sót lại trên máy chủ mà tệp không nhắc tới — không tự xoá, chỉ báo,
@@ -2889,6 +3039,57 @@ function bangMauNhap(){
             ['GV03','1B','Mỹ thuật',1]);
   }
   return {huong, gv, lop, pc, coThat};
+}
+
+/* Mẫu MỘT TRANG kiểu ma trận — đúng tờ phân công chuyên môn các trường vẫn
+   kẻ tay: mỗi dòng một giáo viên, mỗi môn một cột đánh dấu "x". SỐ TIẾT
+   KHÔNG PHẢI GHI: máy tự lấy tiết chuẩn CT GDPT 2018 theo khối của từng lớp.
+   Ô nào cần bộ lớp khác cột Lop_day thì ghi thẳng danh sách lớp vào ô đó. */
+function bangMauMaTran(){
+  const coThat = S.lop.length>0 && S.giaoVien.length>0 && S.phanCong.length>0;
+  const nhieuDiem = S.diemTruong.length>1;
+  const dsMon = (S.monHoc||[]).map(m=>m.ten);
+  const mt=[['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban',...dsMon]];
+  const lop=[['Ma_lop','Ten_lop','Khoi','Diem_truong']];
+
+  if(coThat){
+    const maCuaLop=id=>lopId(id)?.maLop||id;
+    S.giaoVien.forEach((g,i)=>{
+      /* bộ lớp của từng môn; bộ xuất hiện nhiều môn nhất làm Lop_day */
+      const theoMon={};
+      S.phanCong.filter(p=>p.gvId===g.id).forEach(p=>{
+        (theoMon[p.mon]=theoMon[p.mon]||new Set()).add(maCuaLop(p.lopId)); });
+      const dem={};
+      Object.values(theoMon).forEach(s=>{
+        const b=[...s].sort().join(', '); dem[b]=(dem[b]||0)+1; });
+      const goc=Object.entries(dem).sort((a,b)=>b[1]-a[1]||b[0].length-a[0].length)[0]?.[0]||'';
+      const oMon={};
+      Object.entries(theoMon).forEach(([mon,s])=>{
+        const ds=[...s].sort().join(', ');
+        oMon[mon]= ds===goc ? 'x' : ds;
+      });
+      const ban=(S.gvNghi[g.id]||[]).map(k=>{const p=k.split('-');return `T${p[0]}-${p[1]}`;}).join(', ');
+      mt.push([i+1, g.maGV||g.id, g.hoTen, g.cn?(lopId(g.cn)?.maLop||g.cn):'',
+               goc, ban, ...dsMon.map(m=>oMon[m]||'')]);
+    });
+    S.lop.forEach(l=>lop.push([l.maLop||l.id, l.ten, l.khoi,
+      nhieuDiem?(dtId(S.lopDT[l.id])?.ten||''):'']));
+  }else{
+    /* Ví dụ đủ ba kiểu người: chủ nhiệm đánh x theo lớp mình, bộ môn một môn
+       nhiều lớp, và người có một ô ghi riêng danh sách lớp khác Lop_day */
+    const vd=(tt,ma,ten,cn,ld,ban,oMon)=>
+      mt.push([tt,ma,ten,cn,ld,ban,...dsMon.map(m=>oMon[m]||'')]);
+    vd(1,'GV01','Nguyễn Thị An','1A','1A','',
+       {'Tiếng Việt':'x','Toán':'x','GDTC':'x','HDTN':'x','TNXH':'x'});
+    vd(2,'GV02','Trần Văn Bình','1B','1B','T5-C',
+       {'Tiếng Việt':'x','Toán':'x','GDTC':'x','HDTN':'x','TNXH':'x'});
+    vd(3,'GV03','Lê Thị Chi','','1A, 1B, 2A','',{'Mỹ thuật':'x','Âm nhạc':'x'});
+    vd(4,'GV04','Phạm Văn Dũng','','1A, 1B','T2-S',{'Tiếng Anh':'x','Đạo Đức':'2A'});
+    lop.push(['1A','1A',1,'Điểm trường chính'],
+             ['1B','1B',1,'Điểm trường chính'],
+             ['2A','2A',2,'Điểm trường chính']);
+  }
+  return {mt, lop, dsMon, coThat, nhieuDiem};
 }
 
 /* Bỏ dấu tiếng Việt để đặt tên tệp — Windows và email đỡ hỏng tên */
@@ -4094,6 +4295,84 @@ async function taiMauExcel(){
   bao(m.coThat
     ? `Đã tải ${ten} — mẫu điền sẵn dữ liệu đang có của trường.`
     : `Đã tải ${ten} — mẫu trắng kèm vài dòng ví dụ.`);
+}
+
+/* Mẫu MA TRẬN một trang — tên môn xoay dọc cho cột hẹp, dấu x tô đậm,
+   khoá ba cột đầu khi cuộn. Nội dung dựng ở bangMauMaTran() (vùng XUAT). */
+async function taiMauMaTran(){
+  if(!coExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi tải lại trang.',true);
+  const m=bangMauMaTran();
+  const wb=new ExcelJS.Workbook();
+  wb.creator='Phần mềm Thời khóa biểu';
+  wb.created=new Date();
+  const SO_CD=6;                                    /* sáu cột cố định trước các cột môn */
+  const tongCot=SO_CD+m.dsMon.length;
+
+  /* --- Trang chính: PHAN_CONG --- */
+  const ws=trangXL(wb,'PHAN_CONG','ngang');
+  ws.columns=[{width:5},{width:9},{width:26},{width:11},{width:30},{width:13},
+              ...m.dsMon.map(()=>({width:5}))];
+  let r=tieuDeXL(ws,1,tongCot,'BẢNG PHÂN CÔNG CHUYÊN MÔN — KIỂU MA TRẬN',
+    `${S.tenTruong} · Đánh "x" = dạy môn đó ở các lớp trong cột Lop_day · Số tiết máy tự lấy chuẩn theo khối`);
+  const dCot=r;
+  const rTen=ws.getRow(r);
+  m.mt[0].forEach((v,j)=>{
+    const o=rTen.getCell(j+1);
+    o.value=v; o.border=VIEN_MANH;
+    o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.xanh}};
+    o.font={name:'Times New Roman',size:j<SO_CD?11:10,bold:true,color:{argb:'FFFFFFFF'}};
+    o.alignment=j<SO_CD
+      ? {horizontal:'center',vertical:'middle',wrapText:true}
+      : {horizontal:'center',vertical:'bottom',textRotation:90};  /* tên môn dựng đứng */
+  });
+  rTen.height=88; r++;
+  const dauThan=r;
+  r=thanBangXL(ws,r,m.mt.slice(1),
+    ['center','left','left','center','left','center',...m.dsMon.map(()=>'center')]);
+  /* Dấu x tô đậm màu navy; ô ghi danh sách lớp thu chữ nhỏ để không vỡ cột */
+  for(let i=dauThan;i<r;i++){
+    const row=ws.getRow(i);
+    for(let j=SO_CD;j<tongCot;j++){
+      const o=row.getCell(j+1), v=String(o.value??'').trim();
+      if(!v) continue;
+      if(/^x$/i.test(v)) o.font={name:'Times New Roman',size:12,bold:true,color:{argb:MAU_XL.navy}};
+      else o.font={name:'Times New Roman',size:8};
+      o.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    }
+  }
+  ws.views=[{state:'frozen',xSplit:3,ySplit:dCot}];  /* khoá tới cột Họ tên + dòng tên cột */
+
+  /* --- Trang DANH_SACH_LOP: bắt buộc khi nhiều điểm trường, còn lại tùy chọn --- */
+  const wl=trangXL(wb,'DANH_SACH_LOP','doc');
+  let rl=tieuDeXL(wl,1,4,'DANH SÁCH LỚP HỌC',
+    m.nhieuDiem?'Trường nhiều điểm trường — trang này BẮT BUỘC để biết lớp nào ở đâu.'
+               :'Trường một điểm trường có thể xoá trang này — máy tự dựng lớp từ tên trong bảng.');
+  const dl2=rl;
+  rl=dauCotXL(wl,rl,[{ten:'Ma_lop',rong:18},{ten:'Ten_lop',rong:14},{ten:'Khoi',rong:10},{ten:'Diem_truong',rong:30}]);
+  rl=thanBangXL(wl,rl,m.lop.slice(1),['left','center','center','left']);
+  wl.views=[{state:'frozen',ySplit:dl2}];
+
+  /* --- Trang HUONG_DAN --- */
+  const h=trangXL(wb,'HUONG_DAN','ngang');
+  h.columns=[{width:26},{width:100}];
+  let d=tieuDeXL(h,1,2,'CÁCH GHI BẢNG MA TRẬN', `${S.tenTruong} · Năm học ${S.namHoc||''}`);
+  d++;
+  d=thanBangXL(h,d,[
+    ['Ô để trống','Không dạy môn đó.'],
+    ['Ô đánh "x"','Dạy môn đó ở TẤT CẢ các lớp trong cột Lop_day. Lop_day trống thì lấy lớp chủ nhiệm.'],
+    ['Ô ghi danh sách lớp','Dạy môn đó ở đúng các lớp ghi trong ô, ví dụ: 3A, 3B — dùng khi khác với Lop_day.'],
+    ['Số tiết','KHÔNG PHẢI GHI. Máy tự lấy tiết chuẩn CT GDPT 2018 theo khối của từng lớp. Lệch chuẩn thì sửa trong app sau khi nhập, hoặc dùng mẫu 3 trang.'],
+    ['Cột Buoi_ban','Các buổi giáo viên KHÔNG dạy được, ghi kiểu T2-S (thứ Hai sáng), T5-C (thứ Năm chiều), cách nhau dấu phẩy.'],
+    ['Cột Ma_GV','Được phép bỏ trống — máy tự đặt GV01, GV02… Họ tên trùng nhau thì PHẢI ghi mã.'],
+    ['Một người nhiều dòng','Được. Dùng khi một người dạy các môn ở những bộ lớp khác nhau — mỗi dòng một Lop_day, ghi CÙNG Ma_GV.'],
+    ['Trang DANH_SACH_LOP','Một điểm trường: xoá cũng được. Nhiều điểm trường: bắt buộc, và Ma_lop nên có tiền tố (DL-1A, DD-1A…).']
+  ],['left','left']);
+
+  const ten=`Mau-ma-tran-TKB-${khongDau(S.tenTruong)}.xlsx`;
+  await ghiTepXL(wb,ten);
+  bao(m.coThat
+    ? `Đã tải ${ten} — điền sẵn phân công đang có, sửa trên Excel rồi nhập ngược lại được.`
+    : `Đã tải ${ten} — mẫu trắng kèm bốn dòng ví dụ đủ các kiểu ghi.`);
 }
 
 /* ---------- Ghi tệp Excel ---------- */
@@ -6580,22 +6859,24 @@ $('#btDangNhapTren').onclick=hopMayChu;   /* thanh trên cùng là lối vào du
    người dùng đang ở màn hình Lớp học mà muốn nhập lớp thì bấm luôn tại đó,
    không phải đi tìm ở cuối thanh bên. */
 function hopNhapExcel(){ hop('Nhập dữ liệu từ Excel',
-  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Tệp cần có ba trang tính sau, tên cột viết đúng như bảng.</p>
-   <div class="bang"><table class="dl"><thead><tr><th>Trang tính</th><th>Các cột</th></tr></thead><tbody>
-     <tr><td><b>DANH_SACH_GV</b></td><td>Ma_GV · Ho_ten · Chu_nhiem · <i>Dinh_muc</i></td></tr>
-     <tr><td><b>DANH_SACH_LOP</b></td><td>Ma_lop · Ten_lop · Khoi · Diem_truong</td></tr>
-     <tr><td><b>PCGD</b></td><td>Ma_GV · Ma_lop · Mon · So_tiet</td></tr>
+  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Phần mềm nhận <b>hai kiểu tệp</b> — chọn kiểu hợp tay mình.</p>
+   <div class="bang"><table class="dl"><thead><tr><th>Kiểu tệp</th><th>Hợp với ai</th></tr></thead><tbody>
+     <tr><td><b>Ma trận một trang</b><br><span style="color:var(--chu-mo)">trang PHAN_CONG</span></td>
+       <td>Kẻ nhanh từ đầu: mỗi dòng một giáo viên, mỗi môn một cột đánh dấu <b>x</b>.
+         Số tiết máy tự lấy chuẩn CT GDPT 2018 theo khối — không phải nhớ 27·27·28·30·30.</td></tr>
+     <tr><td><b>Ba trang chi tiết</b><br><span style="color:var(--chu-mo)">DANH_SACH_GV · DANH_SACH_LOP · PCGD</span></td>
+       <td>Đã có sẵn bảng phân công từng dòng, hoặc cần ghi số tiết khác chuẩn.</td></tr>
    </tbody></table></div>
-   <div class="gy">Cột in nghiêng có thể bỏ trống. <b>Ma_GV</b> và <b>Ma_lop</b> phải là duy nhất —
-     đó là thứ nối ba trang tính với nhau, và là lý do phần mềm không bao giờ nhầm hai cô cùng tên.
-     Chưa có tệp thì bấm <b>Tải mẫu Excel</b> ở dưới — máy dựng sẵn đủ ba trang tính,
-     đúng tên cột, kèm trang <b>HUONG_DAN</b> và bảng số tiết chuẩn từng khối.</div>
+   <div class="gy"><b>Ma_GV</b> và <b>Ma_lop</b> là thứ nối mọi thứ với nhau — lý do phần mềm
+     không bao giờ nhầm hai cô cùng tên. Chưa có tệp thì tải một trong hai mẫu ở dưới:
+     máy dựng sẵn đúng cột, kèm trang <b>HUONG_DAN</b>, có dữ liệu đang có của trường (nếu đã khai).</div>
    <div style="margin-top:13px;padding:11px 14px;background:${coMayChu()&&duocSuaNguon()?'var(--xanh-nen)':'var(--canh-nen)'};border-radius:10px;font-size:12.5px">
      ${coMayChu()&&duocSuaNguon()
        ? 'Đã nối máy chủ — dữ liệu sẽ ghi thẳng lên Supabase cho cả trường dùng chung.'
        : 'Chưa nối máy chủ — dữ liệu chỉ nằm trên máy này. Máy sẽ soát lỗi tệp trước khi nhập.'}</div>`,
   [{ten:'Huỷ',phu:1,lam:dong},
-   {ten:'Tải mẫu Excel',phu:1,lam:taiMauExcel},
+   {ten:'Mẫu ma trận',phu:1,lam:taiMauMaTran},
+   {ten:'Mẫu 3 trang',phu:1,lam:taiMauExcel},
    {ten:'Chọn tệp',lam:()=>{dong();$('#tep').click();}}]); }
 
 $('#tep').onchange=async e=>{
@@ -6607,11 +6888,18 @@ $('#tep').onchange=async e=>{
   try{
     const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
     const doc=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n]):null;
-    const gv=doc('DANH_SACH_GV'), lp=doc('DANH_SACH_LOP'), pc=doc('PCGD');
-    const thieu=[['DANH_SACH_GV',gv],['DANH_SACH_LOP',lp],['PCGD',pc]]
-      .filter(([,x])=>!x).map(([n])=>n);
-    if(thieu.length) return bao('Tệp thiếu trang tính: '+thieu.join(', '),true);
-    dl=duLieuTuBang(gv,lp,pc);
+    const mt=doc('PHAN_CONG');
+    if(mt){
+      /* Mẫu ma trận một trang — trang DANH_SACH_LOP là tùy chọn */
+      dl=duLieuTuMaTran(mt, doc('DANH_SACH_LOP'));
+    }else{
+      const gv=doc('DANH_SACH_GV'), lp=doc('DANH_SACH_LOP'), pc=doc('PCGD');
+      const thieu=[['DANH_SACH_GV',gv],['DANH_SACH_LOP',lp],['PCGD',pc]]
+        .filter(([,x])=>!x).map(([n])=>n);
+      if(thieu.length) return bao('Tệp thiếu trang tính: '+thieu.join(', ')
+        +' — hoặc dùng mẫu ma trận với trang PHAN_CONG.',true);
+      dl=duLieuTuBang(gv,lp,pc);
+    }
   }catch(err){ return bao('Không đọc được tệp — kiểm tra lại đúng định dạng .xlsx',true); }
   if(dl.soLoi) return hopLoiNhap(dl);
   hopXacNhanNhap(dl);

@@ -51,6 +51,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   coBangPhong, soPhong, dangChiemPhong, chiSo, datDuoc, doiChoDuoc,
   taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh,
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
+  duLieuTuMaTran, bangMauMaTran,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
@@ -74,6 +75,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         coBangPhong, soPhong, dangChiemPhong, chiSo, datDuoc, doiChoDuoc,
         taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
+  duLieuTuMaTran, bangMauMaTran,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
@@ -839,6 +841,76 @@ kt('Chưa nối máy chủ thì không ghi được, báo rõ',
    ghiKhi.ok === false && ghiKhi.thongBao.length > 20, ghiKhi.thongBao);
 
 /* Ghi thật lên máy chủ giả — đây mới là đường mở cho trường thứ hai */
+/* ---------- 10b. Mẫu ma trận một trang ---------- */
+console.log('\n10b. Mẫu Excel ma trận một trang');
+
+/* Mục 10 vừa nạp bộ dữ liệu nhỏ để thử đọc tệp — về lại dữ liệu thật đã */
+await taiDuLieu();
+
+/* Đổi mảng hai chiều của bangMauMaTran thành dạng sheet_to_json trả về:
+   mỗi dòng một object, ô trống bị bỏ qua — đúng như đọc tệp thật. */
+const doiObj = a => { const dau = a[0]; return a.slice(1).map(h => {
+  const o = {}; dau.forEach((c, i) => { const v = h[i]; if (v !== '' && v != null) o[c] = v; }); return o; }); };
+
+const mMT = bangMauMaTran();
+kt('Mẫu dựng từ dữ liệu thật: 35 dòng giáo viên, mỗi môn một cột',
+   mMT.coThat && mMT.mt.length === 36 && mMT.mt[0].length === 6 + mMT.dsMon.length,
+   `${mMT.mt.length - 1} dòng · ${mMT.dsMon.length} cột môn`);
+
+const rtDL = duLieuTuMaTran(doiObj(mMT.mt), doiObj(mMT.lop));
+kt('Vòng khép kín: xuất ma trận rồi nhập lại — 0 lỗi, đủ 35 GV · 25 lớp · 265 dòng · 710 tiết',
+   rtDL.soLoi === 0 && rtDL.giaoVien.length === 35 && rtDL.lop.length === 25 &&
+   rtDL.phanCong.length === 265 && rtDL.tongTiet === 710,
+   `${rtDL.soLoi} lỗi · ${rtDL.phanCong.length} dòng · ${rtDL.tongTiet} tiết`);
+kt('Từng dòng phân công khớp nguyên bản — đúng người, đúng lớp, đúng môn, đúng tiết', (() => {
+  const bo = new Set(rtDL.phanCong.map(p => `${p.gvId}|${p.lopId}|${p.mon}|${p.soTiet}`));
+  return S.phanCong.every(p => bo.has(`${p.gvId}|${p.lopId}|${p.mon}|${p.soTiet}`));
+})());
+kt('Chủ nhiệm giữ nguyên qua vòng xuất nhập',
+   rtDL.giaoVien.filter(g => g.cn).length === S.giaoVien.filter(g => g.cn).length);
+
+/* Các quy ước ghi — thử trên bảng nhỏ tự dựng, KHÔNG kèm trang lớp */
+const mtThu = [
+  { TT: 1, Ho_ten: 'Cô Mơ', Chu_nhiem: 'DL-1A', 'Tiếng Việt': 'x', 'Toán': 'x' },
+  { TT: 2, Ma_GV: 'MT', Ho_ten: 'Cô Mai', Lop_day: 'DL-3B, DL-4C', Buoi_ban: 'T2-S, t5c',
+    'Tin học': 'x', 'CN': 'DL-4C' }
+];
+const rt2 = duLieuTuMaTran(mtThu, null);
+kt('Không có trang lớp thì tự dựng lớp, khối lấy theo chữ số trong tên (DL-3B → khối 3)',
+   rt2.soLoi === 0 && rt2.lop.length === 3 &&
+   rt2.lop.find(l => l.id === 'DL-3B')?.khoi === 3 && rt2.lop.find(l => l.id === 'DL-4C')?.khoi === 4);
+kt('Thiếu Ma_GV thì tự đặt GV01; đánh x không có Lop_day thì lấy lớp chủ nhiệm',
+   rt2.giaoVien[0].id === 'GV01' && rt2.giaoVien[0].cn === 'DL-1A' &&
+   rt2.phanCong.some(p => p.gvId === 'GV01' && p.lopId === 'DL-1A' && p.mon === 'Tiếng Việt' && p.soTiet === 12) &&
+   rt2.phanCong.some(p => p.gvId === 'GV01' && p.mon === 'Toán' && p.soTiet === 3));
+kt('Ô ghi danh sách lớp thì chỉ dạy đúng các lớp ấy, không theo Lop_day',
+   rt2.phanCong.filter(p => p.gvId === 'MT' && p.mon === 'Tin học').length === 2 &&
+   rt2.phanCong.filter(p => p.gvId === 'MT' && p.mon === 'CN').length === 1 &&
+   rt2.phanCong.find(p => p.gvId === 'MT' && p.mon === 'CN')?.lopId === 'DL-4C');
+kt('Buổi bận đọc được cả T2-S lẫn t5c viết thường',
+   (rt2.gvNghi.MT || []).sort().join() === '2-S,5-C');
+
+/* Những chỗ phải chặn — lỗi nói rõ dòng nào, sửa gì */
+const rt3 = duLieuTuMaTran([
+  { Ho_ten: 'Cô An', Lop_day: '1A', 'Múa': 'x' },
+  { Ho_ten: 'Cô Bình', 'Tiếng Việt': 'x' },
+  { Ho_ten: 'Cô Bình', 'Toán': '1A' }
+], null);
+kt('Cột môn lạ và họ tên lặp không mã đều bị chặn, kèm hướng sửa',
+   rt3.soLoi >= 3 &&
+   rt3.loi.some(x => /không có trong danh mục môn/.test(x)) &&
+   rt3.loi.some(x => /nhiều dòng không có mã/.test(x)));
+kt('Đánh x mà không có Lop_day lẫn lớp chủ nhiệm thì báo đúng ô',
+   duLieuTuMaTran([{ Ho_ten: 'Cô Ca', 'Toán': 'x' }], null)
+     .loi.some(x => /Lop_day trống/.test(x)));
+kt('Có trang lớp mà ghi tên trùng giữa hai điểm trường thì bắt ghi mã', (() => {
+  const r = duLieuTuMaTran(
+    [{ Ho_ten: 'Cô Dung', Lop_day: '1A', 'Tiếng Việt': 'x' }],
+    [{ Ma_lop: 'DL-1A', Ten_lop: '1A', Khoi: 1, Diem_truong: 'Diễn Liên' },
+     { Ma_lop: 'DD-1A', Ten_lop: '1A', Khoi: 1, Diem_truong: 'Diễn Đồng' }]);
+  return r.loi.some(x => /nhiều lớp cùng tên "1A"/.test(x));
+})());
+
 console.log('\n11. Ghi dữ liệu nguồn lên máy chủ');
 await MC.dangNhap('c@t.vn', 'dung');
 const ghiMC = await MC.ghiDuLieuNguon(tep);
@@ -880,6 +952,19 @@ kt('Mỗi buổi bận ghi đúng thứ và buổi, nối đúng giáo viên',
 const banHet = await MC.luuBuoiBan({});
 kt('Bỏ hết đánh dấu cũng được ghi nhận, không sót dòng cũ trên máy chủ',
    banHet.ok === true && banHet.so === 0 && GHI.xoaNghi === 2, banHet.thongBao);
+
+/* Mẫu ma trận mang theo buổi bận — ghiDuLieuNguon phải đẩy cả lên máy chủ,
+   nối theo mã UUID chứ không phải mã trong tệp */
+const ghiBan = await MC.ghiDuLieuNguon({ ...tep, gvNghi: { GV01: ['2-S', '5-C'] } });
+kt('Nhập ma trận thì buổi bận trong tệp cũng lên máy chủ, nối đúng UUID',
+   ghiBan.ok === true && GHI.xoaNghi === 3 && GHI.gvNghi.length === 2 &&
+   GHI.gvNghi.every(n => n.giao_vien_id === 'gv-uuid-0') &&
+   GHI.gvNghi.some(n => n.thu === 2 && n.buoi === 'S'));
+kt('Tệp 3 trang không có buổi bận thì không đụng gì tới bảng gv_nghi', await (async () => {
+  const truoc = GHI.xoaNghi;
+  await MC.ghiDuLieuNguon(tep);            /* gvNghi rỗng */
+  return GHI.xoaNghi === truoc;
+})());
 
 /* Buổi bận là ràng buộc CỨNG: máy không được xếp tiết nào vào đó */
 napVaoS(tuMayChu(HANG));          /* g2 đã đăng ký bận sáng thứ Ba */

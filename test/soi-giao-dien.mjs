@@ -481,6 +481,27 @@ kt('Chưa nối máy chủ mà bấm Lưu thì báo rõ, hộp vẫn giữ nguy�
          !!w.document.querySelector('#dtChon0');
 })());
 w.eval('dong()');
+console.log('\n15e. Mẫu Excel ma trận');
+w.chuyen('lop');
+w.eval('hopNhapExcel()');
+kt('Hộp nhập Excel giới thiệu hai kiểu tệp, có đủ hai nút tải mẫu', (() => {
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  return /Ma trận một trang/.test(w.document.querySelector('#hopN').textContent) &&
+    nut.includes('Mẫu ma trận') && nut.includes('Mẫu 3 trang');
+})());
+w.eval('dong()');
+kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của trường', ...((() => {
+  /* mục 9 ở trên đã cố ý sửa tiết chuẩn Tiếng Việt khối 1 thành 9 —
+     ma trận phải theo danh mục của trường, không theo hằng số cứng */
+  const mong = w.eval(`chuanMon('Tiếng Việt',1) + chuanMon('Toán',1)`);
+  const r = w.eval(`duLieuTuMaTran([
+    {Ho_ten:'Cô Thử', Chu_nhiem:'9X-1A', 'Tiếng Việt':'x', 'Toán':'x'}
+  ], null)`);
+  return [r.soLoi === 0 && r.giaoVien[0].cn === '9X-1A' &&
+    r.phanCong.length === 2 && r.tongTiet === mong,
+    `${r.tongTiet} tiết = chuẩn đang khai (${mong})`];
+})()));
+
 kt('Giáo viên được phân dạy thay thấy dải báo ngay trên màn hình Của tôi', (() => {
   w.eval(`(() => {
     const co = Object.values(S.tkb).flatMap(o => Object.values(o))[0];
