@@ -64,10 +64,14 @@ for (const t of dsTep) {
   for (const m of ma.matchAll(/create\s+(?:temp(?:orary)?\s+|unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?(\w+)/gi))
     BANG.add(m[1].toLowerCase());
 }
-/* Cột nào khai kiểu enum thì nhớ lại — đây là chỗ dò ngược khi thấy so sánh */
+/* Cột nào khai kiểu enum thì nhớ lại — đây là chỗ dò ngược khi thấy so sánh.
+   Cột kiểu uuid cũng nhớ: uuid không có min/max, xem mục (c) bên dưới. */
+const COT_UUID = new Set();
 for (const t of dsTep)
-  for (const m of chiMa(doc(t)).matchAll(/^\s*(\w+)\s+(\w+)\s*(?:not null|default|,|$)/gim))
+  for (const m of chiMa(doc(t)).matchAll(/^\s*(\w+)\s+(\w+)\s*(?:not null|default|,|primary|references|$)/gim)) {
     if (ENUM[m[2]]) COT_ENUM[m[1]] = m[2];
+    if (m[2].toLowerCase() === 'uuid') COT_UUID.add(m[1].toLowerCase());
+  }
 
 /* Bảng hệ thống của Postgres và Supabase — tra được, không phải của mình */
 const BANG_NGOAI = /^(pg_\w+|information_schema\.\w+|auth\.\w+|storage\.\w+)$/i;
@@ -106,6 +110,18 @@ for (const t of dsTep) {
     if (/^(jsonb_|json_|generate_)/.test(b) || b.includes('(')) continue;   /* hàm trả bảng */
     than.push(`⚠️  bảng lạ: ${m[1]} — không có trong lệnh create table nào`);
   }
+
+  /* c) min()/max() trên cột kiểu uuid.
+     Postgres KHÔNG có min(uuid)/max(uuid) — không có toán tử so sánh thứ tự
+     cho uuid. Cú pháp hoàn toàn hợp lệ nên bộ phân tích im lặng; lỗi chỉ nổ
+     lúc chạy: "function min(uuid) does not exist".
+     Đã cắn thật 2/8/2026, và cắn ở chỗ tệ nhất: câu lệnh nối lại tài khoản
+     giáo viên đổ giữa chừng, nên bước dọn sau đó chạy mãi không ra kết quả
+     mà chẳng ai hiểu vì sao. Cách viết đúng: min(g.id::text)::uuid */
+  for (const m of ma.matchAll(/\b(min|max)\s*\(\s*(?:\w+\.)?(\w+)\s*\)/gi))
+    if (COT_UUID.has(m[2].toLowerCase()))
+      than.push(`❌ ${m[1]}(${m[2]}) — cột kiểu uuid không có min/max. `
+        + `Viết ${m[1]}(${m[2]}::text)::uuid`);
 
   const nang = than.filter(x => x.startsWith('❌'));
   if (nang.length) loi += nang.length;

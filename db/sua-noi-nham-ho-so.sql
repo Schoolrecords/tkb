@@ -33,7 +33,7 @@ sai as (
 dung as (
   -- Hồ sơ cùng tên, CÓ tiết, chưa ai nhận
   select s.id as id_sai, s.ho_ten, s.nguoi_dung_id,
-         min(g.id) as id_dung, count(*) as so_ung_vien
+         min(g.id::text)::uuid as id_dung, count(*) as so_ung_vien
   from sai s
   join giao_vien g
     on g.ho_ten = s.ho_ten and g.id <> s.id and g.nguoi_dung_id is null
@@ -58,7 +58,7 @@ sai as (
   left join tiet_gv t on t.giao_vien_id = g.id
   where g.nguoi_dung_id is not null and coalesce(t.so_tiet, 0) = 0),
 chuyen as (
-  select s.id as id_sai, s.nguoi_dung_id, min(g.id) as id_dung
+  select s.id as id_sai, s.nguoi_dung_id, min(g.id::text)::uuid as id_dung
   from sai s
   join giao_vien g
     on g.ho_ten = s.ho_ten and g.id <> s.id and g.nguoi_dung_id is null

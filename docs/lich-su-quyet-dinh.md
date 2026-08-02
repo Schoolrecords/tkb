@@ -384,3 +384,28 @@ và chỉ xoá hồ sơ **không dính gì cả** (không phân công, không ch
 nào, không giữ tài khoản nào), luôn giữ lại một bản cho mỗi họ tên. Chạy **sau**
 `db/sua-noi-nham-ho-so.sql`, rồi xếp lại và công bố lại — bản đã công bố trỏ
 theo id hồ sơ cũ.
+
+### Bẫy `min(uuid)` — và bài học về cách đọc một con số không nhúc nhích
+
+Trong lúc dọn hậu quả, tệp `sua-noi-nham-ho-so.sql` viết `min(g.id)` với `g.id`
+kiểu `uuid`. Postgres **không có** `min(uuid)` — uuid không có toán tử so sánh
+thứ tự. Cú pháp hợp lệ hoàn toàn nên `libpg-query` im lặng; lỗi chỉ nổ lúc chạy.
+
+Hậu quả không phải là một thông báo lỗi rõ ràng, mà là **một con số đứng yên**:
+bước nối lại tài khoản đổ ngay từ đầu, nên bước dọn phía sau không bao giờ có
+gì để dọn, và số hồ sơ cứ ở nguyên 36 qua ba lần chạy. Chủ dự án phải nói
+*"có mỗi việc này, làm mãi"* thì mới nhìn lại bước một.
+
+**Bài học:** một con số không nhúc nhích sau khi đã "sửa" là dấu hiệu bước
+TRƯỚC không chạy, không phải bước đang sửa chưa đủ mạnh. Nghi ngờ ngược lên
+đầu chuỗi từ lần thứ hai, đừng lặp lại bước cuối.
+
+**Bài học thứ hai, về thứ tự:** tệp dọn cố ý không đụng hồ sơ còn giữ tài
+khoản. Đưa nó chạy TRƯỚC tệp nối lại thì nó không thể làm gì được — mà lại
+không nói ra là vì sao. Nay `db/don-mot-lan.sql` gộp cả hai đúng thứ tự, và
+báo cáo cuối nói rõ **chốt nào** đang giữ mỗi bản chưa xoá được, thay vì chỉ
+trả ra một con số.
+
+Đã thêm luật vào `db/soat-sql.mjs`: bắt `min()`/`max()` trên mọi cột khai kiểu
+`uuid`, chỉ luôn cách viết đúng (`min(id::text)::uuid`). Có thử bằng một tệp
+SQL cố tình sai — luật bắt được.
