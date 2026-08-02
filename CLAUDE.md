@@ -817,7 +817,20 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       31/5 của năm học. Giờ tiết là GIỜ GẦN ĐÚNG theo hằng `GIO_ICS` — sáng
       7:30, chiều 14:00, tiết 35′ nghỉ 5′ — vì mô hình dữ liệu không có giờ
       đồng hồ. Nút "Đưa vào lịch điện thoại" ở màn Của tôi và Theo giáo viên)*
-- [ ] Bảng tra cập nhật tăng dần trong `xepTuDong()` trước, rồi mới Web Worker
+- [x] **Bảng tra cập nhật tăng dần trong `xepTuDong()`** *(2/8/2026)* — nút
+      thắt tốc độ cuối cùng. Trước đây gọi lại `chiSo()` cho **mỗi tiết**, mỗi
+      lần quét toàn lưới: O(n²), ở 60 lớp là gần ba triệu lượt duyệt thừa. Nay
+      dựng `chiSo()` **một lần** rồi `themChiSo()` cộng dồn sau mỗi tiết đặt
+      xong. Đúng được vì bước tham lam **chỉ thêm, không bao giờ gỡ** tiết.
+      Đo thật (bước tham lam, `xepTuDong(0)`):
+      | Quy mô | Trước | Sau |
+      |---|---|---|
+      | 25 lớp · 710 tiết | 210 ms | **38 ms** |
+      | 60 lớp · 1698 tiết | 1060 ms | **75 ms** |
+      Vẫn xếp trọn 710/710 và 1698/1698. Hai phép thử canh: bảng tra cộng dồn
+      phải **khớp tuyệt đối** với bản dựng lại (so cả ba bảng, đã sắp khoá),
+      và lưới xếp xong không có ô nào hai giáo viên / ai vướng hai điểm trường
+      một buổi. Sai một ly ở đây là hai giáo viên chung một ô mà không ai biết.
 - [ ] **Chạy `db/mon-hoc-phong.sql`** một lần trong Supabase SQL Editor. Chưa
       chạy thì app vẫn chạy bằng danh mục mặc định, chỉ là màn hình Môn học và
       Phòng học chưa lưu được lên máy chủ.

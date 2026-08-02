@@ -49,7 +49,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan,
   tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
   chuanMon, laMonNang, laMonNhe, monCanPhong,
-  coBangPhong, soPhong, dangChiemPhong, chiSo, datDuoc, doiChoDuoc,
+  coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
   taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh,
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
@@ -73,7 +73,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
         tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
         chuanMon, laMonNang, laMonNhe, monCanPhong,
-        coBangPhong, soPhong, dangChiemPhong, chiSo, datDuoc, doiChoDuoc,
+        coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
         taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
@@ -1312,6 +1312,49 @@ kt('Đủ chỗ thì không báo R12 làm phiền', (() => {
   u3.S.phong = [{ id: 'p1', ten: 'Phòng Tin học', dtId: u3.S.diemTruong[0].id, mon: 'Tin học' }];
   return !u3.kiemTra().vm.some(x => x.ma === 'R12');
 })());
+
+/* --- Bảng tra cập nhật tăng dần: phải KHỚP TUYỆT ĐỐI với bản dựng lại ---
+   Đây là lưới an toàn của phép tối ưu 2/8/2026. Sai một ly ở đây là thuật
+   toán đặt hai giáo viên vào cùng một ô mà không ai biết. */
+const sapKhoa = v => (v && typeof v === 'object' && !Array.isArray(v))
+  ? Object.keys(v).sort().reduce((r, k) => (r[k] = sapKhoa(v[k]), r), {}) : v;
+const nhuNhau = (a, b) => JSON.stringify(sapKhoa(a)) === JSON.stringify(sapKhoa(b));
+
+kt('Bảng tra cộng dồn khớp tuyệt đối với bản dựng lại từ đầu', (() => {
+  const u = taoUngDung(documentGia);
+  u.S.phong = [{ id: 'p1', ten: 'Phòng Tin học', dtId: u.S.diemTruong[0].id, mon: 'Tin học' }];
+  u.xepTuDong(0);                                  /* lưới đầy 710 tiết, có xét phòng */
+  const dungLai = u.chiSo();                       /* đường A: quét cả lưới một lượt */
+
+  const luu = JSON.parse(JSON.stringify(u.S.tkb)); /* đường B: rỗng lưới rồi cộng dồn */
+  u.S.lop.forEach(l => { u.S.tkb[l.id] = {}; });
+  const congDon = u.chiSo();
+  Object.entries(luu).forEach(([lp, o]) => Object.entries(o).forEach(([k, t]) => {
+    u.S.tkb[lp][k] = t;
+    u.themChiSo(congDon, lp, k, t.gvId, t.mon);
+  }));
+
+  return nhuNhau(congDon.gvBan, dungLai.gvBan) &&
+         nhuNhau(congDon.gvBuoiDT, dungLai.gvBuoiDT) &&
+         nhuNhau(congDon.phongBan, dungLai.phongBan) &&
+         Object.keys(dungLai.gvBan).length > 0 &&
+         Object.keys(dungLai.phongBan).length > 0;
+})(), 'ba bảng: giáo viên bận · buổi ở điểm trường nào · phòng đang chiếm');
+
+kt('Xếp xong không có ô nào hai giáo viên, không ai vướng hai điểm trường một buổi', (() => {
+  const u = taoUngDung(documentGia);
+  u.xepTuDong(0);
+  const oGV = new Map(), buoiGV = new Map();
+  let trung = 0, saiDT = 0;
+  Object.entries(u.S.tkb).forEach(([lp, o]) => Object.entries(o).forEach(([k, t]) => {
+    const kGV = t.gvId + '|' + k;
+    if (oGV.has(kGV)) trung++; else oGV.set(kGV, lp);
+    const kB = t.gvId + '|' + k.slice(0, k.lastIndexOf('-'));
+    const dt = u.S.lopDT[lp];
+    if (buoiGV.has(kB)) { if (buoiGV.get(kB) !== dt) saiDT++; } else buoiGV.set(kB, dt);
+  }));
+  return trung === 0 && saiDT === 0;
+})(), 'ràng buộc cứng vẫn nguyên sau khi đổi cách dựng bảng tra');
 
 /* ================================================================
    15. SINH DỮ LIỆU THỬ VÀ QUY MÔ SAU SÁP NHẬP

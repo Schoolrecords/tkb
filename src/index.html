@@ -828,7 +828,25 @@ function chiSo(){
       }
     });
   });
-  return {gvBan,gvBuoiDT,phongBan};
+  /* Trả kèm loaiCua và xetPhong để themChiSo() cập nhật tăng dần được */
+  return {gvBan,gvBuoiDT,phongBan,loaiCua,xetPhong};
+}
+
+/* Cập nhật bảng tra sau khi đặt MỘT tiết, thay cho việc dựng lại từ đầu.
+   Vì sao đúng: bước xếp tham lam chỉ THÊM tiết, không bao giờ gỡ ra — nên
+   cộng dồn cho kết quả y hệt bản dựng lại (có phép thử canh sự khớp đó).
+   Vì sao đáng làm: chiSo() quét toàn lưới, gọi lại cho từng tiết là O(n²) —
+   ở quy mô 60 lớp / 1698 tiết thành gần ba triệu lượt duyệt thừa. */
+function themChiSo(cs, lp, khoa, gvId, mon){
+  (cs.gvBan[gvId]=cs.gvBan[gvId]||{})[khoa]=lp;
+  const kB=khoa.slice(0,khoa.lastIndexOf('-'));
+  (cs.gvBuoiDT[gvId]=cs.gvBuoiDT[gvId]||{})[kB]=S.lopDT[lp];
+  if(!cs.xetPhong) return;
+  const loai=cs.loaiCua[mon];
+  if(loai){
+    const k=S.lopDT[lp]+'|'+loai;
+    (cs.phongBan[k]=cs.phongBan[k]||{})[khoa]=(cs.phongBan[k][khoa]||0)+1;
+  }
 }
 
 /* ---------- Phòng chức năng: ràng buộc cứng số 4 ----------
@@ -962,11 +980,13 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
   /* Mỗi khối một danh sách ô riêng — tính một lần rồi dùng lại */
   const oKhoi={};
   const oCuaLop = id => { const k=lopId(id)?.khoi; return oKhoi[k] || (oKhoi[k]=oTuan(k)); };
+  /* Bảng tra dựng MỘT lần rồi cập nhật tăng dần sau mỗi tiết đặt xong.
+     Trước đây gọi lại chiSo() cho từng tiết — mỗi lần quét cả lưới. */
+  const cs=chiSo();
   dv.forEach(u=>{
     let can=conLai[u.gvId+'|'+u.lopId+'|'+u.mon]||0;
     const o=oCuaLop(u.lopId);
     while(can>0){
-      const cs=chiSo();
       let tot=null,totD=1e9;
       for(const x of o){
         if(datDuoc(x,u.lopId,u.gvId,cs,u.mon)) continue;
@@ -978,6 +998,7 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
       }
       if(!tot){ chuaXep.push({...u, con:can}); break; }
       S.tkb[u.lopId][tot.khoa]={gvId:u.gvId,mon:u.mon};
+      themChiSo(cs, u.lopId, tot.khoa, u.gvId, u.mon);
       can--;
     }
   });
