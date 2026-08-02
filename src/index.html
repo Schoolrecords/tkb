@@ -1061,9 +1061,12 @@ function diemLop(l){
   return d;
 }
 
+/* Epsilon 1e-7: điểm thô là bội của 0,1 nhưng cộng dấu phẩy động theo thứ
+   tự khác nhau lệch ~1e-13, giá trị đúng x.5 sẽ làm tròn lật xuống ngẫu
+   nhiên. Cộng epsilon ở MỌI chỗ làm tròn điểm để hai đường tính ra một số. */
 const diemToanCuc = () => Math.round(
   Object.values(lichTraGV()).reduce((s,o)=>s+diemGV(o),0)
-  + S.lop.reduce((s,l)=>s+diemLop(l),0));
+  + S.lop.reduce((s,l)=>s+diemLop(l),0) + 1e-7);
 
 /* Đổi chỗ hai tiết trong cùng lớp có phạm ràng buộc cứng không.
    Đọc từ bảng lịch đã có sẵn — dựng lại chỉ số cho từng cặp thử thì chậm gấp mười. */
@@ -1339,7 +1342,11 @@ function nhomDocLap(){
   return Object.values(nhom).sort((a,b)=>b.length-a.length);
 }
 
-/* Chấm điểm mềm cho riêng một nhóm lớp. Càng thấp càng đẹp. */
+/* Chấm điểm mềm cho riêng một nhóm lớp. Càng thấp càng đẹp.
+   Trả điểm THÔ, không làm tròn: điểm có phần lẻ (i*1.5, độ lệch ×2),
+   làm tròn từng nhóm rồi cộng sẽ lệch ±1 so với làm tròn cả tổng —
+   phương án bày ra sẽ khác diemToanCuc() sau khi nạp. Chỉ làm tròn
+   MỘT lần lúc ghép phương án, cùng epsilon với diemToanCuc(). */
 function diemNhom(dsLopId){
   const trong=new Set(dsLopId);
   const lich={};
@@ -1347,9 +1354,8 @@ function diemNhom(dsLopId){
     if(!trong.has(lp)) return;
     Object.entries(o).forEach(([k,t])=>{ (lich[t.gvId]=lich[t.gvId]||{})[k]=lp; });
   });
-  return Math.round(
-    Object.values(lich).reduce((s,o)=>s+diemGV(o),0)
-    + S.lop.filter(l=>trong.has(l.id)).reduce((s,l)=>s+diemLop(l),0));
+  return Object.values(lich).reduce((s,o)=>s+diemGV(o),0)
+    + S.lop.filter(l=>trong.has(l.id)).reduce((s,l)=>s+diemLop(l),0);
 }
 
 /* Ảnh chụp lưới của một nhóm, để cất phương án rồi nạp lại */
@@ -1426,7 +1432,8 @@ function* xepDaiTung(tuyChon={}){
     const anh={}; manh.forEach(m=>Object.assign(anh, m.anh));
     phuongAn.push({
       anh,
-      diem: manh.reduce((s,m)=>s+m.diem,0),
+      /* làm tròn MỘT lần trên tổng thô — khớp đúng diemToanCuc() sau khi nạp */
+      diem: Math.round(manh.reduce((s,m)=>s+m.diem,0) + 1e-7),
       thieu: manh.reduce((s,m)=>s+m.thieu,0)
     });
   }

@@ -522,6 +522,12 @@ Ba điều bắt buộc:
   nhiên — comparator không nhất quán là hành vi không xác định.
 - Nhiễu cộng vào điểm ô (`nhieu`, mặc định 10) là kiểu **GRASP**: tham lam
   nhưng có xáo, chạy nhiều lần rồi giữ lần tốt nhất.
+- **Điểm phạt chỉ làm tròn MỘT lần**, lúc ghép phương án *(2/8/2026)*.
+  `diemNhom()` trả điểm thô; mọi `Math.round` điểm đều cộng epsilon `1e-7`.
+  Điểm có phần lẻ (`i*1.5`, độ lệch `×2`) nên làm tròn từng nhóm rồi cộng
+  sẽ lệch ±1 so với `diemToanCuc()` sau khi nạp phương án — phép thử
+  *Bấm "Dùng bản này"* vì thế chập chờn (hỏng ~1/3 số lần chạy), CI vừa
+  dựng xong đã bắt được. Đừng đưa `Math.round` trở lại vào `diemNhom()`.
 
 Màn hình gọi qua generator và chèn `await nghiMotNhip()` giữa các lần thử —
 ba phút mà không nhả thì trình duyệt báo *"trang không phản hồi"*. Bấm **Dừng
@@ -669,6 +675,11 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       refs/desktop.ini`, không fetch/push được. Cách chữa: xoá hết
       `desktop.ini` trong `.git/` (an toàn, chỉ là tệp hiển thị của Windows).
       Gặp lại lỗi ấy thì làm đúng vậy, đừng `git init` lại.
+- [x] Bộ cài trọn gói `db/cai-dat.sql` — dựng CSDL cho trường mới chỉ còn
+      MỘT lần dán *(2/8/2026)*. Tệp sinh tự động từ bốn tệp nguồn
+      (schema · mon-hoc-phong · cong-bo · dang-ky-truong) bằng
+      `node db/gop-cai-dat.mjs`; CI chạy `--kiem` nên sửa tệp nguồn mà quên
+      sinh lại là đỏ ngay. Đừng sửa tay `cai-dat.sql`.
 - [x] **Quy trình ba bước** — thanh bên xếp theo trình tự làm việc, thanh tiến
       trình ở Bảng điều hành, dải điều hướng trên từng màn hình *(1/8/2026)*
 - [x] Năm màn hình khai báo còn thiếu: Thông tin trường · Lớp học · Môn học ·
