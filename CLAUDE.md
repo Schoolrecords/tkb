@@ -1010,6 +1010,35 @@ kẹp giữa buổi 45 → 11, Toán và Tiếng Việt bị đẩy xuống chi�
 Hai tiết ghim (chào cờ, sinh hoạt lớp) bị `laGhim()` loại khỏi danh sách hoán
 đổi — có phép thử canh.
 
+### Toán và Tiếng Việt vào tiết 1–3 sáng — 83% lên 88–91% *(3/8/2026)*
+
+Bốn mảnh ghép, đo bằng `npm run kiemdinh` sau MỖI thay đổi (chỉnh mù trọng
+số đã thử và thất bại hai lần trước khi chẩn đoán ra gốc rễ):
+
+1. **Thang BẬC cho môn nặng** ở cả `diemO` lẫn `diemLop`: tiết 1–3 sáng gần
+   miễn phí, tiết 4–5 sáng đắt hẳn, chiều đắt nhất. Thang tuyến tính cũ để
+   tiết 4 sáng chỉ tốn 15 điểm — rẻ hơn phạt trùng môn trong ngày.
+2. **Xoay VÒNG BA TIẾT** (`xoayBaDuoc` · `xoayO`) trong `toiUuHoanDoi`: phép
+   đổi ĐÔI kẹt đúng thế "Tiếng Việt tiết 4, GDTC tiết 2" — đổi thẳng thì GDTC
+   rơi vào tiết-cuối-sáng bị phạt, từng nửa nước đều lỗ. Vòng xoay khởi phát
+   HẸP: chỉ từ tiết nặng ngoài vùng vàng, đích là ô vàng bị chiếm. Hoàn tác
+   một vòng xoay = xoay ngược chiều `(a,c,b)`.
+3. **Đặt chỗ vàng theo CẦU–CUNG từng lớp** trong `diemO`: môn thường chỉ bị
+   phạt (+40) khi lấn vào tiết 1–3 sáng của lớp mà chỗ vàng còn lại không đủ
+   cho số Toán/TV chưa xếp. ⚠️ Đã thử "kiêng đồng loạt +10" — phản tác dụng:
+   bộ môn bị rải ra chiều, trống kẹp 12 → 22 mà chỉ nhích 1%.
+4. **Miễn thuế cho giáo viên LIÊN điểm trường** (`cs.gvDiDong`): ràng buộc
+   một-buổi-một-điểm đã bó họ rất hẹp, bắt kiêng thêm là hết chỗ — kịch bản
+   3 điểm trường từng tụt 696 → 672 tiết vì thiếu đúng khoản miễn này.
+   Kèm **thuế kẹt–lấn** trong `diemLop`: mỗi cặp (nặng kẹt ngoài · thường
+   lấn vàng) cùng lớp +7, cho vòng xoay đủ lời để chấp nhận xáo trộn nhỏ.
+
+Số đo chốt (`npm run kiemdinh` canh ≥87% / ≥89%): trường thật **88%** —
+sát TRẦN CẤU TRÚC ~88,5% (hai cô Tiếng Anh kín 24/31 slot buộc phải chiếm
+≥25 ô vàng; phần còn lại là bài toán nhân sự, không phải thuật toán);
+60 lớp **91%**. Giá phải trả: tiết trống kẹp 12 → 18 (đã thử nâng giá lỗ
+hổng 8 → 10 để đòi lại, không ăn thua — hoàn về 8).
+
 Lý do xếp GVCN sau cùng: ở tiểu học GVCN dạy ~20/25 tiết của chính lớp mình
 nên cực kỳ linh hoạt, xếp vào đâu cũng được. Giáo viên bộ môn liên điểm
 trường thì gần như chỉ có 1–2 phương án khả dĩ.

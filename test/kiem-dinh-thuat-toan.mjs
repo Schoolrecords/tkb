@@ -232,7 +232,13 @@ console.log('\nA. Trường thật Diễn Liên — 25 lớp · 710 tiết');
      s.canhBao.slice(0, 3).join(' | ') || 'đủ 50 tiết ghim');
   kt('Sổ sách khớp: đã xếp + báo thiếu = tổng cần, không lớp nào xếp THỪA',
      soatDuTiet(u, kq, s).length === 0);
-  inChiSo(doChatLuong(u), u.diemToanCuc());
+  const m = doChatLuong(u);
+  /* Trần cấu trúc của dữ liệu thật ≈ 88,5%: hai cô Tiếng Anh kín 24/31 slot
+     buộc phải chiếm ≥25 ô vàng, cộng Mỹ thuật · Đạo Đức · chào cờ. Đạt 88%
+     là sát trần — tụt dưới 87% nghĩa là có ai đó làm hỏng thang điểm. */
+  kt('Toán/TV vào tiết 1–3 sáng ≥ 87% (trần cấu trúc ~88,5%)', m.nangSomPT >= 87,
+     `${m.nangSomPT}%`);
+  inChiSo(m, u.diemToanCuc());
 }
 
 /* ---------- B. Tất định ---------- */
@@ -267,7 +273,9 @@ let diemNhanh60 = 0;
     const n = u.nhomDocLap().map(x => x.length).sort((a, b) => b - a);
     return n.length >= 3;
   })(), u.nhomDocLap().map(x => x.length).join(' · ') + ' lớp');
-  inChiSo(doChatLuong(u), diemNhanh60);
+  const m = doChatLuong(u);
+  kt('Toán/TV vào tiết 1–3 sáng ≥ 89% ở quy mô 60 lớp', m.nangSomPT >= 89, `${m.nangSomPT}%`);
+  inChiSo(m, diemNhanh60);
 }
 
 /* ---------- D. Sáu hạt GRASP ---------- */

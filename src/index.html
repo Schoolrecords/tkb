@@ -1415,14 +1415,33 @@ function datDuoc(o,lp,gv,cs,mon){
 /* Điểm ưu tiên — càng thấp càng nên chọn */
 function diemO(o,lp,mon,gv,cs){
   let d=0;
-  if(laMonNang(mon)){ if(o.buoi==='C') d+=45; d+=o.i*5; }
+  /* Môn nặng (Toán, Tiếng Việt) phạt theo BẬC, không tuyến tính (3/8/2026):
+     tiết 1–3 sáng gần miễn phí, tiết 4–5 sáng đắt hẳn, chiều đắt nhất.
+     Thang cũ (chiều +45, +i·5) để tiết 4 sáng chỉ tốn 15 — rẻ hơn cả phạt
+     trùng môn trong ngày (10) nên Toán/TV cứ trượt khỏi vùng vàng: đo được
+     83–84% vào tiết 1–3 sáng trong khi trần khả thi ~97%. */
+  if(laMonNang(mon)){ d += o.buoi==='C' ? 60+o.i*6 : (o.i<3 ? o.i*2 : 30+(o.i-3)*8); }
   else if(laMonNhe(mon)){ if(o.buoi==='S'&&o.i<2) d+=22; }
-  /* tránh dồn cùng môn trong một ngày */
-  let cungNgay=0, tietNgay=0;
+  /* tránh dồn cùng môn trong một ngày — nhân tiện đếm luôn cung cầu vàng */
+  let cungNgay=0, tietNgay=0, nangDat=0, vangDung=0;
   Object.entries(S.tkb[lp]).forEach(([k,t])=>{
-    if(+k.split('-')[0]===o.thu){ tietNgay++; if(t.mon===mon) cungNgay++; }
+    const p=k.split('-');
+    if(+p[0]===o.thu){ tietNgay++; if(t.mon===mon) cungNgay++; }
+    if(p[1]==='S'&&+p[2]<3) vangDung++;
+    if(laMonNang(t.mon)) nangDat++;
   });
   d += cungNgay*(laMonNang(mon)?10:55) + tietNgay*3;
+  /* ĐẶT CHỖ VÀNG THEO CẦU–CUNG (3/8/2026): môn thường chỉ bị phạt khi lấn
+     vào tiết 1–3 sáng của lớp mà chỗ vàng còn lại KHÔNG đủ cho số Toán và
+     Tiếng Việt chưa xếp. Lớp dư chỗ (khối 4–5 cầu 12 / cung 14) thì không
+     phạt ai — khác hẳn phép "kiêng đồng loạt +10" đã thử và bỏ: phép đó rải
+     giáo viên bộ môn ra chiều, tiết trống kẹp tăng 12 → 22 mà chẳng được gì. */
+  if(cs.cauVang && !laMonNang(mon) && o.buoi==='S' && o.i<3
+     && !(cs.gvDiDong && cs.gvDiDong.has(gv))){
+    const canCon=(cs.cauVang[lp]||0)-nangDat;
+    const vangCon=(cs.cungVang[lp]||0)-vangDung;
+    if(canCon>=vangCon) d+=40;
+  }
   /* gom tiết cho giáo viên bộ môn: ưu tiên buổi họ đã có mặt cùng điểm trường */
   if(cs.gvBuoiDT[gv]?.[o.kB]===S.lopDT[lp]) d-=20;
   return d;
@@ -1507,6 +1526,23 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
   /* Bảng tra dựng MỘT lần rồi cập nhật tăng dần sau mỗi tiết đặt xong.
      Trước đây gọi lại chiSo() cho từng tiết — mỗi lần quét cả lưới. */
   const cs=chiSo();
+  /* Cầu–cung chỗ vàng của từng lớp, cho phép đặt chỗ trong diemO():
+     cầu = tổng tiết Toán + Tiếng Việt theo phân công;
+     cung = số ô tiết 1–3 các buổi sáng theo khung giờ của khối. */
+  cs.cauVang={}; cs.cungVang={};
+  dsLop.forEach(l=>{
+    cs.cauVang[l.id]=dsPC.filter(p=>p.lopId===l.id&&laMonNang(p.mon))
+      .reduce((s,p)=>s+p.soTiet,0);
+    cs.cungVang[l.id]=buoiBat().filter(k=>k.buoi==='S')
+      .reduce((s,k)=>s+Math.min(3,soTietBuoi(k,l.khoi)),0);
+  });
+  /* Giáo viên LIÊN điểm trường được MIỄN thuế đặt chỗ: ràng buộc "một buổi
+     một điểm trường" đã bó cửa sổ khả dụng của họ rất hẹp, bắt kiêng thêm
+     vùng vàng là hết chỗ đặt — kịch bản 3 điểm trường từng tụt 696 → 672
+     tiết vì đúng khoản này. Người đã khó thì được tự do chọn chỗ. */
+  const dtGV={};
+  S.phanCong.forEach(p=>{ (dtGV[p.gvId] ||= new Set()).add(S.lopDT[p.lopId]); });
+  cs.gvDiDong=new Set(Object.keys(dtGV).filter(g=>dtGV[g].size>1));
   dv.forEach(u=>{
     let can=conLai[u.gvId+'|'+u.lopId+'|'+u.mon]||0;
     const o=oCuaLop(u.lopId);
@@ -1592,12 +1628,18 @@ function diemGV(o){
 /* Điểm phạt của MỘT lớp */
 function diemLop(l){
   const o=S.tkb[l.id]; if(!o) return 0;
-  let d=0; const bb=buoiBat(), theoNgay={};
+  let d=0, nangKet=0, thuongVang=0; const bb=buoiBat(), theoNgay={};
   for(const k in o){
     const p=k.split('-'), thu=p[0], buoi=p[1], i=+p[2], mon=o[k].mon;
     (theoNgay[thu]=theoNgay[thu]||[]).push({buoi,i,mon});
-    if(laMonNang(mon)){ if(buoi==='C') d+=6; d+=i*1.5; }
+    /* Cùng thang BẬC với diemO, thu nhỏ ~1/6 cho cân với các khoản khác của
+       lớp. Thang cũ (chiều +6, +i·1,5) làm phép đổi "kéo Tiếng Việt từ tiết 4
+       sáng về tiết 2" chỉ lời 3 điểm — thua cả phạt rải đều ±2, nên bước hoán
+       đổi bỏ mặc. Nay lời 8–9 điểm, đáng để đổi. */
+    if(laMonNang(mon)){ d += buoi==='C' ? 14+i*2 : (i<3 ? i*0.5 : 9+(i-3)*3); }
     else if(laMonNhe(mon)){ if(buoi==='S'&&i<2) d+=3; }
+    if(laMonNang(mon)){ if(buoi==='C'||i>=3) nangKet++; }
+    else if(buoi==='S'&&i<3) thuongVang++;
     if(mon==='GDTC'){
       const k2=bb.find(x=>String(x.thu)===thu && x.buoi===buoi);
       if(k2 && buoi==='S' && i===soTietBuoi(k2,l.khoi)-1) d+=10;   /* tiết cuối sáng */
@@ -1616,6 +1658,11 @@ function diemLop(l){
   const n=THU.map(t=>(theoNgay[t]||[]).length);
   const tb=n.reduce((s,x)=>s+x,0)/n.length;
   d += n.reduce((s,x)=>s+Math.abs(x-tb),0)*2;  /* rải đều giữa các ngày */
+  /* Thuế "kẹt–lấn" (3/8/2026): mỗi cặp (tiết nặng kẹt ngoài vùng vàng ·
+     môn thường đang lấn vàng) trong CÙNG lớp bị phạt thêm — vòng xoay đưa
+     nặng vào vàng nhờ vậy đủ lời để chấp nhận một xáo trộn nhỏ ở lịch giáo
+     viên bộ môn. Lớp hết cặp nào ghép được thì thuế bằng 0, không phạt oan. */
+  d += Math.min(nangKet, thuongVang)*7;
   return d;
 }
 
@@ -1665,6 +1712,43 @@ function doiLich(lich, lp, a, b, ga, gb){
   lich[ga][b]=lp;     lich[gb][a]=lp;
 }
 
+/* ---------- Xoay VÒNG BA TIẾT trong cùng lớp: a → b → c → a ----------
+   Phép đổi ĐÔI bị kẹt đúng ở thế này (đo 3/8/2026): Tiếng Việt nằm tiết 4
+   sáng, tiết 2 sáng là GDTC — đổi thẳng thì GDTC rơi vào "tiết cuối sáng"
+   bị phạt nặng hơn, nên từng nửa nước đi đều lỗ và leo đồi đứng im. Nước
+   đúng là GDTC ra buổi chiều, môn buổi chiều lên tiết 4, Tiếng Việt về
+   tiết 2 — một vòng xoay ba tiết, lời cả ba phía. */
+function xoayBaDuoc(lp, a, b, c, lich){
+  const o=S.tkb[lp];
+  const hop=(t, den)=>{
+    if(!t) return false;
+    if(coBangPhong()){
+      const loai=monCanPhong(t.mon);
+      if(loai){
+        const dt=S.lopDT[lp];
+        if(dangChiemPhong(dt,loai,den,lp) >= soPhong(dt,loai)) return false;
+      }
+    }
+    const oGV=lich[t.gvId]||{};
+    if(oGV[den] && oGV[den]!==lp) return false;     /* giờ đó đang dạy lớp khác */
+    const kB=den.slice(0,den.lastIndexOf('-'));
+    if((S.gvNghi[t.gvId]||[]).includes(kB)) return false;
+    for(const k in oGV)                              /* một buổi một điểm trường */
+      if(k.startsWith(kB+'-') && S.lopDT[oGV[k]]!==S.lopDT[lp]) return false;
+    return true;
+  };
+  return hop(o[a],b) && hop(o[b],c) && hop(o[c],a);
+}
+
+/* Thực hiện vòng xoay trên cả lưới lẫn bảng lịch. HOÀN TÁC bằng cách gọi
+   lại với (a,c,b) — vòng xoay ngược chiều là nghịch đảo của chính nó. */
+function xoayO(lp, a, b, c, lich){
+  const o=S.tkb[lp], ta=o[a], tb=o[b], tc=o[c];
+  o[b]=ta; o[c]=tb; o[a]=tc;
+  delete lich[ta.gvId][a]; delete lich[tb.gvId][b]; delete lich[tc.gvId][c];
+  lich[ta.gvId][b]=lp; lich[tb.gvId][c]=lp; lich[tc.gvId][a]=lp;
+}
+
 /* Leo đồi: quét mọi cặp ô trong từng lớp, nhận phép đổi nào giảm điểm.
    Chỉ tính lại phần bị ảnh hưởng — một lớp và hai giáo viên — chứ không
    tính lại điểm toàn trường, nhờ vậy chạy hết nhiều vòng trong một giây. */
@@ -1691,6 +1775,38 @@ function toiUuHoanDoi(gioiHanMs=1200, dsLop){
           const sau = diemLop(l) + diemGV(lich[ga]) + (ga===gb?0:diemGV(lich[gb]));
           if(sau < truoc-1e-9){ doi++; caiThien=true; }
           else { o[a]=ta; o[b]=tb; doiLich(lich,l.id,b,a,ga,gb); }   /* hoàn tác */
+        }
+      }
+      /* ---------- Pha xoay ba tiết CÓ CHỦ ĐÍCH ----------
+         Chỉ khởi phát từ tiết NẶNG nằm ngoài vùng vàng (tiết 4–5 sáng hoặc
+         buổi chiều), đích là một ô vàng đang bị môn khác chiếm, còn kẻ bị
+         đẩy đi thì thử mọi chỗ trú. Nhờ khởi phát hẹp nên chỉ vài trăm vòng
+         xoay mỗi lớp — không đáng kể so với phép đổi đôi quét mọi cặp. */
+      if(!hetGio){
+        const nangNgoai=ds.filter(k=>{
+          const t=o[k]; if(!laMonNang(t.mon)) return false;
+          const p=k.split('-'); return p[1]==='C' || +p[2]>=3;
+        });
+        const vangChiem=ds.filter(k=>{
+          const p=k.split('-'); return p[1]==='S' && +p[2]<3 && !laMonNang(o[k].mon);
+        });
+        for(const a of nangNgoai){
+          if(hetGio) break;
+          for(const b of vangChiem){
+            if(hetGio) break;
+            for(const c of ds){
+              if((++dem & 255)===0 && performance.now()-t0>gioiHanMs){ hetGio=true; break; }
+              if(c===a || c===b) continue;
+              if(!xoayBaDuoc(l.id,a,b,c,lich)) continue;
+              const gvs=[...new Set([o[a].gvId,o[b].gvId,o[c].gvId])];
+              const truoc = diemLop(l) + gvs.reduce((s,g)=>s+diemGV(lich[g]),0);
+              xoayO(l.id,a,b,c,lich);
+              const sau = diemLop(l) + gvs.reduce((s,g)=>s+diemGV(lich[g]),0);
+              if(sau < truoc-1e-9){ doi++; caiThien=true; break; }  /* a đã vào vàng, sang tiết kẹt kế */
+              xoayO(l.id,a,c,b,lich);                               /* hoàn tác: xoay ngược chiều */
+            }
+            if(o[a] && laMonNang(o[a].mon)===false) break;          /* ô a đã đổi chủ — thôi */
+          }
         }
       }
       if(hetGio) break;
