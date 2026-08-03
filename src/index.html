@@ -1749,6 +1749,59 @@ function xoayO(lp, a, b, c, lich){
   lich[ta.gvId][b]=lp; lich[tb.gvId][c]=lp; lich[tc.gvId][a]=lp;
 }
 
+/* ---------- CHÙM DỜI CHỖ ĐỒNG THỜI — nền của nước đi CHÉO HAI LỚP ----------
+   moves = [{lp, tu, den, t}]: tiết t của lớp lp rời ô tu sang ô den, mọi ô
+   "tu" được nhả ra CÙNG LÚC. Nhờ vậy kiểm được nước đi mà từng bước lẻ đều
+   phạm luật nhưng cả chùm thì hợp lệ — cô Tiếng Anh đổi chỗ hai tiết của
+   mình ở hai lớp: từng nửa đều "trùng giờ chính cô", cả chùm thì không. */
+function chumHopLe(moves, lich){
+  const nha=new Set(moves.map(m=>m.lp+'|'+m.tu));
+  /* Hai tiết cùng người trong chùm không được đáp xuống cùng ô giờ,
+     và đáp cùng buổi thì phải cùng điểm trường */
+  for(let i=0;i<moves.length;i++) for(let j=i+1;j<moves.length;j++){
+    const a=moves[i], b=moves[j];
+    if(a.t.gvId!==b.t.gvId) continue;
+    if(a.den===b.den) return false;
+    const kA=a.den.slice(0,a.den.lastIndexOf('-'));
+    if(kA===b.den.slice(0,b.den.lastIndexOf('-')) && S.lopDT[a.lp]!==S.lopDT[b.lp]) return false;
+  }
+  for(const m of moves){
+    const t=m.t; if(!t) return false;
+    if(coBangPhong()){
+      const loai=monCanPhong(t.mon);
+      if(loai){
+        const dt=S.lopDT[m.lp];
+        let dem=dangChiemPhong(dt,loai,m.den,m.lp);
+        /* lớp khác trong chùm đang rời đúng ô đích với cùng loại phòng */
+        moves.forEach(m2=>{ if(m2!==m && m2.lp!==m.lp && m2.tu===m.den
+          && S.lopDT[m2.lp]===dt && monCanPhong(m2.t.mon)===loai) dem--; });
+        if(dem>=soPhong(dt,loai)) return false;
+      }
+    }
+    const oGV=lich[t.gvId]||{};
+    const chiem=oGV[m.den];
+    if(chiem && chiem!==m.lp && !nha.has(chiem+'|'+m.den)) return false;
+    if(chiem===m.lp && !nha.has(m.lp+'|'+m.den)) return false;
+    const kB=m.den.slice(0,m.den.lastIndexOf('-'));
+    if((S.gvNghi[t.gvId]||[]).includes(kB)) return false;
+    for(const k in oGV){                             /* một buổi một điểm trường */
+      if(!k.startsWith(kB+'-')) continue;
+      if(nha.has(oGV[k]+'|'+k)) continue;
+      if(S.lopDT[oGV[k]]!==S.lopDT[m.lp]) return false;
+    }
+  }
+  return true;
+}
+
+/* Thi hành chùm. HOÀN TÁC bằng chùm đảo ngược (tu ↔ den). */
+function apChum(moves, lich){
+  moves.forEach(m=>{ delete lich[m.t.gvId][m.tu]; });
+  const den=new Set(moves.map(m=>m.lp+'|'+m.den));
+  moves.forEach(m=>{ if(!den.has(m.lp+'|'+m.tu)) delete S.tkb[m.lp][m.tu]; });
+  moves.forEach(m=>{ S.tkb[m.lp][m.den]=m.t; lich[m.t.gvId][m.den]=m.lp; });
+}
+const daoChum = moves => moves.map(m=>({lp:m.lp, tu:m.den, den:m.tu, t:m.t}));
+
 /* Leo đồi: quét mọi cặp ô trong từng lớp, nhận phép đổi nào giảm điểm.
    Chỉ tính lại phần bị ảnh hưởng — một lớp và hai giáo viên — chứ không
    tính lại điểm toàn trường, nhờ vậy chạy hết nhiều vòng trong một giây. */
@@ -1810,6 +1863,46 @@ function toiUuHoanDoi(gioiHanMs=1200, dsLop){
         }
       }
       if(hetGio) break;
+    }
+    /* ---------- Pha đổi CHÉO HAI LỚP của cùng một giáo viên ----------
+       Cô Tiếng Anh dạy lớp A tiết p và lớp B tiết q: tráo hai vị trí ấy cho
+       nhau, hai môn bị choán chỗ đổi ngược lại — bốn tiết dời ĐỒNG THỜI.
+       Từng nửa nước đi đều "trùng giờ chính cô" nên hai pha trên không bao
+       giờ với tới; đây là nước duy nhất xoay được lịch của giáo viên bộ môn
+       kín chỗ — đúng nhóm nghẽn mà đợt kiểm định 3/8/2026 chỉ ra. */
+    if(!hetGio){
+      const lopCua={}; (dsLop||S.lop).forEach(l=>lopCua[l.id]=l);
+      for(const gv of Object.keys(lich)){
+        if(hetGio) break;
+        const oGV=lich[gv];
+        const cell=Object.keys(oGV).filter(k=>{
+          const lp=oGV[k]; return lopCua[lp] && !laGhim(lopCua[lp],k);
+        });
+        for(let i=0;i<cell.length && !hetGio;i++){
+          for(let j=i+1;j<cell.length;j++){
+            if((++dem & 127)===0 && performance.now()-t0>gioiHanMs){ hetGio=true; break; }
+            const p=cell[i], q=cell[j];
+            const A=oGV[p], B=oGV[q];
+            if(A===B) continue;                     /* cùng lớp — pha đổi đôi đã lo */
+            const W=S.tkb[A][q], V=S.tkb[B][p];     /* hai tiết bị choán chỗ */
+            if(!W || !V) continue;
+            if(laGhim(lopCua[A],q) || laGhim(lopCua[B],p)) continue;
+            const moves=[
+              {lp:A, tu:p, den:q, t:S.tkb[A][p]}, {lp:A, tu:q, den:p, t:W},
+              {lp:B, tu:q, den:p, t:S.tkb[B][q]}, {lp:B, tu:p, den:q, t:V}
+            ];
+            if(!chumHopLe(moves,lich)) continue;
+            const gvs=[...new Set([gv, W.gvId, V.gvId])];
+            const truoc=diemLop(lopCua[A])+diemLop(lopCua[B])
+              +gvs.reduce((s,g)=>s+diemGV(lich[g]),0);
+            apChum(moves,lich);
+            const sau=diemLop(lopCua[A])+diemLop(lopCua[B])
+              +gvs.reduce((s,g)=>s+diemGV(lich[g]),0);
+            if(sau<truoc-1e-9){ doi++; caiThien=true; break; }
+            apChum(daoChum(moves),lich);            /* hoàn tác: chùm đảo ngược */
+          }
+        }
+      }
     }
     if(!caiThien) break;
   }
@@ -2161,7 +2254,11 @@ function* xepDaiTung(tuyChon={}){
     do{
       /* Lần đầu chạy bản tất định — nó chính là phương án cũ, phải luôn có mặt
          để phương án dài không bao giờ tệ hơn nút xếp nhanh. */
-      const kq = xepTuDong(tuyChon.giayHoanDoi ?? 700,
+      /* Hạn hoán đổi mặc định phải BẰNG hạn của nút Xếp nhanh (1200ms):
+         lần thử đầu là bản tất định — chính kết quả Xếp nhanh — nên cắt
+         ngắn hạn giờ ở đây là phá cam kết "xếp kỹ không bao giờ tệ hơn".
+         Đã vỡ thật 3/8/2026 khi thêm pha đổi chéo cần thêm giờ hội tụ. */
+      const kq = xepTuDong(tuyChon.giayHoanDoi ?? 1200,
         lan===0 ? {lop:new Set(ds)} : {lop:new Set(ds), hat:(iN+1)*100003+lan, nhieu:tuyChon.nhieu});
       lan++; lanThuTong++;
       const diem = diemNhom(ds);

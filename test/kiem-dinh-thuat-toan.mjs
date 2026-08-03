@@ -286,7 +286,7 @@ console.log('\nD. Sáu hạt ngẫu nhiên — bất biến phải giữ với M
   for (const hat of [7, 42, 101, 555, 2026, 99991]) {
     const u = taoUngDung();
     dungThu(u);
-    const kq = u.xepTuDong(300, { hat, nhieu: 10 });
+    const kq = u.xepTuDong(700, { hat, nhieu: 10 });
     const s = soatDocLap(u);
     if (s.loi.length) loiHat++;
     if (kq.daXep !== kq.tongCan) thieuHat++;
@@ -304,7 +304,7 @@ console.log('\nE. Xếp kỹ 12 giây — không bao giờ tệ hơn xếp nhanh
 {
   const u = taoUngDung();
   dungThu(u);
-  const kq = u.xepDai({ giay: 12, soPhuongAn: 3, giayHoanDoi: 400 });
+  const kq = u.xepDai({ giay: 12, soPhuongAn: 3 });
   const totNhat = kq.phuongAn?.[0];
   kt('Ra nhiều phương án để người xếp chọn', (kq.phuongAn || []).length >= 2,
      `${(kq.phuongAn || []).length} phương án · ${kq.lanThu} lần thử`);

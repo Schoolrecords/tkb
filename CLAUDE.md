@@ -1035,9 +1035,26 @@ số đã thử và thất bại hai lần trước khi chẩn đoán ra gốc r
 
 Số đo chốt (`npm run kiemdinh` canh ≥87% / ≥89%): trường thật **88%** —
 sát TRẦN CẤU TRÚC ~88,5% (hai cô Tiếng Anh kín 24/31 slot buộc phải chiếm
-≥25 ô vàng; phần còn lại là bài toán nhân sự, không phải thuật toán);
-60 lớp **91%**. Giá phải trả: tiết trống kẹp 12 → 18 (đã thử nâng giá lỗ
-hổng 8 → 10 để đòi lại, không ăn thua — hoàn về 8).
+≥25 ô vàng; phần còn lại là bài toán nhân sự — quy tắc **R13** báo đúng
+con số này từ tháng 8); 60 lớp **91%**.
+
+### Pha đổi CHÉO HAI LỚP — trống kẹp 18 → 8 *(3/8/2026, cùng ngày)*
+
+Nước đi thứ ba của `toiUuHoanDoi`, trên nền **chùm dời chỗ đồng thời**
+(`chumHopLe` · `apChum` · `daoChum`): cô Tiếng Anh dạy lớp A tiết p và lớp
+B tiết q thì tráo hai vị trí cho nhau, hai môn bị choán chỗ đổi ngược lại —
+bốn tiết dời cùng lúc. Từng nửa nước đi đều "trùng giờ chính cô" nên phép
+đổi đôi và xoay ba (bó trong một lớp) không bao giờ với tới; đây là nước
+duy nhất xoay được lịch giáo viên bộ môn kín chỗ. Kết quả: tiết trống kẹp
+trường thật **18 → 8** (tốt hơn cả mốc 12 trước khi tối ưu vùng vàng),
+60 lớp 36 → 15; độ ổn định giữa các hạt GRASP 4,3% → **1,7%**; đoạn tham
+lam → tối ưu trên dữ liệu thật: Toán/TV buổi chiều 42 → 1, trống kẹp 55 → 8.
+
+⚠️ Bẫy đã trả giá ngay khi thêm pha này: `xepDaiTung` mặc định hạn hoán đổi
+700ms < 1200ms của nút Xếp nhanh, nên lần thử tất định của Xếp kỹ KÉM hơn
+Xếp nhanh — vỡ cam kết "không bao giờ tệ hơn" (`npm run kiemdinh` bắt được
+trong một phút). Hạn mặc định nay là **1200ms, phải luôn bằng** hạn của nút
+Xếp nhanh; pha mới càng cần giờ hội tụ thì điều này càng sống còn.
 
 Lý do xếp GVCN sau cùng: ở tiểu học GVCN dạy ~20/25 tiết của chính lớp mình
 nên cực kỳ linh hoạt, xếp vào đâu cũng được. Giáo viên bộ môn liên điểm
