@@ -1107,7 +1107,7 @@ trường" được thoả một cách TẦM THƯỜNG nếu không ép tồn t�
 
 ---
 
-## 6. Bộ quy tắc kiểm tra khả thi (12 quy tắc)
+## 6. Bộ quy tắc kiểm tra khả thi (13 quy tắc)
 
 Chạy **trước** khi xếp. Đây là tính năng có giá trị bán hàng cao nhất — nó cho
 hiệu trưởng biết vấn đề nhân sự từ tháng 8, lúc còn kịp xử lý.
@@ -1126,11 +1126,22 @@ hiệu trưởng biết vấn đề nhân sự từ tháng 8, lúc còn kịp x�
 | R10 | Xếp Tin học ở điểm trường chưa có phòng máy | do |
 | R11 | Chủ nhiệm báo bận đúng buổi có tiết cố định | canh |
 | R12 | Có phòng chức năng nhưng **không đủ chỗ** cho số tiết cần | do |
+| R13 | Vùng vàng (tiết 1–3 sáng) không đủ chỗ cho Toán, Tiếng Việt | goi |
 
 R12 là quy tắc chỉ lộ ra sau sáp nhập: ba trường gộp lại mà vẫn một phòng máy
 thì số tiết Tin học vượt hẳn sức chứa (số phòng × số ô giờ). Nó phải báo từ
 tháng 8, lúc còn kịp xin thêm phòng — chứ không phải để tới lúc xếp mới biết.
 Chỉ chạy khi trường đã khai bảng phòng.
+
+R13 *(3/8/2026)* sinh từ đợt kiểm định thuật toán: trần 88,5% của "Toán/TV
+vào tiết 1–3 sáng" là **trần cấu trúc** — giáo viên bộ môn kín lịch (cô
+Tiếng Anh 24 tiết chỉ có 15 chỗ ngoài vùng vàng) bắt buộc chiếm phần vùng
+ấy, thuật toán giỏi mấy cũng không vượt được. R13 tính cầu–cung, trừ chào
+cờ, trừ phần ép của từng người kín lịch, rồi báo **kèm tên người kín nhất**
+— hiệu trưởng cầm con số đi xin biên chế hoặc chia lại tải. Ước lượng cố ý
+hào phóng để là **CẬN DƯỚI trung thực** của thực đo (dữ liệu thật: báo 31,
+thực đo ~40) — có phép thử canh cả ba chiều: nổ đúng, không phóng đại,
+không báo oan khi hết người kín lịch.
 
 ---
 

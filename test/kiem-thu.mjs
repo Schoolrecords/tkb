@@ -191,6 +191,38 @@ kt('Phát hiện trùng tên gọi giáo viên', k.vm.some(v => v.ma === 'R09'),
    `${k.vm.filter(v => v.ma === 'R09').length} cặp`);
 kt('Mọi vướng mắc đều có hướng xử lý', k.vm.every(v => v.g && v.g.length > 10));
 
+/* --- R13: trần cấu trúc của vùng vàng — bài toán nhân sự, báo trước ---
+   Dùng bản ứng dụng RIÊNG: trạng thái chung ở đây đã bị mục 3 đổi thành
+   ba điểm trường, đo trên đó là đo nhầm kịch bản. */
+{
+  const uR = taoUngDung(documentGia);
+  const vR = uR.kiemTra().vm.find(x => x.ma === 'R13');
+  kt('R13 báo trước phần Toán/TV phải học ngoài tiết 1–3 sáng, kèm tên người kín lịch',
+     !!vR && vR.muc === 'goi' && /kín lịch/.test(vR.m) && /thêm người dạy/.test(vR.g),
+     (vR?.t || '').slice(0, 64));
+  kt('Ước lượng của R13 là CẬN DƯỚI trung thực của thực đo sau khi xếp', (() => {
+    const thieu = +((vR?.t || '').match(/\d+/) || [0])[0];
+    uR.xepTuDong();
+    let ngoai = 0;
+    Object.values(uR.S.tkb).forEach(o => Object.entries(o).forEach(([kh, t]) => {
+      const p = kh.split('-');
+      if (['Toán', 'Tiếng Việt'].includes(t.mon) && (p[1] === 'C' || +p[2] >= 3)) ngoai++;
+    }));
+    /* Báo trước không được PHÓNG ĐẠI (thiếu ≤ thực đo) nhưng cũng phải sát
+       (ít nhất một nửa) — báo 5 mà thực tế 40 thì lời cảnh báo vô dụng. */
+    return thieu > 0 && thieu <= ngoai && thieu >= ngoai / 2;
+  })());
+  kt('Giáo viên bộ môn hết kín lịch thì R13 im lặng, không báo oan', (() => {
+    const u13 = taoUngDung(documentGia);
+    /* Chỉ giữ phân công của môn nặng và của chủ nhiệm — không còn ai kín */
+    u13.S.phanCong = u13.S.phanCong.filter(p => {
+      const g = u13.S.giaoVien.find(x => x.id === p.gvId);
+      return ['Toán', 'Tiếng Việt'].includes(p.mon) || (g && g.cn);
+    });
+    return !u13.kiemTra().vm.some(x => x.ma === 'R13');
+  })());
+}
+
 /* ---------- 5. Tầng truy cập dữ liệu ---------- */
 console.log('\n5. Tầng truy cập dữ liệu');
 

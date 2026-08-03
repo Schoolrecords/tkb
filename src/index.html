@@ -1963,6 +1963,59 @@ function kiemTra(){
     });
   });
 
+  /* R13 — VÙNG VÀNG (tiết 1–3 sáng) không đủ chỗ cho Toán và Tiếng Việt
+     *(3/8/2026)*. Đây là TRẦN CẤU TRÚC lộ ra khi kiểm định thuật toán:
+     xếp giỏi mấy cũng không vượt được, vì giáo viên bộ môn kín lịch bắt
+     buộc phải đứng một phần vùng vàng — cô Tiếng Anh 24 tiết chỉ có 15 chỗ
+     ngoài vùng ấy thì 9 tiết còn lại phải nằm trong. Báo ở mức GỢI Ý kèm
+     đúng tên người kín nhất: hiệu trưởng cầm con số này đi xin biên chế
+     hoặc chia lại tải được — phần mềm xếp lịch không tự giải được nó. */
+  {
+    const cau=S.phanCong.filter(p=>laMonNang(p.mon)).reduce((s,p)=>s+p.soTiet,0);
+    if(cau>0){
+      let cung=0;
+      S.lop.forEach(l=>bb.forEach(k=>{
+        if(k.buoi==='S') cung+=Math.min(3,soTietBuoi(k,l.khoi));
+      }));
+      const chaoCo = bb.some(k=>k.thu===2&&k.buoi==='S') ? S.lop.length : 0;
+      /* Giáo viên KHÔNG dạy môn nặng mà lịch kín tới mức chỗ NGOÀI vùng
+         vàng không chứa hết số tiết — phần dư bắt buộc tràn vào vùng vàng.
+         Ước lượng hào phóng (lấy khung giờ của khối cao nhất họ dạy) nên
+         chỉ báo phần chắc chắn, không báo oan. GV có dạy môn nặng thì tiết
+         nặng của họ vào vùng vàng là đúng ý — bỏ qua. */
+      const ep=[];
+      S.giaoVien.forEach(g=>{
+        const pc=S.phanCong.filter(p=>p.gvId===g.id);
+        const tong=pc.reduce((s,p)=>s+p.soTiet,0);
+        if(!tong || pc.some(p=>laMonNang(p.mon))) return;
+        const khoiDay=[...new Set(pc.map(p=>lopId(p.lopId)?.khoi).filter(Boolean))];
+        if(!khoiDay.length) return;
+        const nghi=new Set(S.gvNghi[g.id]||[]);
+        let ngoai=0;
+        bb.forEach(k=>{
+          if(nghi.has(khoaB(k))) return;
+          const cao=Math.max(...khoiDay.map(kh=>soTietBuoi(k,kh)));
+          ngoai += k.buoi==='C' ? cao : Math.max(0,cao-3);
+        });
+        if(tong>ngoai) ep.push({g, x:tong-ngoai, mon:[...new Set(pc.map(p=>p.mon))].join(', ')});
+      });
+      const epTong=ep.reduce((s,e)=>s+e.x,0);
+      const conCho=cung-chaoCo-epTong;
+      if(conCho<cau){
+        const thieu=cau-conCho;
+        ep.sort((a,b)=>b.x-a.x);
+        V('R13','goi',
+          `Khoảng ${thieu} tiết Toán, Tiếng Việt sẽ phải học ngoài tiết 1–3 buổi sáng`,
+          `Hai môn cần ${cau} tiết ở khung giờ học tốt nhất, nhưng chỉ còn ${conCho} chỗ: `
+          +`chào cờ chiếm ${chaoCo}, và các giáo viên kín lịch bắt buộc đứng ${epTong} tiết trong vùng ấy`
+          +(ep.length?` — kín nhất: ${ep.slice(0,3).map(e=>`${e.g.hoTen} (${e.x} tiết)`).join(' · ')}${ep.length>3?'…':''}`:'')+'.',
+          `Không phải lỗi xếp lịch — muốn khác đi thì thêm người dạy cùng môn với `
+          +`${ep[0]?ep[0].g.hoTen:'giáo viên kín lịch nhất'} hoặc giảm tải cho họ; `
+          +`mỗi tiết giảm được là thêm một chỗ sáng sớm cho Toán, Tiếng Việt.`);
+      }
+    }
+  }
+
   const uu={do:0,canh:1,goi:2}; vm.sort((a,b)=>uu[a.muc]-uu[b.muc]);
   return {gv,vm,slot,slotKhoi,buoi:bb.length};
 }
