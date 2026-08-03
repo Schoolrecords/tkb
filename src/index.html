@@ -990,6 +990,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
       <button class="mi" data-t="phuongan" data-nh="qk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h7M4 12h7M4 18h7"/><path d="M15 6h5M15 12h5M15 18h5"/><circle cx="12.5" cy="6" r="1.4"/></svg>Các phương án đã lưu</button>
       <button class="mi" data-t="phienban" data-nh="qk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/><path d="M3.5 9.5h4"/></svg>Phiên bản và công bố</button>
       <button class="mi" data-t="xuatin" data-nh="qk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>Xuất và in</button>
+      <button class="mi" data-t="ngaycong" data-nh="qk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 15h3M13 15h3"/></svg>Ngày công</button>
       <button class="mi" data-t="nhatky" data-nh="qk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h11a2 2 0 012 2v16H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M9 8h7M9 12h7M9 16h4"/></svg>Nhật ký thay đổi</button>
     </div>
   </div>
@@ -2678,6 +2679,33 @@ function thongBaoCuaGV(id){
     .sort((a,b)=>a.ngay.localeCompare(b.ngay)
       || (a.buoi===b.buoi ? a.tiet-b.tiet : a.buoi==='S'?-1:1));
 }
+
+/* ---------- Tổng hợp ngày công một tháng ----------
+   Bảng nhà trường nộp báo cáo hằng tháng: ai nghỉ buổi nào, quy ra công.
+   Suy hết từ bao_nghi — đúng nguyên tắc "không dựng bảng riêng khi mọi dòng
+   đều suy ra được". Cách tính: một buổi (S/C) = 0,5 công; cả ngày (CN) = 1.
+   Thông báo đã HUỶ không tính; 'cho' lẫn 'xong' đều tính — nghỉ là chuyện
+   đã xảy ra, không phụ thuộc việc dạy thay đã bố trí xong hay chưa. */
+function tongHopNgayCong(thang){
+  const trong=(S.baoNghi||[]).filter(b=>b.trangThai!=='huy'
+    && (b.ngay||'').startsWith(thang));
+  const theoGV={};
+  trong.forEach(b=>{ (theoGV[b.gvId] ||= []).push(b); });
+  const dong=Object.entries(theoGV).map(([id,ds])=>{
+    ds.sort((a,b)=>a.ngay.localeCompare(b.ngay));
+    const dem={S:0,C:0,CN:0};
+    ds.forEach(b=>{ if(dem[b.buoi]!=null) dem[b.buoi]++; });
+    return {gv:gvId(id), ds, dem, cong:(dem.S+dem.C)*0.5+dem.CN};
+  }).filter(r=>r.gv)
+    /* Sắp theo họ tên như danh sách nhà trường vẫn dùng, không theo số công */
+    .sort((a,b)=>a.gv.hoTen.localeCompare(b.gv.hoTen,'vi'));
+  return {dong,
+    tongCong: dong.reduce((s,r)=>s+r.cong,0),
+    tongLuot: trong.length,
+    duCong: Math.max(0, S.giaoVien.length-dong.length)};
+}
+/* Số công viết kiểu Việt: 0,5 chứ không 0.5 */
+const soCong = x => (Math.round(x*10)/10).toString().replace('.',',');
 
 /*#endregion LOGIC*/
 
@@ -4590,6 +4618,7 @@ function ve(){
     : t==='thongbao'  ? mThongBao()
     : t==='phuongan'  ? mPhuongAn()
     : t==='phienban'  ? mPhienBan()
+    : t==='ngaycong'  ? mNgayCong()
     : t==='nhatky'    ? mNhatKy()
     : t==='nguoidung' ? mNguoiDung()
     : t==='saoluu'    ? mSaoLuu()
@@ -6416,6 +6445,58 @@ function hopBaoNghiHo(idGV){
    thêm chỗ đứng và lời giải thích.
    ================================================================== */
 
+/* ---------- Ngày công ----------
+   Bảng tổng hợp nghỉ theo THÁNG — thứ nhà trường phải nộp báo cáo hằng
+   tháng. Toàn bộ số liệu suy từ bao_nghi qua tongHopNgayCong() (vùng LOGIC,
+   có phép thử riêng); màn hình này chỉ bày bảng và ba lối ra In · Word ·
+   Excel. Chỉ liệt kê người CÓ buổi nghỉ — bảng ngắn, người đủ công gom vào
+   một dòng ghi chú, đúng cách bảng giấy nhà trường vẫn làm. */
+function mNgayCong(){
+  if(!S.ncThang) S.ncThang=ngayISO(new Date()).slice(0,7);
+  const th=S.ncThang;
+  const [nam,thangSo]=th.split('-');
+  const kq=tongHopNgayCong(th);
+  return dauTrang('Ngày công',
+    'Tổng hợp buổi nghỉ trong tháng từ các thông báo nghỉ — có sẵn bảng để nộp báo cáo.',false)+`
+  <div class="the">
+    <div class="the-d"><h2>Tổng hợp tháng ${+thangSo}/${esc(nam)}</h2>
+      <span class="meta">${kq.tongLuot} lượt báo nghỉ · ${kq.dong.length} giáo viên</span>
+      ${kq.dong.length?`<button class="b b-vien b-nho" id="btInNC">In / lưu PDF</button>
+      <button class="b b-vien b-nho" id="btWordNC">Tải Word</button>
+      <button class="b b-vien b-nho" id="btExcelNC">Tải Excel</button>`:''}</div>
+    <div class="the-t">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:13px">
+        <button class="b b-vien b-nho" id="ncTruoc">‹ Tháng trước</button>
+        <input type="month" class="ip" id="ncThang" value="${esc(th)}">
+        <button class="b b-vien b-nho" id="ncSau">Tháng sau ›</button>
+      </div>
+      ${kq.dong.length?`<div class="bang"><table class="dl"><thead><tr>
+        <th style="width:36px">TT</th><th>Họ và tên</th><th>Các buổi nghỉ</th>
+        <th>Sáng</th><th>Chiều</th><th>Cả ngày</th><th>Công nghỉ</th></tr></thead><tbody>
+        ${kq.dong.map((r,i)=>`<tr>
+          <td>${i+1}</td>
+          <td><b>${esc(r.gv.hoTen)}</b>${r.gv.cn?`<div class="gy">Chủ nhiệm ${esc(tenCN(r.gv))}</div>`:''}</td>
+          <td>${r.ds.map(b=>`${esc(TAT_THU[thuTuISO(b.ngay)]||'')} ${esc(dinhDangNgay(b.ngay))}
+            ${TEN_BUOI_NGHI[b.buoi]} — ${esc(b.lyDo)}`).join('<br>')}</td>
+          <td>${r.dem.S||''}</td><td>${r.dem.C||''}</td><td>${r.dem.CN||''}</td>
+          <td><b>${soCong(r.cong)}</b></td></tr>`).join('')}
+        <tr><td></td><td><b>Tổng cộng</b></td>
+          <td class="gy">${kq.duCong} giáo viên còn lại đủ công trong tháng</td>
+          <td><b>${kq.dong.reduce((s,r)=>s+r.dem.S,0)||''}</b></td>
+          <td><b>${kq.dong.reduce((s,r)=>s+r.dem.C,0)||''}</b></td>
+          <td><b>${kq.dong.reduce((s,r)=>s+r.dem.CN,0)||''}</b></td>
+          <td><b>${soCong(kq.tongCong)}</b></td></tr>
+        </tbody></table></div>
+      <div class="gy" style="margin-top:11px">Một buổi tính 0,5 công, cả ngày tính 1 công.
+        Thông báo đã huỷ không tính; thông báo chưa bố trí dạy thay vẫn tính —
+        nghỉ là chuyện đã xảy ra.</div>`
+      :`<div class="trong-hop"><b>Tháng ${+thangSo}/${esc(nam)} chưa có ai báo nghỉ</b>
+        Cả ${S.giaoVien.length} giáo viên đủ công. Thông báo nghỉ gửi từ mục <b>Báo nghỉ</b>
+        (hoặc Ban Giám hiệu ghi hộ ở mục <b>Dạy thay</b>) sẽ tự cộng vào bảng này.</div>`}
+    </div>
+  </div>`;
+}
+
 /* ---------- Các phương án đã lưu ----------
    §6: so sánh phương án theo số tiết đã xếp · chưa xếp · xung đột ·
    tiết trống giữa buổi · lượt di chuyển điểm trường. PA_TIM là kết quả
@@ -7587,6 +7668,66 @@ function trangInDayThay(){
   return khungIn('LỊCH PHÂN CÔNG DẠY THAY', [apDung, `${ds.length} tiết`], bang, 'ngang');
 }
 
+/* ---------- Bản in bảng ngày công ----------
+   Dùng lại khungIn() nên thể thức giống hệt mọi bản in khác — có chỗ ký
+   NGƯỜI LẬP BIỂU và HIỆU TRƯỞNG, đúng thứ một bảng nộp báo cáo cần. Bảy cột
+   hẹp nên A4 dọc là vừa. */
+function trangInNgayCong(){
+  const th=S.ncThang||ngayISO(new Date()).slice(0,7);
+  const kq=tongHopNgayCong(th);
+  if(!kq.dong.length) return '';
+  const [nam,thangSo]=th.split('-');
+  const bang=`<table class="in-b"><thead><tr>
+    <th style="width:34px">TT</th><th>Họ và tên</th><th>Các buổi nghỉ</th>
+    <th style="width:46px">Sáng</th><th style="width:46px">Chiều</th>
+    <th style="width:56px">Cả ngày</th><th style="width:60px">Công nghỉ</th>
+  </tr></thead><tbody>
+  ${kq.dong.map((r,i)=>`<tr>
+    <td class="c">${i+1}</td>
+    <td>${esc(r.gv.hoTen)}</td>
+    <td>${r.ds.map(b=>`${esc(dinhDangNgay(b.ngay))} ${TEN_BUOI_NGHI[b.buoi]} — ${esc(b.lyDo)}`).join('<br>')}</td>
+    <td class="c">${r.dem.S||''}</td><td class="c">${r.dem.C||''}</td>
+    <td class="c">${r.dem.CN||''}</td><td class="c">${soCong(r.cong)}</td></tr>`).join('')}
+  <tr><td></td><td><b>Tổng cộng</b></td>
+    <td><i>${kq.duCong} giáo viên còn lại đủ công</i></td>
+    <td class="c"><b>${kq.dong.reduce((s,r)=>s+r.dem.S,0)||''}</b></td>
+    <td class="c"><b>${kq.dong.reduce((s,r)=>s+r.dem.C,0)||''}</b></td>
+    <td class="c"><b>${kq.dong.reduce((s,r)=>s+r.dem.CN,0)||''}</b></td>
+    <td class="c"><b>${soCong(kq.tongCong)}</b></td></tr>
+  </tbody></table>`;
+  return khungIn(`BẢNG TỔNG HỢP NGÀY CÔNG THÁNG ${+thangSo}/${nam}`,
+    [`${kq.dong.length} giáo viên có buổi nghỉ · ${soCong(kq.tongCong)} công nghỉ`,
+     'Một buổi tính 0,5 công · cả ngày tính 1 công'],
+    bang, 'doc');
+}
+
+/* Tệp Excel ngày công — một trang tính, cùng khuôn bốn hàm dựng chung */
+async function xuatExcelNgayCong(){
+  if(!coExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi tải lại trang.',true);
+  const th=S.ncThang||ngayISO(new Date()).slice(0,7);
+  const kq=tongHopNgayCong(th);
+  if(!kq.dong.length) return bao('Tháng này chưa có ai báo nghỉ — không có gì để xuất.',true);
+  const [nam,thangSo]=th.split('-');
+  const wb=new ExcelJS.Workbook();
+  wb.creator='Phần mềm Thời khóa biểu';
+  const ws=trangXL(wb,'NGAY_CONG','doc');
+  let d=tieuDeXL(ws,1,7,`BẢNG TỔNG HỢP NGÀY CÔNG THÁNG ${+thangSo}/${nam}`,
+    `${S.tenTruong} · Năm học ${S.namHoc||''} · một buổi 0,5 công, cả ngày 1 công`);
+  d=dauCotXL(ws,d,[{ten:'TT',rong:5},{ten:'Họ và tên',rong:26},{ten:'Các buổi nghỉ',rong:48},
+    {ten:'Sáng',rong:7},{ten:'Chiều',rong:8},{ten:'Cả ngày',rong:9},{ten:'Công nghỉ',rong:10}]);
+  d=thanBangXL(ws,d,[
+    ...kq.dong.map((r,i)=>[i+1, r.gv.hoTen,
+      r.ds.map(b=>`${dinhDangNgay(b.ngay)} ${TEN_BUOI_NGHI[b.buoi]} — ${b.lyDo}`).join('; '),
+      r.dem.S||'', r.dem.C||'', r.dem.CN||'', soCong(r.cong)]),
+    ['','Tổng cộng',`${kq.duCong} giáo viên còn lại đủ công`,
+      kq.dong.reduce((s,r)=>s+r.dem.S,0)||'', kq.dong.reduce((s,r)=>s+r.dem.C,0)||'',
+      kq.dong.reduce((s,r)=>s+r.dem.CN,0)||'', soCong(kq.tongCong)]
+  ],['center','left','left','center','center','center','center']);
+  ws.getRow(d-1).font={name:'Times New Roman',size:11,bold:true};
+  await ghiTepXL(wb, tenTepIn('Ngay-cong-'+th,'xlsx'));
+  bao('Đã tải tệp Excel ngày công tháng '+(+thangSo)+'/'+nam+'.');
+}
+
 /* ---------- Sao chép để gửi Zalo ----------
    §15.10. Zalo không nhận bảng, nên gói thành từng dòng chữ ngắn, gom theo
    ngày — dán vào nhóm là đọc được ngay trên điện thoại. */
@@ -8616,6 +8757,20 @@ function noiSuKien(){
   $('#btWordDayThay')&&($('#btWordDayThay').onclick=()=>
     taiWord(trangInDayThay(), tenTepIn('Lich-day-thay','ngang'), 'ngang'));
   $('#btChepDayThay')&&($('#btChepDayThay').onclick=()=>chepDayThay());
+
+  /* ---------- Ngày công ---------- */
+  $('#ncThang')&&($('#ncThang').onchange=e=>{ if(e.target.value) S.ncThang=e.target.value; ve(); });
+  const doiThangNC=so=>{
+    const [n,t]=(S.ncThang||ngayISO(new Date()).slice(0,7)).split('-').map(Number);
+    const d=new Date(n, t-1+so, 1);
+    S.ncThang=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; ve();
+  };
+  $('#ncTruoc')&&($('#ncTruoc').onclick=()=>doiThangNC(-1));
+  $('#ncSau')&&($('#ncSau').onclick=()=>doiThangNC(1));
+  $('#btInNC')&&($('#btInNC').onclick=()=>inRa(trangInNgayCong(),'bảng ngày công'));
+  $('#btWordNC')&&($('#btWordNC').onclick=()=>
+    taiWord(trangInNgayCong(), tenTepIn('Ngay-cong-'+(S.ncThang||''),'doc'), 'doc'));
+  $('#btExcelNC')&&($('#btExcelNC').onclick=xuatExcelNgayCong);
 
   /* ---------- Báo nghỉ ---------- */
   $('#bnNgay')&&($('#bnNgay').onchange=e=>{S.bnNgay=e.target.value;ve();});

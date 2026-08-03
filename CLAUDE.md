@@ -282,7 +282,8 @@ DỮ LIỆU NHÀ TRƯỜNG      Thông tin trường · Điểm trường · Kh�
                         · Lớp học · Giáo viên · Môn học · Phân công chuyên môn
                         · Phòng học · Buổi bận và tiết cố định
 QUẢN LÝ VÀ KẾT QUẢ      Kiểm tra khả thi · Các phương án đã lưu
-                        · Phiên bản và công bố · Xuất và in · Nhật ký
+                        · Phiên bản và công bố · Xuất và in · Ngày công
+                        · Nhật ký
 HỆ THỐNG                Người dùng và phân quyền · Sao lưu dữ liệu
                         · Hướng dẫn sử dụng
 ```
@@ -638,6 +639,17 @@ Khác *Phân công không qua báo nghỉ* ở đúng một điểm: có ghi **m
 kia không ghi gì. Quy tắc `p_bao_nghi_gui` đã cho `la_quan_ly()` ghi hộ từ
 đầu — không phải sửa SQL. Ghi xong nhảy thẳng sang màn hình phương án dạy
 thay. Có phép thử canh ở mục 15d của `npm run soi`.
+
+**BẢNG NGÀY CÔNG THEO THÁNG** *(3/8/2026)*: màn *Ngày công* (nhóm Quản lý
+và kết quả) — bảng nhà trường nộp báo cáo hằng tháng, ba lối ra In (A4 dọc,
+`khungIn` đủ chỗ ký) · Word · Excel. Logic thuần nằm ở `tongHopNgayCong(thang)`
+trong vùng LOGIC, `npm test` mục 18b canh: một buổi = **0,5 công**, cả ngày
+= 1; thông báo đã **huỷ không tính**, `cho` lẫn `xong` **đều tính** (nghỉ là
+chuyện đã xảy ra, không phụ thuộc dạy thay bố trí xong chưa); sắp theo **họ
+tên** như danh sách nhà trường, không theo số công; chỉ liệt kê người có
+buổi nghỉ, người đủ công gom vào một dòng ghi chú. Số công viết kiểu Việt
+qua `soCong()` — 0,5 chứ không 0.5. Đúng nguyên tắc "không dựng bảng riêng":
+mọi số liệu suy từ `bao_nghi`, không thêm bảng nào trên máy chủ.
 
 Ba tầng hàm trong vùng LOGIC, tách bạch cố ý — đều là hàm thuần, `npm test`
 gọi thẳng:

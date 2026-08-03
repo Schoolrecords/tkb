@@ -43,6 +43,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   tietCanThay, ungVienThay, phuongAnThay, xungDotDayThay, vieccanXuLy,
   thongBaoCuaGV, buoiCuaNghi, ngayISO, ngayCong, ngayDayDu, thuTuISO,
   LY_DO_NGHI, TEN_BUOI_NGHI, chiSoPhuongAn, guiBaoNghi, huyBaoNghi, danhDauXuLy,
+  tongHopNgayCong, soCong,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
@@ -2087,6 +2088,48 @@ console.log('\n18. Báo nghỉ và phương án dạy thay');
    lại thì chưa. Bộ này canh cả hình dạng mã lẫn CHỐT AN TOÀN quan
    trọng nhất: đổi mã không được đụng vào bất cứ tham chiếu nào.
    ================================================================== */
+console.log('\n18b. Tổng hợp ngày công theo tháng');
+{
+  /* Bảng nộp báo cáo hằng tháng, suy hết từ bao_nghi. Một buổi = 0,5 công,
+     cả ngày = 1 công; thông báo đã huỷ không tính, 'cho' lẫn 'xong' đều
+     tính — nghỉ là chuyện đã xảy ra, không phụ thuộc dạy thay xong chưa. */
+  const u = taoUngDung(documentGia);
+  const [g1, g2] = u.S.giaoVien;
+  u.S.baoNghi = [
+    {id:'a', gvId:g1.id, ngay:'2026-09-07', buoi:'S',  lyDo:'Nghỉ ốm',          trangThai:'cho'},
+    {id:'b', gvId:g1.id, ngay:'2026-09-10', buoi:'CN', lyDo:'Có việc gia đình', trangThai:'xong'},
+    {id:'c', gvId:g2.id, ngay:'2026-09-08', buoi:'C',  lyDo:'Việc cá nhân',     trangThai:'huy'},
+    {id:'d', gvId:g2.id, ngay:'2026-10-01', buoi:'S',  lyDo:'Nghỉ ốm',          trangThai:'cho'},
+    {id:'e', gvId:'khong-ton-tai', ngay:'2026-09-09', buoi:'S', lyDo:'Nghỉ ốm', trangThai:'cho'}
+  ];
+  const kq = u.tongHopNgayCong('2026-09');
+  kt('Chỉ gộp đúng tháng đang xem, tháng khác để dành cho trang khác',
+     kq.dong.length === 1 && u.tongHopNgayCong('2026-10').dong.length === 1);
+  kt('Một buổi 0,5 công, cả ngày 1 công — cộng ra đúng',
+     kq.dong[0].cong === 1.5 && kq.tongCong === 1.5, `${kq.dong[0].cong} công`);
+  kt('Thông báo đã HUỶ không tính vào ngày công',
+     !kq.dong.some(r => r.gv.id === g2.id));
+  kt("Trạng thái 'cho' lẫn 'xong' đều tính — nghỉ là chuyện đã xảy ra",
+     kq.dong[0].dem.S === 1 && kq.dong[0].dem.CN === 1);
+  kt('Hồ sơ trỏ về giáo viên không còn tồn tại thì bỏ qua, không văng lỗi',
+     kq.dong.every(r => r.gv));
+  kt('Đếm được người đủ công để ghi chú cuối bảng',
+     kq.duCong === u.S.giaoVien.length - 1, `${kq.duCong} người đủ công`);
+  kt('Số công viết kiểu Việt — 0,5 chứ không 0.5',
+     u.soCong(0.5) === '0,5' && u.soCong(2) === '2' && u.soCong(1.5) === '1,5');
+  kt('Sắp theo họ tên như danh sách nhà trường, không theo số công', (() => {
+    u.S.baoNghi.push({id:'f', gvId:g2.id, ngay:'2026-09-14', buoi:'S',
+      lyDo:'Nghỉ ốm', trangThai:'cho'});
+    const hai = u.tongHopNgayCong('2026-09');
+    const ten = hai.dong.map(r => r.gv.hoTen);
+    return ten.join('|') === [...ten].sort((a,b)=>a.localeCompare(b,'vi')).join('|');
+  })());
+  kt('Tháng không ai nghỉ thì bảng rỗng và cả trường đủ công', (() => {
+    const trong = u.tongHopNgayCong('2026-11');
+    return trong.dong.length === 0 && trong.duCong === u.S.giaoVien.length;
+  })());
+}
+
 console.log('\n19. Mã giáo viên đọc được');
 {
   const u = taoUngDung(documentGia);

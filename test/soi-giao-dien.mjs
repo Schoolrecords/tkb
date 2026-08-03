@@ -773,6 +773,37 @@ kt('Ba nút In · Word · Zalo đều có mặt khi đã có lịch', (() => {
 })());
 kt('Cột Tình trạng nói rõ đã xem hay chưa, bằng CHỮ',
    /Chưa xem/.test(w.document.querySelector('#noiDung').textContent));
+
+console.log('\n15d4. Bảng ngày công theo tháng');
+/* Bảng nộp báo cáo hằng tháng, suy hết từ bao_nghi (logic thuần có phép thử
+   riêng ở npm test — mục 18b). Ở đây chỉ soi phần màn hình và bản in. */
+w.eval('S.ncThang = "2026-09"');
+w.chuyen('ngaycong');
+kt('Mục Ngày công có mặt trên thanh bên, trong nhóm Quản lý và kết quả', (() => {
+  const mi = w.document.querySelector('.mi[data-t="ngaycong"]');
+  return !!mi && mi.dataset.nh === 'qk';
+})());
+kt('Bảng ghi họ tên đầy đủ người nghỉ, 0,5 công một buổi, có dòng tổng', (() => {
+  const t = w.document.querySelector('#noiDung').textContent;
+  const ten = w.eval('gvId(S.baoNghi[0].gvId).hoTen');
+  return t.includes(ten) && /0,5/.test(t) && /Tổng cộng/.test(t);
+})());
+kt('Ba lối ra In · Word · Excel đều có mặt khi có dòng',
+   !!w.document.querySelector('#btInNC') && !!w.document.querySelector('#btWordNC')
+   && !!w.document.querySelector('#btExcelNC'));
+kt('Bản in ngày công khổ A4 dọc, đủ thể thức và chỗ ký', (() => {
+  const h = w.eval('trangInNgayCong()');
+  return /tr-in doc/.test(h) && /NGÀY CÔNG THÁNG 9\/2026/.test(h)
+    && /NGƯỜI LẬP BIỂU/.test(h) && /HIỆU TRƯỞNG/.test(h);
+})());
+kt('Tháng không ai nghỉ thì nói "cả trường đủ công", không bày bảng trống', (() => {
+  w.eval('S.ncThang = "2026-11"'); w.chuyen('ngaycong');
+  const t = w.document.querySelector('#noiDung').textContent;
+  return /chưa có ai báo nghỉ/.test(t) && /đủ công/.test(t)
+    && !w.document.querySelector('#btInNC');
+})());
+w.eval('S.ncThang = null');
+w.chuyen('daythay');
 w.eval('S.dayThay = []; S.baoNghi = []; S.dtLoc = "moi"; S.bnXem = null');
 console.log('\n15e. Mẫu Excel ma trận');
 w.chuyen('lop');
