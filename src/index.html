@@ -915,6 +915,18 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 
+/* ===== XEM TRƯỚC BẢN IN =====
+   Khung giả trang giấy trên màn hình Xuất và in: nền xám, từng tờ trắng đổ
+   bóng, thu tỷ lệ vừa bề ngang khung. Kiểu chữ thật của bản in nạp lúc chạy
+   qua napKieuXemTruoc() — vẫn MỘT nguồn CSS_BAN_IN, không chép tay. */
+.xt-cuon{overflow:auto;max-height:62vh;background:#DFE3EC;border:1px solid var(--ke);
+  border-radius:10px;padding:16px}
+.xt-sizer{overflow:hidden}
+.xt-giay{transform-origin:top left}
+.xt-giay .tr-in{background:#fff;box-shadow:0 3px 14px rgba(27,37,89,.22);
+  margin:0 0 18px;padding:44px 50px}
+.xt-them{text-align:center;font-size:13pt;color:#44506E;padding:6px 0 2px}
+
 /* ===== BẢN IN =====
    Khi in, giấu toàn bộ giao diện, chỉ để lại #inAn. Không dùng thư viện PDF:
    trình duyệt in ra PDF sẵn, lại giữ đúng dấu tiếng Việt — thư viện PDF phải
@@ -6934,10 +6946,96 @@ function mXuatIn(){
     </div>
 
   </div></div>
+
+  <div class="the the-rong" style="margin-top:15px">
+    <div class="the-d"><h2>Xem trước bản in</h2><span class="meta" id="xtMeta"></span></div>
+    <div class="the-t">
+      ${chuaXep?`<div class="trong-hop"><b>Chưa xếp thời khóa biểu nên chưa có gì để xem trước</b>
+        Vào mục <b>Xếp thời khóa biểu</b> bấm <b>Bắt đầu xếp</b> trước đã.</div>`
+      :`<div class="gy" style="margin-bottom:11px">Khung dưới bày đúng bản sẽ ra giấy —
+        đổi lựa chọn ở các thẻ trên là khung tự đổi theo, không phải bấm In mới biết.</div>
+      <div class="xt-cuon" id="xtBoc"></div>`}
+    </div>
+  </div>
   ${chuaXep?`<div class="canhbao" style="margin-top:14px"><div class="cb-ic">!</div><div class="cb-t">
     <b>Chưa xếp thời khóa biểu nên chưa xuất được</b>
     <div class="cb-g">Vào mục <b>Xếp thời khóa biểu</b> bấm <b>Bắt đầu xếp</b> trước đã.</div></div></div>`:''}`;
 }
+
+/* ---------- Xem trước bản in ----------
+   Ô chọn bản in trước đây "mù": bấm In mới biết tờ giấy ra hình gì. Khung
+   này bày ĐÚNG HTML bản in — cùng CSS_BAN_IN với hộp in và tệp Word, không
+   dựng bản mô phỏng riêng — trên nền giấy giả, thu tỷ lệ vừa bề ngang.
+   Nguồn xem theo thẻ người dùng chạm gần nhất (S.xtNguon); bản dài chỉ bày
+   TOI_DA_TO_XEM tờ đầu cho nhẹ trang — xem trước là để biết hình hài,
+   không phải để đọc trọn. */
+const KHO_XEM={doc:{w:794,h:1123}, ngang:{w:1123,h:794}, rong:{w:1587,h:1123}};
+const TEN_KHO_XEM={doc:'A4 dọc', ngang:'A4 ngang', rong:'A3 ngang'};
+const TOI_DA_TO_XEM=8;
+
+function banInDangChon(){
+  const nguon=S.xtNguon||'rong';
+  if(nguon==='lop'){
+    const id=$('#inChonLop')?.value||'';
+    return {html:trangInLop(id), moTa:id?`lớp ${lopId(id)?.ten||''}`:`tất cả ${lopTrongPV().length} lớp`};
+  }
+  if(nguon==='gv'){
+    const id=$('#inChonGV')?.value||'';
+    return {html:trangInGV(id), moTa:id?(gvId(id)?.hoTen||''):`tất cả ${gvTrongPV().length} giáo viên`};
+  }
+  const v=$('#inChonRong')?.value ?? 'dt';
+  if(v==='tt') return {html:trangInToanTruong(), moTa:'toàn trường gộp'};
+  if(v==='dt') return {html:trangInDiemTruong(), moTa:'từng điểm trường'};
+  if(v.startsWith('dt:')) return {html:trangInDiemTruong(v.slice(3)),
+    moTa:'điểm trường '+(dtId(v.slice(3))?.ten||'')};
+  return {html:trangInKhoi(v?+v:null), moTa:v?`khối ${v}`:'các khối'};
+}
+
+/* Kiểu chữ bản in nạp cho MÀN HÌNH một lần. Các lớp .tr-in/.in-* chỉ xuất
+   hiện trong nội dung bản in nên nạp thẳng không đụng gì phần còn lại. */
+function napKieuXemTruoc(){
+  if(document.getElementById('kieuXemTruoc')) return;
+  const st=document.createElement('style');
+  st.id='kieuXemTruoc'; st.textContent=CSS_BAN_IN;
+  document.head.appendChild(st);
+}
+
+function veXemTruoc(){
+  const boc=$('#xtBoc'); if(!boc) return;
+  const meta=$('#xtMeta');
+  const chon=banInDangChon();
+  if(!chon.html){
+    boc.innerHTML='<div class="trong-hop" style="background:#fff"><b>Không có gì để xem trước</b>Bản đang chọn chưa có nội dung.</div>';
+    if(meta) meta.textContent='';
+    return;
+  }
+  napKieuXemTruoc();
+  const kho=(chon.html.match(/class="tr-in ([a-z]+)"/)||[])[1]||'ngang';
+  const k=KHO_XEM[kho]||KHO_XEM.ngang;
+  const soTo=(chon.html.match(/class="tr-in /g)||[]).length;
+  if(meta) meta.textContent=`${chon.moTa} · ${soTo} tờ ${TEN_KHO_XEM[kho]}`;
+  boc.innerHTML=`<div class="xt-sizer"><div class="xt-giay" style="width:${k.w}px">${chon.html}</div></div>`;
+  const giay=boc.querySelector('.xt-giay');
+  const trang=[...giay.children].filter(p=>p.classList&&p.classList.contains('tr-in'));
+  trang.slice(TOI_DA_TO_XEM).forEach(p=>p.remove());
+  if(soTo>TOI_DA_TO_XEM){
+    const d=document.createElement('div');
+    d.className='xt-them';
+    d.textContent=`… và ${soTo-TOI_DA_TO_XEM} tờ nữa — bản in đầy đủ có ${soTo} tờ.`;
+    giay.appendChild(d);
+  }
+  /* Thu tỷ lệ vừa bề ngang; .xt-sizer giữ đúng chiều cao SAU thu — transform
+     không đổi kích thước bố cục nên không có nó là khung cuộn dư cả mét. */
+  const rongBoc=boc.clientWidth||k.w+34;
+  const tiLe=Math.min(1,(rongBoc-34)/k.w);
+  giay.style.transform=`scale(${tiLe})`;
+  /* Tờ hẹp hơn khung (A4 dọc trên màn rộng) thì căn giữa cho cân mắt */
+  giay.style.marginLeft=Math.max(0,(rongBoc-34-k.w*tiLe)/2)+'px';
+  const cao=giay.offsetHeight||Math.min(soTo,TOI_DA_TO_XEM)*k.h;
+  boc.querySelector('.xt-sizer').style.height=Math.ceil(cao*tiLe)+'px';
+}
+/* Xoay điện thoại hay kéo cửa sổ thì tính lại tỷ lệ */
+window.addEventListener('resize',()=>{ if(S.trangHienTai==='xuatin') veXemTruoc(); });
 
 /* ==================================================================
    4e. DỰNG TỆP EXCEL ĐẸP
@@ -9139,6 +9237,15 @@ function noiSuKien(){
     const id=$('#inChonGV').value;
     taiWord(trangInGV(id), tenTepIn(id?khongDau(gvId(id)?.hoTen||''):'Giao-vien','doc'), 'doc');
   });
+
+  /* ---------- Xem trước bản in: nguồn theo ô chọn chạm gần nhất ---------- */
+  if(S.trangHienTai==='xuatin'){
+    [['#inChonRong','rong'],['#inChonLop','lop'],['#inChonGV','gv']].forEach(([id,ng])=>{
+      const el=$(id);
+      if(el) el.onchange=()=>{ S.xtNguon=ng; veXemTruoc(); };
+    });
+    veXemTruoc();
+  }
 
   $('#btTaiKhoan')&&($('#btTaiKhoan').onclick=hopTaiKhoan);
   /* Đặt lại mã giáo viên — cùng khuôn với nút Đặt lại mã lớp.

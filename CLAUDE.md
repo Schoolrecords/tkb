@@ -846,6 +846,21 @@ Trong ô chọn của màn *Xuất và in*, bản này đứng **đầu** danh s
 A3 vẫn giữ nguyên cho tờ dán bảng tin. Có phép thử canh (mục 14b của
 `npm run soi`): đúng khổ, không tờ nào vượt ngưỡng, cộng mọi tờ đủ từng lớp.
 
+**Khung XEM TRƯỚC bản in** *(3/8/2026)*: ô chọn bản in trước đây "mù" —
+bấm In mới biết tờ giấy ra hình gì. Nay cuối màn *Xuất và in* có khung
+`#xtBoc` bày **đúng HTML bản in** trên nền giấy giả (tờ trắng đổ bóng, thu
+tỷ lệ vừa bề ngang, `.xt-sizer` giữ chiều cao sau transform). Ba điều giữ
+cho nó rẻ và đúng:
+- **Không dựng bản mô phỏng riêng** — cùng chuỗi HTML của `trangIn*()` và
+  cùng `CSS_BAN_IN` nạp qua `napKieuXemTruoc()`; lệch với tờ in ra là
+  không thể.
+- Nguồn xem theo ô chọn **chạm gần nhất** (`S.xtNguon`), đổi ô chọn là
+  `veXemTruoc()` vẽ lại **riêng khung này**, không gọi `ve()` — gọi `ve()`
+  là ô chọn bị dựng lại và mất lựa chọn đang giữ.
+- Bản dài chỉ bày `TOI_DA_TO_XEM = 8` tờ đầu kèm dòng "… và N tờ nữa" —
+  xem trước để biết hình hài, không phải để đọc trọn 86 tờ.
+Phép thử ở mục 14c của `npm run soi`.
+
 - Bảng rộng thì **cuộn ngang trong khung của chính nó** (`.tt-boc`), thân trang
   không bao giờ cuộn ngang — người dùng chủ yếu dùng điện thoại.
 - Ô của khối tan sớm ghi rõ **"Nghỉ"**, không để trống. Trống lẫn với tiết chưa

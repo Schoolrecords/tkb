@@ -490,6 +490,39 @@ kt('Màn hình Xuất và in bày bản A4 điểm trường lên ĐẦU danh s�
   return !!chon && (chon.querySelector('option')?.value || '') === 'dt';
 })());
 
+console.log('\n14c. Xem trước bản in ngay trên màn hình');
+/* Ô chọn bản in trước đây "mù" — bấm In mới biết tờ giấy ra hình gì.
+   Khung xem trước bày đúng HTML bản in, cùng một nguồn CSS_BAN_IN. */
+kt('Mở màn Xuất và in là khung xem trước bày sẵn các tờ giấy thật', (() => {
+  const to = w.document.querySelectorAll('#xtBoc .tr-in');
+  return !!w.document.querySelector('#xtBoc') && to.length > 0;
+})());
+kt('Kiểu chữ bản in nạp cho màn hình từ đúng một nguồn CSS_BAN_IN',
+   !!w.document.querySelector('#kieuXemTruoc'));
+kt('Mặc định xem bản A4 từng điểm trường — đúng bản in hằng ngày',
+   /từng điểm trường/.test(w.document.querySelector('#xtMeta').textContent)
+   && /A4 ngang/.test(w.document.querySelector('#xtMeta').textContent));
+kt('Đổi ô chọn giáo viên là khung đổi sang bản của đúng người ấy', (() => {
+  const sel = w.document.querySelector('#inChonGV');
+  const g = S.giaoVien[0];
+  sel.value = g.id;
+  sel.dispatchEvent(new w.Event('change', {bubbles:true}));
+  return w.eval('S.xtNguon') === 'gv'
+    && w.document.querySelector('#xtBoc').textContent.includes(g.hoTen)
+    && /A4 dọc/.test(w.document.querySelector('#xtMeta').textContent);
+})());
+kt('Bản dài chỉ bày mấy tờ đầu, nói rõ còn bao nhiêu tờ nữa', (() => {
+  /* "Tất cả giáo viên" là mấy chục tờ — xem trước để biết hình hài,
+     không phải để đọc trọn, nên chặn ở TOI_DA_TO_XEM. */
+  const sel = w.document.querySelector('#inChonGV');
+  sel.value = '';
+  sel.dispatchEvent(new w.Event('change', {bubbles:true}));
+  const to = w.document.querySelectorAll('#xtBoc .tr-in').length;
+  const max = w.eval('TOI_DA_TO_XEM');
+  return to === max && /tờ nữa/.test(w.document.querySelector('#xtBoc').textContent);
+})());
+w.eval('S.xtNguon = null');
+
 console.log('\n15. Xếp kỹ và mẫu Excel trên giao diện');
 w.chuyen('xep');
 kt('Màn hình Xếp có cả nút xếp nhanh và nút xếp kỹ',
