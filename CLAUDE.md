@@ -1067,7 +1067,14 @@ cần điều chỉnh."*
 | 1 điểm trường | **710/710 tiết**, < 1 giây, 0 xung đột |
 | 3 điểm trường | ~696/710 tiết, 0 xung đột, phần thiếu rơi vào Tiếng Anh khối 5 |
 
-Khi sửa thuật toán, chạy lại `npm test` để đảm bảo không tụt so với mốc trên.
+Khi sửa thuật toán, chạy lại `npm test` để đảm bảo không tụt so với mốc trên,
+và **`npm run kiemdinh`** *(3/8/2026)* — trình soát ĐỘC LẬP viết lại toàn bộ
+phép kiểm ràng buộc cứng từ dữ liệu thô, không dùng lại hàm nào của thuật
+toán chính (thuật toán tự chấm bài mình thì lỗi chung lọt lưới). Bảy kịch
+bản: trường thật · tất định · 60 lớp · sáu hạt GRASP · xếp kỹ · bận dày đặc
+· giáo viên liên điểm trường. Kịch bản cuối là bắt buộc phải giữ: bộ dữ liệu
+thử cắt giáo viên gọn theo điểm trường nên ràng buộc lõi "một buổi một điểm
+trường" được thoả một cách TẦM THƯỜNG nếu không ép tồn tại người dạy hai nơi.
 
 ---
 

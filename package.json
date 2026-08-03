@@ -7,6 +7,7 @@
   "scripts": {
     "start": "npx --yes serve src -l 5173",
     "test": "node test/kiem-thu.mjs",
+    "kiemdinh": "node test/kiem-dinh-thuat-toan.mjs",
     "soi": "node test/soi-giao-dien.mjs",
     "soat": "node db/soat-sql.mjs"
   }
