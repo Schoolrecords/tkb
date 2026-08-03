@@ -1173,6 +1173,9 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 > nguyên văn, đủ ngày tháng, ghi chú kỹ thuật và các “bẫy” đã trả giá.
 > Sắp sửa vào một vùng mã cũ thì đọc tệp ấy trước.
 > Đề xuất chưa đưa vào lộ trình: xem `docs/danh-gia-va-de-xuat.md`.
+> Ba việc máy chủ đầu danh sách (cai-dat.sql · dọn hồ sơ thừa · phát mã)
+> có hướng dẫn từng bước: **`docs/huong-dan-may-chu-truoc-khai-giang.md`**
+> *(3/8/2026)* — làm theo đúng thứ tự trong đó, một buổi tối là xong.
 
 - [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Nút *Tạo N mã* trong hộp **Mã
       mời** nay làm cả mẻ trong một cú bấm, kèm nút chép và tải Excel — việc
