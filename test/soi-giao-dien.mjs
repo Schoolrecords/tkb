@@ -451,6 +451,45 @@ kt('Khổ giấy khai bằng trang có tên, đủ cả ba khổ', (() => {
 kt('Tệp Word mang theo đúng kiểu chữ của bản in — một nguồn duy nhất',
    /Times New Roman/.test(w.eval('CSS_BAN_IN')) && /in-ky/.test(w.eval('CSS_BAN_IN')));
 
+console.log('\n14b. Bản in theo TỪNG ĐIỂM TRƯỜNG — khổ A4 ngang');
+/* Ba điểm trường gộp một tờ là 60 cột, không ai đọc nổi — bản in hằng ngày
+   là mỗi điểm trường một bộ tờ A4 ngang, điểm đông lớp tự chia theo cụm khối.
+   Bản gộp A3 vẫn giữ nguyên cho tờ dán bảng tin (phép thử ở mục 14). */
+const hDT = w.trangInDiemTruong();
+kt('Bản in từng điểm trường dùng khổ A4 ngang, không lẫn khổ A3',
+   hDT.length > 0 && /tr-in ngang/.test(hDT) && !/tr-in rong/.test(hDT));
+kt('Tên từng điểm trường ghi rõ trên tiêu đề tờ của nó, không ghép trùng chữ',
+   S.diemTruong.every(d => {
+     const nhan = /^điểm trường/i.test(d.ten) ? d.ten : `Điểm trường ${d.ten}`;
+     return hDT.includes(nhan);
+   }) && !/Điểm trường Điểm trường/.test(hDT));
+kt('Không tờ nào vượt ngưỡng cột đọc được của A4 ngang', (() => {
+  const to = hDT.split('class="tr-in').slice(1);
+  const NGUONG = w.eval('NGUONG_COT_A4');
+  return to.length > 0 && to.every(t => {
+    const cot = (t.match(/<th>/g) || []).length - 1;   /* trừ cột Giờ */
+    /* Cụm gộp NHIỀU khối ("Khối 1 đến khối 2") phải nằm trong ngưỡng;
+       chỉ khối đơn lẻ đông hơn ngưỡng mới được phép đứng nguyên một tờ. */
+    return cot <= NGUONG || !/đến khối/.test(t);
+  });
+})());
+kt('Cộng mọi tờ lại thì đủ từng lớp của trường, không lớp nào rơi mất', (() => {
+  const soCot = (hDT.match(/<th>/g) || []).length
+    - hDT.split('class="tr-in').slice(1).length;      /* mỗi tờ một cột Giờ */
+  return soCot === S.lop.length;
+})(), `${S.lop.length} lớp`);
+kt('In riêng một điểm trường thì chỉ ra lớp của đúng điểm ấy', (() => {
+  const d = S.diemTruong[0];
+  const h1 = w.trangInDiemTruong(d.id);
+  const soCot = (h1.match(/<th>/g) || []).length - h1.split('class="tr-in').slice(1).length;
+  return soCot === S.lop.filter(l => S.lopDT[l.id] === d.id).length;
+})());
+kt('Màn hình Xuất và in bày bản A4 điểm trường lên ĐẦU danh sách chọn', (() => {
+  w.chuyen('xuatin');
+  const chon = w.document.querySelector('#inChonRong');
+  return !!chon && (chon.querySelector('option')?.value || '') === 'dt';
+})());
+
 console.log('\n15. Xếp kỹ và mẫu Excel trên giao diện');
 w.chuyen('xep');
 kt('Màn hình Xếp có cả nút xếp nhanh và nút xếp kỹ',
@@ -517,6 +556,35 @@ kt('Không ai báo nghỉ thì nói thẳng câu ấy, không để trống',
    /Hôm nay không có giáo viên báo nghỉ/.test(w.document.querySelector('#noiDung').textContent));
 kt('Vẫn còn đường phân công tay khi thầy cô báo miệng',
    !!w.document.querySelector('#btThayTay'));
+
+/* BÁO NGHỈ HỘ (3/8/2026): thầy cô ốm nặng không tự gửi được thì Ban Giám
+   hiệu ghi thay — vẫn ra một dòng bao_nghi thật nên hồ sơ ngày công đầy đủ,
+   khác nút Phân công không qua báo nghỉ (không ghi gì lên máy chủ). */
+kt('Có nút Báo nghỉ hộ giáo viên ngay cạnh đường phân công tay',
+   !!w.document.querySelector('#btBaoNghiHo2'));
+kt('Bấm vào là hộp đủ năm ô: người · ngày · buổi · lý do · ghi chú', (() => {
+  w.document.querySelector('#btBaoNghiHo2').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const du = ['#bhGV', '#bhNgay', '#bhBuoi', '#bhLyDo', '#bhGhiChu']
+    .every(id => !!w.document.querySelector(id));
+  const buoi = [...(w.document.querySelector('#bhBuoi')?.options || [])].map(o => o.value);
+  return du && buoi.join(',') === 'S,C,CN';
+})());
+kt('Bấm Huỷ thì hộp đóng, không ghi gì', (() => {
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Huỷ').click();
+  /* dong() chỉ ẩn màn che — tiêu chí đóng là #man mất lớp "on" */
+  return !w.document.querySelector('#man').classList.contains('on')
+    && !(S.baoNghi || []).length;
+})());
+kt('Màn Theo giáo viên cũng có nút Báo nghỉ hộ, điền sẵn đúng người đang xem', (() => {
+  w.chuyen('tkbgv');
+  const nut = w.document.querySelector('#btBaoNghiHo');
+  if (!nut) return false;
+  nut.dispatchEvent(new w.Event('click', {bubbles:true}));
+  const dung = w.document.querySelector('#bhGV')?.value === w.eval('S.gvXem');
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Huỷ').click();
+  w.chuyen('daythay');
+  return dung;
+})());
 
 /* Dựng một thông báo nghỉ thật: chọn một giáo viên đang có tiết sáng thứ Hai */
 w.eval(`(() => {

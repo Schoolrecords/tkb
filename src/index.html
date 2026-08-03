@@ -5620,6 +5620,7 @@ function mTKBGV(){
     <span class="tag ${soBuoi>=8?'canh':'ok'}">${soBuoi} buổi có mặt</span>
     ${g?.cn?`<span class="tag ok">Chủ nhiệm ${esc(tenCN(g))}</span>`:''}
     <button class="b b-vien b-nho" id="btInGVNay">In / lưu PDF</button>
+    <button class="b b-vien b-nho" id="btBaoNghiHo">Báo nghỉ hộ</button>
   </div>
   ${Object.keys(lich).length ? '' : (()=>{ const l=lyDoTrongLich(S.gvXem,false);
     return `<div class="canhbao ${l.nang?'do':''}" style="margin-bottom:12px">
@@ -6075,6 +6076,7 @@ function khuVucBaoNghi(vc, bnDangMo){
   return `<div class="the">
     <div class="the-d"><h2>Giáo viên báo nghỉ</h2>
       <span class="meta">${vc.soNghi} trường hợp chưa xử lý${vc.soTiet?` · ${vc.soTiet} tiết cần bố trí`:''}</span>
+      <button class="b b-vien b-nho" id="btBaoNghiHo2">Báo nghỉ hộ giáo viên</button>
       <button class="b b-vien b-nho" id="btThayTay">Phân công không qua báo nghỉ</button></div>
     <div class="the-t">
     ${vc.cho.length
@@ -6083,8 +6085,9 @@ function khuVucBaoNghi(vc, bnDangMo){
       : `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
           <b>Hôm nay không có giáo viên báo nghỉ.</b>
           <div class="cb-g">Thầy cô gửi thông báo từ mục <b>Báo nghỉ</b>; trường hợp nào chưa bố trí
-            sẽ hiện ở đây kèm nút xem phương án. Cần phân công đột xuất mà không có thông báo nghỉ thì
-            bấm <b>Phân công không qua báo nghỉ</b>.</div></div></div>`}
+            sẽ hiện ở đây kèm nút xem phương án. Thầy cô ốm không tự gửi được thì bấm
+            <b>Báo nghỉ hộ giáo viên</b> — ngày công vẫn có hồ sơ. Cần phân công đột xuất
+            không cần ghi ngày công thì bấm <b>Phân công không qua báo nghỉ</b>.</div></div></div>`}
     </div>
   </div>`;
 }
@@ -6340,6 +6343,63 @@ function hopTimDayThay(){
     S.bnTam={id:'tam', gvId:gv.id, ngay, buoi, lyDo:'Phân công trực tiếp',
       ghiChu:'', trangThai:'cho'};
     S.bnXem='tam'; S.paChon=0; S.paRieng=false; S.paTiet={};
+    dong(); chuyen('daythay');
+  }}]);
+}
+
+/* BÁO NGHỈ HỘ — Ban Giám hiệu ghi thay khi thầy cô không tự gửi được: ốm
+   nặng, mất mạng, không quen dùng app. Khác "Phân công không qua báo nghỉ"
+   ở đúng một điểm: có ghi MỘT DÒNG bao_nghi thật lên máy chủ (nguoi_gui là
+   người quản lý), nên hồ sơ ngày công đầy đủ và thầy cô mở app lên vẫn thấy
+   buổi nghỉ của mình. Quy tắc p_bao_nghi_gui đã cho la_quan_ly() ghi hộ. */
+function hopBaoNghiHo(idGV){
+  const cds=[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+  if(!cds.length) return bao('Chưa có giáo viên nào trong danh sách.',true);
+  if(!idGV||!cds.some(g=>g.id===idGV)) idGV=cds[0].id;
+  hop('Báo nghỉ hộ giáo viên',
+   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">
+      Dùng khi thầy cô không tự gửi được — ốm nặng, báo qua điện thoại.
+      Thông báo được ghi như thầy cô tự gửi nên hồ sơ ngày công vẫn đầy đủ.</p>
+    <div class="on-l"><label>Giáo viên nghỉ</label>
+      ${oLocChon('bhGV',cds.length,'giáo viên','Tìm giáo viên…')}
+      <select class="ip" id="bhGV" style="width:100%">${cds.map(g=>`<option value="${g.id}"
+        ${g.id===idGV?'selected':''} data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}"
+        >${esc(g.hoTen)}</option>`).join('')}</select></div>
+    <div class="on-l"><label>Ngày nghỉ</label>
+      <input type="date" class="ip" id="bhNgay" value="${esc(ngayMacDinhNghi())}"></div>
+    <div class="on-l"><label>Buổi nghỉ</label>
+      <select class="ip" id="bhBuoi" style="width:100%">
+        <option value="S">Buổi sáng</option><option value="C">Buổi chiều</option>
+        <option value="CN">Cả ngày</option></select></div>
+    <div class="on-l"><label>Lý do</label>
+      <select class="ip" id="bhLyDo" style="width:100%">
+        ${LY_DO_NGHI.map(t=>`<option>${esc(t)}</option>`).join('')}</select></div>
+    <div class="on-l"><label>Ghi chú <span class="bn-phu">không bắt buộc</span></label>
+      <input class="ip" id="bhGhiChu" maxlength="200"
+        placeholder="Ví dụ: cô báo qua điện thoại lúc 6 giờ sáng"></div>`,
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Ghi báo nghỉ',lam:async()=>{
+    const gv=gvId($('#bhGV')?.value);
+    const ngay=$('#bhNgay')?.value;
+    const buoi=$('#bhBuoi')?.value||'S';
+    if(!gv) return bao('Chọn giáo viên trước đã.',true);
+    if(!ngay) return bao('Chọn ngày trước đã.',true);
+    const thu=thuTuISO(ngay);
+    if(thu<2||thu>6) return bao(`Ngày ${dinhDangNgay(ngay)} rơi vào cuối tuần — không có tiết nào.`,true);
+    const b={gvId:gv.id, ngay, buoi, lyDo:$('#bhLyDo')?.value||LY_DO_NGHI[0],
+      ghiChu:(($('#bhGhiChu')?.value||'').trim())||'Ban Giám hiệu ghi thay'};
+    const kq=await guiBaoNghi(b);
+    if(!kq.ok) return bao(kq.thongBao,true);
+    /* Gộp vào trạng thái — cùng (người · ngày · buổi) thì thay bản cũ,
+       đúng khuôn nút Gửi thông báo của màn hình Báo nghỉ. */
+    const h=kq.hang;
+    const moi={id:h?.id||('bn'+Date.now()), gvId:b.gvId, ngay:b.ngay, buoi:b.buoi,
+      lyDo:b.lyDo, ghiChu:b.ghiChu, trangThai:'cho', guiLuc:h?.gui_luc||''};
+    S.baoNghi=[...(S.baoNghi||[]).filter(x=>
+      !(x.gvId===moi.gvId && x.ngay===moi.ngay && x.buoi===moi.buoi)), moi];
+    bao(`Đã ghi báo nghỉ ${TEN_BUOI_NGHI[b.buoi]} ${ngayDayDu(b.ngay)} cho ${gv.hoTen}.`);
+    /* Ghi hộ xong, việc tiếp theo của Ban Giám hiệu bao giờ cũng là tìm
+       người dạy thay — mở luôn màn hình phương án. */
+    S.bnXem=moi.id; S.bnTam=null; S.paChon=0; S.paRieng=false; S.paTiet={};
     dong(); chuyen('daythay');
   }}]);
 }
@@ -6730,19 +6790,30 @@ function mXuatIn(){
     </div>
 
     <div class="the">
-      <div class="the-d"><h2>In toàn trường và theo khối</h2><span class="meta">A3 ngang</span></div>
+      <div class="the-d"><h2>In toàn trường và theo khối</h2><span class="meta">A4 ngang · A3 ngang</span></div>
       <div class="the-t">
         <div class="on-l"><label>Chọn bản in</label>
           <select class="ip" id="inChonRong" style="width:100%">
-            <option value="tt">Toàn trường — tất cả ${ds.length} lớp trên một tờ</option>
-            <option value="">Tất cả các khối — mỗi khối một tờ</option>
+            ${(()=>{ /* Bản A4 theo điểm trường đứng ĐẦU — đó là bản in hằng ngày;
+                 bản gộp A3 chỉ dành cho tờ dán bảng tin. Điểm trường đông lớp
+                 tự chia thành nhiều tờ, mỗi tờ tối đa NGUONG_COT_A4 cột. */
+              const dsDT=S.diemTruong.filter(d=>ds.some(l=>S.lopDT[l.id]===d.id));
+              return dsDT.length>1
+                ? `<option value="dt">Từng điểm trường — mỗi điểm một bộ tờ A4 ngang</option>`
+                  + dsDT.map(d=>{const n=ds.filter(l=>S.lopDT[l.id]===d.id).length;
+                    return `<option value="dt:${d.id}">Riêng điểm trường ${esc(d.ten)} — ${n} lớp, A4 ngang</option>`;}).join('')
+                : `<option value="dt">Chia trang A4 ngang — tối đa ${NGUONG_COT_A4} lớp mỗi tờ</option>`;
+            })()}
+            <option value="tt">Toàn trường gộp một tờ A3 — ${ds.length} lớp, dán bảng tin</option>
+            <option value="">Tất cả các khối — mỗi khối một tờ A4 ngang</option>
             ${khoiDangCo(ds).map(k=>`<option value="${k}">Riêng khối ${k} — ${lopTheoKhoi(k,ds).length} lớp</option>`).join('')}
           </select></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-ch" id="btInRong" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>In / lưu PDF</button><button class="b b-vien" id="btWordRong" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12l1.2 5 1.3-3.6 1.3 3.6 1.2-5"/></svg>Tải Word</button></div>
-        <div class="gy" style="margin-top:13px">Bản toàn trường là tờ dán bảng tin ngày khai giảng;
-          bản theo khối để khối trưởng cầm. Máy in chỉ có A4 thì trong hộp in chọn
-          <b>Tỷ lệ → Vừa khổ giấy</b>.</div>
+        <div class="gy" style="margin-top:13px">Bản <b>từng điểm trường</b> in khổ A4 ngang —
+          điểm trường đông lớp tự chia thành nhiều tờ theo khối, tờ nào cũng đọc được.
+          Bản <b>toàn trường gộp</b> là tờ A3 dán bảng tin ngày khai giảng; máy in chỉ có A4
+          thì trong hộp in chọn <b>Tỷ lệ → Vừa khổ giấy</b>.</div>
       </div>
     </div>
 
@@ -7357,6 +7428,61 @@ function trangInToanTruong(){
   return khungIn('Thời khóa biểu toàn trường',
     [d?esc(d):'', `${ds.length} lớp · ${khoiDangCo(ds).length} khối`],
     bangInRong(ds), 'rong');
+}
+
+/* ---------- Bản in theo TỪNG ĐIỂM TRƯỜNG — khổ A4 ngang ----------
+   Ba điểm trường gộp một tờ là 60 cột — quá dày, không ai đọc nổi, và đa số
+   trường chỉ có máy in A4. Bản này là đường in CHÍNH: mỗi điểm trường một bộ
+   tờ riêng, khổ A4 ngang. Điểm trường đông lớp thì tự chia thành nhiều tờ
+   theo cụm khối liên tiếp — mỗi tờ tối đa NGUONG_COT_A4 cột để tên môn và
+   tên giáo viên còn đọc được. Bản gộp A3 vẫn giữ nguyên cho tờ dán bảng tin. */
+const NGUONG_COT_A4 = 12;
+
+/* Chia danh sách lớp (đã xếp theo khối) thành các cụm KHỐI LIÊN TIẾP, mỗi
+   cụm tối đa `nguong` lớp. Cắt theo ranh giới khối chứ không cắt giữa khối —
+   một khối nằm trọn trên một tờ thì khối trưởng mới dò được. Khối nào một
+   mình đã vượt ngưỡng thì vẫn đứng nguyên một tờ, bangInRong tự co cột. */
+function chiaCumKhoi(ds, nguong=NGUONG_COT_A4){
+  const cum=[]; let dang=[];
+  khoiDangCo(ds).forEach(k=>{
+    const lopK=ds.filter(l=>khoiCuaLop(l)===k);
+    if(dang.length && dang.length+lopK.length>nguong){ cum.push(dang); dang=[]; }
+    dang=dang.concat(lopK);
+  });
+  if(dang.length) cum.push(dang);
+  return cum;
+}
+
+function trangInDiemTruong(idDT){
+  const trongPV=xepTheoKhoi(lopTrongPV());
+  if(!trongPV.length) return '';
+  /* Gom lớp theo điểm trường, giữ thứ tự khai báo của bảng điểm trường.
+     Lớp chưa gán điểm trường vào nhóm riêng — không được rơi mất khỏi bản in. */
+  const nhom=new Map();
+  S.diemTruong.forEach(d=>nhom.set(d.id,[]));
+  nhom.set('',[]);
+  trongPV.forEach(l=>{
+    const d=S.lopDT[l.id]||'';
+    (nhom.get(d)||nhom.get('')).push(l);
+  });
+  const trang=[];
+  nhom.forEach((ds,d)=>{
+    if(!ds.length || (idDT && d!==idDT)) return;
+    const ten = d ? (dtId(d)?.ten||'') : (S.diemTruong.length?'Chưa gán điểm trường':'');
+    /* Tên do trường khai có khi đã mang sẵn chữ "Điểm trường" — đừng ghép
+       thành "Điểm trường Điểm trường Diễn Đồng". */
+    const nhan = !ten ? '' : /^điểm trường/i.test(ten) ? ten : `Điểm trường ${ten}`;
+    const cum=chiaCumKhoi(ds);
+    cum.forEach((c,i)=>{
+      const khoi=khoiDangCo(c);
+      trang.push(khungIn('Thời khóa biểu'+(nhan?` · ${esc(nhan)}`:''),
+        [khoi.length>1?`Khối ${khoi[0]} đến khối ${khoi[khoi.length-1]}`:`Khối ${khoi[0]}`,
+         `${c.length} lớp`,
+         cum.length>1?`Tờ ${i+1}/${cum.length}`:''],
+        bangInRong(c), 'ngang'));
+    });
+  });
+  return trang.join('');
 }
 
 function trangInKhoi(khoi){
@@ -8433,6 +8559,9 @@ function noiSuKien(){
   /* ---------- Dạy thay: ba khu vực ---------- */
   $('#btThayTay')&&($('#btThayTay').onclick=hopTimDayThay);
   $('#btTimThay')&&($('#btTimThay').onclick=hopTimDayThay);
+  /* Báo nghỉ hộ — từ màn Theo giáo viên thì điền sẵn người đang xem */
+  $('#btBaoNghiHo')&&($('#btBaoNghiHo').onclick=()=>hopBaoNghiHo(S.gvXem));
+  $('#btBaoNghiHo2')&&($('#btBaoNghiHo2').onclick=()=>hopBaoNghiHo());
   $('#btDongPA')&&($('#btDongPA').onclick=()=>{
     S.bnXem=null; S.bnTam=null; S.paTiet={}; S.paRieng=false; S.paChon=0; ve();
   });
@@ -8483,7 +8612,7 @@ function noiSuKien(){
   $('#dtLocVang')&&($('#dtLocVang').onchange=e=>{S.dtLocVang=e.target.value;ve();});
   $('#dtLocThay')&&($('#dtLocThay').onchange=e=>{S.dtLocThay=e.target.value;ve();});
   /* In · Word · sao chép gửi Zalo — ba lối ra của §15 và §17 */
-  $('#btInDayThay')&&($('#btInDayThay').onclick=()=>inTrang(trangInDayThay()));
+  $('#btInDayThay')&&($('#btInDayThay').onclick=()=>inRa(trangInDayThay(),'lịch dạy thay'));
   $('#btWordDayThay')&&($('#btWordDayThay').onclick=()=>
     taiWord(trangInDayThay(), tenTepIn('Lich-day-thay','ngang'), 'ngang'));
   $('#btChepDayThay')&&($('#btChepDayThay').onclick=()=>chepDayThay());
@@ -8832,6 +8961,9 @@ function noiSuKien(){
   $('#btInRong')&&($('#btInRong').onclick=()=>{
     const v=$('#inChonRong').value;
     if(v==='tt') return inRa(trangInToanTruong(),'toàn trường');
+    if(v==='dt') return inRa(trangInDiemTruong(),'từng điểm trường');
+    if(v.startsWith('dt:')) return inRa(trangInDiemTruong(v.slice(3)),
+      'điểm trường '+(dtId(v.slice(3))?.ten||''));
     inRa(trangInKhoi(v?+v:null), v?'khối '+v:'các khối');
   });
   /* Tải Word — cùng nội dung với bản in, chỉ khác chỗ nhận: tệp .doc mở bằng
@@ -8839,6 +8971,9 @@ function noiSuKien(){
   $('#btWordRong')&&($('#btWordRong').onclick=()=>{
     const v=$('#inChonRong').value;
     if(v==='tt') return taiWord(trangInToanTruong(), tenTepIn('Toan-truong','doc'), 'rong');
+    if(v==='dt') return taiWord(trangInDiemTruong(), tenTepIn('Diem-truong','doc'), 'ngang');
+    if(v.startsWith('dt:')) return taiWord(trangInDiemTruong(v.slice(3)),
+      tenTepIn('Diem-truong-'+khongDau(dtId(v.slice(3))?.ten||''),'doc'), 'ngang');
     taiWord(trangInKhoi(v?+v:null), tenTepIn(v?'Khoi-'+v:'Cac-khoi','doc'), 'ngang');
   });
   $('#btWordLop')&&($('#btWordLop').onclick=()=>{

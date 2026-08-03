@@ -629,6 +629,16 @@ các tiết cần bố trí → gợi ý ba phương án → Ban Giám hiệu ch
 `day_thay` → thông báo tới người dạy thay. Giáo viên **không phải nhập lại
 tiết nào**; họ chỉ chọn ngày, buổi, lý do.
 
+**BÁO NGHỈ HỘ** *(3/8/2026)*: thầy cô ốm nặng, không dùng được app thì Ban
+Giám hiệu ghi thay — `hopBaoNghiHo(idGV)`, nút ở màn *Theo giáo viên* (điền
+sẵn người đang xem) và ở đầu khu *Giáo viên báo nghỉ* của màn Dạy thay.
+Khác *Phân công không qua báo nghỉ* ở đúng một điểm: có ghi **một dòng
+`bao_nghi` thật** lên máy chủ (`nguoi_gui` là người quản lý) nên hồ sơ
+**ngày công** đầy đủ và thầy cô mở app vẫn thấy buổi nghỉ của mình; đường
+kia không ghi gì. Quy tắc `p_bao_nghi_gui` đã cho `la_quan_ly()` ghi hộ từ
+đầu — không phải sửa SQL. Ghi xong nhảy thẳng sang màn hình phương án dạy
+thay. Có phép thử canh ở mục 15d của `npm run soi`.
+
 Ba tầng hàm trong vùng LOGIC, tách bạch cố ý — đều là hàm thuần, `npm test`
 gọi thẳng:
 
@@ -807,10 +817,22 @@ Vùng `/*#region XUAT*/` chỉ dựng **bảng hai chiều thuần dữ liệu**
 
 | Bản | Dùng làm gì | Khổ in |
 |---|---|---|
-| Toàn trường | tờ dán bảng tin ngày khai giảng | A3 ngang |
-| Theo khối | khối trưởng cầm; nhìn ra ngay lớp nào lệch tiết | A3 ngang |
+| **Từng điểm trường** | bản in hằng ngày, mỗi điểm một bộ tờ | **A4 ngang** |
+| Toàn trường gộp | tờ dán bảng tin ngày khai giảng | A3 ngang |
+| Theo khối | khối trưởng cầm; nhìn ra ngay lớp nào lệch tiết | A4 ngang |
 | Theo lớp | phát cho lớp, cũng là chỗ chỉnh tay | A4 ngang |
 | Theo giáo viên | in cả tập rồi phát | A4 ngang |
+
+**Bản in từng điểm trường là đường in CHÍNH** *(3/8/2026)*: gộp ba điểm
+trường vào một tờ là 60 cột không ai đọc nổi, và đa số trường chỉ có máy in
+A4. `trangInDiemTruong(idDT)` dựng mỗi điểm trường một bộ tờ A4 ngang; điểm
+đông lớp thì `chiaCumKhoi()` tự tách thành nhiều tờ theo **cụm khối liên
+tiếp**, mỗi tờ tối đa `NGUONG_COT_A4 = 12` cột — cắt theo ranh giới khối,
+không cắt giữa khối; khối nào một mình đã vượt ngưỡng thì vẫn đứng nguyên
+một tờ. Tên điểm trường đã mang sẵn chữ "Điểm trường" thì không ghép trùng.
+Trong ô chọn của màn *Xuất và in*, bản này đứng **đầu** danh sách; bản gộp
+A3 vẫn giữ nguyên cho tờ dán bảng tin. Có phép thử canh (mục 14b của
+`npm run soi`): đúng khổ, không tờ nào vượt ngưỡng, cộng mọi tờ đủ từng lớp.
 
 - Bảng rộng thì **cuộn ngang trong khung của chính nó** (`.tt-boc`), thân trang
   không bao giờ cuộn ngang — người dùng chủ yếu dùng điện thoại.
