@@ -280,7 +280,7 @@ TRA CỨU THỜI KHÓA BIỂU  Toàn trường · Theo khối · Theo lớp · T
                         · Thời khóa biểu của tôi
 DỮ LIỆU NHÀ TRƯỜNG      Thông tin trường · Điểm trường · Khối và khung giờ
                         · Lớp học · Giáo viên · Môn học · Phân công chuyên môn
-                        · Phòng học · Buổi bận và tiết cố định
+                        · Phòng học · Buổi bận
 QUẢN LÝ VÀ KẾT QUẢ      Kiểm tra khả thi · Các phương án đã lưu
                         · Phiên bản và công bố · Xuất và in · Ngày công
                         · Nhật ký
@@ -566,7 +566,7 @@ cùng khung `luoiTuanKhung(oNoi)`.
 
 | Cái gì | Đi đâu | Vì sao |
 |---|---|---|
-| Tiêu đề + phạm vi + ô tìm kiếm chung | ô tìm kiếm → mục **Giáo viên** | tìm giáo viên là việc của mục Giáo viên; tiêu đề trùng với băng rôn ngay trên nó |
+| Tiêu đề + phạm vi + ô tìm kiếm chung | ô tìm kiếm → nút kính lúp trên **thanh đầu trang** *(3/8/2026, trước đó ở mục Giáo viên)* | đặt trong mục Giáo viên thì nó nằm sát ô lọc bảng — hai ô giống hệt nhau về hình thức, khác hẳn hành vi, người dùng gõ nhầm ô là tưởng phần mềm hỏng. Tìm kiếm toàn cục thì chỗ của nó là thanh đầu trang, theo người dùng đi mọi màn. Giấu với vai giáo viên và khi chưa đăng nhập |
 | Cụm sáu nút thao tác nhanh | màn hình **Xếp thời khóa biểu** | Bảng điều hành là chỗ NHÌN thời khóa biểu, không phải bảng nút bấm |
 | Bốn thẻ số liệu `.ts` | thành dải `.dai-so` **trên** lưới | bốn hộp cao 102px rời nhau chiếm gần một màn hình để nói bốn con số |
 

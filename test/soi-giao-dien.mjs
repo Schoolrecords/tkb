@@ -959,11 +959,15 @@ kt('Bảng điều hành bỏ hẳn tiêu đề + ô tìm kiếm chung, vào th�
   return !w.document.querySelector('#noiDung .dau-trang')
     && !w.document.querySelector('#noiDung #timChung');
 })());
-kt('Ô tìm kiếm chung nay nằm ở mục Giáo viên', (() => {
+kt('Ô tìm kiếm chung nay nằm TĨNH trên thanh đầu trang, không trong màn nào', (() => {
+  /* 3/8/2026: dời từ màn Giáo viên lên nút kính lúp #btTim — hai ô tìm
+     giống hệt nhau nằm cạnh nhau trong một màn là bẫy gõ nhầm. */
   w.chuyen('giaovien');
-  const co = !!w.document.querySelector('#timChung');
+  const khongTrong = !w.document.querySelector('#noiDung #timChung');
+  const trenThanh = !!w.document.querySelector('.thanh #timChung')
+    && !!w.document.querySelector('#btTim');
   w.chuyen('dieuhanh');
-  return co;
+  return khongTrong && trenThanh;
 })());
 kt('Chỉ số nay xếp DỌC theo ưu tiên, nằm trong thẻ Tiến độ xếp', ...((() => {
   /* 3/8/2026: dải ngang bốn ô chiếm một dòng riêng cạnh lưới, nay dồn vào
@@ -1103,6 +1107,17 @@ kt('Không có cảnh báo nào thì badge chuông ẩn hẳn, không hiện s�
   const an = w.document.querySelector('#slChuong').style.display === 'none';
   w.eval('KT = kiemTra(); capNhatDem()');
   return an;
+})());
+kt('CHƯA đăng nhập thì badge chuông im lặng; đăng nhập rồi mới báo số', (() => {
+  /* Người lạ mở trang mà thấy ngay huy hiệu đỏ "4" của dữ liệu mẫu thì
+     chỉ tổ hoang mang — badge chỉ có nghĩa khi biết mình là ai. */
+  w.eval('capNhatDem()');                                /* KHO.nguoiDung đang null */
+  const im = w.document.querySelector('#slChuong').style.display === 'none';
+  w.eval('KHO.nguoiDung={id:"t",hoTen:"Thử",vaiTro:"quan_tri"}; capNhatDem()');
+  const bao = w.document.querySelector('#slChuong').style.display !== 'none'
+    && +w.document.querySelector('#slChuong').textContent > 0;
+  w.eval('KHO.nguoiDung=null; capNhatDem()');
+  return im && bao;
 })());
 
 console.log('\n15f. Đăng nhập Google và phễu demo');
@@ -1638,10 +1653,18 @@ S.nguoiDung = vaiGV;
 w.chuyen('dieuhanh');
 
 console.log('\n19d. Ô tìm kiếm chung');
-/* Ô tìm kiếm chung chuyển từ Bảng điều hành về mục Giáo viên (3/8/2026) —
-   tìm giáo viên là việc của mục Giáo viên. */
+/* Ô tìm kiếm chung nằm tĩnh trên thanh đầu trang (3/8/2026) — nút kính
+   lúp #btTim mở hộp thả xuống #timNoi, theo người dùng đi mọi màn hình. */
 w.chuyen('giaovien');
-kt('Mục Giáo viên có ô tìm kiếm chung', !!w.document.querySelector('#timChung'));
+kt('Nút kính lúp mở hộp tìm, bấm lần nữa hoặc Escape là đóng', (() => {
+  w.document.querySelector('#btTim').dispatchEvent(new w.Event('click', {bubbles:true}));
+  const mo = w.document.body.classList.contains('mo-tim');
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+  const dongLai = !w.document.body.classList.contains('mo-tim');
+  return mo && dongLai;
+})());
+kt('Màn Giáo viên chỉ còn MỘT ô lọc bảng — hết cảnh hai ô tìm chồng nhau',
+   w.document.querySelectorAll('#noiDung input[type="search"], #noiDung .loc-o input').length === 1);
 kt('Gõ tên giáo viên thì ra đúng người, kèm số tiết và điểm trường', (() => {
   const g = S.giaoVien[0];
   const tu = g.hoTen.split(' ').pop();
