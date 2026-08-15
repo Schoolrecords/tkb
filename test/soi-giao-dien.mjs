@@ -157,9 +157,16 @@ kt('Chưa xếp gì thì Bảng điều hành bày đủ ba bước hướng d�
   w.eval(`S.tkb = ${JSON.stringify(luu)}; ve()`);
   return co;
 })());
+/* Từ 16/8/2026 lưới mở sẵn có thể là lưới RỘNG toàn trường (`table.tt`) hoặc
+   lưới TUẦN của một lớp (`table.tkb`), tuỳ quy mô trường — xem `xemMacDinh()`.
+   Các phép thử về thứ tự khối trên trang vì thế nhận cả hai. */
+const coLuoiTKB = () => !!w.document.querySelector('#noiDung .tt, #noiDung table.tkb');
+const viTriLuoi = html => {
+  const v = [html.indexOf('class="tt'), html.indexOf('class="tkb"')].filter(i => i >= 0);
+  return v.length ? Math.min(...v) : -1;
+};
 kt('Xếp xong rồi thì thôi bày ba thẻ "Xong", nhường chỗ cho thời khóa biểu',
-   w.document.querySelectorAll('.bbuoc .bb').length === 0 &&
-   !!w.document.querySelector('#noiDung .tt'));
+   w.document.querySelectorAll('.bbuoc .bb').length === 0 && coLuoiTKB());
 kt('Mỗi màn hình khai báo có dải điều hướng, ghi tên NHÓM chứ không phải "Bước N"', (() => {
   w.chuyen('lop');
   const d = w.document.querySelector('.dhb');
@@ -888,7 +895,7 @@ kt('Nút "Xuất và in" nằm NGANG HÀNG với bốn thẻ chuyển', (() => {
 })());
 kt('Thời khóa biểu đứng TRƯỚC khối việc cần xử lý', ...((() => {
   const html = w.document.querySelector('#noiDung').innerHTML;
-  const iLuoi = html.indexOf('class="tt');
+  const iLuoi = viTriLuoi(html);
   const iViec = html.indexOf('class="viec');
   return [iLuoi > 0 && iViec > 0 && iLuoi < iViec, `lưới ${iLuoi} · việc ${iViec}`];
 })()));
@@ -918,15 +925,16 @@ kt('Không ai báo nghỉ thì khối ấy nói thẳng ra, không để trống
 })());
 kt('Xếp xong thì Bảng điều hành vẫn bày chính thời khóa biểu', (() => {
   /* Canh CÁI LƯỚI chứ không canh dòng chữ "Thời khóa biểu": dòng tiêu đề
-     thẻ đã xoá 3/8/2026 để nhường chiều cao cho bảng. */
+     thẻ đã xoá 3/8/2026 để nhường chiều cao cho bảng. Lưới nào cũng được —
+     toàn trường hay một lớp — miễn là nó có mặt cùng bốn thẻ chuyển. */
   const the = [...w.document.querySelectorAll('#noiDung .the')]
-    .find(x => x.querySelector('.tt'));
+    .find(x => x.querySelector('.tt, table.tkb'));
   return !!the && the.querySelectorAll('[data-dhxem]').length === 4
-    && the.querySelectorAll('.tt th').length > 10;
+    && the.querySelectorAll('.tt th, table.tkb th').length >= 7;
 })());
 kt('Thời khóa biểu vẫn đứng TRƯỚC ba thẻ bước — sản phẩm lên trước', (() => {
   const html = w.document.querySelector('#noiDung').innerHTML;
-  const iLuoi = html.indexOf('class="tt');
+  const iLuoi = viTriLuoi(html);
   const iBuoc = html.indexOf('Khai báo dữ liệu');
   return iLuoi > 0 && (iBuoc < 0 || iLuoi < iBuoc);
 })());
@@ -1022,7 +1030,7 @@ kt('Bấm "Theo lớp" thì lưới đổi ngay mà VẪN Ở Bảng điều hà
   [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'tkblop')
     .dispatchEvent(new w.Event('click', {bubbles:true}));
   return w.eval('S.trangHienTai') === 'dieuhanh'
-    && !!w.document.querySelector('#dhLop')
+    && !!w.document.querySelector('#dhCotLop .cl-n')
     && !!w.document.querySelector('#noiDung table.tkb');
 })());
 kt('Và thẻ vừa bấm được đánh dấu đang chọn, các thẻ kia vẫn còn để bấm tiếp', (() => {
@@ -1060,6 +1068,98 @@ kt('Bốn cách xem nay là THẺ CHUYỂN tại chỗ, chỉ Xuất/in mới r�
   return ['toantruong','tkblop','tkbgv','tkbkhoi'].every(x => xem.includes(x))
     && di.includes('xuatin');
 })());
+
+console.log('\n15h3. Cột danh sách lớp và cách xem mặc định (16/8/2026)');
+kt('Trường nhiều lớp thì mở app là thấy MỘT LỚP, không phải lưới 25 cột', ...((() => {
+  /* Chủ dự án 16/8/2026: "điều chỉnh để xem từng lớp thay vì hiển thị cả
+     trường". Lưới toàn trường là tờ dán bảng tin A3, không phải màn hình
+     điện thoại. */
+  w.eval(`S.dhXem=''; ve()`);
+  const xem = w.eval('S.dhXem');
+  return [xem === 'tkblop' && !!w.document.querySelector('#dhCotLop'),
+    `${w.eval('S.lop.length')} lớp → ${xem}`];
+})()));
+kt('Trường ít lớp thì vẫn mở lưới toàn trường như cũ', ...((() => {
+  const it = w.eval(`xemMacDinh(new Array(6))`);
+  const nhieu = w.eval(`xemMacDinh(new Array(25))`);
+  return [it === 'toantruong' && nhieu === 'tkblop', `6 lớp → ${it} · 25 lớp → ${nhieu}`];
+})()));
+kt('Nhưng đó chỉ là MẶC ĐỊNH — bấm thẻ khác thì giữ lựa chọn của người dùng', (() => {
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'toantruong')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  const giu = w.eval('S.dhXem') === 'toantruong';
+  w.eval('ve()');
+  return giu && w.eval('S.dhXem') === 'toantruong'
+    && !!w.document.querySelector('#noiDung table.tt');
+})());
+kt('Cột lớp bày đủ mọi lớp, nhóm theo khối, đánh dấu đúng lớp đang mở', ...((() => {
+  [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'tkblop')
+    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  const nut = [...w.document.querySelectorAll('#dhCotLop .cl-n')];
+  const khoi = [...w.document.querySelectorAll('#dhCotLop .cl-khoi')];
+  const on = w.document.querySelectorAll('#dhCotLop .cl-n.on');
+  return [nut.length === w.eval('lopTrongPV().length') && khoi.length === 5 && on.length === 1,
+    `${nut.length} nút · ${khoi.length} nhãn khối`];
+})()));
+kt('Lớp mở sẵn là lớp ĐẦU theo thứ tự nhà trường đọc quen, không phải lớp đầu mảng', (() => {
+  return w.eval('lopId(S.lopXem)?.ten') === w.eval('xepTheoKhoi(lopTrongPV())[0].ten');
+})());
+kt('Bấm một lớp khác thì lưới đổi ngay, vẫn ở Bảng điều hành', ...((() => {
+  const nut = [...w.document.querySelectorAll('#dhCotLop .cl-n')].filter(b => !b.classList.contains('on'));
+  const dich = nut[3] || nut[0];
+  const ten = dich.querySelector('b').textContent;
+  dich.dispatchEvent(new w.Event('click', {bubbles:true}));
+  return [w.eval('S.trangHienTai') === 'dieuhanh' && w.eval('lopId(S.lopXem)?.ten') === ten
+    && w.document.querySelector('#dhCotLop .cl-n.on')?.querySelector('b').textContent === ten,
+    `đổi sang ${ten}`];
+})()));
+kt('Ô tìm trong cột lọc tại chỗ, và KHÔNG đếm nhãn khối vào số lớp', ...((() => {
+  /* Trường mẫu lúc này đã có nhiều điểm trường nên "1a" khớp lớp 1A của
+     TỪNG điểm — số lớp khớp lấy từ dữ liệu, đừng đoán bằng 1. */
+  const mong = w.eval(`lopTrongPV().filter(l => chuTim(l.ten + ' ' + (l.maLop||'')).includes('1a')).length`);
+  const tong = w.eval('lopTrongPV().length');
+  const o = w.document.querySelector('[data-loc="dhCotLop"]');
+  o.value = '1a';
+  o.dispatchEvent(new w.Event('input', {bubbles:true}));
+  const hien = [...w.document.querySelectorAll('#dhCotLop .cl-n')]
+    .filter(n => n.style.display !== 'none');
+  const dem = w.document.querySelector('[data-locdem="dhCotLop"]').textContent.trim();
+  o.value = '';
+  o.dispatchEvent(new w.Event('input', {bubbles:true}));
+  /* Mẫu số phải đúng bằng SỐ LỚP — nhãn khối cũng mang data-loctu nhưng
+     không phải một dòng dữ liệu, đếm vào là ra "42 lớp" ở trường 37 lớp. */
+  return [hien.length === mong && dem === `${mong}/${tong} lớp`, dem];
+})()));
+kt('Màn hình Theo lớp cũng dùng chính cột ấy, không còn ô chọn xổ xuống', (() => {
+  w.chuyen('tkblop');
+  return !!w.document.querySelector('#clTKBLop .cl-n')
+    && !w.document.querySelector('#selLop')
+    && w.document.querySelectorAll('#clTKBLop .cl-n').length === w.eval('lopTrongPV().length');
+})());
+kt('Bấm lớp trong cột ấy thì lưới chỉnh tay đổi theo, bỏ luôn ô đang chọn', ...((() => {
+  w.eval(`S.oChon = Object.keys(S.tkb[S.lopXem])[0]; ve()`);
+  const nut = [...w.document.querySelectorAll('#clTKBLop .cl-n')].filter(b => !b.classList.contains('on'));
+  const ten = nut[1].querySelector('b').textContent;
+  nut[1].dispatchEvent(new w.Event('click', {bubbles:true}));
+  return [w.eval('lopId(S.lopXem)?.ten') === ten && w.eval('S.oChon') === null, `sang ${ten}`];
+})()));
+kt('Lớp chưa xếp đủ tiết thì nút mang dấu riêng và nói rõ THIẾU MÔN GÌ', ...((() => {
+  /* Không chỉ "24/27 tiết": con số cho biết CÓ thiếu, cái tên mới cho biết
+     phải đi tìm ai. */
+  const luu = JSON.parse(JSON.stringify(w.eval('S.tkb')));
+  const bo = w.eval(`(() => {
+    const o = S.tkb[S.lopXem], k = Object.keys(o).find(x => !o[x].ghim);
+    const mon = o[k].mon; delete o[k]; ve(); return mon;
+  })()`);
+  const nut = w.document.querySelector('#clTKBLop .cl-n.on');
+  const tag = [...w.document.querySelectorAll('#noiDung .tag')].map(x => x.textContent).join(' | ');
+  const ok = nut.classList.contains('thieu') && new RegExp(`Thiếu[^|]*${bo}`).test(tag)
+    && new RegExp(bo).test(nut.getAttribute('title'));
+  const ghi = tag.split('|').find(x => /Thiếu/.test(x))?.trim();
+  w.eval(`S.tkb = ${JSON.stringify(luu)}`);   /* trả lưới về nguyên trạng */
+  w.chuyen('dieuhanh');                       /* và trả màn hình về chỗ cũ */
+  return [ok, `bỏ 1 tiết ${bo} → ${ghi}`];
+})()));
 
 kt('Chưa xếp tiết nào thì không bày khối sản phẩm rỗng, ba bước lên trước', (() => {
   const luu = JSON.parse(JSON.stringify(w.eval('S.tkb')));

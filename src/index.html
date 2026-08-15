@@ -810,6 +810,45 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .dh-chon{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .dh-chon .ip{flex:1 1 200px;max-width:340px}
 
+/* ---------- Cột danh sách lớp, dán bên trái lưới (16/8/2026) ----------
+   Lấy đúng lối SmartScheduler 7.3 bày cột lớp bên trái: bấm là nhảy lớp,
+   luôn thấy mình đang đứng ở đâu trong danh sách, và liếc một cái là biết
+   lớp nào chưa xếp xong. Ô chọn xổ xuống làm được việc thứ nhất thôi —
+   phải mở ra mới thấy, đóng lại là quên; với 60 lớp sau sáp nhập thì đó là
+   một danh sách dài không có mốc nào để bám.
+
+   Nút mang luôn `dem/can` nên cột này còn là bảng tiến độ theo lớp: lớp
+   nào thiếu tiết thì con số đổi sang cam, khỏi phải mở từng lớp ra dò. */
+/* Cột cao ĐÚNG BẰNG lưới bên cạnh rồi cuộn bên trong. Chỉ `align-items:
+   stretch` thì chưa đủ: danh sách 60 nút tự nó kéo dài cả hàng, cột thò
+   xuống quá đáy lưới gần một màn hình, nhìn như trang bị gãy. Nên phần
+   trong cột được thả nổi (`position:absolute`) — nó không còn góp chiều
+   cao vào hàng nữa, chiều cao hàng do lưới quyết định. */
+.cl-boc{display:flex;gap:12px;align-items:stretch}
+.cl-phai{flex:1 1 auto;min-width:0}
+.cot-lop{flex:0 0 152px;width:152px;position:relative}
+.cl-trong{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px}
+.cot-lop .loc{margin:0}
+.cot-lop .loc-o{max-width:none}
+.cl-ds{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:4px;
+  overflow-y:auto;padding-right:3px}
+.cl-khoi{font-size:10px;font-weight:800;letter-spacing:.07em;color:var(--chu-mo);
+  padding:9px 5px 3px;text-transform:uppercase}
+.cl-khoi:first-child{padding-top:1px}
+.cl-n{display:flex;align-items:center;justify-content:space-between;gap:7px;
+  padding:9px 8px 9px 11px;border:0;border-radius:9px;cursor:pointer;text-align:left;
+  font-family:inherit;background:var(--nav-nhat);color:#fff;
+  box-shadow:0 2px 0 var(--nav-vien);transition:background .16s,box-shadow .12s,transform .08s}
+.cl-n b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-n span{flex:0 0 auto;font-size:10.5px;font-weight:700;color:#fff;
+  background:rgba(255,255,255,.2);padding:2px 7px;border-radius:20px}
+.cl-n:hover{background:var(--nav-nhat-2)}
+.cl-n:active{transform:translateY(-2px)}
+.cl-n.on{background:var(--nav);box-shadow:0 2px 0 rgba(0,0,0,.22)}
+/* Lớp chưa xếp đủ tiết: chấm cam trên con số. Hai tín hiệu chứ không chỉ
+   màu — con số `24/27` tự nó đã nói ra chuyện thiếu. */
+.cl-n.thieu span{background:var(--vang);color:#4A3608}
+
 /* ---------- Ô tìm kiếm chung (§20) ---------- */
 .tim-chung{position:relative;margin-bottom:18px}
 .tim-chung .loc-o{max-width:none}
@@ -911,6 +950,20 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
   .pa-luu .b,.viec-nut .b{width:100%}
   .dt-loc{gap:8px}
   .dt-loc .ip{width:100%}
+  /* ----- Cột lớp trên điện thoại (16/8/2026) -----
+     Cột dọc 152px ăn mất gần nửa bề ngang màn hình, mà phần còn lại là chỗ
+     của chính cái lưới. Nên trên điện thoại nó nằm NGANG ngay trên lưới,
+     cuộn ngang trong khung của mình. Đây là dải CHỌN LỚP — khác hẳn thanh
+     điều hướng chính, thứ đã bỏ lối cuộn ngang từ 2/8/2026: ở đây các mục
+     cùng một loại, xếp theo thứ tự lớp ai cũng thuộc, và lớp đang mở luôn
+     được cuộn vào tầm nhìn nên không phải vuốt đi tìm. */
+  .cl-boc{flex-direction:column;gap:9px}
+  .cot-lop{flex:0 0 auto;width:auto;max-width:100%;position:static}
+  .cl-trong{position:static;gap:7px}
+  .cl-ds{flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;
+    max-height:none!important;padding:0 0 4px}
+  .cl-khoi{padding:0 3px;white-space:nowrap}
+  .cl-n{flex:0 0 auto;min-height:44px}
   /* Mọi nút bấm cao tối thiểu 44px trên cảm ứng — cỡ đầu ngón tay */
   .b,.dt-nut,.tim-h{min-height:44px}
   .b-nho{min-height:38px}
@@ -1162,7 +1215,9 @@ let S = {
   dtLoc:'moi',          /* bộ lọc lịch đã phân công: hôm nay · mai · tuần · ngày · tất cả */
   dtLocNgay:'',         /* ngày cụ thể khi dtLoc === 'ngay' */
   coLuoi:'tc',          /* cỡ hiển thị lưới: gon · tc (tiêu chuẩn) · rong */
-  dhXem:'toantruong',   /* Bảng điều hành đang bày cách xem nào — xem kheSanPhamHTML() */
+  dhXem:'',             /* Bảng điều hành đang bày cách xem nào. Để RỖNG để lần
+                           đầu vẽ thì `xemMacDinh()` tự chọn theo quy mô trường:
+                           nhiều lớp thì mở thẳng một lớp, ít lớp thì toàn trường */
   nhomMo:{}             /* nhóm menu nào đang mở — xem dungMenu() */
 };
 /* Lưới thật của Trường TH Diễn Liên, đối chiếu từ bản kết xuất SmartScheduler
@@ -3010,6 +3065,26 @@ function tongHopNgayCong(thang){
 }
 /* Số công viết kiểu Việt: 0,5 chứ không 0.5 */
 const soCong = x => (Math.round(x*10)/10).toString().replace('.',',');
+
+/* ---------- Lớp còn thiếu tiết MÔN NÀO (16/8/2026) ----------
+   Trước đó màn hình chỉ nói "25/27 tiết". Con số ấy cho biết CÓ thiếu chứ
+   không cho biết thiếu cái gì, mà người xếp cần đúng vế sau: thiếu Tiếng Anh
+   thì đi tìm chỗ cho cô Tiếng Anh, thiếu Âm nhạc lại là chuyện khác hẳn.
+   SmartScheduler bày "Tổng 27 · Đã xếp 27 · Chưa xếp 0" cũng dừng ở con số.
+
+   Hàm thuần, không đụng DOM: so bảng phân công với lưới đã xếp, theo TÊN MÔN.
+   Sắp theo số tiết thiếu giảm dần — môn thiếu nhiều là chỗ vướng thật sự. */
+function thieuMonLop(idLop){
+  const can={}, co={};
+  S.phanCong.filter(p=>p.lopId===idLop)
+    .forEach(p=>{ can[p.mon]=(can[p.mon]||0)+(+p.soTiet||0); });
+  Object.values(S.tkb[idLop]||{}).forEach(v=>{ co[v.mon]=(co[v.mon]||0)+1; });
+  return Object.keys(can).map(m=>({mon:m, thieu:can[m]-(co[m]||0)}))
+    .filter(x=>x.thieu>0)
+    .sort((a,b)=>b.thieu-a.thieu || a.mon.localeCompare(b.mon,'vi'));
+}
+/* "Tiếng Anh 1, Âm nhạc 1" — đọc một lần là biết phải đi tìm ai */
+const chuThieuMon = ds => ds.map(x=>`${x.mon} ${x.thieu}`).join(', ');
 
 /*#endregion LOGIC*/
 
@@ -5066,6 +5141,20 @@ function ve(){
     : mKhungGio();
   capNhatDem(); noiSuKien();
   veTheDemo();
+  cuonToiLopDangXem();
+}
+
+/* Cột lớp 60 nút thì lớp đang mở rất dễ nằm ngoài tầm nhìn — nhất là trên
+   điện thoại, nơi cột nằm ngang và chỉ thấy được vài nút một lúc. Cuộn
+   trong KHUNG của cột chứ không dùng scrollIntoView: hàm ấy kéo cả trang
+   theo, người dùng đang xem lưới lại bị giật đi chỗ khác. */
+function cuonToiLopDangXem(){
+  $$('.cl-n.on').forEach(nut=>{
+    const khung=nut.parentElement;
+    if(!khung) return;
+    khung.scrollTop  = Math.max(0, nut.offsetTop  - khung.clientHeight/2 + nut.offsetHeight/2);
+    khung.scrollLeft = Math.max(0, nut.offsetLeft - khung.clientWidth/2  + nut.offsetWidth/2);
+  });
 }
 
 /* Dải nổi nhắc đang xem demo — theo người dùng qua mọi màn hình, kèm hai lối
@@ -5261,21 +5350,26 @@ function locBang(inp){
   if(!khung) return;
   const tim=inp.value, donVi=inp.dataset.donvi||'dòng';
   const hang=khung.querySelectorAll('[data-loctu]');
-  let hien=0;
+  /* Phần tử mang `data-locnhan` là NHÃN NHÓM (ví dụ "Khối 1" trong cột lớp):
+     vẫn ẩn đi cùng nhóm của nó, nhưng không phải một dòng dữ liệu nên không
+     được đếm — không thì cột 31 lớp lại báo "38 lớp". */
+  let hien=0, tong=0;
   hang.forEach(h=>{
     const ok=khopLoc(h.dataset.loctu, tim);
     h.style.display = ok?'':'none';
+    if(h.dataset.locnhan!==undefined) return;
+    tong++;
     if(ok) hien++;
   });
   const dem=document.querySelector(`[data-locdem="${dich}"]`);
   if(dem){
     const hep=tim.trim().length>0;
-    dem.textContent = hep ? `${hien}/${hang.length} ${donVi}` : `${hang.length} ${donVi}`;
+    dem.textContent = hep ? `${hien}/${tong} ${donVi}` : `${tong} ${donVi}`;
     dem.classList.toggle('hep', hep);
   }
   const rong=document.querySelector(`[data-locrong="${dich}"]`);
   if(rong){
-    rong.classList.toggle('hien', hang.length>0 && hien===0);
+    rong.classList.toggle('hien', tong>0 && hien===0);
     rong.textContent = `Không có ${donVi} nào khớp “${tim.trim()}”.`;
   }
   inp.closest('.loc-o')?.classList.toggle('co-chu', tim.length>0);
@@ -5665,12 +5759,60 @@ const THE_XEM = [['toantruong','Toàn trường'],['tkbkhoi','Theo khối'],
    dung bên dưới mà cuộn tiếp. */
 const CAO_LUOI_DH = '72vh';
 
+/* ---------- Cột danh sách lớp dùng chung (16/8/2026) ----------
+   Dùng ở hai nơi: thẻ "Theo lớp" của Bảng điều hành và màn hình Theo lớp.
+   Một hàm cho cả hai — hai bản dựng riêng thì sớm muộn lệch hành vi, đúng
+   bài học của cặp lưới tuần `luoiTuanLop` / `mTKBLop`.
+
+   `id` là id của khung chứa danh sách, để ô tìm kiếm biết lọc vào đâu.
+   Nhãn khối mang `data-locnhan` nên không bị đếm vào số lớp (xem `locBang`),
+   và `data-loctu` của nó gộp tên các lớp trong khối — gõ "1a" thì nhãn
+   "Khối 1" còn ở lại chứ không để lớp 1A đứng chơ vơ không nhãn. */
+function cotLopHTML(ds, idChon, id){
+  const sx=xepTheoKhoi(ds);
+  let khoiTruoc=null, h='';
+  sx.forEach(l=>{
+    const k=khoiCuaLop(l);
+    if(k!==khoiTruoc){
+      khoiTruoc=k;
+      const trong=sx.filter(x=>khoiCuaLop(x)===k).map(x=>x.ten);
+      h+=`<div class="cl-khoi" data-locnhan data-loctu="${tuLoc('Khối '+k, ...trong)}">Khối ${k}</div>`;
+    }
+    const dem=Object.keys(S.tkb[l.id]||{}).length;
+    const can=S.phanCong.filter(p=>p.lopId===l.id).reduce((s,p)=>s+(+p.soTiet||0),0);
+    const thieu=can>dem;
+    h+=`<button class="cl-n${l.id===idChon?' on':''}${thieu?' thieu':''}" data-colop="${esc(l.id)}"
+      data-loctu="${tuLoc(l.ten, l.maLop, tenDT(S.lopDT[l.id]))}"
+      title="Lớp ${esc(tenLopDay(l.id))} — đã xếp ${dem}/${can} tiết${
+        thieu?` · thiếu ${esc(chuThieuMon(thieuMonLop(l.id)))}`:''}">
+      <b>${esc(l.ten)}</b><span>${dem}/${can}</span></button>`;
+  });
+  return `<div class="cot-lop"><div class="cl-trong">
+    ${oLoc(id, ds.length, 'lớp', 'Tìm lớp…')}
+    <div class="cl-ds" id="${id}">${h}</div>
+    ${locRong(id)}
+  </div></div>`;
+}
+
+/* ---------- Mở app thì bày cái gì trước ----------
+   Lưới toàn trường là tờ dán bảng tin: 25–60 cột, đọc được trên tờ A3 chứ
+   không đọc được trên điện thoại. Chủ dự án 16/8/2026: mở lên nên thấy
+   TỪNG LỚP. Nên trường nhiều lớp mặc định mở thẻ "Theo lớp"; trường một
+   điểm ít lớp thì lưới toàn trường vẫn vừa màn hình, giữ nguyên như cũ.
+
+   Chỉ là MẶC ĐỊNH: bấm sang thẻ khác là `S.dhXem` giữ lựa chọn ấy. Phó
+   hiệu trưởng phụ trách một điểm trường thì `lopTrongPV()` đã lọc sẵn, nên
+   lớp bày ra là lớp trong điểm của mình. */
+const NGUONG_LOP_TOAN_TRUONG = 12;
+const xemMacDinh = ds => ds.length>NGUONG_LOP_TOAN_TRUONG ? 'tkblop' : 'toantruong';
+
 function kheSanPhamHTML(ds, daXep, tongCan){
-  if(!THE_XEM.some(x=>x[0]===S.dhXem)) S.dhXem='toantruong';
+  if(!THE_XEM.some(x=>x[0]===S.dhXem)) S.dhXem=xemMacDinh(ds);
   const xem=S.dhXem;
 
-  /* Dải chọn phụ + lưới, tuỳ thẻ đang mở */
-  let dai='', luoi='', meta='';
+  /* Dải chọn phụ + lưới, tuỳ thẻ đang mở. `cot` chỉ có ở thẻ Theo lớp —
+     danh sách lớp dán bên trái lưới, xem `cotLopHTML`. */
+  let dai='', luoi='', meta='', cot='';
   if(xem==='toantruong'){
     dai=daiDiemLuoi();
     luoi=luoiRongHTML(xepTheoKhoi(lopChoLuoi()),true,CAO_LUOI_DH);
@@ -5684,16 +5826,23 @@ function kheSanPhamHTML(ds, daXep, tongCan){
     luoi=luoiRongHTML(xepTheoKhoi(lop),false,CAO_LUOI_DH);
     meta=`Khối ${S.khoiXem} · ${lop.length} lớp`;
   }else if(xem==='tkblop'){
-    if(!ds.some(l=>l.id===S.lopXem)) S.lopXem=ds[0]?.id;
+    /* Lớp mở sẵn là lớp ĐẦU DANH SÁCH theo thứ tự nhà trường đọc quen
+       (khối nhỏ trước, trong khối A→E) chứ không phải lớp đầu trong mảng
+       dữ liệu — thứ tự mảng phụ thuộc lúc nhập, mở ra có khi là lớp 4C. */
+    if(!ds.some(l=>l.id===S.lopXem)) S.lopXem=xepTheoKhoi(ds)[0]?.id;
     const l=lopId(S.lopXem);
+    const dem=Object.keys(S.tkb[S.lopXem]||{}).length;
+    const can=S.phanCong.filter(p=>p.lopId===S.lopXem).reduce((s,p)=>s+(+p.soTiet||0),0);
+    const thieu=l?thieuMonLop(l.id):[];
+    cot=cotLopHTML(ds, S.lopXem, 'dhCotLop');
+    /* Nói rõ THIẾU MÔN GÌ, không chỉ "24/27 tiết" — con số cho biết có
+       thiếu, cái tên mới cho biết phải đi tìm ai. */
     dai=`<div class="dh-chon">
-      ${oLocChon('dhLop',ds.length,'lớp','Tìm lớp…')}
-      <select class="ip" id="dhLop">${xepTheoKhoi(ds).map(x=>`<option value="${x.id}"
-        ${x.id===S.lopXem?'selected':''} data-loctu="${tuLoc(x.ten,x.maLop,tenDT(S.lopDT[x.id]))}"
-        >${esc(tenLopDay(x.id))}</option>`).join('')}</select>
+      ${thieu.length?`<span class="tag canh">Thiếu ${esc(chuThieuMon(thieu))}</span>`
+        :can?`<span class="tag ok">Đủ ${dem}/${can} tiết</span>`:''}
       <button class="b b-vien b-nho" data-di="tkblop">Mở để chỉnh tay ›</button></div>`;
     luoi=S.lopXem?luoiTuanLop(S.lopXem):'';
-    meta=l?`${esc(tenLopDay(l.id))} · ${Object.keys(S.tkb[l.id]||{}).length} tiết/tuần`:'';
+    meta=l?`${esc(tenLopDay(l.id))} · ${dem}/${can} tiết`:'';
   }else{
     const cds=[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
     if(!cds.some(x=>x.id===S.gvXem)) S.gvXem=cds[0]?.id;
@@ -5727,7 +5876,8 @@ function kheSanPhamHTML(ds, daXep, tongCan){
         ${dai}
         <span class="meta">${meta}${KHO.version?` · phiên bản ${KHO.version}`:''}</span>
       </div>
-      <div class="${lopCoLuoi().trim()}" style="margin-top:10px">${luoi}</div>
+      <div class="${lopCoLuoi().trim()}" style="margin-top:10px">${
+        cot?`<div class="cl-boc">${cot}<div class="cl-phai">${luoi}</div></div>`:luoi}</div>
       <div class="gy" style="margin-top:9px">${
         KHO.banCongBo===KHO.version&&KHO.version?'Giáo viên đang xem đúng bản này.'
         :coMayChu()&&KHO.version?'<b>Chưa công bố</b> — thầy cô chưa xem được bản này.'
@@ -5982,9 +6132,12 @@ function luoiTKB(lay,keo){
 }
 function mTKBLop(){
   const ds=lopTrongPV();
-  if(!S.lopXem||!ds.some(l=>l.id===S.lopXem)) S.lopXem=ds[0]?.id;
+  /* Thứ tự nhà trường đọc quen: khối nhỏ trước, trong khối A→E. Thứ tự mảng
+     dữ liệu phụ thuộc lúc nhập nên mở ra có khi rơi vào lớp 4C. */
+  if(!S.lopXem||!ds.some(l=>l.id===S.lopXem)) S.lopXem=xepTheoKhoi(ds)[0]?.id;
   const lp=S.lopXem, o=S.tkb[lp]||{};
   const dem=Object.keys(o).length, can=S.phanCong.filter(p=>p.lopId===lp).reduce((s,p)=>s+p.soTiet,0);
+  const thieu=thieuMonLop(lp);
   const bb=buoiBat();
   /* lưới ngang: cột = thứ, dòng = tiết — dễ nhìn hơn cho một lớp */
   const maxS=Math.max(...bb.filter(k=>k.buoi==='S').map(k=>k.tiet),0);
@@ -6027,11 +6180,10 @@ function mTKBLop(){
     suaDuoc?'Chạm một tiết rồi chạm ô muốn chuyển tới — làm được cả trên điện thoại. Trên máy tính vẫn kéo thả như cũ.'
       :'Lớp này ngoài phạm vi của thầy cô nên chỉ xem, không chỉnh được.',true)+dieuHuongBuoc('tkblop')+`
   <div class="tkb-thanh">
-    ${oLocChon('selLop',ds.length,'lớp','Tìm lớp…')}
-    <select class="ip" id="selLop">${ds.map(l=>`<option value="${l.id}" ${l.id===S.lopXem?'selected':''}
-      data-loctu="${tuLoc(l.ten,l.maLop,dtId(S.lopDT[l.id])?.ten)}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}</select>
+    <b style="font-size:15px">Lớp ${esc(tenLopDay(lp))}</b>
     <span class="tag dt d${iDT(S.lopDT[lp])}">${esc(dtId(S.lopDT[lp])?.ten||'')}</span>
     <span class="tag ${dem>=can?'ok':'canh'}">${dem}/${can} tiết</span>
+    ${thieu.length?`<span class="tag canh">Thiếu ${esc(chuThieuMon(thieu))}</span>`:''}
     ${soGhim?`<span class="tag ok">📌 ${soGhim} tiết đã ghim</span>`:''}
     <span style="font-size:12.5px;color:var(--chu-mo)">Chủ nhiệm: <b>${esc(cnCuaLop(lp)?.hoTen||'—')}</b></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
@@ -6046,7 +6198,8 @@ function mTKBLop(){
         Chạm lại chính nó để bỏ chọn.`
       :`Tiết đã chỉnh tay sẽ được <b>ghim 📌</b> để lần xếp tự động sau không đè lên.
         Bấm vào dấu ghim là bỏ ghim.`}</div>`:''}
-  ${bang}`;
+  <div class="cl-boc">${cotLopHTML(ds, lp, 'clTKBLop')}
+    <div class="cl-phai">${bang}</div></div>`;
 }
 function mTKBGV(){
   const cds=[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
@@ -9161,7 +9314,9 @@ function mBuoiBan(){
    ================================================================== */
 function noiSuKien(){
   $('#selPV')&&($('#selPV').onchange=e=>{S.phamVi=e.target.value;ve();});
-  $('#selLop')&&($('#selLop').onchange=e=>{S.lopXem=e.target.value;S.oChon=null;ve();});
+  /* Chọn lớp nay đi bằng CỘT DANH SÁCH bên trái lưới (16/8/2026), dùng chung
+     cho màn Theo lớp và thẻ Theo lớp của Bảng điều hành — xem `cotLopHTML`. */
+  $$('[data-colop]').forEach(b=>b.onclick=()=>{ S.lopXem=b.dataset.colop; S.oChon=null; ve(); });
   $('#selGV')&&($('#selGV').onchange=e=>{S.gvXem=e.target.value;ve();});
   $('#selToi')&&($('#selToi').onchange=e=>{S.nguoiDung.gvId=e.target.value;ve();});
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
@@ -9364,7 +9519,6 @@ function noiSuKien(){
   /* Thẻ chuyển cách xem trên Bảng điều hành — đổi lưới TẠI CHỖ, không rời trang */
   $$('[data-dhxem]').forEach(b=>b.onclick=()=>{ S.dhXem=b.dataset.dhxem; ve(); });
   $$('[data-dhkhoi]').forEach(b=>b.onclick=()=>{ S.khoiXem=+b.dataset.dhkhoi; ve(); });
-  $('#dhLop')&&($('#dhLop').onchange=e=>{ S.lopXem=e.target.value; ve(); });
   $('#dhGV') &&($('#dhGV').onchange =e=>{ S.gvXem =e.target.value; ve(); });
   $$('[data-coluoi]').forEach(b=>b.onclick=()=>{ S.coLuoi=b.dataset.coluoi; ve(); });
   $$('[data-toanmh]').forEach(b=>b.onclick=()=>batToanManHinh(true));

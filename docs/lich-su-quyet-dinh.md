@@ -631,3 +631,85 @@ rơi về `g.id`, hai thứ tình cờ bằng nhau.
 Đặt mã đọc được là nó đỏ ngay. Bài học: **phép thử so hai giá trị tình cờ bằng
 nhau thì không chứng minh được gì** — nó chỉ nằm đó cho yên tâm. Chỗ đáng ngờ
 là những phép so mà hai vế lẽ ra phải đi qua một phép ánh xạ.
+
+---
+
+## 16/8/2026 — Cột danh sách lớp, và mở app là thấy TỪNG LỚP
+
+Chủ dự án gửi ảnh chụp SmartScheduler 7.3 đang chạy trên máy trường và hỏi:
+*"có thể điều chỉnh để xem từng lớp thay vì cho hiển thị ra màn hình cả
+trường?"* Ba việc được chốt làm; việc thứ tư (màn xem lịch **phòng học**)
+để lại, chưa đưa vào lộ trình.
+
+### Cột danh sách lớp dán bên trái lưới — `cotLopHTML()`
+
+Thứ SmartScheduler làm tốt hơn: cột `1A 1B 1C…` luôn hiện bên trái, bấm là
+nhảy lớp. Ô chọn xổ xuống của app chỉ làm được vế "đổi lớp" — phải mở ra mới
+thấy, đóng lại là quên, và với 60 lớp sau sáp nhập thì đó là một danh sách
+dài không có mốc nào để bám.
+
+Một hàm dùng cho **cả hai nơi** — thẻ *Theo lớp* của Bảng điều hành và màn
+hình *Theo lớp* — vì hai bản dựng riêng thì sớm muộn lệch hành vi. Ô chọn
+`#selLop` và `#dhLop` bỏ hẳn: một việc, một lối.
+
+Nút mang luôn `dem/can` nên cột còn là **bảng tiến độ theo lớp**: lớp thiếu
+tiết thì con số đổi sang vàng và nút mang lớp `.thieu`, liếc một cái là biết
+còn lớp nào chưa xong, khỏi mở từng lớp ra dò.
+
+**⚠️ Bẫy bố cục đã trả giá một vòng chụp ảnh:** để `align-items:stretch` thôi
+thì chưa đủ. Danh sách 60 nút **tự nó kéo dài cả hàng flex**, nên cột thò
+xuống quá đáy lưới gần một màn hình. Cách chữa: phần trong cột thả nổi
+(`.cl-trong{position:absolute;inset:0}`) — nó không còn góp chiều cao vào
+hàng nữa, chiều cao hàng do lưới quyết định, cột cuộn bên trong đúng khoảng
+ấy. Lỗi này `npm run soi` không thấy; `node docs/anh-giao-dien/chup.mjs`
+thấy ngay — lại đúng một lần nữa cái phân vai "soi để KIỂM, chụp để NHÌN".
+
+**Trên điện thoại cột nằm NGANG** (media 900px), cuộn ngang trong khung của
+mình. Đây không mâu thuẫn với quyết định 2/8/2026 bỏ dải cuộn ngang cho
+**thanh điều hướng**: ở đây các mục cùng một loại, xếp theo thứ tự lớp ai
+cũng thuộc, và `cuonToiLopDangXem()` luôn kéo lớp đang mở vào tầm nhìn nên
+không phải vuốt đi tìm. Hàm ấy cuộn trong KHUNG của cột chứ không dùng
+`scrollIntoView` — hàm kia kéo cả trang theo, người đang xem lưới bị giật
+đi chỗ khác.
+
+`locBang()` sửa một chỗ: phần tử mang `data-locnhan` (nhãn nhóm "Khối 1")
+vẫn ẩn/hiện theo bộ lọc nhưng **không được đếm** — không thì cột 37 lớp báo
+"42 lớp".
+
+### Mở app là thấy từng lớp — `xemMacDinh()`
+
+`S.dhXem` khởi tạo **rỗng**, lần vẽ đầu `xemMacDinh(ds)` chọn theo quy mô:
+trên `NGUONG_LOP_TOAN_TRUONG = 12` lớp thì mở thẳng thẻ *Theo lớp*, dưới
+ngưỡng thì giữ lưới toàn trường như cũ — trường một điểm 10 lớp thì lưới ấy
+vẫn vừa màn hình. Chỉ là **mặc định**: bấm sang thẻ khác là giữ lựa chọn ấy.
+
+Lưới toàn trường không mất đi đâu — nó vẫn là thẻ đầu tiên, và vẫn là bản in
+A3 dán bảng tin ở *Xuất và in*. Chỗ của nó là tờ giấy khổ lớn, không phải
+màn hình điện thoại.
+
+Kèm theo: lớp mở sẵn nay là lớp đầu theo `xepTheoKhoi()` (1A) chứ không phải
+phần tử đầu mảng `S.lop` — thứ tự mảng phụ thuộc lúc nhập, mở ra có khi rơi
+vào lớp 4C.
+
+### Nói rõ lớp còn thiếu MÔN GÌ — `thieuMonLop()`
+
+"24/27 tiết" cho biết CÓ thiếu; cái tên môn mới cho biết phải đi tìm ai —
+thiếu Tiếng Anh là chuyện của cô Tiếng Anh, thiếu Âm nhạc lại là chuyện khác
+hẳn. SmartScheduler bày *"Tổng 27 · Đã xếp 27 · Chưa xếp 0"* cũng dừng ở con
+số. Hàm thuần trong vùng LOGIC (`npm test` gọi thẳng, mục 18c), so bảng phân
+công với lưới theo tên môn, sắp theo số tiết thiếu giảm dần. Hiện ở ba chỗ:
+thẻ cạnh nút *Mở để chỉnh tay*, thanh công cụ màn *Theo lớp*, và `title` của
+từng nút trong cột lớp.
+
+### Việc để lại
+
+Màn **xem lịch theo PHÒNG HỌC** (khung "TKB phòng học" của SmartScheduler).
+Ba điểm trường dùng chung một phòng máy đúng là cảnh R12 cảnh báo, nên bảng
+"phòng Tin học tuần này ai dùng giờ nào" có giá trị thật — nhưng chưa chốt
+làm.
+
+**Không bê nguyên bố cục bốn bảng chạy song song** của SmartScheduler (lớp ·
+giáo viên · phòng cùng một màn). Đó là bố cục cho màn hình 24 inch, còn app
+này mobile-first; và bài toán "đổi tiết này sang đâu được" đã giải bằng lối
+khác, tốt hơn: chọn một tiết thì ô đặt được sáng xanh, ô vướng ràng buộc mờ
+đi, không phải tự đối chiếu bằng mắt qua ba bảng.

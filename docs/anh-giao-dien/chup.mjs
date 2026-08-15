@@ -68,6 +68,9 @@ await chup('06-phan-cong-nhanh',     { cao: 1000, lam: async p => { await di('ph
 await chup('07-toan-truong',         { rong: 1600, cao: 1000, lam: async p => { await xep(p); await di('toantruong')(p); } });
 await chup('08-theo-khoi',           { rong: 1600, cao: 1000, lam: async p => { await xep(p); await di('tkbkhoi')(p); } });
 await chup('09-xuat-in',             { cao: 1000, lam: async p => { await xep(p); await di('xuatin')(p); } });
+/* Màn chỉnh tay, có cột danh sách lớp bên trái (16/8/2026) — cột phải dừng
+   đúng đáy lưới rồi cuộn bên trong, đây là chỗ bắt lỗi bố cục ấy */
+await chup('31-theo-lop',            { cao: 1000, lam: async p => { await xep(p); await di('tkblop')(p); } });
 
 /* Điện thoại — chủ dự án chủ yếu dùng máy này */
 await chup('10-dt-bang-dieu-hanh',   { rong: 412, cao: 900, lam: di('dieuhanh') });
@@ -126,6 +129,9 @@ await chup('25-dt-360-bang-dieu-hanh', { rong: 360, cao: 800, lam: async p => {
   await xep(p); await baoNghi(p); await di('dieuhanh')(p); } });
 await chup('26-dt-430-bang-dieu-hanh', { rong: 430, cao: 900, lam: async p => {
   await xep(p); await baoNghi(p); await di('dieuhanh')(p); } });
+/* Cột lớp trên điện thoại: nằm NGANG, cuộn ngang, lớp đang mở luôn trong tầm nhìn */
+await chup('32-dt-theo-lop', { rong: 390, cao: 860, lam: async p => {
+  await xep(p); await di('tkblop')(p); } });
 
 /* Trường CHƯA khai gì — thanh tiến trình phải chỉ rõ từng việc còn thiếu */
 await chup('13-truong-moi-chua-co-gi', { lam: p => p.evaluate(() => {

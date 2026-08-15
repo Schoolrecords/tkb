@@ -551,6 +551,34 @@ thấy cấp dưới nổi hơn cấp trên. Nay đảo hẳn: nhãn nhóm có n
 bên trái; mục con bỏ nền, bỏ viền, chỉ còn chữ. Ngoại lệ duy nhất là mục
 **đang mở** — vẫn nổi rõ.
 
+#### Mở app là thấy TỪNG LỚP, và cột lớp bên trái lưới *(16/8/2026)*
+
+Chủ dự án đối chiếu với SmartScheduler 7.3 đang chạy ở trường: *"có thể điều
+chỉnh để xem từng lớp thay vì cho hiển thị ra màn hình cả trường?"*
+
+- **`xemMacDinh(ds)`** chọn cách xem cho lần vẽ đầu: trên `NGUONG_LOP_TOAN_TRUONG
+  = 12` lớp thì mở thẳng thẻ *Theo lớp*, dưới ngưỡng giữ lưới toàn trường.
+  `S.dhXem` vì thế khởi tạo **rỗng**, không phải `'toantruong'`. Chỉ là mặc
+  định — bấm thẻ khác là giữ lựa chọn ấy. Lưới toàn trường vẫn là thẻ đầu và
+  vẫn là bản in A3 dán bảng tin; chỗ của nó là tờ giấy khổ lớn.
+- **`cotLopHTML(ds, idChon, id)`** dựng cột lớp dán bên trái lưới, dùng chung
+  cho Bảng điều hành và màn *Theo lớp*. Ô chọn xổ xuống (`#selLop`, `#dhLop`)
+  đã bỏ hẳn — một việc, một lối. Nút mang `dem/can` nên cột là luôn bảng tiến
+  độ theo lớp: lớp thiếu tiết thì số đổi màu và nút mang lớp `.thieu`.
+- ⚠️ **Phần trong cột phải thả nổi** (`.cl-trong{position:absolute;inset:0}`).
+  Chỉ `align-items:stretch` là chưa đủ: danh sách 60 nút tự nó kéo dài cả hàng
+  flex, cột thò xuống quá đáy lưới gần một màn hình. `npm run soi` không thấy
+  lỗi này, `node docs/anh-giao-dien/chup.mjs` thấy ngay.
+- Trên điện thoại cột nằm **ngang**, cuộn ngang trong khung của mình, và
+  `cuonToiLopDangXem()` kéo lớp đang mở vào tầm nhìn (cuộn trong KHUNG, không
+  dùng `scrollIntoView` — hàm ấy kéo cả trang theo).
+- `locBang()` bỏ phần tử `data-locnhan` (nhãn nhóm "Khối 1") ra khỏi phép ĐẾM,
+  vẫn ẩn/hiện bình thường. Không thì cột 37 lớp báo "42 lớp".
+- **`thieuMonLop(idLop)`** (vùng LOGIC, `npm test` mục 18c) nói rõ lớp còn
+  thiếu môn gì: "24/27 tiết" cho biết CÓ thiếu, cái tên môn mới cho biết phải
+  đi tìm ai. Hiện ở thẻ cạnh nút *Mở để chỉnh tay*, thanh màn *Theo lớp*, và
+  `title` từng nút trong cột lớp.
+
 **Bốn cách xem là THẺ CHUYỂN TẠI CHỖ, không phải nút rời trang** *(3/8/2026)*.
 Trước đó chúng là `data-di`: bấm *Theo lớp* là rời Bảng điều hành, và **không
 có đường quay lại để bấm thẻ thứ hai**. Chủ dự án nói đúng: *"bấm nút nào thì

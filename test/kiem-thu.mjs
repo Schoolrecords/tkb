@@ -43,7 +43,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   tietCanThay, ungVienThay, phuongAnThay, xungDotDayThay, vieccanXuLy,
   thongBaoCuaGV, buoiCuaNghi, ngayISO, ngayCong, ngayDayDu, thuTuISO,
   LY_DO_NGHI, TEN_BUOI_NGHI, chiSoPhuongAn, guiBaoNghi, huyBaoNghi, danhDauXuLy,
-  tongHopNgayCong, soCong,
+  tongHopNgayCong, soCong, thieuMonLop, chuThieuMon,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
   apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
@@ -2160,6 +2160,40 @@ console.log('\n18b. Tổng hợp ngày công theo tháng');
     const trong = u.tongHopNgayCong('2026-11');
     return trong.dong.length === 0 && trong.duCong === u.S.giaoVien.length;
   })());
+}
+
+console.log('\n18c. Lớp còn thiếu tiết MÔN NÀO');
+{
+  /* "24/27 tiết" cho biết CÓ thiếu; cái tên môn mới cho biết phải đi tìm ai. */
+  const u = taoUngDung(documentGia);
+  u.xepTuDong(0);
+  const lp = u.S.lop[0].id;
+  kt('Xếp đủ thì không báo thiếu gì', u.thieuMonLop(lp).length === 0);
+  kt('Bỏ hai tiết của một môn thì báo đúng môn ấy, đúng số tiết', ...((() => {
+    const o = u.S.tkb[lp];
+    const khoa = Object.keys(o);
+    const mon = o[khoa[0]].mon;
+    /* Bỏ tối đa hai tiết CÙNG MỘT MÔN để số tiết thiếu đếm được chắc chắn */
+    const bo = khoa.filter(k => o[k].mon === mon).slice(0, 2);
+    bo.forEach(k => delete o[k]);
+    const ds = u.thieuMonLop(lp);
+    return [ds.length === 1 && ds[0].mon === mon && ds[0].thieu === bo.length,
+      u.chuThieuMon(ds)];
+  })()));
+  kt('Nhiều môn thiếu thì môn thiếu NHIỀU NHẤT đứng trước', ...((() => {
+    const o = u.S.tkb[lp];
+    const con = Object.keys(o);
+    /* Bỏ thêm đúng một tiết của một môn khác */
+    const monKhac = con.map(k => o[k].mon).find(m => !u.thieuMonLop(lp).some(x => x.mon === m));
+    delete o[con.find(k => o[k].mon === monKhac)];
+    const ds = u.thieuMonLop(lp);
+    return [ds.length === 2 && ds[0].thieu >= ds[1].thieu, u.chuThieuMon(ds)];
+  })()));
+  kt('Lớp không có dòng phân công nào thì không báo bừa',
+     u.thieuMonLop('khong-ton-tai').length === 0);
+  kt('Câu chữ đọc được ngay: "Tiếng Anh 1, Âm nhạc 1"',
+     u.chuThieuMon([{mon:'Tiếng Anh',thieu:1},{mon:'Âm nhạc',thieu:1}])
+       === 'Tiếng Anh 1, Âm nhạc 1');
 }
 
 console.log('\n19. Mã giáo viên đọc được');
