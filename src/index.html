@@ -4881,6 +4881,131 @@ function khongDau(s){
     .replace(/đ/g,'d').replace(/Đ/g,'D')
     .replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 }
+
+/* ============================================================
+   NHẬN DANH SÁCH VẮNG TỪ APP HỒ SƠ SỐ
+   ============================================================
+   Trước đây Hiệu trưởng khai "hôm nay ai vắng" HAI lần: một lần bên Hồ sơ số
+   (vào sổ vắng, cộng bảng công cuối tháng), một lần ở đây để bố trí dạy thay.
+
+   Nay bên Hồ sơ số có nút "Bố trí dạy thay ↗" mở sang đây, danh sách vắng gắn
+   sau dấu # của địa chỉ. Giao thức chốt tại
+   TH Diễn Liên/GIAO-THUC-HSS-SANG-TKB.md — đổi định dạng phải sửa CẢ HAI bên.
+
+     <URL>#hss-vang={"ngay":"YYYY-MM-DD","buoi":"sang|chieu","ds":[
+        {"ten":…, "email":…, "buoi":"sang|chieu|ca_ngay", "lyDo":…, "coSo":…} ]}
+
+   🔑 Phần sau dấu # KHÔNG được trình duyệt gửi lên máy chủ, nên tên giáo viên
+      chỉ nằm trong máy người bấm. Bên kia cố ý không dùng "?" vì query string
+      đi thẳng vào nhật ký máy chủ của GitHub Pages.
+
+   ⚠️ COI ĐÂY LÀ GỢI Ý, KHÔNG PHẢI LỆNH. Hiệu trưởng phải bấm xác nhận mới ghi
+      — dữ liệu đến từ ứng dụng khác, và bấm nhầm đường dẫn cũ là chuyện có
+      thật. Ghi rồi vẫn sửa/huỷ được như mọi thông báo nghỉ khác.
+
+   ⚠️ KHÔNG ghi vào gv_nghi: bảng ấy là buổi bận LẶP LẠI hằng tuần, dùng để
+      XẾP thời khóa biểu. Nghỉ đột xuất một ngày là bao_nghi. */
+const HSS_KHOA_HASH = 'hss-vang=';
+
+/* Đọc và tách khỏi địa chỉ. Gọi MỘT lần lúc mở trang, TRƯỚC khi xoá hash. */
+function docVangTuHSS(){
+  const w = cuaSo();
+  const h = String(w?.location?.hash || '');
+  const i = h.indexOf(HSS_KHOA_HASH);
+  if(i < 0) return null;
+  try{
+    const goi = JSON.parse(decodeURIComponent(h.slice(i + HSS_KHOA_HASH.length)));
+    if(!goi || !Array.isArray(goi.ds) || !goi.ds.length) return null;
+    return goi;
+  }catch(e){ return null; }
+}
+
+/* Khớp một người của Hồ sơ số về giáo viên của trường.
+   Thứ tự: email → họ tên bỏ dấu. Không khớp được thì trả null để NÓI RA,
+   tuyệt đối không bỏ qua im lặng — im lặng nghĩa là cô giáo ấy biến mất khỏi
+   danh sách mà chẳng ai biết, rồi tiết của cô không được bố trí dạy thay. */
+function khopGVTuHSS(nguoi, dsNguoiDung){
+  const ds = S.giaoVien || [];
+  const em = String(nguoi.email || '').trim().toLowerCase();
+  if(em && dsNguoiDung){
+    const u = dsNguoiDung.find(x => String(x.email||'').trim().toLowerCase() === em);
+    if(u){
+      const g = ds.find(x => x.nguoiDungId === u.id);
+      if(g) return g;
+    }
+  }
+  const ten = khongDau(nguoi.ten).toLowerCase();
+  const trung = ds.filter(g => khongDau(g.hoTen).toLowerCase() === ten);
+  /* Hai người trùng tên thì KHÔNG đoán — trả null để Hiệu trưởng tự chọn,
+     bố trí nhầm người là hỏng cả buổi dạy của lớp khác. */
+  return trung.length === 1 ? trung[0] : null;
+}
+
+const HSS_BUOI = {sang:'S', chieu:'C', ca_ngay:'CN'};
+
+/* Xoá riêng phần #hss-vang khỏi địa chỉ, giữ nguyên những gì khác.
+   Không xoá thì bấm F5 là nạp lại đúng danh sách cũ của hôm trước. */
+function xoaHashHSS(){
+  const w = cuaSo();
+  try{ w?.history?.replaceState(null, '', w.location.pathname + w.location.search); }catch(e){}
+}
+
+/* Mời Hiệu trưởng nhận danh sách. Cố ý dùng hộp hỏi của trình duyệt: đây là
+   việc mỗi ngày một lần, không đáng dựng thêm một hộp thoại riêng — và ít
+   chỗ hỏng hơn. */
+async function moiNhanVangHSS(goi){
+  xoaHashHSS();
+  let dsND = null;
+  /* Lấy danh sách người dùng để khớp theo email — chính xác hơn khớp tên.
+     Lỗi thì thôi, vẫn còn đường khớp theo họ tên. */
+  try{ dsND = await goiAPI('/rest/v1/nguoi_dung?select=id,email'); }catch(e){}
+
+  const {khop, hut} = ganVangHSS(goi, dsND);
+  if(!khop.length && !hut.length) return;
+
+  const ngayVN = String(goi.ngay || '').split('-').reverse().join('/');
+  let hoi = `Hồ sơ số chuyển sang ${goi.ds.length} người vắng ngày ${ngayVN}.\n\n`;
+  if(khop.length){
+    hoi += 'Sẽ tạo thông báo nghỉ cho:\n'
+      + khop.map(k => `  · ${k.hoTen} — ${k.buoi==='CN'?'cả ngày':k.buoi==='S'?'buổi sáng':'buổi chiều'} · ${k.lyDo}`).join('\n')
+      + '\n\n';
+  }
+  if(hut.length){
+    hoi += `KHÔNG khớp được ${hut.length} người (tên không có trong danh sách giáo viên, `
+      + `hoặc hai người trùng tên):\n  · ` + hut.join('\n  · ')
+      + '\n\nNhững người này phải khai tay ở mục Báo nghỉ.\n\n';
+  }
+  if(!khop.length){ bao(hoi.replace(/\n{2,}/g,' '), true); return; }
+  hoi += 'Nhận vào không?';
+
+  if(!cuaSo()?.confirm(hoi)) return;
+
+  let xong = 0; const loi = [];
+  for(const k of khop){
+    const r = await guiBaoNghi(k);
+    if(r.ok) xong++; else loi.push(k.hoTen + ': ' + r.thongBao);
+  }
+  try{ await taiDuLieu(); }catch(e){}
+  S.trangHienTai = 'daythay';
+  ve();
+  bao(loi.length
+    ? `Đã nhận ${xong}/${khop.length}. Chưa nhận được: ${loi.join(' · ')}`
+    : `✓ Đã nhận ${xong} người vắng từ Hồ sơ số — chọn phương án dạy thay bên dưới.`,
+    loi.length > 0);
+}
+
+/* Dựng danh sách đã khớp, kèm những người không khớp được. */
+function ganVangHSS(goi, dsNguoiDung){
+  const khop = [], hut = [];
+  (goi.ds || []).forEach(n => {
+    const g = khopGVTuHSS(n, dsNguoiDung);
+    if(g) khop.push({gvId:g.id, hoTen:g.hoTen, ngay:goi.ngay,
+      buoi:HSS_BUOI[n.buoi] || 'CN', lyDo:n.lyDo || 'Việc khác',
+      ghiChu:'Chuyển từ Hồ sơ số' + (n.coSo ? ' · ' + n.coSo : '')});
+    else hut.push(n.ten + (n.coSo ? ' (' + n.coSo + ')' : ''));
+  });
+  return {khop, hut};
+}
 /* GỠ BỎ 2/8/2026: tenDangNhapGV() và matKhauNgauNhien() — hai hàm sinh tên
    đăng nhập @tkb.local kèm mật khẩu cho việc cấp tài khoản hàng loạt. Nay
    thầy cô đăng nhập bằng Gmail của chính mình, nhận quyền qua mã mời. */
@@ -11089,6 +11214,9 @@ $('#btChuong').onclick=()=>chuyen('thongbao');
    ================================================================== */
 async function khoiDong(){
   let kq, vaoLai=false, gg=null;
+  /* 0. Danh sách vắng do Hồ sơ số chuyển sang — ĐỌC TRƯỚC donVeOAuth, vì hàm
+        ấy xoá hash sau khi đón vé Google. Đọc xong mới xoá phần của mình. */
+  const vangHSS = docVangTuHSS();
   /* 1. Địa chỉ có mang vé Google trả về không? Đón trước tiên. */
   try{ await taiCauHinh(); gg=await donVeOAuth(); }catch(e){}
   /* 2. Không thì vào lại bằng vé đã nhớ — giáo viên mở trang là thấy lịch */
@@ -11103,6 +11231,9 @@ async function khoiDong(){
      đăng nhập thì không bày gì cả, xếp làm gì cho tốn công */
   if(!canDangNhap() && !soTietDaXep() && !quyen().laGV) KQ_XEP = xepTuDong();
   ve();
+  /* Danh sách vắng từ Hồ sơ số: chỉ mời nhận khi ĐÃ đăng nhập và là quản lý.
+     Giáo viên bấm nhầm đường dẫn thì không có quyền ghi, mời cũng vô ích. */
+  if(vangHSS && daVao && !quyen().laGV){ moiNhanVangHSS(vangHSS); return; }
   if(daVao) bao(`Chào ${KHO.nguoiDung.hoTen}`);
   else if(gg?.ok && gg.khach)
     bao('Đã đăng nhập Google. Tài khoản chưa thuộc trường nào — chọn một lối trên màn hình.');
