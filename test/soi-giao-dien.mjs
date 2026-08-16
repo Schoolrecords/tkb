@@ -1211,8 +1211,10 @@ kt('Chọn một mục thì ngăn kéo tự đóng — không che mất màn hì
   w.chuyen('lop');
   return !w.document.body.classList.contains('mo-menu') && w.eval('S.trangHienTai') === 'lop';
 })());
-kt('Thanh trên đủ bộ: logo, tên trường tách riêng để co giãn được',
-   !!w.document.querySelector('.thanh-bt img') && !!w.document.querySelector('.thanh-ten'));
+kt('Thanh trên KHÔNG còn logo — tên trường đứng một mình, tách riêng để co giãn được',
+   /* 16/8/2026: chủ dự án bỏ logo ở thanh đầu trang. Nó lặp lại đúng cái
+      logo đã có ở đầu thanh bên, ngay bên cạnh, trên cùng một màn hình. */
+   !w.document.querySelector('.thanh-bt') && !!w.document.querySelector('.thanh-ten'));
 kt('Không có cảnh báo nào thì badge chuông ẩn hẳn, không hiện số 0', (() => {
   const cu = w.eval('KT.vm');
   w.eval('KT.vm = []; capNhatDem()');
@@ -1329,8 +1331,8 @@ kt('Mỗi thẻ in đều có nút Tải Word đi kèm',
    !!w.document.querySelector('#btWordGV'));
 
 console.log('\n16. Logo và tệp Excel');
-kt('Logo hiện ở cả thanh bên và thanh trên cùng, nhúng thẳng trong trang',
-   !!w.document.querySelector('.hieu-bt img') && !!w.document.querySelector('.thanh-bt img') &&
+kt('Logo hiện ở thanh bên, nhúng thẳng trong trang (thanh trên đã bỏ 16/8/2026)',
+   !!w.document.querySelector('.hieu-bt img') && !w.document.querySelector('.thanh-bt') &&
    /^data:image\/png;base64,/.test(w.document.querySelector('.hieu-bt img').getAttribute('src')));
 kt('Trang có favicon riêng, không dùng biểu tượng mặc định của trình duyệt', (() => {
   const l = w.document.querySelector('link[rel="icon"]');

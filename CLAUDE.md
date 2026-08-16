@@ -391,9 +391,14 @@ người dùng qua mọi màn hình; thẻ kia bỏ hẳn, hai dòng thông tin 
 liệu* · *Người đang dùng* gộp xuống cuối thẻ **Đã khai báo**. Có phép thử đếm:
 trong `#noiDung` không được còn nút đăng nhập nào.
 
-**Logo** nhúng base64 ngay trong trang (`.hieu-bt img`, `.thanh-bt img`) và làm
-luôn favicon. Ảnh gốc 1254px/1,3 MB thu về **96px/16 KB** trước khi mã hoá — nhét
-nguyên ảnh gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px.
+**Logo** nhúng base64 ngay trong trang (`.hieu-bt img`) và làm luôn favicon.
+Ảnh gốc 1254px/1,3 MB thu về **96px/16 KB** trước khi mã hoá — nhét nguyên ảnh
+gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px.
+
+**Chỉ còn MỘT logo, ở đầu thanh bên** *(16/8/2026)*. Bản trước bày thêm một
+cái nữa ở thanh đầu trang (`.thanh-bt`), tức là cùng một hình, hai lần, cách
+nhau vài chục pixel trên cùng một màn hình. Nay thanh đầu trang mở đầu thẳng
+bằng tên trường. Có phép thử canh không cho nó quay lại.
 
 `thanhKhaiBao(nut, coNhap)` dựng thanh công cụ dùng chung. Truyền `coNhap=false`
 cho **Thông tin trường · Môn học · Phòng học** — tệp Excel không chứa ba thứ đó,

@@ -866,3 +866,15 @@ Ba lần sửa của bức phong cảnh, ghi lại vì đều là bẫy chung c�
 không tự chụp lại được, và để lại thì thư mục ảnh có hai hệ màu lẫn lộn —
 người xem sau không biết bản nào là bản đang chạy. Không tệp tài liệu nào
 trỏ tới chúng.
+
+### Bỏ logo ở thanh đầu trang *(cùng ngày)*
+
+Cùng một hình logo hiện **hai lần** trên một màn hình: một ở đầu thanh bên,
+một ở thanh đầu trang, cách nhau vài chục pixel. Chủ dự án gạch bỏ cái thứ
+hai. Thanh đầu trang nay mở đầu thẳng bằng **tên trường** — thứ thật sự
+khác nhau giữa các trường dùng phần mềm.
+
+Dọn luôn hai quy tắc CSS `.thanh-bt` (bản thường và bản điện thoại) thay vì
+để lại mã chết. Hai phép thử cũ canh *"logo hiện ở cả thanh bên và thanh
+trên"* được viết lại thành canh chiều ngược: `.thanh-bt` **không được** tồn
+tại, còn logo thanh bên vẫn phải là ảnh nhúng base64.
