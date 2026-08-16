@@ -35,8 +35,32 @@ self.addEventListener('activate', e => {
   })());
 });
 
+/* Tài nguyên GHIM PHIÊN BẢN trong địa chỉ thì lấy KHO TRƯỚC (16/8/2026).
+   `xlsx@0.18.5` và `exceljs@4.4.0` là những địa chỉ không bao giờ đổi nội
+   dung — đổi phiên bản là đổi địa chỉ. Với chúng, "mạng trước" nghĩa là
+   tải lại 507 KB mỗi lần thầy cô bấm Xuất Excel, mà chẳng bao giờ nhận
+   được thứ gì khác. Phông chữ Google cũng vậy.
+   Trang chính (index.html, sw.js, manifest) thì KHÔNG được vào nhóm này:
+   ở đó "mạng trước" chính là thứ bảo đảm không ai kẹt lại ở bản cũ. */
+function khoTruoc(q) {
+  const u = new URL(q.url);
+  if (u.hostname === 'cdn.jsdelivr.net' && /@\d+\.\d+\.\d+/.test(u.pathname)) return true;
+  if (u.hostname === 'fonts.gstatic.com') return true;
+  return false;
+}
+
 self.addEventListener('fetch', e => {
   if (boQua(e.request)) return;                            /* để trình duyệt tự lo */
+  if (khoTruoc(e.request)) {
+    e.respondWith((async () => {
+      const cu = await caches.match(e.request);
+      if (cu) return cu;
+      const moi = await fetch(e.request);
+      if (moi && moi.ok) (await caches.open(KHO)).put(e.request, moi.clone());
+      return moi;
+    })());
+    return;
+  }
   e.respondWith((async () => {
     try {
       const moi = await fetch(e.request);

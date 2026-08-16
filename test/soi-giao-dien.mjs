@@ -1004,21 +1004,33 @@ kt('Không còn dải chỉ số nào khác lặp lại cùng mấy con số ấ
 })());
 
 console.log('\n15h2. Bốn cách xem, chuyển TẠI CHỖ trên Bảng điều hành');
-kt('Thẻ chuyển và nút điểm trường cùng một hệ navy, không còn nền trắng', (() => {
-  /* Chủ dự án: "nhìn màu trắng không rõ". Cả dải nay cùng hệ navy, chỉ khác
-     độ đậm — chưa chọn là navy nhạt nổi khối, đang chọn là navy đậm. */
+kt('Thẻ chuyển và nút điểm trường cùng một hệ màu, không có nút nào nền trắng trơn', (() => {
+  /* Bảng màu đổi sang xanh lá 16/8/2026 và đảo chiều sáng tối: chưa chọn
+     nay là NỀN SÁNG CHỮ XANH có viền, đang chọn là nền xanh đậm chữ trắng.
+     Nguyên tắc gốc của ngày 3/8 vẫn giữ — "nhìn màu trắng không rõ" nên nút
+     chưa chọn phải có nền và viền riêng, không được trắng trơn như nền thẻ. */
   const css = w.document.documentElement.innerHTML;
-  const xem = css.slice(css.indexOf('.xem-nut{'), css.indexOf('.xem-nut{') + 320);
-  const dt  = css.slice(css.indexOf('.dt-nut{'),  css.indexOf('.dt-nut{')  + 320);
-  return /background:var\(--nav-nhat\)/.test(xem) && /color:#fff/.test(xem)
-    && /background:var\(--nav-nhat\)/.test(dt)  && /color:#fff/.test(dt)
+  const xem = css.slice(css.indexOf('.xem-nut{'), css.indexOf('.xem-nut{') + 340);
+  const dt  = css.slice(css.indexOf('.dt-nut{'),  css.indexOf('.dt-nut{')  + 340);
+  return /background:var\(--nav-nhat\)/.test(xem) && /color:var\(--nav\)/.test(xem)
+    && /border:1px solid var\(--nav-vien\)/.test(xem)
+    && /background:var\(--nav-nhat\)/.test(dt)  && /color:var\(--nav\)/.test(dt)
     && /--nav-nhat:#/.test(css);
 })());
 kt('Nhưng thẻ ĐANG CHỌN vẫn đậm hơn hẳn — hai tín hiệu, không chỉ một', (() => {
   const css = w.document.documentElement.innerHTML;
-  return /\.xem-nut\.on\{background:var\(--nav\)/.test(css)
-    && /\.dt-nut\.on\{background:var\(--nav\)/.test(css);
+  return /\.xem-nut\.on\{background:var\(--nav\);color:#fff/.test(css)
+    && /\.dt-nut\.on\{background:var\(--nav\);color:#fff/.test(css);
 })());
+kt('Bảng màu là hệ XANH LÁ, không còn navy ở bất kỳ biến gốc nào', ...((() => {
+  const css = w.document.documentElement.innerHTML;
+  const lay = ten => (css.match(new RegExp('--' + ten + ':(#[0-9A-Fa-f]{6})')) || [])[1];
+  /* Xanh lá: thành phần lục phải trội hơn hẳn lam. Navy cũ thì ngược lại. */
+  const laLuc = h => { const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16),
+                             b = parseInt(h.slice(5,7),16); return g > b && g > r; };
+  const nav = lay('nav'), nav3 = lay('nav-3'), xanh = lay('xanh');
+  return [!!nav && laLuc(nav) && laLuc(nav3) && laLuc(xanh), `--nav ${nav} · --nav-3 ${nav3}`];
+})()));
 kt('Có đủ bốn thẻ chuyển cách xem', ...((() => {
   const v = [...w.document.querySelectorAll('[data-dhxem]')].map(b => b.dataset.dhxem);
   return [v.join() === 'toantruong,tkbkhoi,tkblop,tkbgv', v.join(' · ')];
@@ -1420,7 +1432,7 @@ goTim(oSel, '');
 console.log('\n17. PWA — cài lên màn hình chính điện thoại');
 kt('Trang khai manifest, màu chủ đề và biểu tượng cho iPhone',
    w.document.querySelector('link[rel="manifest"]')?.getAttribute('href') === 'manifest.webmanifest'
-   && w.document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#1B2559'
+   && w.document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#0F5132'
    && !!w.document.querySelector('link[rel="apple-touch-icon"]'));
 kt('manifest.webmanifest hợp lệ, đủ tên + biểu tượng + chạy độc lập', (() => {
   const m = JSON.parse(readFileSync(join(goc, 'src/manifest.webmanifest'), 'utf8'));

@@ -884,6 +884,15 @@ const soTietMoiLop = () => S.lop.map(l => Object.keys(S.tkb[l.id]).length).join(
 await taiDuLieu();
 const rTham = xepTuDong(0);              /* 0 mili giây → chỉ xếp tham lam, bỏ tối ưu */
 const dTruoc = diemToanCuc(), doTruoc = doDac(), tietTruoc = soTietMoiLop();
+/* ⚠️ BA PHÉP THỬ NGAY DƯỚI ĐÂY CHẬP CHỜN — và biết rõ vì sao (16/8/2026).
+   `toiUuHoanDoi` dừng theo ĐỒNG HỒ. Máy đang bận thì trong 1200ms nó làm
+   được ít việc hơn, kết quả kém hơn, và ba ngưỡng dưới đây không đạt —
+   khoảng một phần ba số lần chạy. Đo được: cho chạy tới khi hội tụ thì
+   điểm phạt còn giảm thêm 12% (25 lớp) đến 35% (60 lớp), nghĩa là mốc
+   1200ms đang cắt ngang giữa chừng chứ không phải đã xong việc.
+   Cách chữa là dừng theo SỐ PHÉP THỬ thay vì theo giây; chủ dự án chốt để
+   sau khai giảng mới đụng vào thuật toán. Xem mục 9 của CLAUDE.md.
+   Trong lúc chờ: thấy ba dòng này đỏ thì chạy lại `npm test` trước đã. */
 const tu = toiUuHoanDoi(1200);
 const doSau = doDac();
 

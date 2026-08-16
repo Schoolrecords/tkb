@@ -74,7 +74,24 @@ kt('Dữ liệu mẫu vẫn dựng được lưới khi ngoại tuyến', await 
 }).catch(() => false));
 await ctx.setOffline(false);
 
-console.log('3. Supabase không bao giờ bị cache');
+console.log('3. Thư viện Excel — nạp khi cần, và chỉ tải MỘT lần (16/8/2026)');
+kt('Mở app KHÔNG kéo theo thư viện Excel nào', await p.evaluate(() =>
+   typeof ExcelJS === 'undefined' && typeof XLSX === 'undefined'),
+   '507 KB không tải ở mỗi lần mở');
+kt('Bấm Xuất Excel thì thư viện tự về, tệp tải được', await p.evaluate(async () => {
+  KQ_XEP = xepTuDong();
+  await sanSangExcelJS();
+  return typeof ExcelJS !== 'undefined';
+}).catch(() => false));
+kt('Lần thứ hai lấy trong kho, không gọi mạng nữa', await p.evaluate(async () => {
+  /* Địa chỉ có ghim phiên bản nên `khoTruoc()` của sw.js phải giữ nó lại */
+  for (const ten of await caches.keys())
+    for (const q of await (await caches.open(ten)).keys())
+      if (/cdn\.jsdelivr\.net\/npm\/exceljs@/.test(q.url)) return true;
+  return false;
+}));
+
+console.log('4. Supabase không bao giờ bị cache');
 kt('Kho cache không chứa một yêu cầu Supabase nào', await p.evaluate(async () => {
   for (const ten of await caches.keys())
     for (const q of await (await caches.open(ten)).keys())

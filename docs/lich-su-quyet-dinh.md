@@ -713,3 +713,156 @@ giáo viên · phòng cùng một màn). Đó là bố cục cho màn hình 24 i
 này mobile-first; và bài toán "đổi tiết này sang đâu được" đã giải bằng lối
 khác, tốt hơn: chọn một tiết thì ô đặt được sáng xanh, ô vướng ràng buộc mờ
 đi, không phải tự đối chiếu bằng mắt qua ba bảng.
+
+---
+
+## 16/8/2026 (chiều) — Hai thư viện Excel rời khỏi đường mở app
+
+Chủ dự án hỏi *"làm sao để app chạy mượt hơn?"*. Đo bằng Chrome thật trước
+khi sửa bất cứ thứ gì — script đo dựng máy chủ nhỏ có gzip, giả lập máy cũ
+bằng `Emulation.setCPUThrottlingRate`.
+
+Kết quả đo bác bỏ chỗ đáng ngờ nhất: **việc vẽ màn hình không chậm**. `ve()`
+mất 8–40 ms cho hầu hết màn hình, kể cả ở quy mô 60 lớp; nặng nhất là màn
+Phân công 630 dòng (169 ms máy tính, 246 ms máy cũ) — vẫn dưới ngưỡng khó
+chịu. Bấm đổi lớp 16–35 ms. Chạm một tiết để soi trước chỗ đặt được 53–135
+ms. Không có gì đáng viết lại.
+
+Chỗ chậm thật nằm ở **đường mở app**: `xlsx.full.min.js` 269 KB +
+`exceljs.min.js` 238 KB, nằm ở thẻ `<script>` trong `<head>` nên tải ở MỌI
+lần mở, đẩy mốc `load` từ 0,8 lên 2,3 giây (máy cũ 3,1 giây).
+
+Điều khiến nó đáng sửa không phải con số mà là **ai phải trả**: giáo viên
+là nhóm đông nhất, mở app mỗi sáng để xem lịch, và **không bao giờ** nhập
+hay xuất Excel. Họ tải 507 KB mỗi ngày cho hai thư viện không dùng tới, bằng
+tiền dữ liệu 4G của chính họ.
+
+Nay `napThuVien(url)` chèn thẻ script khi cần, nhớ lời hứa nên bấm mười lần
+vẫn một lần tải, và **xoá lời hứa khi hỏng** để lần sau thử lại — mạng chập
+chờn ở trường là chuyện thường, giữ một lời hứa hỏng nghĩa là hỏng vĩnh
+viễn. Sáu chỗ dùng đều đã nằm trong hàm `async` sẵn nên chỉ đổi
+`if(!coExcelJS())` thành `if(!await sanSangExcelJS())`.
+
+Đo lại: **736 KB → 229 KB mỗi lần mở app**, giảm 69%. Bấm Xuất Excel lần
+đầu chờ thêm ~0,8 giây và có dòng *"Đang tải thư viện Excel…"*; lần sau
+111 ms.
+
+**Service Worker đổi sang KHO TRƯỚC cho tài nguyên ghim phiên bản.**
+`xlsx@0.18.5` và `exceljs@4.4.0` là những địa chỉ không bao giờ đổi nội
+dung — đổi phiên bản là đổi địa chỉ — nên "mạng trước" chỉ tổ tải lại 507 KB
+mỗi lần bấm. Trang chính thì **giữ nguyên mạng-trước**: ở đó chính nó là thứ
+bảo đảm không ai kẹt lại ở bản cũ.
+
+**⚠️ Bẫy: thiếu `crossOrigin` thì kho không nhận.** Thẻ script trỏ sang tên
+miền khác mà không khai `crossOrigin` thì trình duyệt tải ở chế độ no-cors
+và trả về phản hồi "mờ" (`ok === false`), nên `cache.put` bỏ qua — lần bấm
+thứ hai vẫn tải lại 240 KB, tức là sửa xong mà không được gì. Phép thử mới
+ở `soi-pwa` bắt đúng chuyện này. Thêm `s.crossOrigin='anonymous'` là xong,
+và tiện thể một lỗi 404 của CDN cũng lộ ra thay vì im lặng.
+
+### Phát hiện kèm theo: chất lượng TKB phụ thuộc máy nhanh hay chậm
+
+Truy từ ba phép thử chập chờn của `npm test` (hỏng ~1/3 số lần chạy):
+*"Điểm phạt giảm rõ rệt"*, *"Bớt hẳn Toán và Tiếng Việt bị đẩy xuống buổi
+chiều"*, *"Bớt hẳn tiết trống kẹp giữa buổi"*.
+
+Gốc rễ: `toiUuHoanDoi()` dừng theo **đồng hồ** (1200 ms). Máy bận thì làm
+được ít việc hơn → thời khóa biểu kém hơn, cùng một dữ liệu vào.
+
+Đo bằng cách nới hạn:
+
+| | hạn 1200 ms | tới khi hội tụ |
+|---|---|---|
+| 25 lớp — điểm phạt | 2544 | 2243 |
+| 25 lớp — trống kẹp | 27 | 8 |
+| 60 lớp — điểm phạt | 7715 | **5006** (−35%) |
+| 60 lớp — trống kẹp | 114 | **14** |
+
+Nghĩa là mốc 1200 ms **cắt ngang giữa chừng**, không phải đã xong việc — và
+trường sáp nhập 60 lớp thiệt nhiều nhất.
+
+Cách chữa đã bàn: dừng theo **số phép thử** thay vì theo giây (kết quả tất
+định, máy nào cũng ra một bản), van an toàn chống treo, nới hạn theo số lớp.
+
+**Chủ dự án chốt: để SAU KHAI GIẢNG.** Không đụng thuật toán trong lúc phần
+mềm đang chạy thật cho Diễn Liên — đúng nguyên tắc, vì đây là thay đổi ảnh
+hưởng thẳng tới bản thời khóa biểu nhà trường sắp dùng. Đã ghi vào mục 9 của
+`CLAUDE.md` và chú thích ngay tại chỗ trong `test/kiem-thu.mjs`, để lần sau
+thấy ba dòng ấy đỏ thì biết chạy lại trước khi đi tìm lỗi ở chỗ khác.
+
+---
+
+## 16/8/2026 (tối) — Đổi trọn bảng màu sang XANH LÁ
+
+Chủ dự án gửi một ảnh thiết kế và yêu cầu làm theo, *"trừ các icon trong
+từng môn, ta không đưa vào"*.
+
+**Tên biến CSS giữ nguyên.** `--nav` nay là xanh lá `#0F5132` chứ không còn
+là navy. Cái tên nói **vai trò** — màu của thanh điều hướng và của mọi hành
+động chính — chứ không nói tên màu; đổi tên thì phải sửa hàng trăm chỗ dùng
+mà không được thêm gì. Nhờ vậy việc đổi hệ màu gọn trong `:root` cộng vài
+chục quy tắc riêng.
+
+Những chỗ phải sửa tay ngoài `:root`:
+
+- **Thanh đầu trang từ khối navy đậm thành THẺ TRẮNG có phong cảnh** — trời,
+  mây, chim, đồi, cây; SVG nhúng thẳng trong CSS, giữ nếp một tệp. Chữ đổi
+  từ trắng sang màu chữ thường. ⚠️ Mép trái hình phải tan dần bằng một lớp
+  gradient trắng phủ **lên trên** ảnh; bản đầu thiếu nó nên lộ một vạch dọc
+  cắt ngang thanh, ảnh chụp bắt được ngay.
+- **Đảo chiều sáng tối của nút trên nền trắng.** Ngày 3/8 chủ dự án nói
+  *"nhìn màu trắng không rõ"* nên nút chưa chọn được làm navy nhạt chữ
+  trắng. Mẫu mới quay lại nền sáng — nhưng **không phải trắng trơn**: nền
+  xanh rất nhạt `#EDF5F0` có viền riêng, chữ xanh đậm; nút đang chọn là nền
+  xanh đậm chữ trắng cộng đổ bóng. Nguyên tắc "hai tín hiệu, không chỉ một"
+  của hôm ấy vẫn nguyên vẹn, chỉ đảo chiều. Phép thử cũ được viết lại theo
+  đúng tinh thần đó thay vì xoá đi.
+- `.b-vang` (nút hành động chính: Xếp nhanh · Công bố · Xuất) đổi từ vàng
+  sang xanh lá đậm. Giữ tên lớp.
+- Cụm lá ở đáy thanh bên: `aside::after`, `pointer-events:none`, `z-index:0`
+  và `aside>*{position:relative;z-index:1}` — hoạ tiết không được chắn mục
+  nào, đây là chỗ dễ hỏng nhất của kiểu trang trí này.
+- Ba thẻ dưới Bảng điều hành có ô biểu tượng vuông bo tròn `.the-ic`, màu
+  theo **vai trò**: xanh đậm = tiến độ, xanh lá = xong, đỏ = có việc gấp,
+  vàng = cảnh báo. Chấm nhỏ `.viec-cham` cũ bị nó thay nên **xoá hẳn mã**,
+  không để lại quy tắc chết — đúng bài học ngày 3/8 về khối `.the-so`.
+- `manifest.webmanifest` (`theme_color`, `background_color`) và thẻ
+  `<meta name="theme-color">`. Quên chỗ này thì thanh trạng thái trên điện
+  thoại vẫn navy trong khi cả app đã xanh; phép thử soi giao diện có canh.
+
+**Không đưa biểu tượng từng môn vào** — chủ dự án chốt. Ô tiết vẫn phân biệt
+bằng màu nền pastel và viền trái đậm suy từ `--mc`.
+
+Thêm một phép thử canh cả hệ: đọc `--nav`, `--nav-3`, `--xanh` rồi đòi thành
+phần lục phải trội hơn lam và đỏ — navy cũ quay lại là đỏ ngay.
+
+### Vẽ lại bụi lá và phong cảnh *(cùng ngày, sau nhận xét của chủ dự án)*
+
+Bản đầu của cả hai hoạ tiết đều nhét trong `background:url("data:image/svg+xml,…")`
+đã mã hoá. Chủ dự án nhìn ảnh chụp là thấy ngay: bụi lá *"chưa đạt như ảnh
+gốc"*, còn phong cảnh thì *"vị trí này ảnh gốc làm rất đẹp"*.
+
+**Cả hai chuyển sang SVG INLINE trong HTML.** Hình phức tạp — lá có gân,
+tán cây nhiều cụm, thân chẻ nhánh, chuyển màu — mà viết trong chuỗi data-uri
+thì không ai sửa lại được, kể cả người vừa viết ra nó. Inline thì đọc như mã
+thường, sửa một toạ độ là xong. Cả hai đều `aria-hidden`, `pointer-events:none`
+và nằm ở lớp dưới cùng; `aside>*` / `.thanh>*:not(.thanh-canh)` được đẩy lên
+`z-index:1` — hoạ tiết mà chắn mất một mục bấm được là lỗi khó chịu nhất của
+kiểu trang trí này.
+
+Ba lần sửa của bức phong cảnh, ghi lại vì đều là bẫy chung của ảnh nền:
+
+1. **Mép trái lộ một vạch dọc.** Ảnh có nền trời riêng nên cạnh trái của nó
+   cắt ngang thanh. Chữa bằng mặt nạ chuyển màu (`mask-image`) cho hình tan
+   dần về trái.
+2. **Đồi và gốc cây bị cắt mất.** `preserveAspectRatio` canh giữa
+   (`xMaxYMid`) nên khi thanh thấp hơn tỉ lệ tranh thì phần cắt rơi vào đáy —
+   đúng chỗ có đồi. Đổi sang canh đáy (`xMaxYMax`) **và** vẽ lại toàn bộ toạ
+   độ theo viewBox 600×86 cho khớp tỉ lệ thật của thanh, thay vì 600×120.
+3. **Cây lớn nằm ngay dưới cụm nút bên phải.** Dịch cả cây lẫn đồi sang trái
+   để tán cây rơi vào khoảng trống giữa thanh, đúng như mẫu.
+
+**Bốn ảnh chụp cũ (27–30) đã xoá.** Chúng không nằm trong `chup.mjs` nên
+không tự chụp lại được, và để lại thì thư mục ảnh có hai hệ màu lẫn lộn —
+người xem sau không biết bản nào là bản đang chạy. Không tệp tài liệu nào
+trỏ tới chúng.

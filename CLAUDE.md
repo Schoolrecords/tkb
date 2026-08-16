@@ -72,10 +72,24 @@ cập dữ liệu qua một tầng 4–6 hàm để Pha 2 chỉ cần viết l�
 | Thuật toán | Chạy **client-side**, trong Web Worker khi cần | tránh giới hạn thời gian của backend |
 | Cơ sở dữ liệu | **Supabase (PostgreSQL) + Row Level Security** | xem `db/schema.sql` |
 | Hosting | GitHub Pages (tĩnh) | SPA gọi thẳng REST API của Supabase |
-| Đọc Excel | SheetJS qua CDN | nhập PCGD — nhẹ, đủ việc |
-| Ghi Excel | **ExcelJS** qua CDN | SheetJS bản cộng đồng KHÔNG tô màu, kẻ viền hay đặt khổ giấy được |
+| Đọc Excel | SheetJS qua CDN, **nạp khi cần** | nhập PCGD — nhẹ, đủ việc |
+| Ghi Excel | **ExcelJS** qua CDN, **nạp khi cần** | SheetJS bản cộng đồng KHÔNG tô màu, kẻ viền hay đặt khổ giấy được |
 | Logo | PNG 96px nhúng base64 trong trang | giữ được single-file, ~21 KB |
 | Font | Be Vietnam Pro (Google Fonts) | hỗ trợ dấu tiếng Việt tốt |
+
+**Hai thư viện Excel KHÔNG nằm trong `<head>`** *(16/8/2026)*. Chúng nặng
+507 KB và trước đây tải ở **mọi** lần mở app, trong khi giáo viên — nhóm
+đông nhất, mở app mỗi sáng — không bao giờ nhập hay xuất Excel. Nay
+`napThuVien(url)` nạp khi thật sự cần; mọi nơi dùng đi qua
+`await sanSangExcelJS()` / `await sanSangXLSX()`. Đo được: **736 KB → 229 KB
+mỗi lần mở**, giảm 69%.
+
+⚠️ Thẻ script nạp động **phải khai `crossOrigin='anonymous'`**. Thiếu nó thì
+trình duyệt tải ở chế độ no-cors, phản hồi "mờ" không vào được kho Service
+Worker, và lần bấm sau vẫn tải lại 240 KB — sửa xong mà không được gì. Có
+phép thử ở `soi-pwa` canh. `sw.js` cũng lấy **kho trước** cho địa chỉ CDN có
+ghim phiên bản và phông chữ (chúng không bao giờ đổi nội dung); trang chính
+thì giữ **mạng trước** để không ai kẹt lại ở bản cũ.
 
 **Không dùng Google Sheets làm CSDL** — không cô lập được dữ liệu giữa các
 trường, và hai phó hiệu trưởng lưu cùng lúc sẽ ghi đè nhau.
@@ -1250,12 +1264,36 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
   trường* từng viết cứng ba tên Diễn Liên · Diễn Đồng · Diễn Thái nên chỉ đúng
   cho đúng một nhà trường; nay là *Tạo dữ liệu thử*, hỏi tên và số lớp.
 
-### Ngôn ngữ thiết kế (theo bộ nhận diện AVATAR của chủ dự án)
-- Sidebar xanh navy `#1B2559`, mục đang chọn `#2E3F86`, badge số bên phải.
-- Nền `#F4F5F8`, thẻ trắng bo `14px`, viền `#E6E9F0`, đổ bóng rất nhẹ.
-- Thẻ số liệu gradient: cam `#C4823A`, lục `#3D8C6C`, lam `#4A6FB5`, tím `#6E52BC`.
-- Điểm nhấn vàng `#F5C542` cho logo và nút hành động chính.
-- Mỗi môn học một màu riêng, mỗi điểm trường một màu riêng.
+### Ngôn ngữ thiết kế — hệ XANH LÁ *(đổi 16/8/2026 theo mẫu chủ dự án gửi)*
+
+Trước đó là hệ navy theo bộ nhận diện AVATAR. Nay đổi trọn sang xanh lá;
+**tên biến giữ nguyên** (`--nav` nay là xanh lá đậm) vì chúng nói đúng VAI
+TRÒ — màu của thanh điều hướng và của mọi hành động chính — chứ không nói
+tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng được thêm gì.
+
+- Thanh bên xanh lá `#0F5132` chuyển dần xuống `#157547`, mục đang chọn
+  `#17794B` kèm vạch vàng, có **cụm lá** ở đáy (SVG nhúng, `aside::after`,
+  `pointer-events:none` nên không chắn mục nào).
+- Nền `#F1F7F3`, thẻ trắng bo `14px`, viền `#E2EDE7`, đổ bóng rất nhẹ.
+- **Thanh đầu trang là THẺ TRẮNG có phong cảnh** (trời, mây, chim, đồi,
+  cây) ở nửa phải, không còn là khối navy đậm. Chữ vì thế là chữ thường,
+  không phải chữ trắng. Mép trái hình phải tan dần bằng một lớp gradient
+  trắng phủ lên — thiếu nó là lộ một vạch dọc cắt ngang thanh.
+- **Nút trên nền trắng: nền SÁNG chữ xanh, đang chọn mới đậm.** Đảo chiều
+  so với bản navy ngày 3/8, nhưng giữ nguyên nguyên tắc của hôm ấy: nút
+  chưa chọn vẫn phải có nền và viền riêng, không được trắng trơn như nền
+  thẻ ("nhìn màu trắng không rõ"), và nút đang chọn hơn nó bằng **hai** tín
+  hiệu — màu đậm cộng đổ bóng. Có phép thử canh cả hai vế.
+- `.b-vang` nay là **xanh lá đậm** chứ không còn màu vàng. Vàng chỉ còn ở
+  logo, vạch đánh dấu mục đang mở và ô biểu tượng *Cảnh báo*.
+- Ba thẻ dưới Bảng điều hành mang **ô biểu tượng vuông bo tròn** (`.the-ic`)
+  màu theo vai trò: xanh đậm = tiến độ, xanh lá = xong, đỏ = có việc gấp,
+  vàng = cảnh báo.
+- Mỗi môn học một màu riêng (nền pastel + viền trái đậm, suy từ `--mc` bằng
+  `color-mix`), mỗi điểm trường một màu riêng. **Không dùng biểu tượng cho
+  từng môn** — chủ dự án chốt bỏ.
+- `manifest.webmanifest` và thẻ `theme-color` phải đổi theo (`#0F5132`),
+  không thì thanh trạng thái điện thoại còn navy trong khi app đã xanh.
 
 ---
 
@@ -1285,6 +1323,21 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
       `bao_nghi` và hai cột mới của `day_thay` (`da_xem`, `bao_nghi_id`).
       Chưa chạy thì app vẫn mở bình thường — đọc bằng `.catch(() => [])` —
       nhưng gửi báo nghỉ sẽ báo đúng câu "máy chủ chưa có bảng báo nghỉ".
+- [ ] **Bước tối ưu đang dừng theo ĐỒNG HỒ nên chất lượng phụ thuộc máy**
+      *(đo 16/8/2026, chủ dự án chốt để SAU KHAI GIẢNG mới làm — không đụng
+      thuật toán trong lúc đang chạy thật cho Diễn Liên)*. `toiUuHoanDoi()`
+      cắt ở 1200ms, mà bước ấy **chưa hội tụ**: cho chạy tới cùng thì 60 lớp
+      điểm phạt 7715 → **5006** (−35%), trống kẹp 114 → 14; 25 lớp 2544 →
+      2243, trống kẹp 27 → 8. Hệ quả: cùng một dữ liệu, **máy chậm ra thời
+      khóa biểu kém hơn máy nhanh** mà người dùng không biết. Cách chữa đã
+      bàn: dừng theo **số phép thử** thay vì theo giây (kết quả tất định,
+      máy nào cũng như nhau), kèm van an toàn chống treo, và nới hạn theo
+      số lớp. ⚠️ Đây cũng chính là gốc của **ba phép thử chập chờn** trong
+      `npm test` — *"Điểm phạt giảm rõ rệt"*, *"Bớt hẳn Toán và Tiếng Việt
+      bị đẩy xuống buổi chiều"*, *"Bớt hẳn tiết trống kẹp giữa buổi"* — hỏng
+      khoảng một phần ba số lần chạy khi máy đang bận. `npm run kiemdinh`
+      thỉnh thoảng cũng đỏ một mục vì đúng lý do ấy. Thấy chúng đỏ thì chạy
+      lại **một mình, lúc máy rảnh** trước khi đi tìm lỗi ở chỗ khác.
 - [ ] **Âm báo nhẹ khi có thông báo mới** *(§9 bản giao việc 3/8/2026, ghi rõ
       là tuỳ chọn)*. Chưa làm: cần một nút bật/tắt và một chỗ nhớ lựa chọn ấy,
       mà chỗ nhớ duy nhất được phép dùng là `localStorage` — vốn đang chỉ giữ
