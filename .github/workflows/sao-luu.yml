@@ -1,0 +1,118 @@
+# ============================================================
+# SAO LƯU CƠ SỞ DỮ LIỆU HẰNG ĐÊM — miễn phí
+# ------------------------------------------------------------
+# VÌ SAO CẦN
+#   Gói miễn phí của Supabase KHÔNG có sao lưu tự động. Cơ sở dữ liệu
+#   hỏng, hoặc ai đó xoá nhầm, là mất trắng — không có đường lấy lại.
+#   Với một trường thì đó đã là chuyện lớn; với nhiều trường dùng chung
+#   một cơ sở dữ liệu thì đó là hỏng tất cả cùng một lúc.
+#
+#   Đây là rủi ro nặng hơn cả chuyện vượt hạn dung lượng, vì vượt hạn
+#   thì còn biết trước mà xử lý, còn mất dữ liệu thì không.
+#
+# VÌ SAO PHẢI MÃ HOÁ
+#   Bản dump chứa họ tên, email, nơi công tác của toàn bộ giáo viên —
+#   dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP. Tệp đính kèm của một
+#   kho mã CÔNG KHAI thì ai có đường dẫn cũng tải được. Nên bản dump
+#   được mã hoá AES-256 ngay trên máy chạy, trước khi rời khỏi đó.
+#   Mất khoá là không giải mã được — cất khoá cẩn thận.
+#
+# CÀI ĐẶT MỘT LẦN — Settings → Secrets and variables → Actions:
+#   DB_URL      chuỗi kết nối Postgres của dự án Supabase.
+#               Lấy ở: Project Settings → Database → Connection string
+#               → URI, chọn cổng 5432 (direct connection).
+#               Dạng: postgresql://postgres:MẬT-KHẨU@db.xxx.supabase.co:5432/postgres
+#   BACKUP_KEY  một chuỗi dài tự đặt để mã hoá. Cất riêng ra ngoài
+#               GitHub — giấy, sổ tay, trình quản lý mật khẩu.
+#
+# LẤY BẢN SAO LƯU VỀ
+#   Tab Actions → chọn lần chạy → mục Artifacts → tải tệp .sql.gz.enc
+#   Giải mã trên máy (cần openssl, Git Bash trên Windows có sẵn):
+#     openssl enc -d -aes-256-cbc -pbkdf2 -in sao-luu.sql.gz.enc \
+#       -out sao-luu.sql.gz -pass pass:CHUỖI-BACKUP_KEY
+#     gunzip sao-luu.sql.gz
+#
+# KHÔI PHỤC
+#   psql "$DB_URL" -f sao-luu.sql
+#   ⚠️ Lệnh này GHI ĐÈ. Khôi phục cả cơ sở dữ liệu nghĩa là đè lên dữ
+#   liệu của MỌI trường, kể cả trường không gặp sự cố. Muốn cứu riêng
+#   một trường thì mở tệp .sql ra lấy đúng phần của trường ấy.
+# ============================================================
+name: Sao lưu cơ sở dữ liệu
+
+on:
+  schedule:
+    # 18:00 UTC = 1 giờ sáng giờ Việt Nam — lúc không ai dùng app
+    - cron: '0 18 * * *'
+  workflow_dispatch:          # chạy tay khi cần một bản ngay
+
+jobs:
+  sao-luu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kiểm tra đã khai đủ hai secret chưa
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+        run: |
+          thieu=""
+          [ -z "$DB_URL" ] && thieu="$thieu DB_URL"
+          [ -z "$BACKUP_KEY" ] && thieu="$thieu BACKUP_KEY"
+          if [ -n "$thieu" ]; then
+            echo "::error::Chưa khai secret:$thieu — xem hướng dẫn ở đầu tệp .github/workflows/sao-luu.yml"
+            exit 1
+          fi
+
+      # Bản pg_dump phải MỚI HƠN HOẶC BẰNG máy chủ. Ubuntu runner đi kèm
+      # bản cũ hơn Postgres của Supabase nên phải cài thẳng từ kho PGDG,
+      # không thì dump đổ với lỗi "server version mismatch".
+      - name: Cài pg_dump bản 17
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Kết xuất, nén và mã hoá
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+        run: |
+          set -euo pipefail
+          ngay=$(date -u +%Y-%m-%d)
+          # Chỉ lấy schema `public`: bảng nghiệp vụ của mình. Không đụng
+          # `auth` và các schema nội bộ của Supabase — chúng do nền tảng
+          # quản lý, dump ra vừa thừa vừa không khôi phục thẳng được.
+          pg_dump "$DB_URL" \
+            --schema=public --no-owner --no-privileges --clean --if-exists \
+            | gzip -9 > sao-luu.sql.gz
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in sao-luu.sql.gz -out "sao-luu-$ngay.sql.gz.enc" \
+            -pass env:BACKUP_KEY
+          rm -f sao-luu.sql.gz
+          echo "NGAY=$ngay" >> "$GITHUB_ENV"
+          echo "CO=$(du -h "sao-luu-$ngay.sql.gz.enc" | cut -f1)" >> "$GITHUB_ENV"
+
+      # Tệp rỗng nghĩa là pg_dump đổ giữa chừng mà vẫn thoát mã 0 — đã
+      # gặp thật với chuỗi kết nối sai cổng. Sao lưu hỏng mà báo thành
+      # công là thứ nguy hiểm nhất: yên tâm suốt nhiều tháng rồi mới biết.
+      - name: Bản sao lưu phải có thật và không rỗng
+        run: |
+          tep="sao-luu-${NGAY}.sql.gz.enc"
+          [ -s "$tep" ] || { echo "::error::Bản sao lưu rỗng — kiểm tra lại DB_URL"; exit 1; }
+          co=$(stat -c%s "$tep")
+          [ "$co" -gt 10240 ] || { echo "::error::Bản sao lưu chỉ $co byte, quá nhỏ so với một cơ sở dữ liệu thật"; exit 1; }
+
+      - name: Cất bản sao lưu
+        uses: actions/upload-artifact@v4
+        with:
+          name: sao-luu-${{ env.NGAY }}
+          path: sao-luu-*.sql.gz.enc
+          retention-days: 90      # giữ 90 ngày, mức tối đa của gói miễn phí
+
+      - name: Tóm tắt
+        run: |
+          echo "### Đã sao lưu ngày ${NGAY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tệp \`sao-luu-${NGAY}.sql.gz.enc\` — dung lượng ${CO}, giữ 90 ngày." >> "$GITHUB_STEP_SUMMARY"
+          echo "Tải ở mục **Artifacts** của lần chạy này. Cách giải mã: xem đầu tệp \`.github/workflows/sao-luu.yml\`." >> "$GITHUB_STEP_SUMMARY"
