@@ -1432,12 +1432,22 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
       `DB_URL` — chuỗi kết nối lấy ở Supabase → Project Settings →
       Database → Connection string → **URI**, cổng **5432**, nhớ thay
       `[YOUR-PASSWORD]` bằng mật khẩu thật. Rồi tab Actions → *Sao lưu
-      cơ sở dữ liệu* → **Run workflow**, và **thử giải mã một bản** —
-      sao lưu chưa từng thử khôi phục thì chưa phải là sao lưu.
+      cơ sở dữ liệu* → **Run workflow**, tải tệp ở mục Artifacts về
+      (nhớ giải nén tệp .zip ra mới thấy tệp `.sql.gz.enc`), và **soi
+      thử một bản**:
+      `npm run soi-sao-luu -- sao-luu-<ngày>.sql.gz.enc --khoa-tep="J:\Chung_Drive\App HoSoSo Truong hoc\KHOA-SAO-LUU.txt"`
+      — sao lưu chưa từng thử mở ra xem thì chưa phải là sao lưu.
       ⚠️ Tới khi xong việc này thì cơ sở dữ liệu **vẫn chưa có bản sao
       lưu nào**: gói miễn phí của Supabase không sao lưu tự động, hỏng
       là mất trắng dữ liệu của mọi trường. Cách giải mã và khôi phục nằm
-      ngay đầu `.github/workflows/sao-luu.yml`.
+      ngay đầu `.github/workflows/sao-luu.yml`; `db/soi-sao-luu.mjs`
+      *(18/8/2026)* làm sẵn đường giải mã ấy bằng Node — máy không có
+      `openssl` hay `psql` vẫn soi được, và mặc định **không ghi bản rõ
+      ra đĩa** vì bản dump là dữ liệu cá nhân của toàn bộ giáo viên.
+      Nó bắt ba thứ mà workflow không thấy được vì chúng nằm bên trong
+      lớp mã hoá: khoá cất trong sổ không mở được tệp, dump đứt giữa
+      chừng (tệp vẫn to, vẫn đúng định dạng), và dump rỗng ruột vì nối
+      nhầm cơ sở dữ liệu.
       ⚠️ Tài khoản git trên máy chủ dự án **thiếu quyền `workflow`** nên
       không push được tệp trong `.github/workflows/`. Sửa bằng
       `gh auth refresh -s workflow` (lệnh tương tác, phải tự gõ trong
