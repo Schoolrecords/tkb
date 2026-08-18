@@ -191,6 +191,96 @@ chạm cơ sở dữ liệu qua **bốn hàm**, Pha 2 chỉ cần viết lại �
 
 Ba hàm phụ trợ: `taiPhienBan(v)` (khôi phục), `dangXuat()`, `ghiNhatKy()`.
 
+#### Mỗi vai trò một đường tải — giáo viên chỉ tải phần của mình *(18/8/2026)*
+
+`taiDuLieu()` nay rẽ hai nhánh theo `KHO.nguoiDung.vaiTro`. Lý do là số đo:
+một lần mở app ở trường 40 lớp tốn **427,7 KB**, và cùng một khối ấy được
+tải cho **mọi** vai trò — kể cả thầy cô chỉ vào xem 23 ô của mình rồi tắt.
+Giáo viên đông gấp hàng chục lần cán bộ quản lý và mở app mỗi sáng, nên đây
+là khoản băng thông lớn nhất của cả hệ thống.
+
+| | trước | sau |
+|---|---|---|
+| Cán bộ quản lý | 427,7 KB · 14 truy vấn | **166,2 KB** · 14 truy vấn |
+| Giáo viên | 427,7 KB · 14 truy vấn | **20,7 KB** · 9 truy vấn |
+
+| Hàm | Việc |
+|---|---|
+| `taiChoQuanLy(t, bang)` | đủ dữ liệu để xếp lịch — đúng đường cũ, chỉ siết lại |
+| `taiChoGiaoVien(t, bang)` | bỏ hẳn phân công · phòng · buổi bận · danh sách tài khoản |
+| `luoiCuaToi()` | gọi RPC `tkb_cua_toi()`, tự lùi về đường cũ nếu máy chủ chưa có |
+| `taiLuoiDayDu()` | tải lưới cả trường **lúc giáo viên bấm sang màn xem theo lớp** |
+| `taiThemNgayNghi(tuNgay)` | Ngày công xem tháng cũ thì tải bổ sung đúng khoảng thiếu |
+
+Năm điều bắt buộc, cả năm đều có phép thử (`npm test` mục 19):
+
+- **Lọc theo người phải lọc ở MÁY CHỦ.** `tkb_cua_toi()` trong
+  `db/tai-nhe.sql` cố ý để `security invoker` — quy tắc `p_tkb_doc` vẫn
+  nguyên hiệu lực nên giáo viên chỉ đọc được bản **đã công bố** của đúng
+  trường mình. Hàm ấy chỉ lọc bớt, không mở thêm cửa nào.
+- **Chưa nối hồ sơ giáo viên thì KHÔNG lấy dòng nào**, chứ tuyệt đối không
+  rơi về dòng của người đầu danh sách — thầy cô sẽ xem nhầm lịch đồng
+  nghiệp mà không hay. Bộ lọc dùng `ngay=gte.9999-12-31` cho chắc.
+- **Luôn có đường lui.** Máy chủ chưa chạy `db/tai-nhe.sql` thì `luoiCuaToi()`
+  bắt lỗi 404 và tải nguyên khối như cũ. Nâng cấp phần mềm không bao giờ
+  được làm một trường đang chạy tốt bỗng hỏng.
+- **`KHO.luoiDayDu` là cờ nói S.tkb đang giữ gì.** Giáo viên mở app thì
+  `false` (mới có lịch một người); `chuyen()` thấy màn cần lưới cả trường
+  thì gọi `taiLuoiDayDu()` rồi vẽ lại. Quản lý luôn `true`.
+- **Tải bổ sung không phải là việc chưa lưu** — `taiLuoiDayDu()` gọi
+  `chotVanTay()` sau khi nạp, không thì dải đỏ *"Có thay đổi chưa lưu"*
+  hiện lên trong khi người dùng chưa sửa gì.
+
+⚠️ Hai bảng `day_thay` và `bao_nghi` trước đây lấy `limit=300` dòng mới nhất
+cho mọi vai trò — **255 KB, tức 60% toàn bộ một lần mở**, nặng hơn cả khối
+thời khóa biểu. Tệ hơn: một năm học sinh ra chừng 1.400 dòng dạy thay, nên
+`limit=300` **âm thầm cắt mất** dữ liệu các tháng trước và bảng Ngày công
+thiếu dòng mà không ai biết. Nay lọc theo **ngày** (từ đầu tháng trước), và
+`taiThemNgayNghi()` tải bổ sung khi xem tháng cũ hơn.
+
+#### Chỗ chứa không phình vô hạn — `luu_tkb()` tự dọn *(18/8/2026)*
+
+Mỗi lần bấm Lưu là thêm một dòng, không ghi đè — chủ ý, để có lịch sử phiên
+bản miễn phí. Nhưng một mùa xếp bấm Lưu chừng 60 lần mà **59 bản không ai
+xem lại bao giờ**: 300 trường là 903 MB ngay mùa đầu, vượt gấp đôi hạn
+500 MB của gói miễn phí.
+
+Hai việc, cả hai nằm gọn trong `luu_tkb()` nên không cần tiến trình nền:
+
+- **Gộp các lần lưu liên tiếp.** Bản mới nhất nếu là **của chính mình**,
+  **chưa công bố**, và **cách đây dưới 10 phút** thì ghi đè lên chính nó.
+  Ba điều kiện đều bắt buộc: bản của đồng nghiệp thì không đụng, bản thầy
+  cô đang xem thì không được đổi ruột, cách nhau nửa buổi là hai lần làm
+  việc khác nhau.
+- **`don_du_lieu_cu(p_truong)`** giữ **10 bản gần nhất + mọi bản đã công
+  bố**, và xoá nhật ký cũ hơn 18 tháng.
+
+⚠️ Hàm dọn cố ý là `security definer` **và tự kiểm quyền ở dòng đầu**. Mở
+hẳn một quy tắc `DELETE` trên `tkb_phien_ban` nghĩa là bất kỳ cán bộ quản lý
+nào cũng xoá được phiên bản bất kỳ — kể cả bản đã công bố mà thầy cô đang
+xem. Xoá bản cũ là việc của **hệ thống**, không phải quyền của người dùng.
+
+Đo lại sau khi làm: **903 MB → 150 MB**, băng thông **40,4 GB → 2,0 GB**
+mỗi tháng ở quy mô 300 trường. Cả hai đều vừa gói miễn phí.
+
+#### Sao lưu hằng đêm — `.github/workflows/sao-luu.yml` *(18/8/2026)*
+
+Gói miễn phí của Supabase **không có sao lưu tự động**. Đây là rủi ro nặng
+hơn cả chuyện vượt hạn dung lượng: vượt hạn thì còn biết trước mà xử lý,
+mất dữ liệu thì không. Lịch chạy 1 giờ sáng, `pg_dump` schema `public` →
+gzip → **mã hoá AES-256** → cất làm tệp đính kèm, giữ 90 ngày.
+
+⚠️ **Bắt buộc mã hoá.** Bản dump chứa họ tên và email toàn bộ giáo viên —
+dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP — mà tệp đính kèm của một kho
+mã công khai thì ai có đường dẫn cũng tải được. Cần hai secret: `DB_URL`
+và `BACKUP_KEY`; **mất khoá là không giải mã được**.
+
+⚠️ Có bước kiểm bản dump **không rỗng và lớn hơn 10 KB**. `pg_dump` từng
+đổ giữa chừng mà vẫn thoát mã 0 khi chuỗi kết nối sai cổng — sao lưu hỏng
+mà báo thành công là thứ nguy hiểm nhất: yên tâm suốt nhiều tháng rồi mới
+biết.
+
+
 Ba thứ cần nhớ khi sửa vùng này:
 
 - **Luôn có đường lui.** Không có `src/cauhinh.js`, chưa đăng nhập, hoặc mất
@@ -1325,9 +1415,21 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
 - [ ] Dọn hồ sơ giáo viên và lớp thừa của bộ dữ liệu thử trên máy chủ thật
       *(2/8/2026)*. Chạy `db/soi-tai-khoan-gv.sql` để biết còn sót gì.
 - [ ] **Chạy `db/cai-dat.sql` lại một lần trên máy chủ thật** để có bảng
-      `bao_nghi` và hai cột mới của `day_thay` (`da_xem`, `bao_nghi_id`).
-      Chưa chạy thì app vẫn mở bình thường — đọc bằng `.catch(() => [])` —
-      nhưng gửi báo nghỉ sẽ báo đúng câu "máy chủ chưa có bảng báo nghỉ".
+      `bao_nghi`, hai cột mới của `day_thay` (`da_xem`, `bao_nghi_id`), và
+      ba thứ thêm ngày 18/8/2026: hàm `tkb_cua_toi()` (giáo viên chỉ tải
+      lịch của mình), `don_du_lieu_cu()` và bản `luu_tkb()` biết gộp lần
+      lưu liên tiếp. Chưa chạy thì app vẫn mở bình thường — đọc bằng
+      `.catch(() => [])`, và `luoiCuaToi()` tự lùi về đường tải cũ — nhưng
+      gửi báo nghỉ sẽ báo đúng câu "máy chủ chưa có bảng báo nghỉ", còn
+      chỗ chứa thì vẫn phình vì không có gì dọn phiên bản cũ.
+- [ ] **Khai hai secret cho lịch sao lưu hằng đêm** *(18/8/2026)*. Vào
+      Settings → Secrets and variables → Actions của kho mã, thêm `DB_URL`
+      (chuỗi kết nối Postgres, cổng 5432) và `BACKUP_KEY` (chuỗi tự đặt để
+      mã hoá). Rồi chạy tay một lần ở tab Actions và **thử giải mã một
+      bản** — sao lưu chưa từng thử khôi phục thì chưa phải là sao lưu.
+      Gói miễn phí của Supabase không có sao lưu tự động, nên tới khi làm
+      xong việc này thì cơ sở dữ liệu vẫn đang không có đường lấy lại.
+      Hướng dẫn từng bước nằm ngay đầu `.github/workflows/sao-luu.yml`.
 - [ ] **Bước tối ưu đang dừng theo ĐỒNG HỒ nên chất lượng phụ thuộc máy**
       *(đo 16/8/2026, chủ dự án chốt để SAU KHAI GIẢNG mới làm — không đụng
       thuật toán trong lúc đang chạy thật cho Diễn Liên)*. `toiUuHoanDoi()`

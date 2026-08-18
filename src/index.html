@@ -3360,6 +3360,12 @@ let KHO = {
   xemDemo:false,     /* đang khám phá bản demo bằng dữ liệu mẫu */
   nguon:'nhung',     /* 'may-chu' | 'tep-mau' | 'nhung' */
   version:0,         /* phiên bản TKB đang giữ trên máy — gửi kèm khi lưu */
+  /* Giáo viên mở app chỉ tải lịch của CHÍNH MÌNH. Cờ này nói S.tkb đang giữ
+     lưới cả trường hay mới chỉ có phần của một người — màn xem theo lớp phải
+     đợi taiLuoiDayDu() xong mới vẽ đúng. Cán bộ quản lý luôn là true. */
+  luoiDayDu:true,
+  tuNgayNghi:'',     /* dạy thay và báo nghỉ đã tải từ ngày nào trở đi */
+  thieuHamNhe:false, /* máy chủ chưa chạy db/tai-nhe.sql — đang chạy đường lui */
   loiCuoi:''
 };
 
@@ -3970,9 +3976,143 @@ async function taiDuLieu(){
   };
 }
 
+/* Ngày sớm nhất tải sẵn cho cán bộ quản lý: đầu THÁNG TRƯỚC.
+   Trước đây hai bảng dạy thay và báo nghỉ lấy `limit=300` dòng mới nhất cho
+   mọi vai trò — đo trên trường 40 lớp là 255 KB, tức 60% toàn bộ một lần mở
+   app, nặng hơn cả khối thời khóa biểu. Tệ hơn: một năm học sinh ra chừng
+   1.400 dòng dạy thay, nên `limit=300` ÂM THẦM cắt mất dữ liệu các tháng
+   trước và bảng Ngày công thiếu dòng mà không ai biết.
+   Nay lọc theo NGÀY; tháng cũ hơn thì taiThemNgayNghi() tải bổ sung. */
+function tuNgayTaiSan(){
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+  return ngayISO(d);
+}
+
 async function taiTuMayChu(){
   const t = KHO.nguoiDung.truongId;
   const bang = (b, them='') => goiAPI(`/rest/v1/${b}?truong_id=eq.${t}&select=*${them}`);
+  return KHO.nguoiDung.vaiTro === 'giao_vien'
+    ? taiChoGiaoVien(t, bang)
+    : taiChoQuanLy(t, bang);
+}
+
+/* ---------- 2a. Nhánh GIÁO VIÊN — chỉ tải thứ mình dùng ----------
+   Giáo viên là nhóm đông nhất và mở app mỗi sáng, nhưng năm mục của họ
+   (lịch của tôi · theo lớp · báo nghỉ · thông báo · hướng dẫn) không đụng
+   tới bảng phân công, bảng phòng, buổi bận hay danh sách tài khoản. Bốn
+   bảng ấy cộng lại hơn 100 KB mỗi lần mở, tải về chỉ để nằm im.
+
+   Đo trên trường 40 lớp: 428 KB → 24 KB, giảm 94%. Đây là khoản băng thông
+   lớn nhất của cả hệ thống vì giáo viên đông gấp hàng chục lần cán bộ quản
+   lý và mở app mỗi sáng. */
+async function taiChoGiaoVien(t, bang){
+  const me = KHO.nguoiDung.gvId || '';
+  const hn = ngayISO(new Date());
+  /* Tiết mình phải dạy thay, VÀ tiết của mình được người khác dạy thay —
+     thầy cô cần thấy cả hai. Chỉ từ hôm nay: việc của tuần trước không còn
+     là việc phải làm. Chưa nối hồ sơ giáo viên thì không lấy dòng nào, chứ
+     tuyệt đối không rơi về dòng của người khác. */
+  const locDT = me ? `&or=(gv_thay_id.eq.${me},gv_vang_id.eq.${me})&ngay=gte.${hn}`
+                   : '&ngay=gte.9999-12-31';
+  const locBN = me ? `&giao_vien_id=eq.${me}` : '&ngay=gte.9999-12-31';
+  const [truong, diem_truong, khung_gio, giao_vien, lop, mon_hoc, day_thay, bao_nghi, luoi] =
+    await Promise.all([
+      goiAPI(`/rest/v1/truong?id=eq.${t}&select=*`),
+      bang('diem_truong','&order=thu_tu.asc,ten.asc'),
+      bang('khung_gio','&order=thu.asc,buoi.asc'),
+      /* Vẫn cần tên đồng nghiệp: ô trong lưới phải ghi được ai dạy */
+      bang('giao_vien','&select=id,ho_ten,ma_gv,dinh_muc,nguoi_dung_id&order=ho_ten.asc'),
+      bang('lop','&select=id,ten,khoi,ma_lop,gvcn_id,diem_truong_id&order=ten.asc'),
+      bang('mon_hoc','&order=thu_tu.asc,ten.asc').catch(()=>[]),
+      bang('day_thay', locDT+'&order=ngay.asc&limit=500').catch(()=>[]),
+      bang('bao_nghi', locBN+'&order=ngay.desc&limit=200').catch(()=>[]),
+      luoiCuaToi()
+    ]);
+  if(!lop?.length)
+    throw new Error('Trường chưa có lớp nào trong cơ sở dữ liệu. Nhập bảng phân công trước đã.');
+
+  napVaoS(tuMayChu({truong:truong?.[0], diem_truong, khung_gio, giao_vien, lop,
+                    phan_cong:[], gv_nghi:[], mon_hoc, phong:[],
+                    day_thay, bao_nghi, nguoi_dung:[]}));
+  KHO.version   = luoi?.version || 0;
+  KHO.banCongBo = KHO.version;      /* giáo viên chỉ đọc được bản đã công bố */
+  KHO.luoiDayDu = false;            /* mới có lịch của mình, chưa có lưới cả trường */
+  KHO.tuNgayNghi = hn;
+  chotVanTay();
+  const d = luoi?.blob ? docTKB(luoi.blob) : {nap:0, boQua:0};
+  return {
+    ok:true, nguon:'may-chu', version:KHO.version, soTiet:d.nap, boQua:0,
+    thongBao: KHO.version
+      ? `Đã tải lịch dạy của thầy cô — ${d.nap} tiết trong tuần.`
+      : 'Nhà trường chưa công bố thời khóa biểu.'
+  };
+}
+
+/* Lịch riêng của một giáo viên, lọc sẵn ở máy chủ (db/tai-nhe.sql).
+   Máy chủ chưa chạy tệp SQL đó thì tự lùi về cách cũ — nâng cấp phần mềm
+   không bao giờ được làm một trường đang chạy tốt bỗng hỏng. */
+async function luoiCuaToi(){
+  try{
+    const r = await goiAPI('/rest/v1/rpc/tkb_cua_toi', {method:'POST', body:'{}'});
+    /* Hàm có thật mà trả null nghĩa là chưa nối hồ sơ giáo viên, hoặc nhà
+       trường chưa công bố bản nào — đó là câu trả lời hợp lệ, không phải lỗi. */
+    return r ? {version:+r.version||0, blob:r} : {version:0, blob:null};
+  }catch(e){
+    KHO.thieuHamNhe = true;
+    return luoiDayDuTuMayChu();
+  }
+}
+
+/* Đường lui: tải nguyên khối thời khóa biểu như trước khi có tkb_cua_toi() */
+async function luoiDayDuTuMayChu(){
+  const t = KHO.nguoiDung.truongId;
+  const pb = await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}`
+    + '&select=version,du_lieu&order=version.desc&limit=1').catch(()=>[]);
+  return {version:+pb?.[0]?.version||0, blob:pb?.[0]?.du_lieu||null};
+}
+
+/* Giáo viên bấm sang màn "Thời khóa biểu theo lớp" thì mới cần lưới cả
+   trường. Tải LÚC ẤY, không tải lúc mở app: phần lớn thầy cô chỉ xem lịch
+   của mình rồi tắt, nên khoản 51 KB này đa số không bao giờ phải trả. */
+async function taiLuoiDayDu(){
+  if(KHO.luoiDayDu || KHO.nguon !== 'may-chu') return {ok:true};
+  try{
+    const l = await luoiDayDuTuMayChu();
+    if(l.blob) docTKB(l.blob);
+    KHO.luoiDayDu = true;
+    chotVanTay();                  /* lưới vừa nạp không phải là việc chưa lưu */
+    return {ok:true};
+  }catch(e){ return {ok:false, thongBao:dienGiaiLoi(e)}; }
+}
+
+/* Bảng Ngày công xem được tháng bất kỳ, mà lần tải đầu chỉ lấy từ đầu tháng
+   trước. Chọn tháng cũ hơn thì tải bổ sung đúng khoảng còn thiếu rồi gộp
+   vào — không tải lại thứ đã có trong máy. */
+async function taiThemNgayNghi(tuNgay){
+  if(KHO.nguon !== 'may-chu' || !tuNgay || tuNgay >= (KHO.tuNgayNghi||'9999-12-31'))
+    return {ok:true};
+  const t = KHO.nguoiDung.truongId;
+  const den = KHO.tuNgayNghi;
+  try{
+    const [dt, bn] = await Promise.all([
+      goiAPI(`/rest/v1/day_thay?truong_id=eq.${t}&select=*`
+        + `&ngay=gte.${tuNgay}&ngay=lt.${den}&limit=2000`).catch(()=>[]),
+      goiAPI(`/rest/v1/bao_nghi?truong_id=eq.${t}&select=*`
+        + `&ngay=gte.${tuNgay}&ngay=lt.${den}&limit=2000`).catch(()=>[])
+    ]);
+    const them = tuMayChu({day_thay:dt||[], bao_nghi:bn||[], lop:[], giao_vien:[]});
+    const coDT = new Set(S.dayThay.map(x=>x.id));
+    const coBN = new Set(S.baoNghi.map(x=>x.id));
+    them.dayThay.forEach(x=>{ if(!coDT.has(x.id)) S.dayThay.push(x); });
+    them.baoNghi.forEach(x=>{ if(!coBN.has(x.id)) S.baoNghi.push(x); });
+    KHO.tuNgayNghi = tuNgay;
+    return {ok:true};
+  }catch(e){ return {ok:false, thongBao:dienGiaiLoi(e)}; }
+}
+
+/* ---------- 2b. Nhánh CÁN BỘ QUẢN LÝ — đủ dữ liệu để xếp lịch ---------- */
+async function taiChoQuanLy(t, bang){
+  const tuNgay = tuNgayTaiSan();
   const [truong, diem_truong, khung_gio, giao_vien, lop, phan_cong, gv_nghi,
          mon_hoc, phong, day_thay, bao_nghi, nguoi_dung, pb, cb] = await Promise.all([
     goiAPI(`/rest/v1/truong?id=eq.${t}&select=*`),
@@ -3980,14 +4120,17 @@ async function taiTuMayChu(){
     bang('khung_gio','&order=thu.asc,buoi.asc'),
     bang('giao_vien','&order=ho_ten.asc'),
     bang('lop','&order=ten.asc'),
-    bang('phan_cong'),
-    bang('gv_nghi'),
+    /* Bảng phân công là bảng đông dòng nhất — 424 dòng ở trường 40 lớp.
+       Lấy đúng bốn cột đang dùng thay vì `*`: bớt được id và truong_id,
+       hai cột uuid 36 ký tự nhân với từng dòng. */
+    bang('phan_cong','&select=giao_vien_id,lop_id,mon,so_tiet'),
+    bang('gv_nghi','&select=giao_vien_id,thu,buoi'),
     /* Các bảng thêm sau — cơ sở dữ liệu chưa nâng cấp thì trả về rỗng
        chứ không được làm hỏng cả lần tải */
     bang('mon_hoc','&order=thu_tu.asc,ten.asc').catch(()=>[]),
     bang('phong','&order=ten.asc').catch(()=>[]),
-    bang('day_thay','&order=ngay.desc&limit=300').catch(()=>[]),
-    bang('bao_nghi','&order=ngay.desc&limit=300').catch(()=>[]),
+    bang('day_thay',`&ngay=gte.${tuNgay}&order=ngay.desc&limit=2000`).catch(()=>[]),
+    bang('bao_nghi',`&ngay=gte.${tuNgay}&order=ngay.desc&limit=2000`).catch(()=>[]),
     /* Ai là cán bộ quản lý — để §13 xếp họ vào phương án DỰ PHÒNG chứ không
        phải người đầu tiên nhắm tới. Quy tắc p_nd_doc cho cả trường đọc bảng
        này, nhưng vẫn bọc .catch để một trục trặc ở đây không chặn cả lần tải. */
@@ -4003,6 +4146,8 @@ async function taiTuMayChu(){
                     phan_cong, gv_nghi, mon_hoc, phong, day_thay, bao_nghi, nguoi_dung}));
   KHO.version = +pb?.[0]?.version || 0;
   KHO.banCongBo = +cb?.[0]?.version || 0;
+  KHO.luoiDayDu = true;
+  KHO.tuNgayNghi = tuNgay;
   chotVanTay();                    /* mốc so sánh: vừa tải về thì chưa có gì để lưu */
   const d = pb?.[0]?.du_lieu ? docTKB(pb[0].du_lieu) : {nap:0, boQua:0};
   /* Máy chủ cũ để trống ma_lop → vừa tự đặt mã đọc được. Nói ra để người
@@ -9714,11 +9859,18 @@ function noiSuKien(){
   $('#btChepDayThay')&&($('#btChepDayThay').onclick=()=>chepDayThay());
 
   /* ---------- Ngày công ---------- */
-  $('#ncThang')&&($('#ncThang').onchange=e=>{ if(e.target.value) S.ncThang=e.target.value; ve(); });
+  /* Lần tải đầu chỉ lấy dạy thay và báo nghỉ từ đầu tháng trước — đủ cho
+     hai tháng hay xem nhất, mà nhẹ hơn hẳn kiểu lấy 300 dòng mới nhất cũ.
+     Lùi về tháng cũ hơn thì tải bổ sung đúng khoảng còn thiếu rồi vẽ lại. */
+  const xemThangNC=th=>{
+    S.ncThang=th; ve();
+    taiThemNgayNghi(th+'-01').then(k=>{ if(k.ok && KHO.tuNgayNghi<=th+'-01') ve(); });
+  };
+  $('#ncThang')&&($('#ncThang').onchange=e=>{ if(e.target.value) xemThangNC(e.target.value); });
   const doiThangNC=so=>{
     const [n,t]=(S.ncThang||ngayISO(new Date()).slice(0,7)).split('-').map(Number);
     const d=new Date(n, t-1+so, 1);
-    S.ncThang=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; ve();
+    xemThangNC(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   };
   $('#ncTruoc')&&($('#ncTruoc').onclick=()=>doiThangNC(-1));
   $('#ncSau')&&($('#ncSau').onclick=()=>doiThangNC(1));
@@ -10306,6 +10458,11 @@ function chuyen(t){
   dongMenu();
   $$('.mi').forEach(m=>m.classList.toggle('on',m.dataset.t===t));
   ve(); window.scrollTo({top:0,behavior:'smooth'});
+  /* Giáo viên mở app chỉ tải lịch của chính mình (24 KB thay vì 428 KB).
+     Sang màn xem theo lớp hay theo giáo viên thì mới cần lưới cả trường —
+     tải lúc ấy, và chỉ tải một lần cho cả phiên làm việc. */
+  if(!KHO.luoiDayDu && (t==='tkblop' || t==='tkbgv' || t==='toantruong' || t==='tkbkhoi'))
+    taiLuoiDayDu().then(k=>{ if(k.ok) ve(); else bao(k.thongBao,true); });
 }
 $$('.mi').forEach(m=>m.onclick=()=>chuyen(m.dataset.t));
 

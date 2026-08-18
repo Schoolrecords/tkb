@@ -216,6 +216,52 @@ create policy p_nk_ghi on nhat_ky for insert
   with check (truong_id = truong_cua_toi());
 
 -- ============================================================
+-- DỌN DỮ LIỆU CŨ — giữ chỗ chứa không phình vô hạn
+-- ------------------------------------------------------------
+-- VÌ SAO CẦN
+--   Mỗi lần bấm Lưu là THÊM một dòng, không ghi đè — chủ ý, để có
+--   lịch sử phiên bản miễn phí. Nhưng một mùa xếp lịch bấm Lưu chừng
+--   60 lần, mà 59 bản trong đó không ai xem lại bao giờ. Với một
+--   trường 40 lớp thì mỗi bản ~57 KB, tức 3,4 MB mỗi trường mỗi mùa.
+--   Nhân với 300 trường là 1 GB — vượt gấp đôi hạn 500 MB của gói
+--   miễn phí, ngay mùa đầu tiên.
+--
+-- VÌ SAO LÀ security definer
+--   Xoá bản cũ là việc của HỆ THỐNG, không phải quyền của người dùng.
+--   Mở hẳn một quy tắc DELETE trên tkb_phien_ban nghĩa là bất kỳ cán bộ
+--   quản lý nào cũng xoá được phiên bản bất kỳ — kể cả bản đã công bố
+--   mà thầy cô đang xem. Hàm này chỉ làm đúng một việc hẹp, và vẫn tự
+--   kiểm quyền ở dòng đầu chứ không tin người gọi.
+-- ============================================================
+create or replace function don_du_lieu_cu(p_truong uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  c_giu constant integer := 10;   -- số bản gần nhất luôn giữ lại
+  v_moc integer;
+begin
+  -- Tự kiểm quyền: không tin tham số người gọi truyền vào
+  if p_truong is null or p_truong <> truong_cua_toi() or not la_quan_ly() then
+    return;
+  end if;
+
+  select max(version) - c_giu into v_moc
+    from tkb_phien_ban where truong_id = p_truong;
+
+  -- Bản ĐÃ CÔNG BỐ thì giữ mãi: đó là bản thầy cô đang xem, và là bản
+  -- nhà trường chịu trách nhiệm. Chỉ dọn những bản nháp giữa chừng.
+  if v_moc is not null then
+    delete from tkb_phien_ban
+     where truong_id = p_truong and cong_bo = false and version <= v_moc;
+  end if;
+
+  -- Nhật ký chỉ giữ metadata nhỏ nên phình chậm, nhưng để lâu vẫn dồn.
+  -- 18 tháng đủ phủ trọn một năm học cộng phần đầu năm sau.
+  delete from nhat_ky
+   where truong_id = p_truong and thoi_diem < now() - interval '18 months';
+end $$;
+
+-- ============================================================
 -- LƯU THỜI KHÓA BIỂU KÈM KHÓA LẠC QUAN
 -- Client gửi version đang giữ. Nếu trên máy chủ đã cao hơn thì
 -- từ chối, tránh hai phó hiệu trưởng ghi đè nhau.
@@ -224,7 +270,10 @@ create or replace function luu_tkb(
   p_truong uuid, p_version integer, p_du_lieu jsonb, p_ghi_chu text default null)
 returns table (ok boolean, version_moi integer, thong_bao text)
 language plpgsql security invoker as $$
-declare v_hien integer;
+declare
+  c_giay constant integer := 600;  -- cửa sổ gộp: 10 phút
+  v_hien integer;
+  v_gop  uuid;
 begin
   select coalesce(max(version), 0) into v_hien
     from tkb_phien_ban where truong_id = p_truong;
@@ -235,8 +284,33 @@ begin
     return;
   end if;
 
+  -- GỘP các lần lưu liên tiếp: người xếp lịch hay bấm Lưu vài phút một
+  -- lần suốt buổi tối. Không ai cần quay lại bản của 5 phút trước, nên
+  -- ghi đè lên chính bản vừa lưu thay vì đẻ thêm dòng.
+  -- Ba điều kiện đều bắt buộc:
+  --   cùng người   — bản của đồng nghiệp thì tuyệt đối không đụng
+  --   chưa công bố — bản thầy cô đang xem thì không được đổi ruột
+  --   còn trong cửa sổ — cách nhau nửa buổi là hai lần làm việc khác nhau
+  select id into v_gop from tkb_phien_ban
+   where truong_id = p_truong and version = v_hien
+     and cong_bo = false and nguoi_sua = auth.uid()
+     and tao_luc > now() - make_interval(secs => c_giay)
+   limit 1;
+
+  if v_gop is not null then
+    update tkb_phien_ban
+       set du_lieu = p_du_lieu,
+           ghi_chu = coalesce(p_ghi_chu, ghi_chu),
+           tao_luc = now()
+     where id = v_gop;
+    return query select true, v_hien, 'Đã lưu'::text;
+    return;
+  end if;
+
   insert into tkb_phien_ban (truong_id, version, du_lieu, ghi_chu, nguoi_sua)
   values (p_truong, v_hien + 1, p_du_lieu, p_ghi_chu, auth.uid());
+
+  perform don_du_lieu_cu(p_truong);
 
   return query select true, v_hien + 1, 'Đã lưu'::text;
 end $$;

@@ -37,6 +37,7 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [], addEventL
 const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}\n; return {
   S, xepTuDong, kiemTra, buoiBat, KHO, NGUON, khungGioMacDinh,
   taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat, taiNhatKy,
+  taiChoGiaoVien, taiChoQuanLy, taiLuoiDayDu, taiThemNgayNghi, coThayDoiChuaLuu,
   tuMayChu, napVaoS, dongGoiTKB, docTKB, taiCauHinh,
   diaChiDangNhapGoogle, donVeOAuth, dungMaMoi, sinhMaMoi, taoMaMoi, dsMaMoi,
   tietVangCua, goiYDayThay, luuDayThay, xoaDayThay,
@@ -2328,6 +2329,174 @@ console.log('\n19. Mã giáo viên đọc được');
     const uuid = mau.gv.slice(1).filter(h => /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(h[1])));
     return [uuid.length === 0, `${mau.gv.length - 1} dòng, 0 mã UUID`];
   })()));
+}
+
+
+/* ==================================================================
+   19. TẢI NHẸ CHO GIÁO VIÊN
+   ------------------------------------------------------------------
+   Giáo viên là nhóm đông nhất và mở app mỗi sáng. Trước 18/8/2026 mọi
+   vai trò đều đi qua đúng một đường tải 14 truy vấn `select=*`, đo trên
+   trường 40 lớp là 428 KB — trong đó bảng phân công, bảng phòng, buổi
+   bận và danh sách tài khoản tải về chỉ để nằm im.
+
+   Bốn điều phải giữ, và đây là chỗ dễ hỏng ngầm nhất: tải thiếu thì
+   màn hình vẫn vẽ ra được, chỉ là thiếu dữ liệu — không có lỗi nào nổ.
+   ================================================================== */
+{
+  console.log('\n\x1b[1m19. Tải nhẹ cho giáo viên\x1b[0m');
+
+  /* Máy chủ giả riêng cho mục này: ghi lại MỌI đường dẫn được gọi, để
+     đếm được cái gì đã tải và cái gì đã bỏ qua. */
+  const dungMayChuGV = ({ coHamNhe = true, gvId = 'g5' } = {}) => {
+    const GOI = [];
+    const dap = (d, ma = 200) => Promise.resolve({
+      ok: ma < 400, status: ma, text: () => Promise.resolve(JSON.stringify(d)) });
+    const lop = [{ id: 'L1', ten: '1A', khoi: 1, ma_lop: '1A_DL', gvcn_id: 'g5', diem_truong_id: 'dt1' },
+                 { id: 'L2', ten: '2A', khoi: 2, ma_lop: '2A_DL', gvcn_id: 'g6', diem_truong_id: 'dt1' }];
+    const gv = [{ id: 'g5', ho_ten: 'Nguyễn Thị Hương', ma_gv: 'Hương_NT', dinh_muc: 23, nguoi_dung_id: 'u5' },
+                { id: 'g6', ho_ten: 'Trần Thị Dung', ma_gv: 'Dung_TT', dinh_muc: 23, nguoi_dung_id: 'u6' }];
+    /* Lưới cả trường: 4 ô, trong đó 2 ô của g5 */
+    const luoiDayDu = { v: 1, tkb: {
+      L1: { '2-S-1': { gvId: 'g5', mon: 'Toán' }, '2-S-2': { gvId: 'g6', mon: 'Tiếng Việt' } },
+      L2: { '3-S-1': { gvId: 'g5', mon: 'Toán' }, '3-S-2': { gvId: 'g6', mon: 'Tiếng Việt' } } } };
+
+    const mang = (url, opt = {}) => {
+      GOI.push(url);
+      const co = s => url.includes(s);
+      const than = opt.body ? JSON.parse(opt.body) : null;
+      if (co('/auth/v1/token')) return dap({ access_token: 'V', refresh_token: 'R',
+        user: { id: 'u5', email: 'huong@t.vn' } });
+      if (co('/nguoi_dung?')) return dap([{ id: 'u5', ho_ten: 'Nguyễn Thị Hương', email: 'huong@t.vn',
+        vai_tro: 'giao_vien', truong_id: 't1', diem_truong_id: null, truong: { ten: 'Trường Tiểu học mới' } }]);
+      if (co('/giao_vien?nguoi_dung_id=')) return dap([{ id: gvId, ho_ten: 'Nguyễn Thị Hương' }]);
+      if (co('/rpc/tkb_cua_toi')) {
+        if (!coHamNhe) return dap({ message: 'Could not find the function public.tkb_cua_toi' }, 404);
+        const tkb = {};
+        Object.entries(luoiDayDu.tkb).forEach(([lp, o]) => {
+          const giu = Object.fromEntries(Object.entries(o).filter(([, v]) => v.gvId === gvId));
+          if (Object.keys(giu).length) tkb[lp] = giu;
+        });
+        return dap({ version: 7, tkb });
+      }
+      if (co('/truong?id=')) return dap([{ id: 't1', ten: 'Trường Tiểu học mới', nam_hoc: '2026-2027' }]);
+      if (co('/diem_truong?')) return dap([{ id: 'dt1', ten: 'Điểm trường Diễn Liên', co_phong_tin: true }]);
+      if (co('/khung_gio?')) return dap([{ thu: 2, buoi: 'S', so_tiet: 4, bat: true },
+                                         { thu: 3, buoi: 'S', so_tiet: 4, bat: true }]);
+      if (co('/giao_vien?')) return dap(gv);
+      if (co('/lop?')) return dap(lop);
+      if (co('/mon_hoc?')) return dap([]);
+      if (co('/day_thay')) return dap([{ id: 'dt-1', ngay: '2026-09-15', buoi: 'S', tiet: 1,
+        lop_id: 'L1', mon: 'Toán', gv_vang_id: 'g6', gv_thay_id: gvId, da_xem: false }]);
+      if (co('/bao_nghi')) return dap([{ id: 'bn-1', giao_vien_id: gvId, ngay: '2026-09-10',
+        buoi_nghi: 'S', ly_do: 'om', trang_thai: 'xong' }]);
+      if (co('/tkb_phien_ban?')) return dap([{ version: 7, du_lieu: luoiDayDu }]);
+      return dap({ message: 'Đường dẫn lạ: ' + url }, 404);
+    };
+    const app = taoUngDung(documentGia,
+      { CAU_HINH: { SUPABASE_URL: 'https://gia.supabase.co/', SUPABASE_ANON: 'k' },
+        location: { protocol: 'https:' } }, mang);
+    return { app, GOI, luoiDayDu };
+  };
+
+  /* ---------- a) Nhánh giáo viên bỏ hẳn bốn bảng không dùng ---------- */
+  const A = dungMayChuGV();
+  await A.app.dangNhap('huong@t.vn', 'x');
+  const mocA = A.GOI.length;              /* mốc: chỉ đếm phần TẢI DỮ LIỆU */
+  const taiGV = await A.app.taiDuLieu();
+  const duong = A.GOI.slice(mocA).join(' | ');
+
+  kt('Giáo viên đăng nhập thì tải bằng nhánh nhẹ, không phải nhánh quản lý',
+     taiGV.ok === true && taiGV.nguon === 'may-chu');
+
+  kt('KHÔNG tải bảng phân công — bảng đông dòng nhất, giáo viên không dùng tới',
+     !/\/phan_cong\?/.test(duong));
+  kt('KHÔNG tải bảng phòng, buổi bận, danh sách tài khoản',
+     !/\/phong\?/.test(duong) && !/\/gv_nghi\?/.test(duong) && !/\/nguoi_dung\?truong_id/.test(duong));
+
+  kt('Lấy lịch riêng qua hàm tkb_cua_toi(), không kéo cả khối TKB toàn trường',
+     /\/rpc\/tkb_cua_toi/.test(duong) && !/\/tkb_phien_ban\?/.test(duong));
+
+  kt('Chỉ nạp đúng tiết của mình vào lưới', ...((() => {
+    const o = A.app.S.tkb;
+    const tong = Object.values(o).reduce((s, x) => s + Object.keys(x).length, 0);
+    const cuaNguoiKhac = Object.values(o).flatMap(x => Object.values(x))
+      .filter(v => v.gvId !== 'g5').length;
+    return [tong === 2 && cuaNguoiKhac === 0, `${tong} tiết, 0 tiết của người khác`];
+  })()));
+
+  kt('Dạy thay lọc theo chính mình VÀ từ hôm nay trở đi', (() => {
+    const u = A.GOI.slice(mocA).find(x => x.includes('/day_thay')) || '';
+    return /gv_thay_id\.eq\.g5/.test(u) && /gv_vang_id\.eq\.g5/.test(u) && /ngay=gte\.\d{4}-/.test(u);
+  })());
+  kt('Báo nghỉ chỉ lấy hồ sơ của chính mình', (() => {
+    const u = A.GOI.slice(mocA).find(x => x.includes('/bao_nghi')) || '';
+    return /giao_vien_id=eq\.g5/.test(u);
+  })());
+
+  kt('Số truy vấn giảm hẳn so với nhánh quản lý', ...((() => {
+    const n = A.GOI.slice(mocA).filter(x => /\/rest\/v1\//.test(x)).length;
+    return [n <= 10, `${n} truy vấn (nhánh quản lý là 14)`];
+  })()));
+
+  /* ---------- b) Cờ luoiDayDu và việc tải theo nhu cầu ---------- */
+  kt('Cờ luoiDayDu = false: phần mềm biết mình mới có lịch của một người',
+     A.app.KHO.luoiDayDu === false);
+
+  const kqDayDu = await A.app.taiLuoiDayDu();
+  kt('Bấm sang màn xem theo lớp thì tải bổ sung lưới cả trường', ...((() => {
+    const tong = Object.values(A.app.S.tkb).reduce((s, x) => s + Object.keys(x).length, 0);
+    return [kqDayDu.ok === true && tong === 4 && A.app.KHO.luoiDayDu === true,
+            `${tong} tiết sau khi tải bổ sung`];
+  })()));
+
+  const soGoi = A.GOI.length;
+  await A.app.taiLuoiDayDu();
+  kt('Đã tải rồi thì lần sau không gọi máy chủ nữa', A.GOI.length === soGoi);
+
+  kt('Tải bổ sung KHÔNG bị coi là việc chưa lưu', A.app.coThayDoiChuaLuu?.() !== true);
+
+  /* ---------- c) Máy chủ chưa chạy db/tai-nhe.sql vẫn mở được app ---------- */
+  const B = dungMayChuGV({ coHamNhe: false });
+  await B.app.dangNhap('huong@t.vn', 'x');
+  const taiCu = await B.app.taiDuLieu();
+  kt('Máy chủ chưa có hàm tkb_cua_toi thì tự lùi về cách cũ, không báo lỗi',
+     taiCu.ok === true && B.app.KHO.thieuHamNhe === true);
+  kt('Đường lui vẫn ra đủ lưới, thầy cô vẫn thấy lịch', ...((() => {
+    const tong = Object.values(B.app.S.tkb).reduce((s, x) => s + Object.keys(x).length, 0);
+    return [tong === 4 && B.app.KHO.version === 7, `${tong} tiết, phiên bản ${B.app.KHO.version}`];
+  })()));
+
+  /* ---------- d) Chưa nối hồ sơ giáo viên thì KHÔNG lấy dòng của ai cả ----------
+     Đây là chỗ nguy hiểm nhất của việc lọc theo người: lọc hỏng thì thầy cô
+     xem nhầm lịch của đồng nghiệp mà không hay biết. */
+  const C = dungMayChuGV({ gvId: null });
+  await C.app.dangNhap('huong@t.vn', 'x');
+  await C.app.taiDuLieu();
+  kt('Tài khoản chưa nối hồ sơ giáo viên thì không kéo dòng dạy thay của người khác', (() => {
+    const u = C.GOI.find(x => x.includes('/day_thay')) || '';
+    return /ngay=gte\.9999/.test(u) && !/gv_thay_id\.eq\.null/.test(u);
+  })());
+
+  /* ---------- e) Ngày công: tháng cũ hơn thì tải bổ sung ---------- */
+  const D = dungMayChuGV();
+  await D.app.dangNhap('huong@t.vn', 'x');
+  await D.app.taiDuLieu();
+  D.app.KHO.tuNgayNghi = '2026-08-01';
+  const soBN = D.app.S.baoNghi.length;
+  await D.app.taiThemNgayNghi('2026-05-01');
+  kt('Xem tháng cũ hơn thì tải bổ sung đúng khoảng còn thiếu', (() => {
+    const u = D.GOI.filter(x => x.includes('/bao_nghi')).pop() || '';
+    return /ngay=gte\.2026-05-01/.test(u) && /ngay=lt\.2026-08-01/.test(u);
+  })());
+  kt('Gộp vào không đẻ dòng trùng', ...((() => {
+    const id = D.app.S.baoNghi.map(b => b.id);
+    return [new Set(id).size === id.length, `${id.length} dòng, ${new Set(id).size} mã khác nhau`];
+  })()));
+  kt('Đã tải tới tháng nào rồi thì không tải lại tháng ấy', (() => {
+    const truoc = D.GOI.length;
+    return D.app.taiThemNgayNghi('2026-06-01'), D.GOI.length === truoc;
+  })());
 }
 
 /* ---------- Tổng kết ---------- */

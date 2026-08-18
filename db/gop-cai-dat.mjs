@@ -35,6 +35,8 @@ const NGUON = [
                          //   vì có `alter table day_thay add column`
   'ma-moi.sql',          // vào trường bằng Google + mã mời
   'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
+  'tai-nhe.sql',         // tkb_cua_toi() — giáo viên chỉ tải lịch của mình
+                         //   thay vì cả khối TKB toàn trường
 ];
 
 const doc = t => readFileSync(join(thuMuc, t), 'utf8').replace(/\r\n/g, '\n');
