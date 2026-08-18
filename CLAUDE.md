@@ -1422,14 +1422,27 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
       `.catch(() => [])`, và `luoiCuaToi()` tự lùi về đường tải cũ — nhưng
       gửi báo nghỉ sẽ báo đúng câu "máy chủ chưa có bảng báo nghỉ", còn
       chỗ chứa thì vẫn phình vì không có gì dọn phiên bản cũ.
-- [ ] **Khai hai secret cho lịch sao lưu hằng đêm** *(18/8/2026)*. Vào
-      Settings → Secrets and variables → Actions của kho mã, thêm `DB_URL`
-      (chuỗi kết nối Postgres, cổng 5432) và `BACKUP_KEY` (chuỗi tự đặt để
-      mã hoá). Rồi chạy tay một lần ở tab Actions và **thử giải mã một
-      bản** — sao lưu chưa từng thử khôi phục thì chưa phải là sao lưu.
-      Gói miễn phí của Supabase không có sao lưu tự động, nên tới khi làm
-      xong việc này thì cơ sở dữ liệu vẫn đang không có đường lấy lại.
-      Hướng dẫn từng bước nằm ngay đầu `.github/workflows/sao-luu.yml`.
+- [ ] **Khai nốt secret `DB_URL` cho lịch sao lưu** *(18/8/2026 — còn
+      đúng một việc này)*. Đã xong: tệp `.github/workflows/sao-luu.yml`
+      nằm trên GitHub và ở trạng thái active; secret `BACKUP_KEY` đã đặt,
+      khoá ghi ở `J:\Chung_Drive\App HoSoSo Truong hoc\KHOA-SAO-LUU.txt`
+      — **ngoài** thư mục dự án nên không bị đẩy lên, chép vào sổ rồi xoá
+      tệp ấy đi.
+      Còn lại: vào Settings → Secrets and variables → Actions, thêm
+      `DB_URL` — chuỗi kết nối lấy ở Supabase → Project Settings →
+      Database → Connection string → **URI**, cổng **5432**, nhớ thay
+      `[YOUR-PASSWORD]` bằng mật khẩu thật. Rồi tab Actions → *Sao lưu
+      cơ sở dữ liệu* → **Run workflow**, và **thử giải mã một bản** —
+      sao lưu chưa từng thử khôi phục thì chưa phải là sao lưu.
+      ⚠️ Tới khi xong việc này thì cơ sở dữ liệu **vẫn chưa có bản sao
+      lưu nào**: gói miễn phí của Supabase không sao lưu tự động, hỏng
+      là mất trắng dữ liệu của mọi trường. Cách giải mã và khôi phục nằm
+      ngay đầu `.github/workflows/sao-luu.yml`.
+      ⚠️ Tài khoản git trên máy chủ dự án **thiếu quyền `workflow`** nên
+      không push được tệp trong `.github/workflows/`. Sửa bằng
+      `gh auth refresh -s workflow` (lệnh tương tác, phải tự gõ trong
+      terminal), hoặc tạo thẳng tệp trên giao diện web GitHub như đã làm
+      lần này.
 - [ ] **Bước tối ưu đang dừng theo ĐỒNG HỒ nên chất lượng phụ thuộc máy**
       *(đo 16/8/2026, chủ dự án chốt để SAU KHAI GIẢNG mới làm — không đụng
       thuật toán trong lúc đang chạy thật cho Diễn Liên)*. `toiUuHoanDoi()`
