@@ -59,6 +59,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   maGVTu, maGVXau, datLaiMaGV, chuanMaGV, maXauChuoi,
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
+  bangMauTronGoi, bangKiemMau, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
@@ -87,6 +88,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         maGVTu, maGVXau, datLaiMaGV, maXauChuoi,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
   duLieuTuMaTran, bangMauMaTran,
+  bangMauTronGoi, bangKiemMau, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
@@ -2722,6 +2724,12 @@ console.log('\n19. Mã giáo viên đọc được');
     kt('Bản luu_tkb 4 tham số cũ bị drop — không để PostgREST phải chọn giữa hai bản',
        /drop function if exists luu_tkb\(uuid, integer, jsonb, text\)/.test(sql));
   }
+}
+
+/* ---------- 21. Mẫu Excel trọn gói (tách tệp riêng cho gọn) ---------- */
+{
+  const muc21 = (await import('./muc21-mau-tron-goi.mjs')).default;
+  muc21({ kt, S, bangMauTronGoi, bangKiemMau, duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon });
 }
 
 /* ---------- Tổng kết ---------- */

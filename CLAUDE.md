@@ -1028,6 +1028,100 @@ sinh vài dòng ví dụ. Có trang `HUONG_DAN` kèm bảng số tiết chuẩn 
 hình khai báo đi qua đúng `ghiDuLieuNguon()` mà nút Excel vẫn dùng — một đường
 ghi duy nhất, không có hai lối vào lệch nhau.
 
+#### Mẫu TRỌN GÓI mười trang, và nhập MỘT CỬA *(23/8/2026)*
+
+Hai mẫu cũ chỉ bao được **ba trong bảy** thứ cần để xếp: giáo viên · lớp ·
+phân công. Thiếu hẳn *Thông tin trường · Điểm trường · **Khung giờ** · Phòng
+học · Buổi bận* — nên trường không có sẵn kết xuất Excel thì nhập tệp xong
+vẫn phải vào app khai tay bốn chỗ nữa. Mà **khung giờ** mới là thứ quyết định
+có bao nhiêu **ô** để xếp.
+
+| Trang | Nội dung | Bắt buộc |
+|---|---|---|
+| `0_BAT_DAU` | bảng kiểm + số tiết chuẩn CT GDPT 2018 | — |
+| `1_TRUONG` | tên đơn vị · năm học · tỉnh · xã | có |
+| `2_DIEM_TRUONG` | tên · có phòng Tin | có |
+| `3_KHUNG_GIO` | thứ · buổi · **số tiết TỪNG KHỐI** | có |
+| `4_LOP` · `5_GIAO_VIEN` · `6_PHAN_CONG` | như mẫu 3 trang cũ | có |
+| `7_PHONG` · `8_BUOI_BAN` | | tuỳ chọn |
+| `DANH_MUC` | nguồn cho mọi ô xổ xuống, khoá lại | — |
+
+Tên trang **đánh số** để tab Excel tự xếp đúng trình tự làm việc — cùng
+nguyên tắc đã áp cho thanh bên.
+
+| Hàm | Việc |
+|---|---|
+| `bangMauTronGoi()` | vùng XUAT — khai mẫu bằng **dữ liệu thuần**, cả bộ khoá |
+| `bangKiemMau(m)` | bảng kiểm ở `0_BAT_DAU`, dựng từ chính bộ khai trên |
+| `apKhoaXL()` | dịch `khoa` sang `dataValidation` của Excel |
+| `taiMauTronGoi()` | dựng workbook + vùng đặt tên `DM_*` |
+| `duLieuTuTronGoi(doc)` | vùng DULIEU — đọc ngược, soát lại đúng bộ khoá ấy |
+| `docTrang(doc, ten)` | đường lui về tên trang tính **cũ** |
+| `bangTimThay(tim)` · `hopSauKhiNhap()` | bước ① và ④ của luồng nhập |
+
+**Khoá kiểm tra khai bằng DỮ LIỆU, không phải mã.** Mỗi cột mang một `khoa`
+(`chon` · `so` · `chu`); một đầu dịch sang dataValidation, đầu kia soát lại
+lúc nhập. Một nguồn sự thật, không có cách nào để tệp mẫu và trình soát lệch.
+
+⚠️ **Khoá trong Excel là để GIÚP NGƯỜI ĐIỀN, không phải hàng rào.** Ba lỗ
+không bịt được: **dán đè (Ctrl+V) đi xuyên qua dataValidation** — hành vi của
+chính Excel, mà chép từ danh sách cũ dán vào lại là thao tác trường làm nhiều
+nhất; Google Sheets và Excel điện thoại không giữ đủ mọi kiểu khoá; xoá trang
+`DANH_MUC` là dropdown chết theo. Hàng rào thật vẫn là trình soát lúc nhập.
+Đừng bao giờ bỏ bớt một phép soát vì *"tệp đã khoá rồi"*.
+
+⚠️ **Không khoá trang tính bằng mật khẩu**, trừ `DANH_MUC`. Trường cần chèn
+dòng, sắp xếp, dán từ danh sách cũ — khoá là họ bực, mà mật khẩu trang tính
+Excel bẻ trong mười giây. Cũng **không làm `.xlsm` có macro**: máy trường hay
+chặn macro, và Google Sheets không chạy.
+
+Năm điều bắt buộc, cả năm đều có phép thử:
+
+- **Soát lõi vẫn đi qua `duLieuTuBang()`.** Hàm mới chỉ bung thêm bốn trang
+  rồi giao phần chung — y như `duLieuTuMaTran()`. Ba lối nhập, **một** bộ quy
+  tắc; chép lại phép soát là sớm muộn ba nơi lệch nhau.
+- **Tách LỖI (chặn) khỏi CẢNH BÁO (cho qua).** Bản cũ chặn mọi thứ, kể cả
+  *"3 lớp chưa có chủ nhiệm"* — thứ không đáng chặn ai, và đúng cái cờ `nhe`
+  mà `tienDo()` đã dùng đúng từ đầu. Chặn là khi dữ liệu **không dùng được**.
+- **`So_tiet` bỏ trống được** → lấy tiết chuẩn theo khối. Đây là lý do trường
+  *"chỉ có bảng phân công, không biết số tiết"* vẫn nhập được.
+- **Khoá phải đặt DƯ RA vài trăm dòng** dưới phần đã điền (`duThua`). Việc
+  chính của người dùng là **gõ thêm**; khoá đúng số dòng đang có thì từ dòng
+  26 trở đi hết dropdown — đúng chỗ họ cần nó nhất.
+- **Đường lui cho tên trang tính CŨ** (`docTrang`). Trường đã điền theo mẫu
+  3 trang thì `DANH_SACH_LOP` vẫn phải đọc được.
+
+**Nhập là MỘT CỬA, bốn bước:** ① `bangTimThay()` bày đọc được mấy trang, mỗi
+trang mấy dòng → ② soát, tách hai mức → ③ xem trước, nói rõ sẽ thay gì →
+④ **`hopSauKhiNhap()` chạy luôn bộ quy tắc khả thi** rồi mời *Xếp ngay*.
+Bước ④ là chỗ đáng giá nhất: bắt hiệu trưởng tự nhớ vào mục *Kiểm tra khả
+thi* nghĩa là phần lớn sẽ không bao giờ thấy nó.
+
+⚠️ **Hai bẫy đã trả giá, cả hai do phép thử bắt, không phải mắt:**
+
+- **Trang tuỳ chọn bày dòng ví dụ cho một trường THẬT.** `7_PHONG` và
+  `8_BUOI_BAN` rơi về ví dụ `Điểm trường chính` / `Binh_TV` — hai cái tên chỉ
+  có trong bộ mẫu của trường trắng. Trường 25 lớp chưa khai phòng tải mẫu về
+  là **tệp mang sẵn một dòng trỏ vào thứ không tồn tại, nhập lại không được**.
+  Nay `coThat` thì để trống hẳn. Phép thử **vòng tròn** (mục 21b: đổ chính
+  hàng của mẫu qua `duLieuTuTronGoi()` phải ra 0 lỗi) bắt ngay lần chạy đầu —
+  đây là phép thử đáng giá nhất của cả bộ.
+- **`formulae:['=DM_Ma_lop']` thừa dấu `=`.** ExcelJS ghi thẳng chuỗi vào
+  `<formula1>`, mà Excel chờ tên vùng trần. Hậu quả không nhìn ra bằng mắt:
+  tệp vẫn mở, vẫn đủ dữ liệu, chỉ là **bấm vào ô không có danh sách nào bung
+  ra**. Chỉ `npm run soi-mau` thấy được.
+
+**`npm run soi-mau`** *(`test/soi-mau-excel.mjs`)* — bộ duy nhất cần ExcelJS
+thật: sinh tệp, **ghi ra buffer rồi đọc lại**, soi dataValidation · vùng đặt
+tên · khổ giấy, và chạy **vòng tròn qua tệp thật**. Dựng được workbook trong
+bộ nhớ không có nghĩa là `.xlsx` ghi ra hợp lệ. `exceljs` ghim **đúng 4.4.0**,
+khớp bản CDN app nạp — soi bản gần giống thì không kiểm được gì.
+
+⚠️ Bẫy thứ ba, cùng khuôn cái đã ghi ở mục 3: phép thử *"bỏ trống `So_tiet`
+thì lấy tiết chuẩn"* ban đầu chỉ đòi `soTiet > 0`, mà số trong mẫu và số
+chuẩn **tình cờ bằng nhau** ở dòng nó chọn — xanh dù hàm có điền đúng hay
+không. Nay ép hai nhánh ra **hai số khác nhau** rồi soi từng nhánh.
+
 ### Xuất Excel và in — đã dựng
 
 Vùng `/*#region XUAT*/` chỉ dựng **bảng hai chiều thuần dữ liệu**

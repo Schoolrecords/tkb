@@ -845,15 +845,79 @@ kt('Tháng không ai nghỉ thì nói "cả trường đủ công", không bày 
 w.eval('S.ncThang = null');
 w.chuyen('daythay');
 w.eval('S.dayThay = []; S.baoNghi = []; S.dtLoc = "moi"; S.bnXem = null');
-console.log('\n15e. Mẫu Excel ma trận');
+console.log('\n15e. Mẫu Excel ma trận và trọn gói');
 w.chuyen('lop');
 w.eval('hopNhapExcel()');
-kt('Hộp nhập Excel giới thiệu hai kiểu tệp, có đủ hai nút tải mẫu', (() => {
+/* Ba mẫu nay nằm trong THÂN hộp, mỗi mẫu một dòng có nút Tải riêng — chân hộp
+   chỉ còn Huỷ và Chọn tệp. Bản cũ nhét mẫu vào chân hộp, thêm mẫu thứ ba là
+   năm nút chen nhau một hàng và không còn chỗ nói mẫu nào dùng khi nào. */
+kt('Hộp nhập Excel giới thiệu đủ BA kiểu tệp', (() => {
+  const t = w.document.querySelector('#hopN').textContent;
+  return /Trọn gói/.test(t) && /Ma trận một trang/.test(t) && /Ba trang chi tiết/.test(t);
+})());
+kt('Mỗi mẫu có một nút Tải riêng trong thân hộp', (() => {
+  const n = [...w.document.querySelectorAll('#hopN button')];
+  return n.length === 3 && n.every(b => b.textContent === 'Tải') &&
+    n.some(b => /taiMauTronGoi/.test(b.getAttribute('onclick'))) &&
+    n.some(b => /taiMauMaTran/.test(b.getAttribute('onclick'))) &&
+    n.some(b => /taiMauExcel/.test(b.getAttribute('onclick')));
+})());
+kt('Chân hộp chỉ còn Huỷ và Chọn tệp — một lối vào cho cả ba kiểu tệp', (() => {
   const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
-  return /Ma trận một trang/.test(w.document.querySelector('#hopN').textContent) &&
-    nut.includes('Mẫu ma trận') && nut.includes('Mẫu 3 trang');
+  return nut.length === 2 && nut.includes('Huỷ') && nut.includes('Chọn tệp');
+})());
+kt('Mẫu trọn gói đứng ĐẦU — nó là mẫu khai được tất cả', (() => {
+  const t = w.document.querySelector('#hopN').textContent;
+  return t.indexOf('Trọn gói') < t.indexOf('Ma trận một trang');
 })());
 w.eval('dong()');
+
+/* --- Bước ③ và ④ của luồng nhập một cửa --- */
+kt('Bảng "tìm thấy gì trong tệp" đánh dấu trang bắt buộc còn TRỐNG là thiếu', (() => {
+  const h = w.eval(`bangTimThay([
+    {t:'1_TRUONG', h:[{}]}, {t:'4_LOP', h:[]}, {t:'7_PHONG', h:null}])`);
+  return /1_TRUONG[\s\S]*?đã đọc/.test(h) && /4_LOP[\s\S]*?thiếu/.test(h)
+    && /7_PHONG[\s\S]*?bỏ trống/.test(h);
+})());
+kt('Xem trước nhập bày CẢNH BÁO mà vẫn cho nút nhập — cảnh báo không chặn ai', (() => {
+  const dl = w.eval(`(() => {
+    const m = bangMauTronGoi();
+    const t = m.trang.find(x => x.ten === '5_GIAO_VIEN');
+    const i = t.cot.findIndex(c => c.ten === 'Chu_nhiem');
+    t.hang.forEach(h => { h[i] = ''; });
+    const kho = {};
+    m.trang.forEach(tr => kho[tr.ten] = tr.hang.map(h => {
+      const o = {}; tr.cot.forEach((c, j) => { if (h[j] !== '' && h[j] != null) o[c.ten] = h[j]; }); return o; }));
+    return duLieuTuTronGoi(n => kho[n] || null);
+  })()`);
+  w.eval(`hopXacNhanNhap(${JSON.stringify(dl)}, null)`);
+  const t = w.document.querySelector('#hopN').textContent;
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  return dl.soLoi === 0 && /đáng rà lại/.test(t) && /chưa có chủ nhiệm/.test(t)
+    && nut.some(x => /Nhập/.test(x));
+})());
+w.eval('dong()');
+kt('Nhập xong thì CHẠY LUÔN kiểm tra khả thi, có lối đi thẳng sang Xếp', (() => {
+  w.eval(`hopSauKhiNhap('Đã nhập 25 lớp.')`);
+  const t = w.document.querySelector('#hopN').textContent;
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  return /kiểm tra khả thi/.test(t) && /Vướng mắc phải xử lý/.test(t)
+    && nut.includes('Xem chi tiết') && nut.some(x => /Xếp/.test(x));
+})());
+w.eval('dong()');
+
+kt('Hướng dẫn mở đầu bằng mục Nhập liệu lần đầu, kèm đủ tám trang tính', (() => {
+  w.eval(`HD_VAI='ql'`); w.chuyen('huongdan');
+  const t = w.document.querySelector('#noiDung').textContent;
+  const dau = /1\.\s*Nhập liệu lần đầu/.test(t);
+  const du = ['1_TRUONG', '2_DIEM_TRUONG', '3_KHUNG_GIO', '4_LOP',
+    '5_GIAO_VIEN', '6_PHAN_CONG', '7_PHONG', '8_BUOI_BAN'].every(x => t.includes(x));
+  /* Phải nói thật rằng dán đè đi xuyên qua khoá của Excel — người dùng tin
+     hẳn vào dropdown rồi dán một cột sai là hỏng cả tệp mà không hay */
+  const that = /dán đè/.test(t) && /soát lại/.test(t);
+  return dau && du && that;
+})());
+w.chuyen('lop');
 kt('Bảng ma trận lấy số tiết theo danh mục môn HIỆN HÀNH của trường', ...((() => {
   /* mục 9 ở trên đã cố ý sửa tiết chuẩn Tiếng Việt khối 1 thành 9 —
      ma trận phải theo danh mục của trường, không theo hằng số cứng */

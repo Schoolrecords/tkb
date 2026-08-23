@@ -9,11 +9,13 @@
     "test": "node test/kiem-thu.mjs",
     "kiemdinh": "node test/kiem-dinh-thuat-toan.mjs",
     "soi": "node test/soi-giao-dien.mjs",
+    "soi-mau": "node test/soi-mau-excel.mjs",
     "soat": "node db/soat-sql.mjs",
     "soi-sao-luu": "node db/soi-sao-luu.mjs"
   },
-  "//": "Ba thư viện dưới đây CHỈ dùng cho kiểm thử, không có dòng nào của src/index.html cần tới — trang vẫn chạy độc lập bằng file://. Trước 15/8/2026 chúng được cài bằng 'npm install --no-save' nên không ai ghi lại, xoá node_modules là mất cách cài lại đúng phiên bản. Dùng playwright-core (KHÔNG phải playwright) vì bản core không tải kèm trình duyệt — chup.mjs lái Chrome thật đã có sẵn trên máy.",
+  "//": "Bốn thư viện dưới đây CHỈ dùng cho kiểm thử, không có dòng nào của src/index.html cần tới — trang vẫn chạy độc lập bằng file://. Trước 15/8/2026 chúng được cài bằng 'npm install --no-save' nên không ai ghi lại, xoá node_modules là mất cách cài lại đúng phiên bản. Dùng playwright-core (KHÔNG phải playwright) vì bản core không tải kèm trình duyệt — chup.mjs lái Chrome thật đã có sẵn trên máy. exceljs GHIM ĐÚNG 4.4.0 — khớp phiên bản app nạp từ CDN, để test/soi-mau-excel.mjs soi đúng thư viện người dùng thật chạy.",
   "devDependencies": {
+    "exceljs": "4.4.0",
     "jsdom": "^30.0.1",
     "libpg-query": "^17.7.4",
     "playwright-core": "^1.62.1"

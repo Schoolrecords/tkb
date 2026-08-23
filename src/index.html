@@ -4414,6 +4414,10 @@ function duLieuTuBang(hangGV, hangLop, hangPC){
     diemTruong, lopDT, phanCong,
     khungGio:khungGioMacDinh(), gvNghi:{},
     loi:loi.slice(0,12), soLoi:loi.length,
+    /* Hai mức tách nhau từ 23/8/2026 — LỖI thì chặn, CẢNH BÁO thì cho qua.
+       Ba lối nhập đều trả cùng một hình dạng, nên màn hình chỉ có một cách
+       đọc kết quả. Đường 3 trang và ma trận chưa sinh cảnh báo nào. */
+    canh:[], soCanh:0,
     tongTiet:phanCong.reduce((s,p)=>s+p.soTiet,0)
   };
 }
@@ -4552,6 +4556,189 @@ function duLieuTuMaTran(hangMT, hangLop){
   const gvNghi={}; thuTu.forEach(g=>{ if(g.nghi.size) gvNghi[g.ma]=[...g.nghi]; });
   return {...dl, gvNghi, maTran:true,
     loi:[...loi, ...dl.loi].slice(0,12), soLoi:loi.length+dl.soLoi};
+}
+
+/* ---------- 5b. Nhập từ mẫu TRỌN GÓI mười trang (23/8/2026) ----------
+   Bao đủ bảy thứ cần để xếp, thay vì ba như hai mẫu cũ. Trang bắt buộc là
+   1_TRUONG · 2_DIEM_TRUONG · 3_KHUNG_GIO · 4_LOP · 5_GIAO_VIEN · 6_PHAN_CONG;
+   7_PHONG và 8_BUOI_BAN bỏ trống được.
+
+   Ba điều bắt buộc, cả ba đều có phép thử:
+
+   · Soát lõi vẫn đi qua `duLieuTuBang()`. Hàm này chỉ bung thêm bốn trang mới
+     rồi giao phần chung — y như `duLieuTuMaTran()`. Ba lối nhập, MỘT bộ quy
+     tắc; thêm lối thứ tư mà chép lại phép soát là sớm muộn ba nơi lệch nhau.
+
+   · Tách LỖI (chặn) khỏi CẢNH BÁO (cho qua). Bản cũ chặn mọi thứ, kể cả
+     "3 lớp chưa có chủ nhiệm" — thứ không đáng chặn ai, và đúng cái cờ `nhe`
+     mà `tienDo()` đã dùng đúng từ đầu. Chặn là khi dữ liệu KHÔNG DÙNG ĐƯỢC:
+     thiếu mã, mã trùng, trỏ tới thứ không tồn tại, số sai kiểu.
+
+   · Đường lui cho tên trang tính CŨ. Trường đã điền tệp theo mẫu 3 trang thì
+     `DANH_SACH_LOP` vẫn phải đọc được — nâng cấp phần mềm không bao giờ được
+     làm một trường đang chạy tốt bỗng hỏng. Xem `docTrang()` bên dưới. */
+
+/* Đọc một trang tính theo tên mới, tự lùi về các tên cũ đã từng phát hành */
+const TEN_TRANG_CU = {
+  '2_DIEM_TRUONG':['DIEM_TRUONG'], '3_KHUNG_GIO':['KHUNG_GIO'],
+  '4_LOP':['DANH_SACH_LOP'], '5_GIAO_VIEN':['DANH_SACH_GV'],
+  '6_PHAN_CONG':['PCGD'], '7_PHONG':['PHONG'], '8_BUOI_BAN':['BUOI_BAN']
+};
+function docTrang(doc, ten){
+  for(const t of [ten, ...(TEN_TRANG_CU[ten]||[])]){
+    const h=doc(t); if(h) return h;
+  }
+  return null;
+}
+
+function duLieuTuTronGoi(doc){
+  const loi=[], canh=[];
+  const chu=x=>String(x??'').trim();
+  const laCo=v=>{ const s=khongDau(chu(v)).toLowerCase();
+                  return s===''||s==='co'||s==='x'||s==='1'||s==='true'; };
+
+  const lay=t=>docTrang(doc,t)||[];
+  const hTruong=lay('1_TRUONG'), hDiem=lay('2_DIEM_TRUONG'), hKhung=lay('3_KHUNG_GIO');
+  const hLop   =lay('4_LOP'),    hGV  =lay('5_GIAO_VIEN'),   hPC   =lay('6_PHAN_CONG');
+  const hPhong =lay('7_PHONG'),  hBan =lay('8_BUOI_BAN');
+
+  [['4_LOP',hLop],['5_GIAO_VIEN',hGV],['6_PHAN_CONG',hPC]]
+    .filter(([,h])=>!h.length)
+    .forEach(([t])=>loi.push(`Trang ${t} không có dòng nào — đây là trang bắt buộc`));
+
+  /* --- 1_TRUONG: đúng một dòng --- */
+  const r0=hTruong[0]||{};
+  const tenTruong=chu(r0.Ten_truong);
+  if(!tenTruong) canh.push('1_TRUONG: chưa ghi tên đơn vị — máy giữ nguyên tên đang dùng');
+  if(hTruong.length>1) canh.push(`1_TRUONG: có ${hTruong.length} dòng, máy chỉ lấy dòng đầu`);
+
+  /* --- 2_DIEM_TRUONG: danh sách CHÍNH THỨC, kèm cờ phòng Tin.
+     Bản 3 trang suy điểm trường từ cột Diem_truong của bảng lớp nên gõ sai
+     một chữ là đẻ ra một điểm trường ma. Nay có danh sách gốc để đối chiếu. */
+  const diemTho=hDiem.map((r,i)=>{
+    const ten=chu(r.Ten_diem_truong)||chu(r.Ten);
+    if(!ten) loi.push(`2_DIEM_TRUONG dòng ${i+2}: thiếu Ten_diem_truong`);
+    return {ten, phongTin:laCo(r.Co_phong_tin)};
+  }).filter(d=>d.ten);
+  const demDiem={}; diemTho.forEach(d=>demDiem[d.ten]=(demDiem[d.ten]||0)+1);
+  Object.entries(demDiem).filter(([,n])=>n>1).forEach(([t,n])=>
+    loi.push(`2_DIEM_TRUONG: "${t}" xuất hiện ${n} lần, phải là duy nhất`));
+  const tenDiemCo=new Set(diemTho.map(d=>d.ten));
+
+  /* --- 4_LOP: kiểm cột Diem_truong TRỎ ĐÚNG trang 2 --- */
+  hLop.forEach((r,i)=>{
+    const d=chu(r.Diem_truong);
+    if(d && tenDiemCo.size && !tenDiemCo.has(d))
+      loi.push(`4_LOP dòng ${i+2}: không có điểm trường "${d}" ở trang 2_DIEM_TRUONG`);
+  });
+  /* Một điểm trường thì cột Diem_truong bỏ trống được — điền hộ tên duy nhất */
+  const diemMacDinh = diemTho.length===1 ? diemTho[0].ten : '';
+  const lopRow=hLop.map(r=>({...r, Diem_truong:chu(r.Diem_truong)||diemMacDinh}));
+
+  /* --- 6_PHAN_CONG: So_tiet bỏ trống thì lấy tiết chuẩn theo khối của lớp --- */
+  const khoiTheoMa={}; hLop.forEach(r=>{ khoiTheoMa[chu(r.Ma_lop)]=+r.Khoi; });
+  const pcRow=hPC.map((r,i)=>{
+    const st=chu(r.So_tiet);
+    if(st!=='') return r;
+    const mon=chu(r.Mon), k=khoiTheoMa[chu(r.Ma_lop)];
+    const c=chuanMon(mon,k);
+    if(!(c>0)) loi.push(`6_PHAN_CONG dòng ${i+2}: bỏ trống So_tiet nhưng môn `
+      +`"${mon}" không có tiết chuẩn cho khối ${k||'?'} — ghi rõ số tiết vào ô đó`);
+    return {...r, So_tiet:c>0?c:0};
+  });
+
+  /* Soát lõi và dựng ba bảng chuẩn — MỘT đường duy nhất với hai mẫu kia */
+  const dl=duLieuTuBang(hGV, lopRow, pcRow);
+
+  /* Ghép cờ phòng Tin của trang 2 vào danh sách điểm trường vừa dựng */
+  const diemTruong=dl.diemTruong.map(d=>{
+    const g=diemTho.find(x=>x.ten===d.ten);
+    return g ? {...d, phongTin:g.phongTin} : d;
+  });
+
+  /* --- 3_KHUNG_GIO --- Trang này quyết định có bao nhiêu Ô để xếp, nên soát
+     kỹ nhất: sai một ô là cả trường thiếu chỗ mà không ai hiểu vì sao. */
+  let khungGio=khungGioMacDinh();
+  if(hKhung.length){
+    const co=new Set();
+    khungGio=hKhung.map((r,i)=>{
+      const thu=+r.Thu, b=chu(r.Buoi).toUpperCase();
+      if(!THU_XL.includes(thu))
+        loi.push(`3_KHUNG_GIO dòng ${i+2}: Thu phải là 2, 3, 4, 5 hoặc 6 — đang là "${chu(r.Thu)}"`);
+      if(!BUOI_XL.includes(b))
+        loi.push(`3_KHUNG_GIO dòng ${i+2}: Buoi phải là S (sáng) hoặc C (chiều) — đang là "${chu(r.Buoi)}"`);
+      const k=`${thu}-${b}`;
+      if(co.has(k)) loi.push(`3_KHUNG_GIO dòng ${i+2}: buổi ${k} đã khai ở dòng trên`);
+      co.add(k);
+      const tietKhoi={};
+      [1,2,3,4,5].forEach(x=>{
+        const n=+r['K'+x];
+        if(!Number.isFinite(n)||n<0||n>10)
+          loi.push(`3_KHUNG_GIO dòng ${i+2}: K${x} phải là số từ 0 đến 10 — đang là "${chu(r['K'+x])}"`);
+        tietKhoi[x]=Number.isFinite(n)&&n>0?n:0;
+      });
+      return {thu, buoi:b, bat:laCo(r.Day_hoc), tietKhoi,
+              tiet:Math.max(0,...Object.values(tietKhoi))};
+    });
+    /* Sức chứa từng khối so với chuẩn CT GDPT 2018. Đây là CẢNH BÁO chứ không
+       phải lỗi: trường dạy một buổi hay có tiết tăng cường thì con số khác
+       chuẩn là chuyện bình thường — nhưng THIẾU chỗ thì phải nói ngay, không
+       để tới lúc xếp mới lòi ra "chưa xếp được 40 tiết". */
+    const khoiCo=new Set(hLop.map(r=>+r.Khoi).filter(k=>k>=1&&k<=5));
+    [...khoiCo].sort().forEach(k=>{
+      const suc=khungGio.filter(x=>x.bat!==false)
+                        .reduce((s,x)=>s+(x.tietKhoi[k]||0),0);
+      if(suc<CHUAN_KHOI[k])
+        loi.push(`3_KHUNG_GIO: khối ${k} chỉ có ${suc} ô mỗi tuần, `
+          +`chuẩn CT GDPT 2018 là ${CHUAN_KHOI[k]} tiết — thiếu ${CHUAN_KHOI[k]-suc} chỗ, không xếp đủ được`);
+      else if(suc>CHUAN_KHOI[k])
+        canh.push(`3_KHUNG_GIO: khối ${k} có ${suc} ô, dư ${suc-CHUAN_KHOI[k]} so với chuẩn ${CHUAN_KHOI[k]}`);
+    });
+  }else canh.push('3_KHUNG_GIO: bỏ trống — máy dùng khung giờ chuẩn 8 buổi mỗi tuần');
+
+  /* --- 7_PHONG --- */
+  const idDiem=ten=>diemTruong.find(d=>d.ten===ten)?.id;
+  const phong=hPhong.map((r,i)=>{
+    const ten=chu(r.Ten_phong), d=chu(r.Diem_truong)||diemMacDinh;
+    if(!ten){ loi.push(`7_PHONG dòng ${i+2}: thiếu Ten_phong`); return null; }
+    if(d && !idDiem(d)){
+      loi.push(`7_PHONG dòng ${i+2}: không có điểm trường "${d}"`); return null; }
+    return {id:'ph'+(i+1), ten, mon:chu(r.Mon), dtId:idDiem(d)};
+  }).filter(Boolean);
+
+  /* --- 8_BUOI_BAN --- khoá là MÃ giáo viên, đúng như ghiDuLieuNguon() chờ */
+  const maGVCo=new Set(dl.giaoVien.map(g=>g.id));
+  const gvNghi={};
+  hBan.forEach((r,i)=>{
+    const ma=chu(r.Ma_GV), thu=+r.Thu, b=chu(r.Buoi).toUpperCase();
+    if(!ma) return;
+    if(!maGVCo.has(ma))
+      return void loi.push(`8_BUOI_BAN dòng ${i+2}: không có giáo viên mã "${ma}"`);
+    if(!THU_XL.includes(thu)||!BUOI_XL.includes(b))
+      return void loi.push(`8_BUOI_BAN dòng ${i+2}: Thu phải 2–6 và Buoi phải S hoặc C`);
+    (gvNghi[ma]=gvNghi[ma]||[]).push(`${thu}-${b}`);
+  });
+
+  /* --- CẢNH BÁO: dùng được, nhưng đáng rà lại --- */
+  const coCN=new Set(dl.giaoVien.map(g=>g.cn).filter(Boolean));
+  const thieuCN=dl.lop.filter(l=>!coCN.has(l.id));
+  if(thieuCN.length) canh.push(`${thieuCN.length} lớp chưa có chủ nhiệm: `
+    +thieuCN.slice(0,8).map(l=>l.ten).join(' · ')+(thieuCN.length>8?' …':''));
+
+  const tietGV={}; dl.phanCong.forEach(p=>tietGV[p.gvId]=(tietGV[p.gvId]||0)+p.soTiet);
+  const vuot=dl.giaoVien.filter(g=>(tietGV[g.id]||0)>dinhMucCua(g));
+  if(vuot.length) canh.push(`${vuot.length} giáo viên vượt định mức: `
+    +vuot.slice(0,6).map(g=>`${g.hoTen} ${tietGV[g.id]}/${dinhMucCua(g)}`).join(' · ')
+    +(vuot.length>6?' …':''));
+
+  const khongViec=dl.giaoVien.filter(g=>!tietGV[g.id]);
+  if(khongViec.length) canh.push(`${khongViec.length} giáo viên không có dòng phân công nào: `
+    +khongViec.slice(0,6).map(g=>g.hoTen).join(' · ')+(khongViec.length>6?' …':''));
+
+  return {...dl, tenTruong, namHoc:chu(r0.Nam_hoc), tinh:chu(r0.Tinh), xa:chu(r0.Xa),
+    diemTruong, khungGio, phong, gvNghi, tronGoi:true,
+    loi:[...loi, ...dl.loi].slice(0,14), soLoi:loi.length+dl.soLoi,
+    canh:canh.slice(0,10), soCanh:canh.length};
 }
 
 /* Ghi bộ dữ liệu nguồn lên máy chủ.
@@ -5570,6 +5757,213 @@ function tenTepIn(loai, duoi){
 function tenTepXuat(duoi){
   const n=new Date(), s=x=>String(x).padStart(2,'0');
   return `TKB-${khongDau(S.tenTruong)}-${n.getFullYear()}${s(n.getMonth()+1)}${s(n.getDate())}.${duoi}`;
+}
+
+/* ---------- Mẫu TRỌN GÓI — một tệp, mười trang tính (23/8/2026) ----------
+   Hai mẫu cũ (3 trang · ma trận) chỉ bao được Giáo viên · Lớp · Phân công —
+   ba trong bảy thứ cần để xếp. Thiếu hẳn Thông tin trường, Điểm trường,
+   KHUNG GIỜ (thứ quyết định có bao nhiêu ô để xếp), Phòng học, Buổi bận.
+   Trường nào không có sẵn kết xuất Excel thì nhập tệp xong vẫn phải vào app
+   khai tay bốn chỗ nữa mới xếp được.
+
+   Ba điều của bộ này:
+
+   · Tên trang tính ĐÁNH SỐ theo đúng trình tự làm việc. Tab Excel xếp theo
+     bảng chữ cái nên `1_TRUONG … 8_BUOI_BAN` tự nằm đúng thứ tự người điền
+     cần đi — cùng nguyên tắc đã áp cho thanh bên.
+
+   · KHOÁ KIỂM TRA khai bằng DỮ LIỆU, không phải mã. Mỗi cột mang một `khoa`
+     tả "ô này nhận giá trị thế nào"; `taiMauTronGoi()` dịch nó sang
+     dataValidation của Excel, còn `duLieuTuTronGoi()` soát lại đúng những
+     điều ấy lúc nhập. Một nguồn sự thật cho cả hai đầu — không có cách nào
+     để tệp mẫu và trình soát lệch nhau.
+
+   · Khoá trong Excel là để GIÚP NGƯỜI ĐIỀN, không phải hàng rào. Ba lỗ không
+     bịt được: dán đè (Ctrl+V) đi xuyên qua dataValidation — hành vi của chính
+     Excel, mà chép từ danh sách cũ dán vào lại là thao tác trường làm nhiều
+     nhất; Google Sheets và Excel điện thoại không giữ đủ mọi kiểu khoá; xoá
+     trang DANH_MUC là dropdown chết theo. Hàng rào thật vẫn là trình soát lúc
+     nhập. Đừng bao giờ bỏ bớt một phép soát vì "tệp đã khoá rồi". */
+
+const THU_XL    = [2,3,4,5,6];
+const BUOI_XL   = ['S','C'];
+const CO_KHONG  = ['Có','Không'];
+
+function bangMauTronGoi(){
+  const coThat   = S.lop.length>0 && S.giaoVien.length>0;
+  const dsMon    = (S.monHoc||[]).map(m=>m.ten);
+  const maCuaLop = id => lopId(id)?.maLop || id;
+  const maCuaGV  = id => gvId(id)?.maGV  || id;
+
+  /* Danh mục nguồn cho mọi ô xổ xuống. Trường trắng thì lấy bộ ví dụ, để
+     dropdown không bao giờ rỗng — ô xổ xuống trống trơn làm người điền
+     tưởng tệp hỏng. */
+  const danhMuc = {
+    DM_Diem_truong: coThat && S.diemTruong.length ? S.diemTruong.map(d=>d.ten)
+                                                  : ['Điểm trường chính'],
+    DM_Ma_lop:      coThat ? S.lop.map(l=>l.maLop||l.id)        : ['1A','1B','2A'],
+    DM_Ma_GV:       coThat ? S.giaoVien.map(g=>g.maGV||g.id)    : ['An_NT','Binh_TV','Chi_LT'],
+    DM_Mon:         dsMon.length ? dsMon : dsMonMacDinh().map(m=>m.ten),
+    DM_Thu:         THU_XL,
+    DM_Buoi:        BUOI_XL,
+    DM_Co_khong:    CO_KHONG
+  };
+
+  const tTruong = {
+    ten:'1_TRUONG', tieu:'THÔNG TIN ĐƠN VỊ',
+    nhac:'Điền đúng MỘT dòng. Chưa có quyết định sáp nhập thì ghi tên đang dùng.',
+    batBuoc:true, duThua:0,
+    cot:[
+      {ten:'Ten_truong', rong:46, khoa:{kieu:'chu', toiDa:150, batBuoc:true}},
+      {ten:'Nam_hoc',    rong:16, khoa:{kieu:'chu', toiDa:12}},
+      {ten:'Tinh',       rong:22, khoa:{kieu:'chu', toiDa:60}},
+      {ten:'Xa',         rong:26, khoa:{kieu:'chu', toiDa:60}}
+    ],
+    hang: S.tenTruong ? [[S.tenTruong, S.namHoc||'', S.tinh||'', S.xa||'']]
+                      : [['Trường Tiểu học …','2026-2027','','']]
+  };
+
+  const tDiem = {
+    ten:'2_DIEM_TRUONG', tieu:'DANH SÁCH ĐIỂM TRƯỜNG',
+    nhac:'Trường một điểm: để nguyên một dòng. Sáp nhập: mỗi nơi một dòng.',
+    batBuoc:true, duThua:12,
+    cot:[
+      {ten:'Ten_diem_truong', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
+      {ten:'Co_phong_tin',    rong:16, khoa:{kieu:'chon', nguon:'DM_Co_khong'}}
+    ],
+    hang: coThat && S.diemTruong.length
+      ? S.diemTruong.map(d=>[d.ten, d.phongTin===false?'Không':'Có'])
+      : [['Điểm trường chính','Có']]
+  };
+
+  /* Cột riêng cho TỪNG KHỐI vì khối nhỏ tan sớm hơn — thực tế nhà trường,
+     không phải làm tròn cho gọn thuật toán. Cộng theo cột ra đúng
+     27·27·28·30·30 của CT GDPT 2018; có phép thử canh việc này. */
+  const kg = S.khungGio?.length ? S.khungGio : khungGioMacDinh();
+  const tKhung = {
+    ten:'3_KHUNG_GIO', tieu:'KHUNG GIỜ HỌC TRONG TUẦN',
+    nhac:'Số tiết của TỪNG KHỐI trong mỗi buổi. Buổi cả trường nghỉ thì Day_hoc ghi Không.',
+    batBuoc:true, duThua:0,
+    cot:[
+      {ten:'Thu',     rong:9,  khoa:{kieu:'chon', nguon:'DM_Thu', batBuoc:true}},
+      {ten:'Buoi',    rong:9,  khoa:{kieu:'chon', nguon:'DM_Buoi', batBuoc:true}},
+      {ten:'Day_hoc', rong:11, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
+      ...[1,2,3,4,5].map(k=>({ten:'K'+k, rong:7, khoa:{kieu:'so', tu:0, den:10}}))
+    ],
+    hang: kg.map(k=>[k.thu, k.buoi, k.bat===false?'Không':'Có',
+                     ...[1,2,3,4,5].map(x=>k.tietKhoi?.[x] ?? k.tiet ?? 0)])
+  };
+
+  const tLop = {
+    ten:'4_LOP', tieu:'DANH SÁCH LỚP HỌC',
+    nhac:'Ma_lop phải duy nhất trong CẢ TRƯỜNG. Ten_lop được phép trùng giữa các điểm trường.',
+    batBuoc:true, duThua:80,
+    cot:[
+      {ten:'Ma_lop',      rong:18, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+      {ten:'Ten_lop',     rong:14, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+      {ten:'Khoi',        rong:9,  khoa:{kieu:'so', tu:1, den:5, batBuoc:true}},
+      {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}
+    ],
+    hang: coThat
+      ? S.lop.map(l=>[l.maLop||l.id, l.ten, l.khoi, dtId(S.lopDT[l.id])?.ten||''])
+      : [['1A','1A',1,'Điểm trường chính'],
+         ['1B','1B',1,'Điểm trường chính'],
+         ['2A','2A',2,'Điểm trường chính']]
+  };
+
+  const tGV = {
+    ten:'5_GIAO_VIEN', tieu:'DANH SÁCH CÁN BỘ GIÁO VIÊN',
+    nhac:'Ghi ĐỦ HỌ TÊN — trường 35 người đã có bốn cặp trùng tên gọi. '
+        +'Chu_nhiem ghi MÃ LỚP. Dinh_muc bỏ trống thì lấy '+DINH_MUC+' tiết.',
+    batBuoc:true, duThua:120,
+    cot:[
+      {ten:'Ma_GV',     rong:20, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+      {ten:'Ho_ten',    rong:30, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
+      {ten:'Chu_nhiem', rong:16, khoa:{kieu:'chon', nguon:'DM_Ma_lop'}},
+      {ten:'Dinh_muc',  rong:11, khoa:{kieu:'so', tu:1, den:30}}
+    ],
+    hang: coThat
+      ? S.giaoVien.map(g=>[g.maGV||g.id, g.hoTen,
+                           g.cn?maCuaLop(g.cn):'', g.dinhMuc||DINH_MUC])
+      : [['An_NT','Nguyễn Thị An','1A',DINH_MUC],
+         ['Binh_TV','Trần Văn Bình','1B',DINH_MUC],
+         ['Chi_LT','Lê Thị Chi','',DINH_MUC]]
+  };
+
+  /* So_tiet ĐỂ TRỐNG ĐƯỢC: máy lấy tiết chuẩn CT GDPT 2018 theo khối của lớp.
+     Người kẻ bảng không phải nhớ 27·27·28·30·30 — đúng cái đã làm cho mẫu
+     ma trận, và là lý do trường "chỉ có bảng phân công" vẫn nhập được. */
+  const tPC = {
+    ten:'6_PHAN_CONG', tieu:'BẢNG PHÂN CÔNG CHUYÊN MÔN',
+    nhac:'Mỗi dòng là một môn của một giáo viên ở một lớp. '
+        +'So_tiet bỏ trống thì máy lấy số tiết chuẩn theo khối.',
+    batBuoc:true, duThua:400,
+    cot:[
+      {ten:'Ma_GV',   rong:20, khoa:{kieu:'chon', nguon:'DM_Ma_GV', batBuoc:true}},
+      {ten:'Ma_lop',  rong:18, khoa:{kieu:'chon', nguon:'DM_Ma_lop', batBuoc:true}},
+      {ten:'Mon',     rong:20, khoa:{kieu:'chon', nguon:'DM_Mon', batBuoc:true}},
+      {ten:'So_tiet', rong:10, khoa:{kieu:'so', tu:1, den:20}}
+    ],
+    hang: coThat
+      ? S.phanCong.map(p=>[maCuaGV(p.gvId), maCuaLop(p.lopId), p.mon, p.soTiet])
+      : [['An_NT','1A','Tiếng Việt',12],
+         ['An_NT','1A','Toán',3],
+         ['Chi_LT','1A','Mỹ thuật',''],
+         ['Chi_LT','1B','Mỹ thuật','']]
+  };
+
+  const tPhong = {
+    ten:'7_PHONG', tieu:'PHÒNG CHỨC NĂNG',
+    nhac:'Bỏ trống cả trang nếu trường không có phòng riêng. Khai rồi thì phòng '
+        +'thành ràng buộc cứng: hai lớp không học cùng một phòng một tiết.',
+    batBuoc:false, duThua:24,
+    cot:[
+      {ten:'Ten_phong',   rong:26, khoa:{kieu:'chu', toiDa:60}},
+      {ten:'Mon',         rong:20, khoa:{kieu:'chon', nguon:'DM_Mon'}},
+      {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}
+    ],
+    /* ⚠️ Trang TUỲ CHỌN mà trường chưa khai thì để TRỐNG HẲN, đừng bày dòng
+       ví dụ. Dòng ví dụ trỏ tới "Điểm trường chính" và "Binh_TV" — hai cái
+       tên chỉ có trong bộ mẫu của trường trắng. Trường thật tải mẫu về, chưa
+       khai phòng, là tệp mang sẵn một dòng trỏ vào điểm trường không tồn tại
+       và nhập lại KHÔNG ĐƯỢC. Phép thử vòng tròn ở mục 21b bắt được đúng
+       chuyện này ngay lần chạy đầu. Trường trắng thì vẫn cho ví dụ, vì lúc
+       ấy hai cái tên kia có thật ở trang 2 và trang 5. */
+    hang: (S.phong||[]).length
+      ? S.phong.map(p=>[p.ten, p.mon||'', dtId(p.dtId)?.ten||''])
+      : coThat ? [] : [['Phòng máy 1','Tin học','Điểm trường chính']]
+  };
+
+  /* Đây là `gv_nghi` — buổi LẶP LẠI hằng tuần, dữ liệu nguồn để XẾP lịch.
+     Đừng nhầm với `bao_nghi` (ốm một hôm), thứ thầy cô tự gửi trong app. */
+  const tBan = {
+    ten:'8_BUOI_BAN', tieu:'BUỔI BẬN CỐ ĐỊNH HẰNG TUẦN',
+    nhac:'Buổi lặp lại mỗi tuần (đi học nâng chuẩn, con nhỏ…). Ốm một hôm thì '
+        +'không ghi ở đây — thầy cô tự báo nghỉ trong app.',
+    batBuoc:false, duThua:60,
+    cot:[
+      {ten:'Ma_GV', rong:20, khoa:{kieu:'chon', nguon:'DM_Ma_GV'}},
+      {ten:'Thu',   rong:9,  khoa:{kieu:'chon', nguon:'DM_Thu'}},
+      {ten:'Buoi',  rong:9,  khoa:{kieu:'chon', nguon:'DM_Buoi'}}
+    ],
+    /* Cùng lý do trang 7 ở trên — xem ghi chú ở đó */
+    hang: Object.keys(S.gvNghi||{}).length
+      ? Object.entries(S.gvNghi).flatMap(([id,ds])=>
+          ds.map(k=>[maCuaGV(id), +k.split('-')[0], k.split('-')[1]]))
+      : coThat ? [] : [['Binh_TV',5,'C']]
+  };
+
+  return {trang:[tTruong,tDiem,tKhung,tLop,tGV,tPC,tPhong,tBan], danhMuc, coThat};
+}
+
+/* Bảng kiểm ở trang 0_BAT_DAU — dựng từ CHÍNH bộ khai trên, nên thêm một
+   trang tính là dòng hướng dẫn tự có, không phải nhớ sửa hai chỗ. */
+function bangKiemMau(m){
+  return [
+    ['Trang tính','Bắt buộc','Cột phải điền','Ghi chú'],
+    ...m.trang.map(t=>[t.ten, t.batBuoc?'Có':'Tuỳ chọn',
+      t.cot.filter(c=>c.khoa?.batBuoc).map(c=>c.ten).join(' · ') || '—', t.nhac])
+  ];
 }
 
 /*#endregion XUAT*/
@@ -8280,6 +8674,150 @@ async function sanSangXLSX(){
 
 /* ---------- Tải mẫu Excel về máy để điền ---------- */
 
+/* ---------- Khoá kiểm tra trong Excel (23/8/2026) ----------
+   Dịch cái `khoa` khai ở `bangMauTronGoi()` sang dataValidation của Excel.
+   Ba kiểu, đúng ba thứ trường gõ sai nhiều nhất:
+     chon → ô xổ xuống lấy nguồn từ trang DANH_MUC (mã lớp, mã GV, môn…)
+     so   → số nguyên trong khoảng (Khoi 1–5, So_tiet 1–20, Dinh_muc 1–30)
+     chu  → bắt buộc điền và giới hạn độ dài
+
+   ⚠️ Khoá ĐẶT DƯ RA vài trăm dòng dưới phần đã điền (`duThua`), vì việc chính
+   của người dùng là GÕ THÊM. Khoá đúng số dòng đang có thì dòng 26 trở đi
+   không còn dropdown — đúng chỗ họ cần nó nhất.
+
+   ⚠️ Đừng khoá trang tính bằng mật khẩu. Trường cần chèn dòng, sắp xếp, dán
+   từ danh sách cũ; khoá là họ bực — mà mật khẩu trang tính Excel bẻ trong
+   mười giây, khoá xong chẳng được gì. Chỉ khoá trang DANH_MUC. */
+function apKhoaXL(ws, cot, dongDau, soDong, danhMuc){
+  cot.forEach((c,j)=>{
+    const k=c.khoa; if(!k) return;
+    let dv=null;
+    if(k.kieu==='chon'){
+      const n=(danhMuc[k.nguon]||[]).length;
+      if(!n) return;
+      /* ⚠️ KHÔNG có dấu `=` ở đầu. ExcelJS ghi thẳng chuỗi này vào thẻ
+         <formula1>, mà Excel chờ một tên vùng trần — thêm `=` là ô xổ xuống
+         chết câm: tệp vẫn mở được, vẫn thấy đủ dữ liệu, chỉ là bấm vào ô
+         không có danh sách nào bung ra. Đúng loại lỗi không nhìn ra bằng mắt.
+         `node test/soi-mau-excel.mjs` bắt được ngay lần chạy đầu. */
+      dv={type:'list', allowBlank:!k.batBuoc,
+          formulae:[k.nguon],                 /* tên vùng đặt sẵn ở DANH_MUC */
+          showErrorMessage:true, errorStyle:'stop',
+          errorTitle:'Giá trị không có trong danh mục',
+          error:`Chọn một giá trị từ danh sách xổ xuống. Muốn thêm giá trị mới `
+               +`thì khai ở trang tương ứng trước, rồi tải lại mẫu.`};
+    }else if(k.kieu==='so'){
+      dv={type:'whole', operator:'between', allowBlank:!k.batBuoc,
+          formulae:[k.tu, k.den],
+          showErrorMessage:true, errorStyle:'stop',
+          errorTitle:'Số không hợp lệ',
+          error:`Ô này nhận số nguyên từ ${k.tu} đến ${k.den}.`};
+    }else if(k.kieu==='chu' && k.toiDa){
+      dv={type:'textLength', operator:'lessThanOrEqual', allowBlank:!k.batBuoc,
+          formulae:[k.toiDa],
+          showErrorMessage:true, errorStyle:'stop',
+          errorTitle:'Nội dung quá dài',
+          error:`Ô này nhận tối đa ${k.toiDa} ký tự.`};
+    }
+    if(!dv) return;
+    for(let i=0;i<soDong;i++) ws.getCell(dongDau+i, j+1).dataValidation={...dv};
+    /* Cột bắt buộc: đầu cột mang dấu sao, để người điền thấy trước khi gõ */
+    if(k.batBuoc){
+      const o=ws.getCell(dongDau-1, j+1);
+      if(!String(o.value||'').endsWith(' *')) o.value=String(o.value||'')+' *';
+    }
+  });
+}
+
+/* ---------- Tải mẫu TRỌN GÓI (23/8/2026) ----------
+   Một tệp, mười trang tính, đủ bảy thứ cần để xếp. Nội dung dựng ở
+   `bangMauTronGoi()` trong vùng XUAT — hàm này chỉ lo phần Excel. */
+async function taiMauTronGoi(){
+  if(!await sanSangExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi bấm lại.',true);
+  const m=bangMauTronGoi();
+  const wb=new ExcelJS.Workbook();
+  wb.creator='Phần mềm Thời khóa biểu';
+  wb.created=new Date();
+
+  /* --- 0_BAT_DAU: đọc lúc đang điền, nên nằm ngay tab đầu --- */
+  const b=trangXL(wb,'0_BAT_DAU','ngang');
+  b.columns=[{width:20},{width:12},{width:30},{width:74}];
+  let rb=tieuDeXL(b,1,4,'MẪU NHẬP DỮ LIỆU THỜI KHÓA BIỂU',
+    'Điền các trang tính theo thứ tự 1 → 8, rồi vào app bấm Nhập dữ liệu Excel · Chọn tệp.');
+  const kiem=bangKiemMau(m);
+  rb=dauCotXL(b,rb,kiem[0].map((t,i)=>({ten:t, rong:[20,12,30,74][i]})));
+  rb=thanBangXL(b,rb,kiem.slice(1),['left','center','left','left']);
+  b.getColumn(4).alignment={wrapText:true, vertical:'middle'};
+  rb+=1;
+  [['ĐIỀU QUAN TRỌNG NHẤT',''],
+   ['Ma_GV và Ma_lop là thứ nối các trang tính với nhau.',''],
+   ['Đó là lý do phần mềm không bao giờ nhầm hai cô cùng tên,',''],
+   ['và ba điểm trường cùng có lớp tên "1A" vẫn phân biệt được.',''],
+   ['Đặt mã rồi thì đừng đổi.',''],
+   ['',''],
+   ['Ô có dấu * ở tên cột là ô BẮT BUỘC điền.',''],
+   ['Ô xổ xuống lấy giá trị từ trang DANH_MUC — đừng xoá trang đó.',''],
+   ['Cột So_tiet bỏ trống được: máy lấy tiết chuẩn CT GDPT 2018 theo khối.','']
+  ].forEach(([t],i)=>{
+    const o=b.getCell(rb+i,1); o.value=t;
+    o.font={name:'Times New Roman',size:11,bold:i===0};
+  });
+  rb+=11;
+  b.getCell(rb,1).value='SỐ TIẾT CHUẨN MỖI TUẦN — CT GDPT 2018';
+  b.getCell(rb,1).font={name:'Times New Roman',size:11,bold:true};
+  const chuan=[['Môn','Khối 1','Khối 2','Khối 3','Khối 4','Khối 5'],
+    ...Object.keys(TIET_CHUAN).map(x=>[x,...[1,2,3,4,5].map(k=>TIET_CHUAN[x][k]||'')]),
+    ['Tổng',...[1,2,3,4,5].map(k=>CHUAN_KHOI[k])]];
+  let rc=dauCotXL(b,rb+1,chuan[0].map(t=>({ten:t,rong:14})));
+  thanBangXL(b,rc,chuan.slice(1),['left','center','center','center','center','center']);
+
+  /* --- Tám trang dữ liệu --- */
+  m.trang.forEach(t=>{
+    const ws=trangXL(wb,t.ten, t.cot.length>4?'ngang':'doc');
+    ws.columns=t.cot.map(c=>({width:c.rong||14}));
+    let r=tieuDeXL(ws,1,t.cot.length,t.tieu,t.nhac);
+    const dCot=r;
+    r=dauCotXL(ws,r,t.cot);
+    const dongDau=r;
+    r=thanBangXL(ws,r,t.hang,t.cot.map(c=>c.khoa?.kieu==='so'?'center':'left'));
+    apKhoaXL(ws,t.cot,dongDau,t.hang.length+(t.duThua||0),m.danhMuc);
+    ws.views=[{state:'frozen',ySplit:dCot}];
+    ws.autoFilter={from:{row:dCot,column:1}, to:{row:Math.max(dCot,r-1),column:t.cot.length}};
+  });
+
+  /* --- DANH_MUC: nguồn cho mọi ô xổ xuống, mỗi danh mục MỘT VÙNG ĐẶT TÊN.
+     Dùng tên vùng (defined name) chứ không viết thẳng `=DANH_MUC!$A$2:$A$99`
+     vào từng ô: thêm một điểm trường là chỉ sửa một chỗ, và công thức trong
+     ô đọc ra nghĩa (`=DM_Ma_lop`) thay vì một dải toạ độ. */
+  const dm=wb.addWorksheet('DANH_MUC');
+  Object.entries(m.danhMuc).forEach(([ten,ds],i)=>{
+    const c=i+1;
+    dm.getColumn(c).width=Math.max(14, ten.length+3);
+    const o=dm.getCell(1,c);
+    o.value=ten;
+    o.font={name:'Times New Roman',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+    o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.xanh}};
+    o.border=VIEN_MANH;
+    ds.forEach((v,j)=>{
+      const x=dm.getCell(2+j,c);
+      x.value=v; x.font={name:'Times New Roman',size:11}; x.border=VIEN_MANH;
+    });
+    const cot=dm.getColumn(c).letter;
+    wb.definedNames.add(`DANH_MUC!$${cot}$2:$${cot}$${1+Math.max(1,ds.length)}`, ten);
+  });
+  dm.getCell(1, Object.keys(m.danhMuc).length+2).value =
+    'Trang này là nguồn cho các ô xổ xuống. Đừng xoá, đừng đổi tên cột.';
+  /* Khoá đúng trang này thôi — xoá nhầm nó là dropdown chết cả tệp */
+  dm.protect('', {selectLockedCells:true, selectUnlockedCells:true});
+  dm.state='visible';
+
+  const ten=`Mau-TKB-tron-goi-${khongDau(S.tenTruong)}.xlsx`;
+  await ghiTepXL(wb,ten);
+  bao(m.coThat
+    ? `Đã tải ${ten} — mười trang tính, điền sẵn dữ liệu đang có của trường.`
+    : `Đã tải ${ten} — mười trang tính kèm dòng ví dụ và ô xổ xuống.`);
+}
+
 /* ---------- Tải mẫu Excel về máy để điền ---------- */
 async function taiMauExcel(){
   if(!await sanSangExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi bấm lại.',true);
@@ -9206,6 +9744,48 @@ const HD_ND = {
     ten:'Cán bộ quản lý',
     mo:'Người xếp thời khóa biểu cho cả trường — hiệu trưởng, phó hiệu trưởng, người phụ trách chuyên môn.',
     muc:[
+      {t:'Nhập liệu lần đầu — một tệp Excel là xong', n:`
+        <p>Trường mới dùng phần mềm thì đây là <b>việc đầu tiên và gần như duy nhất</b>.
+          Điền một tệp Excel rồi tải lên; mọi thứ còn lại máy lo.</p>
+        <div class="hd-buoc">
+          <div class="hd-b"><b>1 · Tải mẫu về</b><span>Vào bất kỳ màn hình nào trong nhóm <i>Dữ liệu nhà trường</i>,
+            bấm <b>Nhập dữ liệu Excel</b> rồi bấm <b>Tải</b> ở dòng <i>Trọn gói</i>.</span></div>
+          <div class="hd-b"><b>2 · Điền tệp</b><span>Mười trang tính đánh số sẵn <i>0 → 8</i>, cứ đi lần lượt.
+            Trang <b>0_BAT_DAU</b> nói rõ trang nào bắt buộc, trang nào bỏ trống được.</span></div>
+          <div class="hd-b"><b>3 · Tải lên</b><span>Quay lại đúng nút <b>Nhập dữ liệu Excel</b>, bấm <b>Chọn tệp</b>.
+            Máy tự nhận ra kiểu tệp, bày ra đọc được mấy trang, mỗi trang mấy dòng.</span></div>
+          <div class="hd-b"><b>4 · Xếp</b><span>Máy chạy luôn bộ kiểm tra khả thi rồi mời bấm <b>Xếp ngay</b>.</span></div>
+        </div>
+
+        <p style="margin-top:12px"><b>Tám trang phải điền:</b></p>
+        <div class="bang"><table class="dl"><thead><tr><th>Trang</th><th>Điền gì</th></tr></thead><tbody>
+          <tr><td><b>1_TRUONG</b></td><td>Tên đơn vị, năm học, xã, tỉnh — một dòng.</td></tr>
+          <tr><td><b>2_DIEM_TRUONG</b></td><td>Mỗi nơi dạy học một dòng. Trường một điểm thì để nguyên dòng có sẵn.</td></tr>
+          <tr><td><b>3_KHUNG_GIO</b></td><td><b>Đã điền sẵn</b> khung chuẩn 8 buổi. Trường dạy khác thì sửa số tiết
+            từng khối — khối nhỏ tan sớm hơn nên năm cột <i>K1…K5</i> được phép khác nhau.</td></tr>
+          <tr><td><b>4_LOP</b></td><td>Mã lớp, tên lớp, khối, thuộc điểm trường nào.</td></tr>
+          <tr><td><b>5_GIAO_VIEN</b></td><td>Mã, <b>đủ họ tên</b>, chủ nhiệm lớp nào, định mức tiết.</td></tr>
+          <tr><td><b>6_PHAN_CONG</b></td><td>Ai dạy môn gì ở lớp nào. <b>Cột So_tiet bỏ trống được</b> —
+            máy lấy số tiết chuẩn CT GDPT 2018 theo khối.</td></tr>
+          <tr><td><b>7_PHONG</b></td><td>Tuỳ chọn. Chỉ khai phòng dùng chung: phòng máy, phòng nghệ thuật.</td></tr>
+          <tr><td><b>8_BUOI_BAN</b></td><td>Tuỳ chọn. Buổi <b>lặp lại hằng tuần</b> thầy cô không lên lớp được.
+            Ốm một hôm thì không ghi ở đây — thầy cô tự báo nghỉ trong app.</td></tr>
+        </tbody></table></div>
+
+        <p style="margin-top:11px"><b>Tệp mẫu tự chống gõ sai:</b> ô có <b>*</b> ở tên cột là ô bắt buộc.
+          Các ô mã lớp, mã giáo viên, môn, điểm trường đều <b>xổ xuống cho chọn</b> — không gõ tay,
+          không gõ sai. Ô số chỉ nhận đúng khoảng của nó (khối 1–5, định mức 1–30).</p>
+        <p><b>Nhưng đừng tin hẳn vào khoá của Excel.</b> Chép từ danh sách cũ rồi <b>dán đè</b> thì
+          Excel không kiểm được — đó là cách Excel vốn vậy, không sửa được. Nên phần mềm
+          <b>vẫn soát lại toàn bộ</b> lúc tải lên, và chỉ ra <b>đúng số dòng</b> nào sai để sửa thẳng
+          trong Excel.</p>
+        <p><b>Hai mức khác nhau khi soát:</b> <b style="color:var(--do)">Lỗi</b> thì phải sửa xong mới nhập được
+          (thiếu mã, mã trùng, trỏ tới lớp không có, khung giờ không đủ chỗ).
+          <b style="color:var(--canh)">Cảnh báo</b> thì vẫn nhập bình thường, sửa trong app sau cũng được
+          (lớp chưa có chủ nhiệm, ai đó vượt định mức).</p>
+        <p>Đã có sẵn bảng phân công của phần mềm cũ thì dùng <b>mẫu ba trang</b>; quen kẻ tay
+          kiểu mỗi giáo viên một dòng, mỗi môn một cột đánh dấu <i>x</i> thì dùng <b>mẫu ma trận</b>.
+          Cả ba kiểu đều tải lên bằng cùng một nút <b>Chọn tệp</b>.</p>`},
       {t:'Khai báo dữ liệu nhà trường', n:`
         <p>Thanh bên gom thành năm nhóm mở được. Làm lần lượt các mục trong nhóm <b>Dữ liệu nhà trường</b>,
           mỗi màn hình có nút <i>tiếp theo ›</i> để đi sang việc kế — không phải tự mò.</p>
@@ -9227,8 +9807,11 @@ const HD_ND = {
           là danh sách rút gọn ngay, <b>không cần gõ dấu</b>. Gõ <i>huong</i> ra
           <i>Nguyễn Thị Hương</i>; gõ <i>1a dien dong</i> ra đúng lớp 1A của điểm trường
           Diễn Đồng. Bấm dấu <b>×</b> trong ô là trở lại danh sách đủ.</p>
-        <p><b>Nhanh hơn:</b> trường đã có bảng phân công trong Excel thì dùng nút
-          <b>Nhập từ Excel</b> ngay trên thanh công cụ của màn hình đang mở — một lần là xong cả chín mục.
+        <p><b>Nhanh hơn — và đây mới là đường chính:</b> đừng khai tay chín màn hình.
+          Bấm <b>Nhập dữ liệu Excel</b> ngay trên thanh công cụ của màn hình đang mở, tải
+          <b>mẫu trọn gói</b> về điền rồi tải lên — một lần là xong cả chín mục. Xem lại
+          mục <b>1 · Nhập liệu lần đầu</b> ở trên. Chín màn hình dưới đây là chỗ để
+          <b>sửa lặt vặt về sau</b>, không phải chỗ nhập lần đầu.
           Gộp nhiều trường vào một đơn vị thì mỗi lớp phải có <b>Ma_lop</b> riêng
           (ví dụ <i>DL-1A</i>, <i>DD-1A</i>, <i>DT-1A</i>). <b>Tên lớp thì được phép trùng nhau</b> giữa các
           điểm trường — màn hình tự ghi kèm nơi học để khỏi lẫn.</p>
@@ -11847,24 +12430,32 @@ $('#btDangNhapTren').onclick=hopMayChu;   /* thanh trên cùng là lối vào du
    người dùng đang ở màn hình Lớp học mà muốn nhập lớp thì bấm luôn tại đó,
    không phải đi tìm ở cuối thanh bên. */
 function hopNhapExcel(){ hop('Nhập dữ liệu từ Excel',
-  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Phần mềm nhận <b>hai kiểu tệp</b> — chọn kiểu hợp tay mình.</p>
-   <div class="bang"><table class="dl"><thead><tr><th>Kiểu tệp</th><th>Hợp với ai</th></tr></thead><tbody>
+  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:12px">Chưa có tệp thì
+     <b>tải mẫu về điền</b>. Mẫu dựng sẵn đúng cột, có ô xổ xuống chống gõ sai,
+     và điền sẵn dữ liệu đang có của trường (nếu đã khai).</p>
+   <div class="bang"><table class="dl"><thead><tr><th>Mẫu</th><th>Dùng khi nào</th><th></th></tr></thead><tbody>
+     <tr><td><b>Trọn gói</b><br><span style="color:var(--chu-mo)">mười trang tính</span></td>
+       <td>Khai <b>tất cả</b> trong một tệp: trường · điểm trường · khung giờ · lớp ·
+         giáo viên · phân công · phòng · buổi bận. Nhập xong là xếp được ngay,
+         không phải vào app khai thêm chỗ nào.</td>
+       <td><button class="b b-ch" onclick="taiMauTronGoi()">Tải</button></td></tr>
      <tr><td><b>Ma trận một trang</b><br><span style="color:var(--chu-mo)">trang PHAN_CONG</span></td>
-       <td>Kẻ nhanh từ đầu: mỗi dòng một giáo viên, mỗi môn một cột đánh dấu <b>x</b>.
-         Số tiết máy tự lấy chuẩn CT GDPT 2018 theo khối — không phải nhớ 27·27·28·30·30.</td></tr>
+       <td>Kẻ nhanh đúng tờ phân công vẫn kẻ tay: mỗi dòng một giáo viên,
+         mỗi môn một cột đánh dấu <b>x</b>.</td>
+       <td><button class="b b-vien" onclick="taiMauMaTran()">Tải</button></td></tr>
      <tr><td><b>Ba trang chi tiết</b><br><span style="color:var(--chu-mo)">DANH_SACH_GV · DANH_SACH_LOP · PCGD</span></td>
-       <td>Đã có sẵn bảng phân công từng dòng, hoặc cần ghi số tiết khác chuẩn.</td></tr>
+       <td>Đã có sẵn bảng phân công từng dòng từ phần mềm cũ.</td>
+       <td><button class="b b-vien" onclick="taiMauExcel()">Tải</button></td></tr>
    </tbody></table></div>
-   <div class="gy"><b>Ma_GV</b> và <b>Ma_lop</b> là thứ nối mọi thứ với nhau — lý do phần mềm
-     không bao giờ nhầm hai cô cùng tên. Chưa có tệp thì tải một trong hai mẫu ở dưới:
-     máy dựng sẵn đúng cột, kèm trang <b>HUONG_DAN</b>, có dữ liệu đang có của trường (nếu đã khai).</div>
+   <div class="gy"><b>Ma_GV</b> và <b>Ma_lop</b> là thứ nối các trang tính với nhau — lý do
+     phần mềm không bao giờ nhầm hai cô cùng tên, và ba điểm trường cùng có lớp "1A"
+     vẫn phân biệt được. Cả ba kiểu tệp đều nhận được ở nút <b>Chọn tệp</b>; máy tự
+     nhận ra kiểu nào.</div>
    <div style="margin-top:13px;padding:11px 14px;background:${coMayChu()&&duocSuaNguon()?'var(--xanh-nen)':'var(--canh-nen)'};border-radius:10px;font-size:12.5px">
      ${coMayChu()&&duocSuaNguon()
        ? 'Đã nối máy chủ — dữ liệu sẽ ghi thẳng lên Supabase cho cả trường dùng chung.'
        : 'Chưa nối máy chủ — dữ liệu chỉ nằm trên máy này. Máy sẽ soát lỗi tệp trước khi nhập.'}</div>`,
   [{ten:'Huỷ',phu:1,lam:dong},
-   {ten:'Mẫu ma trận',phu:1,lam:taiMauMaTran},
-   {ten:'Mẫu 3 trang',phu:1,lam:taiMauExcel},
    {ten:'Chọn tệp',lam:()=>{dong();$('#tep').click();}}]); }
 
 $('#tep').onchange=async e=>{
@@ -11872,51 +12463,93 @@ $('#tep').onchange=async e=>{
   e.target.value='';
   if(!await sanSangXLSX())
     return bao('Chưa tải được thư viện đọc Excel. Kiểm tra mạng rồi chọn tệp lại.',true);
-  let dl;
+  let dl, tim;
   try{
     const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
     const doc=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n]):null;
-    const mt=doc('PHAN_CONG');
-    if(mt){
+    /* Bước ① — nhận ra kiểu tệp, và ghi lại TÌM THẤY GÌ để bày cho người dùng.
+       Trọn gói xét trước vì nó cũng có trang 6_PHAN_CONG; xét ma trận trước
+       thì tệp mười trang bị đọc nhầm thành một trang. */
+    tim=[...['1_TRUONG','2_DIEM_TRUONG','3_KHUNG_GIO','4_LOP','5_GIAO_VIEN',
+             '6_PHAN_CONG','7_PHONG','8_BUOI_BAN'].map(t=>({t, h:docTrang(doc,t)}))];
+    if(tim.filter(x=>x.h).length>=3 && docTrang(doc,'6_PHAN_CONG')){
+      dl=duLieuTuTronGoi(doc);
+    }else if(doc('PHAN_CONG')){
       /* Mẫu ma trận một trang — trang DANH_SACH_LOP là tùy chọn */
-      dl=duLieuTuMaTran(mt, doc('DANH_SACH_LOP'));
+      tim=null;
+      dl=duLieuTuMaTran(doc('PHAN_CONG'), doc('DANH_SACH_LOP'));
     }else{
+      tim=null;
       const gv=doc('DANH_SACH_GV'), lp=doc('DANH_SACH_LOP'), pc=doc('PCGD');
       const thieu=[['DANH_SACH_GV',gv],['DANH_SACH_LOP',lp],['PCGD',pc]]
         .filter(([,x])=>!x).map(([n])=>n);
       if(thieu.length) return bao('Tệp thiếu trang tính: '+thieu.join(', ')
-        +' — hoặc dùng mẫu ma trận với trang PHAN_CONG.',true);
+        +' — hoặc tải mẫu trọn gói ở hộp Nhập dữ liệu Excel.',true);
       dl=duLieuTuBang(gv,lp,pc);
     }
   }catch(err){ return bao('Không đọc được tệp — kiểm tra lại đúng định dạng .xlsx',true); }
-  if(dl.soLoi) return hopLoiNhap(dl);
-  hopXacNhanNhap(dl);
+  if(dl.soLoi) return hopLoiNhap(dl, tim);
+  hopXacNhanNhap(dl, tim);
 };
 
-/* Tệp có lỗi — bày ra từng dòng sai để người nhập sửa thẳng trong Excel */
-function hopLoiNhap(dl){
+/* Bảng "tìm thấy gì trong tệp" — bước ① của luồng nhập trọn gói. Người dùng
+   mở tệp lên là biết ngay máy đọc được mấy trang, mỗi trang mấy dòng. Trang
+   bắt buộc mà rỗng thì đỏ; trang tuỳ chọn rỗng thì chỉ ghi "bỏ trống". */
+function bangTimThay(tim){
+  if(!tim) return '';
+  const batBuoc=new Set(['4_LOP','5_GIAO_VIEN','6_PHAN_CONG']);
+  return `<div class="bang" style="margin-bottom:13px"><table class="dl">
+    <thead><tr><th>Trang tính</th><th>Số dòng</th><th></th></tr></thead><tbody>
+    ${tim.map(x=>{
+      const n=x.h?x.h.length:0;
+      const xau=batBuoc.has(x.t)&&!n;
+      return `<tr><td>${esc(x.t)}</td><td>${x.h?n:'—'}</td>
+        <td><span class="tag ${xau?'do':n?'ok':'canh'}">${
+          xau?'thiếu':n?'đã đọc':'bỏ trống'}</span></td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+/* Tệp có lỗi — bày ra từng dòng sai để người nhập sửa thẳng trong Excel.
+   Bước ② của luồng nhập. Chỉ LỖI mới tới được đây; cảnh báo đi tiếp sang
+   bước ③ vì chúng không cản việc nhập. */
+function hopLoiNhap(dl, tim){
   hop('Tệp còn '+dl.soLoi+' chỗ chưa đúng',
+    bangTimThay(tim)+
     `<p style="font-size:13px;margin-bottom:13px">Chưa nhập được. Sửa những dòng dưới đây
       trong tệp Excel rồi chọn lại tệp. Số dòng tính đúng như Excel hiển thị.</p>
-     <div class="bang" style="max-height:46vh"><table class="dl"><tbody>
+     <div class="bang" style="max-height:40vh"><table class="dl"><tbody>
      ${dl.loi.map(x=>`<tr><td>${esc(x)}</td></tr>`).join('')}
      ${dl.soLoi>dl.loi.length?`<tr><td style="color:var(--chu-mo)">…và ${dl.soLoi-dl.loi.length} chỗ khác</td></tr>`:''}
-     </tbody></table></div>`,
-    [{ten:'Đóng',lam:dong}]);
+     </tbody></table></div>
+     ${dl.soCanh?`<div class="gy" style="margin-top:11px">Ngoài ra có ${dl.soCanh} chỗ
+       đáng rà lại nhưng không cản việc nhập — máy sẽ nói rõ sau khi hết lỗi.</div>`:''}`,
+    [{ten:'Đóng',lam:dong},
+     {ten:'Chọn tệp khác',lam:()=>{dong();$('#tep').click();}}]);
 }
 
 /* Tệp sạch — hỏi lại trước khi ghi, vì phân công cũ sẽ bị thay hoàn toàn */
-function hopXacNhanNhap(dl){
+function hopXacNhanNhap(dl, tim){
   const lenMayChu = coMayChu() && duocSuaNguon();
-  const CH={1:27,2:27,3:28,4:30,5:30};
+  const CH=CHUAN_KHOI;
   const lech=dl.lop.map(l=>({l, t:dl.phanCong.filter(p=>p.lopId===l.id).reduce((s,p)=>s+p.soTiet,0)}))
     .filter(x=>x.t!==CH[x.l.khoi]);
   hop('Kiểm tra trước khi nhập',
+    bangTimThay(tim)+
     `<div class="hang">Giáo viên <b>${dl.giaoVien.length}</b></div>
      <div class="hang">Lớp <b>${dl.lop.length}</b></div>
      <div class="hang">Điểm trường <b>${dl.diemTruong.length}</b></div>
      <div class="hang">Dòng phân công <b>${dl.phanCong.length}</b></div>
      <div class="hang">Tổng số tiết mỗi tuần <b>${dl.tongTiet}</b></div>
+     ${dl.tronGoi?`<div class="hang">Buổi học mỗi tuần
+       <b>${dl.khungGio.filter(k=>k.bat!==false).length}</b></div>
+       ${dl.phong?.length?`<div class="hang">Phòng chức năng <b>${dl.phong.length}</b></div>`:''}
+       ${Object.keys(dl.gvNghi||{}).length?`<div class="hang">Người có buổi bận cố định
+         <b>${Object.keys(dl.gvNghi).length}</b></div>`:''}`:''}
+     ${dl.soCanh?`<div class="canhbao" style="margin-top:13px"><div class="cb-ic">~</div><div class="cb-t">
+       <b>${dl.soCanh} chỗ đáng rà lại</b>
+       <div class="cb-g">${dl.canh.map(x=>esc(x)).join('<br>')}
+         ${dl.soCanh>dl.canh.length?`<br>…và ${dl.soCanh-dl.canh.length} chỗ khác`:''}
+         <br><br>Những chỗ này <b>không cản việc nhập</b> — nhập xong sửa trong app cũng được.</div></div></div>`:''}
      ${lech.length?`<div class="canhbao" style="margin-top:13px"><div class="cb-ic">~</div><div class="cb-t">
        <b>${lech.length} lớp lệch số tiết chuẩn</b>
        <div class="cb-g">${esc(lech.slice(0,6).map(x=>`${x.l.ten}: ${x.t}/${CH[x.l.khoi]}`).join(' · '))}${lech.length>6?' …':''}.
@@ -11932,20 +12565,50 @@ function hopXacNhanNhap(dl){
     [{ten:'Huỷ',phu:1,lam:dong},
      {ten:lenMayChu?'Nhập lên máy chủ':'Nhập vào máy này', lam:async ev=>{
        const b=ev.currentTarget, cu=b.textContent;
+       const tom=`${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${dl.phanCong.length} dòng phân công`;
        if(!lenMayChu){
-         napVaoS(dl); chuanKhungGio(); KQ_XEP=null; dong();
-         bao(`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${dl.phanCong.length} dòng phân công`);
-         return chuyen('dieuhanh');
+         napVaoS(dl); chuanKhungGio(); KQ_XEP=null;
+         return hopSauKhiNhap(`Đã nhập ${tom} vào máy này.`);
        }
        b.disabled=true; b.textContent='Đang ghi lên máy chủ…';
        const kq=await ghiDuLieuNguon(dl);
        if(!kq.ok){ b.disabled=false; b.textContent=cu; return bao(kq.thongBao,true); }
        const t=await taiDuLieu();
-       KQ_XEP=null; dong();
+       KQ_XEP=null;
        const thua=[...(kq.lopThua||[]).map(x=>'lớp '+x), ...(kq.gvThua||[]).map(x=>'GV '+x)];
-       bao(kq.thongBao+(thua.length?` Còn ${thua.length} mục cũ không có trong tệp, chưa xoá.`:'')+' '+t.thongBao);
-       chuyen('dieuhanh');
+       hopSauKhiNhap(kq.thongBao
+         +(thua.length?` Còn ${thua.length} mục cũ không có trong tệp, chưa xoá.`:''));
      }}]);
+}
+
+/* Bước ④ — nhập xong thì CHẠY LUÔN 13 quy tắc khả thi, đừng bắt người dùng
+   đi tìm. Đây là thứ có giá trị nhất của phần mềm: nó cho hiệu trưởng biết
+   vấn đề nhân sự từ tháng 8, lúc còn kịp xử lý. Bắt họ tự nhớ vào mục Kiểm
+   tra khả thi nghĩa là phần lớn sẽ không bao giờ thấy nó.
+
+   Hai lối ra, không có lối thứ ba: hết lỗi nặng thì mời Xếp ngay; còn lỗi
+   thì mời sang xem chi tiết. Cả hai đều là MỘT cú bấm. */
+function hopSauKhiNhap(loiNhan){
+  KT=kiemTra();
+  const vm=KT.vm;
+  const nang=vm.filter(v=>v.muc==='do').length;
+  const nhe =vm.filter(v=>v.muc==='canh').length;
+  const goiY=vm.filter(v=>v.muc==='goi').length;
+  hop(nang?'Đã nhập xong — còn việc cần xử lý':'Đã nhập xong — sẵn sàng xếp',
+    `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
+       <b>${esc(loiNhan)}</b>
+       <div class="cb-g">Máy vừa chạy bộ quy tắc kiểm tra khả thi trên dữ liệu mới.</div></div></div>
+     <div class="hang" style="margin-top:12px">Vướng mắc phải xử lý
+       <b style="color:${nang?'var(--do)':'var(--xanh)'}">${nang}</b></div>
+     <div class="hang">Điểm cần lưu ý <b>${nhe}</b></div>
+     <div class="hang">Gợi ý cải thiện <b>${goiY}</b></div>
+     ${nang?`<div class="canhbao" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t">
+       <b>${esc(vm.find(v=>v.muc==='do').t)}</b>
+       <div class="cb-g">${nang>1?`Và ${nang-1} vướng mắc khác. `:''}Xếp vẫn chạy được,
+         nhưng sẽ có tiết không xếp nổi. Nên xem chi tiết trước.</div></div></div>`
+      :`<div class="gy" style="margin-top:13px">Không có vướng mắc nào cản việc xếp.</div>`}`,
+    [{ten:'Xem chi tiết',phu:1,lam:()=>{dong();chuyen('kiemtra');}},
+     {ten:nang?'Vẫn xếp thử':'Xếp ngay',lam:()=>{dong();chuyen('xep');}}]);
 }
 
 /* Chuông mở DANH SÁCH THÔNG BÁO, không nhảy thẳng vào Kiểm tra khả thi như
