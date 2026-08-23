@@ -57,11 +57,23 @@
 }
 /* màu điểm trường */
 .d0{--dt:#3B82F6}.d1{--dt:#2E9E63}.d2{--dt:#D97A29}.d3{--dt:#7C4DDC}.d4{--dt:#0E9AA7}.d5{--dt:#DB2777}
-/* Màu môn học — lấy đúng tông pastel của mẫu: nền rất nhạt, viền trái đậm.
-   `--mc` là màu ĐẬM của môn; nền và viền suy ra bằng color-mix (xem .o-tiet). */
-.m-tv{--mc:#2563EB}.m-toan{--mc:#E08A16}.m-ta{--mc:#16A34A}.m-hdtn{--mc:#7C3AED}
-.m-gdtc{--mc:#15803D}.m-tnxh{--mc:#E0484F}.m-dd{--mc:#D6A419}.m-an{--mc:#E11D63}
-.m-mt{--mc:#EC4899}.m-ls{--mc:#2E6FA7}.m-kh{--mc:#0E9AA7}.m-th{--mc:#5C5FBF}.m-cn{--mc:#A97B25}
+/* Màu môn học — tông PASTEL NGẢ XÁM, không phải màu nguyên pha trắng
+   (làm lại 23/8/2026 sau khi soi ảnh mẫu bằng mắt thường).
+
+   Đây là chỗ em đọc sai mẫu lâu nhất. Bảng cũ lấy màu nguyên rực của bộ
+   màu web — xanh #2563EB, cam #E08A16, đỏ #E0484F — rồi pha trắng cho
+   nhạt bớt. Pha trắng chỉ hạ ĐỘ SÁNG, không hạ ĐỘ BÃO HOÀ, nên ô nào
+   cũng vẫn là một mảng màu tươi; ba mươi ô cạnh nhau thành một bảng bảy
+   sắc, và chủ dự án nhận xét thẳng là "còn tệ hơn bản cũ". Ảnh mẫu thì
+   dịu: đào, be, mint, hồng phấn, lavender — màu đã ngả xám sẵn từ gốc.
+
+   Nên `--mc` nay là màu ĐẤT, bão hoà thấp. Nền và viền vẫn suy ra bằng
+   color-mix như cũ (xem .o-tiet) — chỉ đổi màu gốc là cả lưới đổi theo.
+   ⚠️ Thêm môn mới thì lấy màu cùng họ: kiểm nhanh bằng mắt là nhìn ô
+   ở cỡ thật, không nhìn ô màu 200px trong bảng chọn. */
+.m-tv{--mc:#4A7FB5}.m-toan{--mc:#C77B45}.m-ta{--mc:#3E9A72}.m-hdtn{--mc:#7B6BB0}
+.m-gdtc{--mc:#4A9E77}.m-tnxh{--mc:#CF7A70}.m-dd{--mc:#C2A055}.m-an{--mc:#C06B8E}
+.m-mt{--mc:#D2809B}.m-ls{--mc:#5B84A8}.m-kh{--mc:#4E9AA0}.m-th{--mc:#6C6FA8}.m-cn{--mc:#A08050}
 
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--nen);color:var(--chu);
@@ -95,15 +107,14 @@ aside{color:#fff;padding:18px 14px;
    Nằm NGAY TRÊN thẻ tài khoản, thò ra sát hai mép thanh bên. Là hoạ tiết
    nên `pointer-events:none` và nằm ở lớp dưới cùng — hoạ tiết mà chắn mất
    một mục bấm được là lỗi khó chịu nhất của kiểu trang trí này. */
-/* Mờ hẳn đi (23/8/2026). Bản trước vẽ đậm và cao 250px nên cụm lá to ngang
-   cả một nhóm mục — nó là HOẠ TIẾT NỀN, không phải một khối nội dung, mà
-   nhìn vào thanh bên thì nó lại là thứ bắt mắt nhất. Ảnh mẫu không có nó. */
-.bui-la{position:absolute;left:-8px;right:-8px;bottom:70px;height:190px;z-index:0;
-  opacity:.3;pointer-events:none}
-.bui-la svg{width:100%;height:100%;display:block}
-/* Mọi thứ khác trong thanh bên nằm TRÊN bụi lá */
+/* CỤM LÁ ĐÃ BỎ HẲN (23/8/2026). Bản 16/8 vẽ một bụi lá nhiều tầng ở đáy
+   thanh bên; đối chiếu ảnh mẫu thì ở đó không có gì cả, và trên màn hình
+   thật nó là thứ bắt mắt nhất trong cả thanh bên — một hoạ tiết nền mà
+   nặng hơn mọi mục điều hướng nằm trên nó.
+   Đã thử nước lưng chừng là hạ `opacity` xuống .3, và chủ dự án nhận ra
+   ngay: "lá này đâu có, em vẫn giữ?". Bỏ một khối trang trí thì XOÁ HẲN
+   mã của nó — làm mờ chỉ là để lại đúng vấn đề ấy ở mức nhạt hơn. */
 aside>*{position:relative;z-index:1}
-.bui-la{z-index:0}
 /* Ba tầng như bộ nhận diện AVATAR: đầu trang và thẻ tài khoản đứng yên,
    chỉ danh sách mục ở giữa cuộn. Trước đây cả thanh bên cuộn nên tên trường
    và thẻ tài khoản trôi mất khi kéo xuống mục cuối. */
@@ -426,7 +437,7 @@ table.tkb tr:last-child td{border-bottom:none}
    nền đậm thêm một nấc (11% → 15%) và tên môn to hơn nửa cỡ chữ. Bản nhạt
    trước đó đọc được trên màn hình văn phòng, nhưng nhoè hẳn khi chiếu máy
    chiếu phòng họp hội đồng — chỗ tấm thời khóa biểu hay bị đem ra soi nhất. */
-.o-tiet{min-height:58px;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;cursor:grab;
+.o-tiet{min-height:48px;border-radius:10px;padding:7px 9px;font-size:12px;line-height:1.35;cursor:grab;
   background:color-mix(in srgb,var(--mc,#2563EB) 24%,#fff);border:1px solid color-mix(in srgb,var(--mc,#2563EB) 40%,#fff);
   border-left:3px solid var(--mc,#2563EB);transition:box-shadow .14s,transform .09s;position:relative}
 .o-tiet:hover{box-shadow:0 5px 16px rgba(16,81,50,.14);transform:translateY(-1px);z-index:2}
@@ -455,10 +466,10 @@ table.tkb tr:last-child td{border-bottom:none}
 .o-ghim{position:absolute;top:2px;right:3px;font-size:10.5px;line-height:1;padding:1px 2px;
   background:none;border:none;cursor:pointer;filter:saturate(.9)}
 button.o-ghim:hover{transform:scale(1.2)}
-.o-trong{min-height:56px;border-radius:10px;border:1.5px dashed var(--ke-2);background:#FCFDFF}
+.o-trong{min-height:48px;border-radius:10px;border:1.5px dashed var(--ke-2);background:#FCFDFF}
 .o-trong.nhan{border-color:var(--lam);background:#EDF2FC}
 .o-trong.cam-tha{border-color:var(--do);background:var(--do-nen)}
-.o-nghi{min-height:56px;border-radius:10px;background:repeating-linear-gradient(45deg,#F1F7F3,#F1F7F3 5px,#E7F1EB 5px,#E7F1EB 10px)}
+.o-nghi{min-height:48px;border-radius:10px;background:repeating-linear-gradient(45deg,#F1F7F3,#F1F7F3 5px,#E7F1EB 5px,#E7F1EB 10px)}
 
 /* TKB cá nhân giáo viên */
 .gv-dau{background:linear-gradient(105deg,#0F5132,#1C8A56);border-radius:var(--r);padding:22px 24px;color:#fff;
@@ -1255,76 +1266,6 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
        (máy chủ · đổi vai trò · nhập Excel) đã chuyển đi đúng chỗ dùng chúng:
        hai việc cài đặt vào Bước 1 · Thông tin trường, còn nhập Excel vào ngay
        các màn hình khai báo — nhập lớp thì bấm ở màn hình Lớp học. -->
-  <!-- Bụi lá ở đáy thanh bên (16/8/2026, vẽ lại cho đúng mẫu chủ dự án).
-       Bản đầu là mấy hình lá phẳng đơn sắc, chủ dự án nhận xét chưa đạt.
-       Nay là một BỤI nhiều tầng: nhánh lá kim hai bên, lá to bản có gân
-       giữa, một lá xanh lam đúng như mẫu, tầng sau tối hơn tầng trước.
-       Để inline chứ không nhét vào `background` mã hoá: hình phức tạp thế
-       này mà viết trong data-uri thì không ai sửa lại được. Nó chỉ là hoạ
-       tiết nên `aria-hidden` và `pointer-events:none`. -->
-  <div class="bui-la" aria-hidden="true">
-    <svg viewBox="0 0 300 210" preserveAspectRatio="xMidYMax meet">
-      <defs>
-        <path id="la-to" d="M0 0C19-15 27-48 0-84C-27-48-19-15 0 0Z"/>
-        <path id="la-nho" d="M0 0C12-9 17-30 0-52C-17-30-12-9 0 0Z"/>
-        <linearGradient id="g-sang" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" stop-color="#4E9E63"/><stop offset="1" stop-color="#9FD37B"/>
-        </linearGradient>
-        <linearGradient id="g-lam" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" stop-color="#2F6E6B"/><stop offset="1" stop-color="#5E9EA0"/>
-        </linearGradient>
-        <linearGradient id="g-toi" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" stop-color="#245C41"/><stop offset="1" stop-color="#3C8158"/>
-        </linearGradient>
-      </defs>
-      <!-- tầng sau: lá tối, ngả hai bên -->
-      <g opacity=".85">
-        <use href="#la-to" x="0" y="0" fill="url(#g-toi)" transform="translate(70 205) rotate(-34) scale(1.15)"/>
-        <use href="#la-to" x="0" y="0" fill="url(#g-toi)" transform="translate(228 205) rotate(30) scale(1.1)"/>
-        <use href="#la-nho" x="0" y="0" fill="url(#g-toi)" transform="translate(150 200) rotate(-6) scale(1.3)"/>
-      </g>
-      <!-- nhánh lá kim hai bên -->
-      <g stroke="#5FAE7C" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".9">
-        <path d="M52 206C44 168 46 140 62 116"/>
-        <path d="M250 206C258 172 256 146 240 122"/>
-      </g>
-      <g fill="#68B87F" opacity=".92">
-        <g transform="translate(52 206)">
-          <ellipse rx="4" ry="10" transform="translate(-3 -22) rotate(-38)"/><ellipse rx="4" ry="10" transform="translate(9 -30) rotate(38)"/>
-          <ellipse rx="4" ry="10" transform="translate(-1 -46) rotate(-34)"/><ellipse rx="4" ry="10" transform="translate(11 -54) rotate(40)"/>
-          <ellipse rx="3.5" ry="9" transform="translate(2 -70) rotate(-30)"/><ellipse rx="3.5" ry="9" transform="translate(13 -78) rotate(42)"/>
-        </g>
-        <g transform="translate(250 206)">
-          <ellipse rx="4" ry="10" transform="translate(3 -22) rotate(38)"/><ellipse rx="4" ry="10" transform="translate(-9 -30) rotate(-38)"/>
-          <ellipse rx="4" ry="10" transform="translate(1 -46) rotate(34)"/><ellipse rx="4" ry="10" transform="translate(-11 -54) rotate(-40)"/>
-          <ellipse rx="3.5" ry="9" transform="translate(-2 -70) rotate(30)"/><ellipse rx="3.5" ry="9" transform="translate(-13 -78) rotate(-42)"/>
-        </g>
-      </g>
-      <!-- tầng trước: lá to bản, mỗi lá một gân giữa -->
-      <g>
-        <g transform="translate(104 208) rotate(-22) scale(1.25)">
-          <use href="#la-to" fill="url(#g-sang)"/>
-          <path d="M0-6L0-78" stroke="#2E6B4A" stroke-width="1.6" opacity=".45" fill="none"/>
-        </g>
-        <g transform="translate(196 208) rotate(20) scale(1.2)">
-          <use href="#la-to" fill="url(#g-sang)"/>
-          <path d="M0-6L0-78" stroke="#2E6B4A" stroke-width="1.6" opacity=".45" fill="none"/>
-        </g>
-        <g transform="translate(150 210) rotate(-2) scale(1.45)">
-          <use href="#la-to" fill="url(#g-lam)"/>
-          <path d="M0-6L0-78" stroke="#1F4F4E" stroke-width="1.5" opacity=".5" fill="none"/>
-        </g>
-        <g transform="translate(128 206) rotate(-52) scale(.95)">
-          <use href="#la-nho" fill="#7FC46A"/>
-          <path d="M0-5L0-48" stroke="#2E6B4A" stroke-width="1.4" opacity=".4" fill="none"/>
-        </g>
-        <g transform="translate(178 206) rotate(48) scale(.95)">
-          <use href="#la-nho" fill="#8FCB72"/>
-          <path d="M0-5L0-48" stroke="#2E6B4A" stroke-width="1.4" opacity=".4" fill="none"/>
-        </g>
-      </g>
-    </svg>
-  </div>
 
   <div class="duoi" id="duoiTB">
     <div class="tk">

@@ -1436,9 +1436,13 @@ TRÒ — màu của thanh điều hướng và của mọi hành động chính 
 tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng được thêm gì.
 
 - Thanh bên xanh lá `#0F5132` chuyển dần xuống `#157547`, rộng **248px**,
-  mục đang chọn `#17794B` kèm vạch vàng, có **cụm lá** ở đáy (SVG nhúng,
-  `pointer-events:none` nên không chắn mục nào) — nay để `opacity:.3` vì
-  nó là hoạ tiết nền, không phải khối nội dung.
+  mục đang chọn `#17794B` kèm vạch vàng, **không có hoạ tiết nào ở đáy**.
+  ⚠️ Cụm lá vẽ ngày 16/8 đã **xoá hẳn 23/8**: đối chiếu ảnh mẫu thì ở đó
+  không có gì, và trên màn hình thật nó là thứ bắt mắt nhất trong cả thanh
+  bên — một hoạ tiết nền mà nặng hơn mọi mục điều hướng nằm trên nó. Đã
+  thử nước lưng chừng là hạ `opacity` xuống .3, chủ dự án nhận ra ngay:
+  *"lá này đâu có, em vẫn giữ?"*. **Bỏ một khối trang trí thì xoá hẳn mã
+  của nó** — làm mờ chỉ là để lại đúng vấn đề ấy ở mức nhạt hơn.
   ⚠️ Đừng hạ bề ngang xuống nữa: 238px đã thử và làm gãy dòng cả ba chỗ chữ
   dài nhất — tên sản phẩm ở đầu thanh, nhãn nhóm *Tra cứu thời khóa biểu*,
   và vai trò trong thẻ tài khoản.
@@ -1496,8 +1500,19 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
     trang trí thì thông tin thắng.
   ⚠️ `.o-mon` phải có `padding-right` — thiếu là "Tiếng Việt" chạy thẳng vào
   dưới hình ở đúng những ô hẹp nhất.
-- **Ô tiết đậm hơn HAI nấc** *(23/8/2026)*: nền `11% → 24%` màu môn, viền
-  `26% → 40%`, tên môn 12.5px, ô cao 58px. Bản nhạt trước đó đọc được trên
+- **Màu môn là PASTEL NGẢ XÁM, không phải màu nguyên pha trắng**
+  *(làm lại 23/8/2026)*. Đây là chỗ đọc sai ảnh mẫu lâu nhất. Bảng cũ lấy
+  màu nguyên rực của bộ màu web — xanh `#2563EB`, cam `#E08A16`, đỏ
+  `#E0484F` — rồi pha trắng cho nhạt. **Pha trắng chỉ hạ độ SÁNG, không hạ
+  độ BÃO HOÀ**, nên ô nào cũng vẫn là một mảng màu tươi; ba mươi ô cạnh
+  nhau thành một bảng bảy sắc và chủ dự án nhận xét *"còn tệ hơn bản cũ"*.
+  Ảnh mẫu thì dịu: đào, be, mint, hồng phấn, lavender — màu đã ngả xám sẵn
+  từ gốc. Nay `--mc` là màu ĐẤT, bão hoà thấp (`#4A7FB5`, `#C77B45`,
+  `#3E9A72`…); nền và viền vẫn suy ra bằng `color-mix` như cũ nên đổi màu
+  gốc là cả lưới đổi theo. Thêm môn mới thì lấy màu cùng họ, và **kiểm bằng
+  mắt ở cỡ ô thật**, không nhìn ô màu to trong bảng chọn.
+- **Ô tiết** *(23/8/2026)*: nền `24%` màu môn, viền `40%`, tên môn 12.5px,
+  ô cao 48px. Bản nhạt trước đó đọc được trên
   màn hình văn phòng nhưng nhoè hẳn khi chiếu máy chiếu phòng họp hội đồng —
   chỗ tấm thời khóa biểu hay bị đem ra soi nhất. Nền đậm lên thì **tên giáo
   viên cũng phải đổi** từ xám trung tính sang màu môn pha đen, không thì nó
