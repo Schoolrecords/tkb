@@ -1811,14 +1811,6 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
         và một màn hình soi lại; không nên nằm trên đường tới ngày khai giảng.
 - [ ] Dọn hồ sơ giáo viên và lớp thừa của bộ dữ liệu thử trên máy chủ thật
       *(2/8/2026)*. Chạy `db/soi-tai-khoan-gv.sql` để biết còn sót gì.
-- [ ] **Chạy `db/cai-dat.sql` lại một lần trên máy chủ thật** để có bảng
-      `bao_nghi`, hai cột mới của `day_thay` (`da_xem`, `bao_nghi_id`), và
-      ba thứ thêm ngày 18/8/2026: hàm `tkb_cua_toi()` (giáo viên chỉ tải
-      lịch của mình), `don_du_lieu_cu()` và bản `luu_tkb()` biết gộp lần
-      lưu liên tiếp. Chưa chạy thì app vẫn mở bình thường — đọc bằng
-      `.catch(() => [])`, và `luoiCuaToi()` tự lùi về đường tải cũ — nhưng
-      gửi báo nghỉ sẽ báo đúng câu "máy chủ chưa có bảng báo nghỉ", còn
-      chỗ chứa thì vẫn phình vì không có gì dọn phiên bản cũ.
 - [ ] **Khai nốt secret `DB_URL` cho lịch sao lưu** *(18/8/2026 — còn
       đúng một việc này)*. Đã xong: tệp `.github/workflows/sao-luu.yml`
       nằm trên GitHub và ở trạng thái active; secret `BACKUP_KEY` đã đặt,
@@ -1875,10 +1867,9 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
 - [ ] Nhập lớp và giáo viên THẬT của Diễn Đồng, Diễn Thái khi danh sách chốt.
       Đường đã thông: gộp ba bảng phân công vào một tệp Excel, cột `Ma_lop` đặt
       tiền tố theo trường (`DL-1A`, `DD-1A`, `DT-1A`), `Ten_lop` giữ nguyên.
-- [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức. **Trước khi làm
-      phải chạy `db/cai-dat.sql` một lần trên máy chủ đang chạy** — bản cũ
-      thiếu quy tắc `p_truong_sua` nên đổi tên bao nhiêu lần cũng không lưu
-      được, mà phần mềm vẫn báo đã lưu.
+- [ ] Sửa tên đơn vị khi có quyết định sáp nhập chính thức — ở mục *Thông
+      tin trường*. Máy chủ đã có quy tắc `p_truong_sua` (bộ cài chạy
+      24/8/2026) nên lưu được ngay.
 
 ## 10. Việc KHÔNG làm
 

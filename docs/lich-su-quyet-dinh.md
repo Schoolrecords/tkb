@@ -878,3 +878,19 @@ Dọn luôn hai quy tắc CSS `.thanh-bt` (bản thường và bản điện tho
 để lại mã chết. Hai phép thử cũ canh *"logo hiện ở cả thanh bên và thanh
 trên"* được viết lại thành canh chiều ngược: `.thanh-bt` **không được** tồn
 tại, còn logo thanh bên vẫn phải là ảnh nhúng base64.
+
+### Máy chủ thật đã chạy bộ cài trọn gói, gồm cả duyệt trường *(24/8/2026)*
+
+- [x] **Chạy `db/cai-dat.sql` lại một lần trên máy chủ thật** — việc treo từ
+      3/8/2026. Trước khi chạy, thêm `duyet-truong.sql` vào danh sách nguồn của
+      `db/gop-cai-dat.mjs` (đứng cuối, sau `luu-pham-vi.sql`: nó dựng lại
+      `dang_ky_truong()` và `p_tkb_ghi`, không đụng `luu_tkb`) rồi sinh lại —
+      bộ cài nay gồm **12 tệp**, 352 câu lệnh, `npm run soat` 0 lỗi.
+      Chạy trên Supabase dự án `tkb-dien-lien` một lần, không lỗi. Câu soi
+      cuối tệp trả về hai trường, cả hai `dang_dung` và **giữ nguyên mã cũ**
+      (`THDL`, `2323`) — đúng điều tệp `duyet-truong.sql` cam kết: nâng cấp
+      không nhốt trường đang chạy vào màn chờ duyệt. Máy chủ từ đây có đủ
+      `bao_nghi`, `tkb_cua_toi()`, `don_du_lieu_cu()`, `luu_tkb()` gộp lần lưu
+      và nhận `p_pham_vi`, `p_truong_sua`, và bộ duyệt trường.
+      Việc còn lại làm tay, không ghi vào tệp: `update nguoi_dung set
+      la_chu_he_thong = true where email = '…'`.

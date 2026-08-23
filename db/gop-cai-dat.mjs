@@ -38,8 +38,11 @@ const NGUON = [
   'tai-nhe.sql',         // tkb_cua_toi() — giáo viên chỉ tải lịch của mình
                          //   thay vì cả khối TKB toàn trường
   'luu-pham-vi.sql',     // ba phó hiệu trưởng cùng xếp mà không giẫm lên nhau
-                         // — PHẢI ĐỨNG CUỐI: nó drop rồi dựng lại luu_tkb và
-                         //   don_du_lieu_cu của schema.sql
+                         // — phải đứng SAU schema.sql: nó drop rồi dựng lại
+                         //   luu_tkb và don_du_lieu_cu của tệp ấy
+  'duyet-truong.sql',    // đăng ký trường phải được CHỦ HỆ THỐNG duyệt, cấp mã
+                         //   5 chữ số — phải đứng sau dang-ky-truong.sql (dựng
+                         //   lại dang_ky_truong) và schema.sql (dựng lại p_tkb_ghi)
 ];
 
 const doc = t => readFileSync(join(thuMuc, t), 'utf8').replace(/\r\n/g, '\n');
