@@ -37,6 +37,9 @@ const NGUON = [
   'dang-ky-truong.sql',  // trường mới tự đăng ký qua giao diện
   'tai-nhe.sql',         // tkb_cua_toi() — giáo viên chỉ tải lịch của mình
                          //   thay vì cả khối TKB toàn trường
+  'luu-pham-vi.sql',     // ba phó hiệu trưởng cùng xếp mà không giẫm lên nhau
+                         // — PHẢI ĐỨNG CUỐI: nó drop rồi dựng lại luu_tkb và
+                         //   don_du_lieu_cu của schema.sql
 ];
 
 const doc = t => readFileSync(join(thuMuc, t), 'utf8').replace(/\r\n/g, '\n');

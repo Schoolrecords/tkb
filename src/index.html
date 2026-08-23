@@ -205,10 +205,12 @@ main{min-width:0;padding:20px 24px 70px;display:flex;flex-direction:column}
   display:flex;align-items:center;gap:15px;color:var(--chu);margin-bottom:22px;box-shadow:var(--bong)}
 /* Bức phong cảnh nằm sát mép phải, cao trọn thanh, và TAN DẦN về bên trái
    bằng mặt nạ chuyển màu — không được để lộ một cạnh dọc cắt ngang thanh. */
-.thanh-canh{position:absolute;top:0;right:0;bottom:0;width:min(62%,560px);z-index:0;
+.thanh-canh{position:absolute;top:0;right:0;bottom:0;width:min(64%,600px);z-index:0;
   pointer-events:none;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.55) 18%,#000 42%);
-  mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.55) 18%,#000 42%)}
+  /* Tan mờ HẾT SỚM HƠN bản đầu (23/8/2026): ngôi trường nằm ở phần giữa
+     bức tranh, để mặt nạ còn mờ tới 42% thì mái nhà nhạt đi một nửa. */
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.5) 8%,#000 21%);
+  mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.5) 8%,#000 21%)}
 .thanh-canh svg{width:100%;height:100%;display:block}
 /* Mọi thứ khác trên thanh nằm TRÊN bức tranh */
 .thanh>*:not(.thanh-canh){position:relative;z-index:1}
@@ -224,13 +226,17 @@ main{min-width:0;padding:20px 24px 70px;display:flex;flex-direction:column}
 .nut-menu:active{transform:translateY(-2px)}
 .nut-menu svg{width:22px;height:22px;stroke-width:2}
 .man-menu{display:none}
-/* Nút tròn trên thanh đầu trang: nay là khối XANH ĐẬM trên nền trắng, đảo
-   ngược bản navy cũ (khối trắng mờ trên nền đậm). Badge viền trắng cho nổi
-   trên nền sáng. */
-.chuong{width:44px;height:44px;border-radius:13px;background:var(--nav);
-  display:grid;place-items:center;position:relative;border:none;cursor:pointer;color:#fff;
-  box-shadow:0 2px 8px rgba(16,81,50,.22)}
-.chuong:hover{background:var(--nav-2)}
+/* Nút tròn trên thanh đầu trang: NỀN TRẮNG VIỀN NHẠT, icon xanh (23/8/2026,
+   theo ảnh mẫu). Bản trước là hai khối xanh đậm đặc — chúng nặng ngang cụm
+   chữ tên trường, mà việc của chúng chỉ là hai lối phụ. Cùng dáng với nút
+   tài khoản bên cạnh nên ba nút đọc thành MỘT cụm, thay vì một nút sáng
+   kẹp giữa hai khối tối.
+   Tròn hẳn chứ không bo góc: phân biệt được ngay với nút mang chữ. Badge
+   giữ viền trắng cho nổi trên nền sáng. */
+.chuong{width:42px;height:42px;border-radius:50%;background:#fff;
+  display:grid;place-items:center;position:relative;cursor:pointer;color:var(--nav);
+  border:1.5px solid var(--nav-vien);box-shadow:0 1px 4px rgba(16,81,50,.10)}
+.chuong:hover{background:var(--nav-nhat)}
 .chuong svg{width:20px;height:20px;stroke-width:1.9}
 .chuong .sl{position:absolute;top:-5px;right:-5px;background:var(--do);color:#fff;font-size:10.5px;font-weight:700;
   min-width:21px;height:21px;border-radius:20px;display:grid;place-items:center;padding:0 5px;border:2px solid #fff}
@@ -378,19 +384,24 @@ table.tkb{border-collapse:separate;border-spacing:0;width:100%;min-width:660px}
 table.tkb th{background:#F5FAF7;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   color:var(--chu-mo);padding:11px 8px;text-align:center;border-bottom:1px solid var(--ke);position:sticky;top:0;z-index:3}
 table.tkb th.gt{text-align:left;padding-left:16px;width:104px}
-table.tkb td{padding:4px;border-bottom:1px solid #EDF5F0;vertical-align:top}
+table.tkb td{padding:5px;border-bottom:1px solid #EDF5F0;vertical-align:top}
 table.tkb tr:last-child td{border-bottom:none}
 .c-thu{font-weight:800;font-size:13px;padding-left:16px!important;vertical-align:middle!important;
   background:#FAFDFB;border-right:1px solid var(--ke);white-space:nowrap}
 .c-thu small{display:block;font-weight:500;font-size:10.5px;color:var(--chu-mo)}
 .c-tiet{width:52px;text-align:center;font-size:11.5px;font-weight:700;color:var(--chu-mo);
   vertical-align:middle!important;background:#FAFDFB;border-right:1px solid var(--ke)}
-.o-tiet{min-height:54px;border-radius:9px;padding:7px 9px;font-size:12px;line-height:1.35;cursor:grab;
-  background:color-mix(in srgb,var(--mc,#2563EB) 11%,#fff);border:1px solid color-mix(in srgb,var(--mc,#2563EB) 26%,#fff);
+/* Ô tiết là ĐƠN VỊ ĐỌC nhỏ nhất của cả sản phẩm — mắt người dùng chạm vào
+   nó nhiều hơn mọi thứ khác trên màn hình. Chỉnh 23/8/2026 theo ảnh mẫu:
+   nền đậm thêm một nấc (11% → 15%) và tên môn to hơn nửa cỡ chữ. Bản nhạt
+   trước đó đọc được trên màn hình văn phòng, nhưng nhoè hẳn khi chiếu máy
+   chiếu phòng họp hội đồng — chỗ tấm thời khóa biểu hay bị đem ra soi nhất. */
+.o-tiet{min-height:56px;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;cursor:grab;
+  background:color-mix(in srgb,var(--mc,#2563EB) 15%,#fff);border:1px solid color-mix(in srgb,var(--mc,#2563EB) 30%,#fff);
   border-left:3px solid var(--mc,#2563EB);transition:box-shadow .14s,transform .09s;position:relative}
 .o-tiet:hover{box-shadow:0 5px 16px rgba(16,81,50,.14);transform:translateY(-1px);z-index:2}
 .o-tiet.keo{opacity:.4}
-.o-mon{font-weight:700;color:color-mix(in srgb,var(--mc) 78%,#000);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.o-mon{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 80%,#000);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .o-gv{font-size:11px;color:var(--chu-mo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Chỉnh tay bằng cách chạm: ô đang chọn viền đậm, ô đặt được sáng xanh,
    ô vướng ràng buộc mờ đi. Thấy trước chỗ đặt thì không phải thử rồi bị từ chối. */
@@ -402,10 +413,10 @@ table.tkb tr:last-child td{border-bottom:none}
 .o-ghim{position:absolute;top:2px;right:3px;font-size:10.5px;line-height:1;padding:1px 2px;
   background:none;border:none;cursor:pointer;filter:saturate(.9)}
 button.o-ghim:hover{transform:scale(1.2)}
-.o-trong{min-height:54px;border-radius:9px;border:1.5px dashed var(--ke-2);background:#FCFDFF}
+.o-trong{min-height:56px;border-radius:10px;border:1.5px dashed var(--ke-2);background:#FCFDFF}
 .o-trong.nhan{border-color:var(--lam);background:#EDF2FC}
 .o-trong.cam-tha{border-color:var(--do);background:var(--do-nen)}
-.o-nghi{min-height:54px;border-radius:9px;background:repeating-linear-gradient(45deg,#F1F7F3,#F1F7F3 5px,#E7F1EB 5px,#E7F1EB 10px)}
+.o-nghi{min-height:56px;border-radius:10px;background:repeating-linear-gradient(45deg,#F1F7F3,#F1F7F3 5px,#E7F1EB 5px,#E7F1EB 10px)}
 
 /* TKB cá nhân giáo viên */
 .gv-dau{background:linear-gradient(105deg,#0F5132,#1C8A56);border-radius:var(--r);padding:22px 24px;color:#fff;
@@ -902,10 +913,21 @@ tr.pa-tot td{background:var(--xanh-nen)}
    xuống quá đáy lưới gần một màn hình, nhìn như trang bị gãy. Nên phần
    trong cột được thả nổi (`position:absolute`) — nó không còn góp chiều
    cao vào hàng nữa, chiều cao hàng do lưới quyết định. */
-.cl-boc{display:flex;gap:12px;align-items:stretch}
+/* MỘT KHỐI LIỀN, không phải hai mảng rời (23/8/2026, theo ảnh mẫu).
+   Trước đó cột lớp nằm trần trên nền trang còn lưới là thẻ trắng có viền
+   riêng — hai thứ luôn dùng cùng nhau mà nhìn ra hai vật thể, đúng kiểu
+   "giao diện rời rạc" chủ dự án đã chê ngày 3/8. Nay khung trắng bao cả
+   hai, ngăn nhau bằng một vạch dọc mảnh: cột lớp đọc ra là CỘT ĐẦU của
+   bảng chứ không phải một cái hộp đứng cạnh bảng. */
+.cl-boc{display:flex;align-items:stretch;background:var(--the);
+  border:1px solid var(--ke);border-radius:var(--r);box-shadow:var(--bong);overflow:hidden}
 .cl-phai{flex:1 1 auto;min-width:0}
-.cot-lop{flex:0 0 152px;width:152px;position:relative}
-.cl-trong{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px}
+/* Lưới bên trong bỏ viền và bóng của chính nó — khung ngoài lo phần ấy.
+   Hai lớp viền chồng nhau là ra một đường kẻ đôi mờ ở khắp bốn cạnh. */
+.cl-boc .luoi-boc{border:0;border-radius:0;box-shadow:none;height:100%}
+.cot-lop{flex:0 0 160px;width:160px;position:relative;
+  border-right:1px solid var(--ke);background:#FAFDFB}
+.cl-trong{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;padding:11px 10px}
 .cot-lop .loc{margin:0}
 .cot-lop .loc-o{max-width:none}
 .cl-ds{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:4px;
@@ -914,7 +936,7 @@ tr.pa-tot td{background:var(--xanh-nen)}
   padding:9px 5px 3px;text-transform:uppercase}
 .cl-khoi:first-child{padding-top:1px}
 .cl-n{display:flex;align-items:center;justify-content:space-between;gap:7px;
-  padding:9px 8px 9px 11px;border:1px solid var(--nav-vien);border-radius:9px;cursor:pointer;text-align:left;
+  padding:7px 8px 7px 11px;border:1px solid var(--nav-vien);border-radius:9px;cursor:pointer;text-align:left;
   font-family:inherit;background:var(--nav-nhat);color:var(--nav);
   box-shadow:0 1px 2px rgba(16,81,50,.05);transition:background .16s,box-shadow .12s,transform .08s}
 .cl-n b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1003,6 +1025,11 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
   .thanh-phai{gap:7px}
   .chuong{width:36px;height:36px}
   #btDangNhapTren{padding:8px 12px;font-size:12.5px}
+  /* Bức phong cảnh CHỈ có trên máy tính (23/8/2026). Thanh đầu trên điện
+     thoại rộng chưa đầy 400px, cụm nút ăn quá nửa — phần tranh còn thấy chỉ
+     là một vệt xanh loang sau nút, không đọc ra ngôi trường hay ngọn đồi
+     nào. Trang trí mà không nhận ra hình thì chỉ còn là chỗ làm rối chữ. */
+  .thanh-canh{display:none}
   main{padding:16px 14px 50px;min-width:0;max-width:100vw;overflow-x:hidden}
   .tuan{grid-template-columns:1fr}
   .dh-duoi{grid-template-columns:1fr}
@@ -1037,9 +1064,12 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
      điều hướng chính, thứ đã bỏ lối cuộn ngang từ 2/8/2026: ở đây các mục
      cùng một loại, xếp theo thứ tự lớp ai cũng thuộc, và lớp đang mở luôn
      được cuộn vào tầm nhìn nên không phải vuốt đi tìm. */
-  .cl-boc{flex-direction:column;gap:9px}
-  .cot-lop{flex:0 0 auto;width:auto;max-width:100%;position:static}
-  .cl-trong{position:static;gap:7px}
+  .cl-boc{flex-direction:column;gap:0}
+  /* Cột nằm ngang thì vạch ngăn phải chuyển sang cạnh DƯỚI — giữ nguyên
+     border-right là ra một vạch dọc chạy giữa dải nút, không ngăn gì cả. */
+  .cot-lop{flex:0 0 auto;width:auto;max-width:100%;position:static;
+    border-right:0;border-bottom:1px solid var(--ke)}
+  .cl-trong{position:static;gap:7px;padding:10px 10px 8px}
   .cl-ds{flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;
     max-height:none!important;padding:0 0 4px}
   .cl-khoi{padding:0 3px;white-space:nowrap}
@@ -1052,6 +1082,14 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
 }
 /* Máy nhỏ nhất còn dùng thật (360px) — kiểm ở 360 · 390 · 430px */
 @media(max-width:400px){
+  /* Nút Đăng nhập bỏ CHỮ, còn lại biểu tượng — ba nút góc phải thành ba
+     hình tròn bằng nhau. Ở 360px cụm nút có chữ chiếm 210px trong tổng 360,
+     tên trường còn chưa tới 90px nên hiện ra "TRƯ… TIỂU…", đọc không ra
+     trường nào. Nút vẫn giữ nguyên vùng chạm 36px và nhãn cho trình đọc
+     màn hình; hơn nữa thẻ tài khoản trong ngăn kéo đã nói rõ ai đang dùng. */
+  #btDangNhapTren{padding:0;width:36px;height:36px;border-radius:50%;justify-content:center}
+  #btDangNhapTren #chuDangNhap{display:none}
+  .thanh-phai{gap:6px}
   .viec-so,.sl-so{grid-template-columns:1fr}
   .viec-so b{font-size:23px}
   .bn-chon{grid-template-columns:repeat(2,1fr)}
@@ -1297,35 +1335,62 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
         <!-- đồi trước, có mảng sáng bên sườn phải -->
         <path d="M188 86C242 50 298 36 358 36C428 36 492 58 600 76V86Z" fill="url(#doi-truoc)"/>
         <path d="M358 36C428 36 492 58 600 76V86H398C398 63 380 45 358 36Z" fill="#5AA24F" opacity=".32"/>
-        <!-- hai cây nhỏ trên sườn đồi -->
+        <!-- NGÔI TRƯỜNG (23/8/2026, theo ảnh mẫu chủ dự án gửi) — điểm nhìn
+             chính của bức tranh. Đặt ở khoảng x 166–300: vừa qua chỗ mặt nạ
+             tan mờ, vừa cách mép phải đủ xa để cụm nút (Đăng nhập · tìm ·
+             chuông) không lấn tới. Nút "Đăng nhập" là nhãn dài nhất mà nút
+             ấy từng mang — canh chỗ theo nó thì mọi trạng thái khác đều dư. -->
+        <g transform="translate(166 0)">
+          <!-- bóng đổ trên cỏ, cho nhà đứng chứ không dán lên đồi -->
+          <ellipse cx="66" cy="76" rx="62" ry="5" fill="#3F7F3D" opacity=".18"/>
+          <!-- cánh trái và cánh phải: thân kem, mái cam đất -->
+          <g fill="#FCF3DE" stroke="#E6D6B0" stroke-width=".8">
+            <rect x="6" y="55" width="40" height="21" rx="1.5"/>
+            <rect x="86" y="55" width="40" height="21" rx="1.5"/>
+          </g>
+          <g fill="#D9814A">
+            <path d="M2 56L26 44l24 12z"/><path d="M82 56l24-12 24 12z"/>
+          </g>
+          <!-- khối giữa cao hơn, có tháp và cột cờ -->
+          <rect x="44" y="46" width="44" height="30" rx="1.5" fill="#FEF8EA" stroke="#E6D6B0" stroke-width=".8"/>
+          <path d="M39 47L66 31l27 16z" fill="#C96C3C"/>
+          <path d="M66 31v-13" stroke="#6E6257" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M66.8 18l9 3-9 3z" fill="#DC3545"/>
+          <!-- đồng hồ mặt tiền: chi tiết nhỏ nhưng nói ngay đây là trường học -->
+          <circle cx="66" cy="41" r="3.6" fill="#FDF6E3" stroke="#B08A5A" stroke-width=".9"/>
+          <path d="M66 41v-2M66 41l1.6 1" stroke="#8A6B44" stroke-width=".7" stroke-linecap="round"/>
+          <!-- cửa chính vòm và bậc thềm -->
+          <path d="M60 76V65a6 6 0 0112 0v11z" fill="#B9793F"/>
+          <rect x="57" y="74" width="18" height="2.6" rx="1" fill="#E4D6B8"/>
+          <!-- cửa sổ: hai dãy, kính xanh nhạt -->
+          <g fill="#BFE1F0" stroke="#fff" stroke-width=".9">
+            <rect x="12" y="60" width="8" height="8" rx="1"/><rect x="24" y="60" width="8" height="8" rx="1"/>
+            <rect x="36" y="60" width="6" height="8" rx="1"/>
+            <rect x="90" y="60" width="6" height="8" rx="1"/>
+            <rect x="100" y="60" width="8" height="8" rx="1"/><rect x="112" y="60" width="8" height="8" rx="1"/>
+            <rect x="48" y="53" width="7" height="7" rx="1"/><rect x="77" y="53" width="7" height="7" rx="1"/>
+          </g>
+        </g>
+        <!-- cây hai bên trường, nhỏ hơn ngôi nhà để nhà giữ vai chính -->
         <g>
-          <rect x="244" y="68" width="2.6" height="12" rx="1.3" fill="#4B5A54"/>
-          <circle cx="245" cy="65" r="9" fill="url(#tan-nho)"/>
-          <circle cx="238" cy="70" r="6" fill="url(#tan-nho)"/>
-          <rect x="218" y="74" width="2.4" height="9" rx="1.2" fill="#4B5A54"/>
-          <circle cx="219" cy="72" r="7" fill="#8CC65E"/>
+          <rect x="146" y="64" width="2.6" height="13" rx="1.3" fill="#4B5A54"/>
+          <circle cx="147" cy="61" r="9.5" fill="url(#tan)"/>
+          <circle cx="140" cy="66" r="6.5" fill="url(#tan-nho)"/>
+          <rect x="312" y="62" width="3" height="15" rx="1.5" fill="#46534E"/>
+          <circle cx="313.5" cy="58" r="11" fill="url(#tan)"/>
+          <circle cx="305" cy="64" r="7" fill="url(#tan-nho)"/>
+          <circle cx="322" cy="64" r="6.5" fill="#8CC65E"/>
+          <rect x="120" y="72" width="2.2" height="9" rx="1.1" fill="#4B5A54"/>
+          <circle cx="121" cy="70" r="6.5" fill="#8CC65E"/>
         </g>
-        <!-- cây lớn: tán nhiều cụm, thân chẻ nhánh -->
-        <g transform="translate(322 0)">
-          <ellipse cx="0" cy="80" rx="26" ry="4" fill="#4E9A46" opacity=".22"/>
-          <path d="M0 80V38M0 50l-10-9M0 56l11-10M0 45l7-7" stroke="#46534E" stroke-width="2.6"
-                stroke-linecap="round" fill="none"/>
-          <g fill="url(#tan)">
-            <circle cx="-17" cy="36" r="13"/><circle cx="0" cy="28" r="16"/>
-            <circle cx="17" cy="36" r="13"/><circle cx="-8" cy="44" r="11"/>
-            <circle cx="9" cy="44" r="10.5"/><circle cx="-23" cy="44" r="8"/>
-            <circle cx="23" cy="44" r="8"/>
-          </g>
-          <g fill="#B9DC6A" opacity=".5">
-            <circle cx="-6" cy="25" r="8"/><circle cx="-18" cy="32" r="6"/>
-          </g>
-        </g>
+        <!-- dải cỏ trước sân, khép chân nhà vào mặt đất -->
+        <path d="M120 86c60-9 130-11 200-6 60 4 180 3 280-4v10z" fill="#8FC96A" opacity=".55"/>
       </svg>
     </div>
     <button class="nut-menu" id="btMenu" aria-label="Mở danh sách mục"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <div class="thanh-ten"><div class="thanh-t" id="tenTruong">THỜI KHÓA BIỂU</div><div class="thanh-p" id="diaChi">Đang tải…</div></div>
     <div class="thanh-phai">
-      <button class="b b-vang" id="btDangNhapTren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span id="chuDangNhap">Đăng nhập</span></button>
+      <button class="b b-vang" id="btDangNhapTren" title="Đăng nhập để xem thời khóa biểu của trường"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span id="chuDangNhap">Đăng nhập</span></button>
       <button class="chuong" id="btTim" title="Tìm giáo viên, lớp, môn học hoặc điểm trường"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
       <button class="chuong" id="btChuong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8.5a6 6 0 10-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="sl" id="slChuong"></span></button>
     </div>
@@ -4169,7 +4234,12 @@ async function taiChoQuanLy(t, bang){
 /* ---------- 3. Lưu thời khóa biểu ----------
    Gửi kèm version đang giữ. Máy chủ từ chối nếu bản trên đó đã cao hơn,
    nhờ vậy hai phó hiệu trưởng lưu cùng lúc không ghi đè nhau. */
-async function luuTKB(tkb, version, ghiChu){
+/* Tham số thứ tư `phamVi` là danh sách mã lớp người này được ghi đè.
+   null = lưu nguyên khối như cũ (xếp tự động dựng lại lưới cả trường).
+   Có danh sách thì máy chủ GỘP phần ấy vào bản mới nhất thay vì nuốt
+   nguyên khối — ba phó hiệu trưởng ba điểm trường lưu cùng lúc không
+   giẫm lên nhau. Xem db/luu-pham-vi.sql. */
+async function luuTKB(tkb, version, ghiChu, phamVi){
   if(!coMayChu()) return {ok:false, version:KHO.version,
     thongBao:'Chưa nối máy chủ nên chưa lưu được. Kết quả vẫn còn nguyên trên màn hình.'};
   /* Đăng nhập được nhưng đang chạy dữ liệu mẫu — thường là do trường trên máy
@@ -4178,17 +4248,38 @@ async function luuTKB(tkb, version, ghiChu){
   if(KHO.nguon !== 'may-chu') return {ok:false, version:KHO.version,
     thongBao:'Đang chạy bằng dữ liệu mẫu nên chưa lưu được — thời khóa biểu này dựng trên lớp và giáo viên mẫu, không phải của trường. Nhập dữ liệu trường lên máy chủ, tải lại rồi xếp lại.'};
   const v = Number.isFinite(+version) ? +version : KHO.version;
+  const than = {p_truong:KHO.nguoiDung.truongId, p_version:v,
+                p_du_lieu:tkb, p_ghi_chu:ghiChu||null};
+  const goi = keo => goiAPI('/rest/v1/rpc/luu_tkb', {method:'POST',
+    body:JSON.stringify(keo ? {...than, p_pham_vi:phamVi} : than)});
   try{
-    const kq = await goiAPI('/rest/v1/rpc/luu_tkb', {method:'POST', body:JSON.stringify({
-      p_truong:KHO.nguoiDung.truongId, p_version:v,
-      p_du_lieu:tkb, p_ghi_chu:ghiChu||null
-    })});
+    let kq;
+    const coPV = Array.isArray(phamVi);
+    try{ kq = await goi(coPV); }
+    catch(e){
+      /* Máy chủ chưa chạy db/luu-pham-vi.sql thì hàm luu_tkb còn 4 tham số,
+         PostgREST không khớp nổi lời gọi 5 tham số và trả 404. Lùi về đường
+         cũ — nâng cấp phần mềm không được làm một trường đang chạy tốt mất
+         hẳn nút Lưu. */
+      if(coPV && e.ma === 404){ KHO.thieuHamPhamVi = true; kq = await goi(false); }
+      else throw e;
+    }
     const d = Array.isArray(kq) ? kq[0] : kq;
     if(!d) return {ok:false, version:KHO.version, thongBao:'Máy chủ không trả kết quả. Lưu lại lần nữa.'};
+    /* ⚠️ CHỈ nhận số phiên bản khi máy chủ ĐỒNG Ý ghi. Trước đây dòng này
+       chạy vô điều kiện, nên chính lời từ chối "đã có người lưu phiên bản 3"
+       lại nâng máy mình lên phiên bản 3 — bấm Lưu lần nữa là LỌT, ghi đè
+       phần đồng nghiệp mà không ai được báo gì. Xem npm test mục 20. */
+    if(!d.ok) return {ok:false, version:KHO.version, xungDot:true,
+                      banMayChu:+d.version_moi||0,
+                      thongBao:d.thong_bao||'Máy chủ từ chối ghi.'};
     KHO.version = Math.max(KHO.version, +d.version_moi||0);
-    if(d.ok) ghiNhatKy('luu_tkb', {version:KHO.version});
-    return {ok:!!d.ok, version:KHO.version,
-      thongBao: d.ok ? `Đã lưu phiên bản ${KHO.version}.` : (d.thong_bao||'Máy chủ từ chối ghi.')};
+    ghiNhatKy('luu_tkb', {version:KHO.version});
+    /* Máy chủ nói rõ khi bản vừa ghi có gộp phần của đồng nghiệp — im lặng
+       ở chỗ này thì người dùng tưởng mình lưu một mình. */
+    const them = d.thong_bao && d.thong_bao !== 'Đã lưu' ? ` ${d.thong_bao}` : '';
+    return {ok:true, version:KHO.version,
+            thongBao:`Đã lưu phiên bản ${KHO.version}.${them}`};
   }catch(e){
     return {ok:false, version:KHO.version, thongBao:dienGiaiLoi(e)};
   }
@@ -4921,14 +5012,20 @@ function dinhDangLuc(x){
    (db/schema.sql): giáo viên không ghi được vào bảng nguồn nào, dù gọi
    thẳng API. Vùng này chỉ lo phần giao diện của ranh giới đó.
 
-   ⚠️ Nhưng ranh giới PHT-MỘT-ĐIỂM-TRƯỜNG thì CHỈ có ở đây, không có ở
-   tầng cơ sở dữ liệu: hàm la_quan_ly() gộp chung cả ba vai quản lý, nên
-   xét theo RLS thì một PHT phụ trách điểm trường vẫn ghi được vào lớp
-   của điểm trường khác. Đấy là chấp nhận có chủ đích — thời khóa biểu
-   lưu dạng một khối JSON của cả trường, mà bảng quyền lại cho PHT được
-   lưu, nên RLS không có cách nào cắt theo điểm trường. Việc bó phạm vi ở
-   đây là để người dùng khỏi giẫm chân nhau, KHÔNG phải hàng rào an ninh.
-   Đừng viết mã dựa vào giả định rằng máy chủ sẽ chặn hộ.
+   ⚠️ Ranh giới PHT-MỘT-ĐIỂM-TRƯỜNG không nằm ở RLS: hàm la_quan_ly() gộp
+   chung cả ba vai quản lý, nên xét theo quy tắc bảng thì một PHT phụ
+   trách điểm trường vẫn ghi được vào tkb_phien_ban. Thời khóa biểu lưu
+   dạng một khối JSON của cả trường nên RLS không có cách nào cắt theo
+   điểm trường — quy tắc bảng chỉ xét được cả dòng.
+
+   Từ 23/8/2026 chỗ ấy được vá ở TRONG hàm luu_tkb() thay vì ở quy tắc
+   bảng: hàm tự đọc nguoi_dung.diem_truong_id rồi ÉP phạm vi ghi về đúng
+   lớp của điểm trường ấy, gửi lên gì cũng vậy (db/luu-pham-vi.sql). Nên
+   với đường LƯU thì máy chủ có chặn hộ thật.
+
+   Nhưng mọi ranh giới còn lại trong vùng này — kéo thả, nút xếp tự động,
+   phạm vi xem — thì vẫn CHỈ là giao diện, để người dùng khỏi giẫm chân
+   nhau. Đừng viết mã dựa vào giả định rằng máy chủ sẽ chặn hộ những thứ đó.
 
    Ba mức:
      quản trị · hiệu trưởng · PHT chuyên môn   → toàn trường
@@ -4966,6 +5063,22 @@ function duocSuaLop(id){
   return q.laQuanLy && (q.toanTruong || S.lopDT[id]===q.diemTruongId);
 }
 const duocLuu = () => quyen().laQuanLy;
+/* Những lớp người này được ghi đè khi bấm Lưu. `null` = toàn trường, lưu
+   nguyên khối như cũ; có danh sách thì máy chủ chỉ thay đúng chỗ ấy trong
+   bản mới nhất, phần của đồng nghiệp giữ nguyên.
+
+   Đây là chỗ tình huống "ba điểm trường, ba phó hiệu trưởng cùng xếp một
+   buổi tối" được giải: ba tập lớp rời nhau nên ba người lưu song song mà
+   không ai phải tải lại, không ai mất việc.
+
+   ⚠️ Chỉ là GỢI Ý cho máy chủ. db/luu-pham-vi.sql tự suy phạm vi từ
+   nguoi_dung.diem_truong_id và ÉP theo đó — không tin danh sách gửi lên.
+   Đừng biến hàm này thành hàng rào an ninh. */
+function phamViLuu(){
+  const q = quyen();
+  if(!q.boHep) return null;
+  return S.lop.filter(l => S.lopDT[l.id] === q.diemTruongId).map(l => l.id);
+}
 /* Tài khoản vai trò giáo viên nhưng chưa nối được về bản ghi trong bảng
    giao_vien (thường do cấp tài khoản mà quên chọn tên). Màn hình lịch cá nhân
    phải chặn ở đây, không được lấy đại người đầu danh sách. */
@@ -10321,10 +10434,30 @@ function noiSuKien(){
     if(!coMayChu()) return hopMayChu();
     const b=e.currentTarget, cu=b.innerHTML;
     b.disabled=true; b.textContent='Đang lưu…';
-    const kq=await luuTKB(dongGoiTKB(), KHO.version, ghiChuLuu());
+    const kq=await luuTKB(dongGoiTKB(), KHO.version, ghiChuLuu(), phamViLuu());
     b.disabled=false; b.innerHTML=cu;
+    /* Máy chủ từ chối vì đồng nghiệp lưu trước thì KHÔNG được chỉ hiện một
+       dòng báo rồi trả nút Lưu về trạng thái bấm được — bấm lần nữa đúng là
+       thứ ai cũng làm, và trước 23/8/2026 lần bấm ấy ghi đè thật. */
+    if(kq.xungDot) return hopXungDotLuu(kq);
     bao(kq.thongBao, !kq.ok); ve();
   });
+}
+
+/* Hai đường ra, không có đường thứ ba: lấy bản của đồng nghiệp về, hoặc
+   dừng lại xem đã. Nói thẳng cái giá của mỗi đường. */
+function hopXungDotLuu(kq){
+  const mat = coThayDoiChuaLuu();
+  hop('Đồng nghiệp vừa lưu trước',
+    `<p>${esc(kq.thongBao)}</p>
+     <p style="margin-top:10px">Máy chủ đang giữ phiên bản <b>${esc(String(kq.banMayChu||'?'))}</b>,
+       còn bản trên máy này dựng từ phiên bản <b>${esc(String(KHO.version))}</b>.</p>
+     ${mat ? `<p style="margin-top:10px;color:var(--do)">Tải lại sẽ bỏ những thay đổi
+       chưa lưu trên máy này. Muốn giữ thì chụp màn hình phần vừa xếp trước đã.</p>` : ''}`,
+    [{ten:'Tải lại bản mới nhất', lam:async()=>{
+        dong(); const r = await taiDuLieu(); bao(r.thongBao, !r.ok); ve();
+      }},
+     {ten:'Để tôi xem lại đã', phu:true, lam:dong}]);
 }
 
 /* Ghi chú kèm mỗi phiên bản — đọc lịch sử là biết bản đó xếp được tới đâu */

@@ -338,7 +338,67 @@ bỏ trống là phụ trách chuyên môn toàn trường, có giá trị là p
 
 Lý do PHT một điểm trường **không** được xếp tự động: mỗi lần xếp là dựng lại
 lưới của cả trường, sẽ đè lên phần của các điểm trường khác. Họ chỉnh tay
-phần mình rồi lưu; khóa lạc quan lo phần đụng độ.
+phần mình rồi lưu.
+
+#### Ba phó hiệu trưởng cùng lưu — GỘP theo phạm vi *(23/8/2026)*
+
+Câu cũ ở đây là *"khóa lạc quan lo phần đụng độ"*. **Sai**, và sai theo hướng
+mất dữ liệu: khoá lạc quan chỉ biết **từ chối** người đến sau, nó không biết
+**gộp**. Ba điểm trường là ba PHT cùng sửa một buổi tối — không phải trường
+hợp hiếm mà là mặc định sau sáp nhập — nên trong ba người thì hai người phải
+tải lại, và tải lại là mất sạch việc vừa làm.
+
+Tệ hơn, hai lỗi làm thủng hẳn cái khoá ấy. Cả hai đã tái hiện được bằng phép
+thử trước khi vá (`npm test` mục 20):
+
+- **Bị từ chối xong bấm Lưu lần nữa là LỌT.** `luuTKB()` nhận `version_moi`
+  **vô điều kiện**, mà máy chủ trả kèm số phiên bản hiện hành trong chính lời
+  từ chối — nên lời từ chối tự nâng máy mình lên đúng số ấy. Lần bấm thứ hai
+  khớp version và ghi đè phần đồng nghiệp. Người dùng không làm gì sai: họ chỉ
+  bấm lại cái nút vừa báo lỗi.
+- **Cửa sổ gộp 10 phút làm khoá lạc quan mất tác dụng.** Phép gộp thay **ruột**
+  của dòng mà **không đổi số phiên bản**, nên số phiên bản thôi không còn là
+  dấu vân tay của nội dung. Người làm **đúng** quy trình — tải lại rồi mới sửa
+  — vẫn xoá mất việc của đồng nghiệp, và máy chủ vẫn báo *"Đã lưu"*. Tính năng
+  tiết kiệm chỗ chứa ngày 18/8 vô tình mở ra lỗ này.
+
+Cách chữa: `luu_tkb()` nhận thêm `p_pham_vi` — danh sách mã lớp người gọi được
+ghi đè. Có phạm vi thì máy chủ lấy **bản mới nhất** làm nền rồi chỉ thay đúng
+những lớp ấy, thay vì nuốt nguyên khối của máy gửi lên. Ba PHT xếp ba tập lớp
+**rời nhau** nên không bao giờ đụng nhau: không ai phải tải lại, không ai mất
+việc. Blob vốn đã có dạng `{mã lớp: {ô: tiết}}` nên gộp theo khoá lớp là việc
+tự nhiên của `jsonb` — không phải đổi cách lưu.
+
+| Hàm | Việc |
+|---|---|
+| `phamViLuu()` | lớp người này được ghi đè; `null` = toàn trường, lưu nguyên khối |
+| `diem_truong_cua_toi()` | SQL — điểm trường tài khoản đang phụ trách |
+| `hopXungDotLuu(kq)` | hai đường ra khi bị từ chối, không có đường thứ ba |
+
+Năm điều bắt buộc, cả năm đều có phép thử:
+
+- **Chỉ nhận `version_moi` khi máy chủ ĐỒNG Ý ghi.** Đây là lỗi thứ nhất ở trên.
+- **Gộp thì VẪN tăng số phiên bản.** Không đẻ dòng mới nên chỗ chứa vẫn tiết
+  kiệm y như trước; chỉ con số là phải nhích. Kéo theo: `don_du_lieu_cu()` phải
+  cắt theo **thứ hạng** (`order by version desc limit 10`) chứ không theo
+  `max(version) - 10` — số phiên bản nay nhảy nhanh hơn số dòng, cắt theo hiệu
+  số là xoá quá tay.
+- **Phạm vi suy từ TÀI KHOẢN, không tin tham số gửi lên.** `luu_tkb()` đọc
+  `nguoi_dung.diem_truong_id` rồi ép phạm vi về đúng lớp của điểm ấy. Nhờ vậy
+  ranh giới PHT-một-điểm-trường — vốn ghi rõ trong `db/schema.sql` là *chỉ có ở
+  giao diện* — nay là hàng rào thật ở đường lưu. `phamViLuu()` bên ứng dụng chỉ
+  là gợi ý; đừng biến nó thành hàng rào an ninh.
+- **Xếp tự động vẫn đi đường nguyên khối** (`p_pham_vi = null`) và vẫn giữ khoá
+  lạc quan chặt: một lần xếp dựng lại lưới cả trường, gộp mù là hỏng.
+- **Luôn có đường lui.** Máy chủ chưa chạy `db/luu-pham-vi.sql` thì hàm còn 4
+  tham số, PostgREST trả 404 — `luuTKB()` bắt đúng mã ấy rồi gọi lại không kèm
+  `p_pham_vi`. Nâng cấp phần mềm không được làm một trường đang chạy tốt mất
+  hẳn nút Lưu.
+
+⚠️ Bẫy đã lộ ra khi làm việc này: khẳng định *"số phiên bản vẫn tăng"* ban đầu
+soi `kq.version` — con số **máy chủ trả về** — mà con số ấy tăng dù có gộp hay
+không. Phép thử xanh mà không kiểm được gì. Phải soi thẳng **dòng** trên máy
+chủ. Đúng khuôn cái bẫy đã ghi ở mục 3 (phép thử so hai thứ *tình cờ bằng nhau*).
 
 Hai hàm phải nhớ gọi:
 - `apDungQuyen()` — gọi ở đầu `ve()`, ép `S.phamVi` về đúng quyền.
@@ -1374,6 +1434,16 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
   cây) ở nửa phải, không còn là khối navy đậm. Chữ vì thế là chữ thường,
   không phải chữ trắng. Mép trái hình phải tan dần bằng một lớp gradient
   trắng phủ lên — thiếu nó là lộ một vạch dọc cắt ngang thanh.
+  **Giữa tranh là NGÔI TRƯỜNG** *(23/8/2026)* — thân kem, mái cam đất, tháp
+  giữa có đồng hồ và cột cờ. Nó đứng ở khoảng `x 166–300` của `viewBox` 600
+  đơn vị, và chỗ ấy là chỗ duy nhất đặt được: lệch trái thì rơi vào vùng mặt
+  nạ còn đang tan mờ, lệch phải thì cụm nút *Đăng nhập · tìm · chuông* che
+  mất mái. Canh chỗ theo nhãn **"Đăng nhập"** — nhãn dài nhất nút ấy từng
+  mang, nên mọi trạng thái khác đều dư chỗ.
+- **Ba nút góc phải thanh đầu cùng một dáng: tròn, nền trắng viền nhạt**
+  *(23/8/2026)*. Trước đó tìm kiếm và chuông là hai khối xanh đặc, nặng
+  ngang cụm chữ tên trường trong khi việc của chúng chỉ là hai lối phụ — và
+  nút tài khoản sáng kẹp giữa hai khối tối thì ba nút không đọc ra một cụm.
 - **Nút trên nền trắng: nền SÁNG chữ xanh, đang chọn mới đậm.** Đảo chiều
   so với bản navy ngày 3/8, nhưng giữ nguyên nguyên tắc của hôm ấy: nút
   chưa chọn vẫn phải có nền và viền riêng, không được trắng trơn như nền
@@ -1386,7 +1456,22 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
   vàng = cảnh báo.
 - Mỗi môn học một màu riêng (nền pastel + viền trái đậm, suy từ `--mc` bằng
   `color-mix`), mỗi điểm trường một màu riêng. **Không dùng biểu tượng cho
-  từng môn** — chủ dự án chốt bỏ.
+  từng môn** — chủ dự án chốt bỏ, và giữ nguyên khi hỏi lại 23/8/2026 dù ảnh
+  mẫu hôm ấy có vẽ icon trong ô.
+- **Ô tiết đậm hơn một nấc** *(23/8/2026)*: nền `11% → 15%` màu môn, viền
+  `26% → 30%`, tên môn 12.5px, ô cao 56px. Bản nhạt trước đó đọc được trên
+  màn hình văn phòng nhưng nhoè hẳn khi chiếu máy chiếu phòng họp hội đồng —
+  chỗ tấm thời khóa biểu hay bị đem ra soi nhất.
+- **Cột lớp và lưới là MỘT KHỐI LIỀN, không phải hai mảng rời** *(23/8/2026 —
+  `.cl-boc`)*. Trước đó cột lớp nằm trần trên nền trang còn lưới là thẻ trắng
+  có viền riêng: hai thứ luôn dùng cùng nhau mà nhìn ra hai vật thể, đúng kiểu
+  "giao diện rời rạc" đã chê ngày 3/8. Nay khung trắng bao cả hai, ngăn nhau
+  bằng một vạch dọc mảnh — cột lớp đọc ra là **cột đầu của bảng**, không phải
+  một cái hộp đứng cạnh bảng. `.luoi-boc` bên trong **phải bỏ viền, bo góc và
+  đổ bóng của chính nó**: hai lớp viền chồng nhau là ra đường kẻ đôi mờ ở cả
+  bốn cạnh.
+  ⚠️ Trên điện thoại cột nằm NGANG nên vạch ngăn phải đổi sang cạnh **dưới**.
+  Để nguyên `border-right` là một vạch dọc chạy giữa dải nút, không ngăn gì cả.
 - `manifest.webmanifest` và thẻ `theme-color` phải đổi theo (`#0F5132`),
   không thì thanh trạng thái điện thoại còn navy trong khi app đã xanh.
 

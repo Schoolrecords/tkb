@@ -46,7 +46,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   LY_DO_NGHI, TEN_BUOI_NGHI, chiSoPhuongAn, guiBaoNghi, huyBaoNghi, danhDauXuLy,
   tongHopNgayCong, soCong, thieuMonLop, chuThieuMon,
   quyen, phamViKhoa, duocXep, duocSuaNguon, duocSuaLop, duocLuu,
-  apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV,
+  apDungQuyen, dtTrongPV, gvTrongPV, canDangNhap, thayDuocMuc, thieuHoSoGV, phamViLuu,
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
   khongDau, tenTepXuat,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN, tenDiemNgan,
@@ -2497,6 +2497,231 @@ console.log('\n19. Mã giáo viên đọc được');
     const truoc = D.GOI.length;
     return D.app.taiThemNgayNghi('2026-06-01'), D.GOI.length === truoc;
   })());
+}
+
+/* ==================================================================
+   20. BA PHÓ HIỆU TRƯỞNG CÙNG XẾP MỘT BUỔI TỐI
+   ------------------------------------------------------------------
+   Một trường ba điểm trường thì ba phó hiệu trưởng cùng sửa thời khóa
+   biểu cùng một buổi tối — sau sáp nhập đó là mặc định, không phải
+   trường hợp hiếm.
+
+   Trước 23/8/2026 tình huống này MẤT DỮ LIỆU theo hai đường, cả hai
+   đều im lặng. Máy chủ giả dưới đây chép đúng logic luu_tkb() trong
+   db/luu-pham-vi.sql, kể cả cửa sổ gộp 10 phút và phép ép phạm vi.
+   ================================================================== */
+{
+  console.log('\n\x1b[1m20. Ba phó hiệu trưởng cùng xếp một buổi tối\x1b[0m');
+
+  const LOP = [
+    { id: 'L-DL1', dt: 'dt-DL' }, { id: 'L-DL2', dt: 'dt-DL' },
+    { id: 'L-DD1', dt: 'dt-DD' }, { id: 'L-DD2', dt: 'dt-DD' },
+    { id: 'L-DT1', dt: 'dt-DT' }];
+
+  /* ---------- Máy chủ giả: bản dịch từng dòng của luu_tkb() ---------- */
+  const dungMayChu = ({ coThamSoPhamVi = true } = {}) => {
+    const MC = { hang: [], dongHo: 0, goi: [] };
+    const CUA_SO = 600;                     /* c_giay = 600 giây */
+
+    MC.luuTKB = (than, uid, diemTruongPhuTrach) => {
+      MC.goi.push(than);
+      const vHien = MC.hang.length ? Math.max(...MC.hang.map(h => h.version)) : 0;
+      /* 1. Phạm vi ĐƯỢC PHÉP, suy từ tài khoản — không tin tham số gửi lên */
+      let pv = than.p_pham_vi ?? null;
+      if (diemTruongPhuTrach) {
+        pv = LOP.filter(l => l.dt === diemTruongPhuTrach)
+               .filter(l => pv === null || pv.includes(l.id)).map(l => l.id);
+      }
+      let moi, khac = 0;
+      if (pv === null) {
+        /* 2. Không phạm vi = nguyên khối, khoá lạc quan giữ chặt */
+        if (than.p_version < vHien)
+          return { ok: false, version_moi: vHien,
+                   thong_bao: `Đã có người lưu phiên bản ${vHien}. Mời tải lại rồi lưu tiếp.` };
+        moi = than.p_du_lieu;
+      } else {
+        /* 3. Có phạm vi = gộp vào bản MỚI NHẤT */
+        const nen = MC.hang.find(h => h.version === vHien)?.du_lieu ?? than.p_du_lieu;
+        const tkb = {};
+        Object.entries(nen.tkb || {}).forEach(([k, v]) => { if (!pv.includes(k)) tkb[k] = v; });
+        Object.entries(than.p_du_lieu.tkb || {}).forEach(([k, v]) => { if (pv.includes(k)) tkb[k] = v; });
+        if (than.p_version < vHien)
+          khac = Object.entries(nen.tkb || {})
+            .filter(([k, v]) => !pv.includes(k) && v && Object.keys(v).length).length;
+        moi = { ...than.p_du_lieu, tkb,
+                tongTiet: Object.values(tkb).reduce((s, o) => s + Object.keys(o).length, 0) };
+      }
+      /* 4. Cửa sổ gộp — và VẪN tăng số phiên bản */
+      const gop = MC.hang.find(h => h.version === vHien && !h.cong_bo
+        && h.nguoi_sua === uid && h.tao_luc > MC.dongHo - CUA_SO);
+      if (gop) { gop.du_lieu = moi; gop.version = vHien + 1; gop.tao_luc = MC.dongHo; }
+      else MC.hang.push({ version: vHien + 1, du_lieu: moi, nguoi_sua: uid,
+                          cong_bo: false, tao_luc: MC.dongHo });
+      return { ok: true, version_moi: vHien + 1,
+               thong_bao: khac > 0
+                 ? `Đã lưu phần của bạn, giữ nguyên ${khac} lớp đồng nghiệp vừa sửa.` : 'Đã lưu' };
+    };
+
+    /* Một "máy tính" của một cán bộ quản lý */
+    MC.may = (uid, diemTruongPhuTrach) => {
+      const mang = async (url, opt) => {
+        const dap = (d, ma = 200) => ({ ok: ma < 400, status: ma,
+          text: async () => JSON.stringify(d) });
+        const than = opt?.body ? JSON.parse(opt.body) : {};
+        if (url.includes('/rpc/luu_tkb')) {
+          /* Máy chủ CHƯA chạy db/luu-pham-vi.sql: hàm còn 4 tham số nên
+             PostgREST không khớp nổi lời gọi có p_pham_vi → 404. */
+          if (!coThamSoPhamVi && than.p_pham_vi !== undefined)
+            return dap({ message: 'Could not find the function public.luu_tkb(p_du_lieu, p_ghi_chu, p_pham_vi, p_truong, p_version)' }, 404);
+          return dap([MC.luuTKB(than, uid, coThamSoPhamVi ? diemTruongPhuTrach : null)]);
+        }
+        return dap({ message: 'Đường dẫn lạ: ' + url }, 404);
+      };
+      const u = taoUngDung(documentGia, {}, mang);
+      u.KHO.cauHinh = { url: 'https://gia.supabase.co', khoa: 'k' };
+      u.KHO.phien = { token: 't' };
+      u.KHO.nguoiDung = { truongId: 'T1', id: uid };
+      u.KHO.nguon = 'may-chu';
+      u.KHO.version = 0;
+      u.S.lop = LOP.map(l => ({ id: l.id, ten: l.id, khoi: 1 }));
+      u.S.lopDT = Object.fromEntries(LOP.map(l => [l.id, l.dt]));
+      u.S.nguoiDung = { vaiTro: diemTruongPhuTrach ? 'pht' : 'qt',
+                        diemTruongId: diemTruongPhuTrach || null };
+      u.S.diemTruong = [{ id: 'dt-DL' }, { id: 'dt-DD' }, { id: 'dt-DT' }];
+      return u;
+    };
+    MC.taiLai = u => {
+      const v = MC.hang.length ? Math.max(...MC.hang.map(h => h.version)) : 0;
+      u.S.tkb = JSON.parse(JSON.stringify(MC.hang.find(h => h.version === v)?.du_lieu.tkb ?? {}));
+      u.KHO.version = v;
+    };
+    MC.moiNhat = () => MC.hang.find(h =>
+      h.version === Math.max(...MC.hang.map(x => x.version))).du_lieu.tkb;
+    return MC;
+  };
+
+  const xep = (u, lop, o) => { (u.S.tkb[lop] ||= {})[o] = { gvId: 'g1', mon: 'Toán' }; };
+  const goi = u => ({ tkb: u.S.tkb, lopDT: { ...u.S.lopDT } });
+  const dem = (tkb, lop) => Object.keys(tkb[lop] || {}).length;
+
+  /* ---------- a) Ba điểm trường lưu song song, không ai mất việc ---------- */
+  {
+    const MC = dungMayChu();
+    const A = MC.may('uid-A', 'dt-DL'), B = MC.may('uid-B', 'dt-DD'), C = MC.may('uid-C', 'dt-DT');
+    [A, B, C].forEach(MC.taiLai);
+    xep(A, 'L-DL1', '2-S-1'); xep(B, 'L-DD1', '2-S-1'); xep(C, 'L-DT1', '2-S-1');
+    const rA = await A.luuTKB(goi(A), A.KHO.version, '', A.phamViLuu());
+    const rB = await B.luuTKB(goi(B), B.KHO.version, '', B.phamViLuu());
+    const rC = await C.luuTKB(goi(C), C.KHO.version, '', C.phamViLuu());
+    const sau = MC.moiNhat();
+    kt('Ba phó hiệu trưởng lưu song song thì cả ba phần đều còn',
+       rA.ok && rB.ok && rC.ok &&
+       dem(sau, 'L-DL1') === 1 && dem(sau, 'L-DD1') === 1 && dem(sau, 'L-DT1') === 1,
+       `DL ${dem(sau, 'L-DL1')} · DĐ ${dem(sau, 'L-DD1')} · DT ${dem(sau, 'L-DT1')} tiết`);
+    kt('Không ai bị bắt tải lại giữa chừng',
+       [rA, rB, rC].every(r => !r.xungDot));
+    kt('Người lưu sau được báo là đã gộp với việc của đồng nghiệp',
+       /giữ nguyên/.test(rC.thongBao), rC.thongBao);
+  }
+
+  /* ---------- b) Bị từ chối thì KHÔNG được nhận số phiên bản của máy chủ ---------- */
+  {
+    const MC = dungMayChu();
+    const A = MC.may('uid-A', null), B = MC.may('uid-B', null);   /* cả hai toàn trường */
+    [A, B].forEach(MC.taiLai);
+    xep(A, 'L-DL1', '2-S-1');
+    await A.luuTKB(goi(A), A.KHO.version, '', A.phamViLuu());
+    xep(B, 'L-DD1', '2-S-1');
+    const r1 = await B.luuTKB(goi(B), B.KHO.version, '', B.phamViLuu());
+    kt('Lưu nguyên khối trên bản cũ thì máy chủ từ chối',
+       r1.ok === false && r1.xungDot === true, r1.thongBao);
+    kt('Bị từ chối thì máy mình GIỮ NGUYÊN số phiên bản cũ',
+       B.KHO.version === 0, `đang giữ phiên bản ${B.KHO.version}`);
+    const r2 = await B.luuTKB(goi(B), B.KHO.version, '', B.phamViLuu());
+    kt('Bấm Lưu lần nữa mà không tải lại thì VẪN bị từ chối', r2.ok === false);
+    kt('Phần của người lưu trước còn nguyên', dem(MC.moiNhat(), 'L-DL1') === 1);
+  }
+
+  /* ---------- c) Cửa sổ gộp 10 phút không được làm thủng khoá lạc quan ---------- */
+  {
+    const MC = dungMayChu();
+    const D = MC.may('uid-D', null), E = MC.may('uid-E', null);
+    MC.taiLai(D);
+    xep(D, 'L-DL1', '2-S-1');
+    await D.luuTKB(goi(D), D.KHO.version, '', D.phamViLuu());
+    MC.dongHo = 60; MC.taiLai(E);                 /* E tải lại đúng quy trình */
+    MC.dongHo = 120;
+    xep(D, 'L-DL2', '3-S-1');
+    const rD2 = await D.luuTKB(goi(D), D.KHO.version, '', D.phamViLuu());
+    kt('Gộp lần lưu liên tiếp thì KHÔNG đẻ dòng mới', MC.hang.length === 1,
+       `${MC.hang.length} dòng trên máy chủ`);
+    /* Soi thẳng DÒNG trên máy chủ, không soi con số máy chủ trả về: con số
+       ấy tăng dù có gộp hay không, nên khẳng định theo nó là xanh nhờ trùng
+       hợp — đúng thứ bẫy đã ghi ở §8 của CLAUDE.md. */
+    kt('...nhưng số phiên bản của DÒNG ấy VẪN tăng — nội dung đổi thì số phải đổi',
+       MC.hang[0].version === 2 && rD2.version === 2, `dòng đang ở phiên bản ${MC.hang[0].version}`);
+    MC.dongHo = 180;
+    xep(E, 'L-DD1', '2-S-1');
+    const rE = await E.luuTKB(goi(E), E.KHO.version, '', E.phamViLuu());
+    kt('Người tải lại đúng quy trình không xoá mất việc đồng nghiệp vừa gộp',
+       rE.ok === false && dem(MC.moiNhat(), 'L-DL2') === 1,
+       rE.ok ? 'đã ghi đè — HỎNG' : rE.thongBao);
+  }
+
+  /* ---------- d) Phạm vi ép từ tài khoản, không tin máy gửi lên ---------- */
+  {
+    const MC = dungMayChu();
+    const A = MC.may('uid-A', null);
+    MC.taiLai(A);
+    xep(A, 'L-DD1', '2-S-1'); xep(A, 'L-DT1', '2-S-1');
+    await A.luuTKB(goi(A), A.KHO.version, '', null);
+    const B = MC.may('uid-B', 'dt-DL');           /* PHT chỉ phụ trách Diễn Liên */
+    MC.taiLai(B);
+    B.S.tkb['L-DD1'] = {};                        /* cố tình xoá lớp của điểm khác */
+    B.S.tkb['L-DT1'] = {};
+    xep(B, 'L-DL1', '2-S-1');
+    /* Gửi lên phạm vi RỘNG hơn quyền của mình — máy chủ phải bó lại */
+    const r = await B.luuTKB(goi(B), B.KHO.version, '', LOP.map(l => l.id));
+    const sau = MC.moiNhat();
+    kt('PHT một điểm trường không xoá được lớp của điểm trường khác',
+       r.ok === true && dem(sau, 'L-DD1') === 1 && dem(sau, 'L-DT1') === 1,
+       `DĐ ${dem(sau, 'L-DD1')} · DT ${dem(sau, 'L-DT1')} tiết`);
+    kt('...mà phần của chính mình vẫn lưu được', dem(sau, 'L-DL1') === 1);
+  }
+
+  /* ---------- e) phamViLuu(): ai được ghi những lớp nào ---------- */
+  {
+    const MC = dungMayChu();
+    kt('Người phụ trách toàn trường thì phạm vi là null — lưu nguyên khối',
+       MC.may('uid-A', null).phamViLuu() === null);
+    const pv = MC.may('uid-B', 'dt-DD').phamViLuu();
+    kt('PHT một điểm trường chỉ nhận đúng lớp của điểm ấy',
+       Array.isArray(pv) && pv.length === 2 && pv.every(id => id.startsWith('L-DD')),
+       (pv || []).join(', '));
+  }
+
+  /* ---------- f) Đường lui: máy chủ chưa chạy db/luu-pham-vi.sql ---------- */
+  {
+    const MC = dungMayChu({ coThamSoPhamVi: false });
+    const B = MC.may('uid-B', 'dt-DL');
+    MC.taiLai(B);
+    xep(B, 'L-DL1', '2-S-1');
+    const r = await B.luuTKB(goi(B), B.KHO.version, '', B.phamViLuu());
+    kt('Máy chủ chưa có tham số p_pham_vi thì tự lùi về lời gọi cũ, vẫn lưu được',
+       r.ok === true && B.KHO.thieuHamPhamVi === true, r.thongBao);
+    kt('Lần lùi ấy gọi lại đúng một lần, không kèm p_pham_vi',
+       MC.goi.length === 1 && MC.goi[0].p_pham_vi === undefined,
+       `${MC.goi.length} lần tới được luu_tkb`);
+  }
+
+  /* ---------- g) don_du_lieu_cu giữ 10 DÒNG, không phải 10 SỐ ---------- */
+  {
+    const sql = readFileSync(join(goc, 'db/luu-pham-vi.sql'), 'utf8');
+    kt('don_du_lieu_cu cắt theo thứ hạng, không theo hiệu số phiên bản',
+       /order by version desc\s*\n?\s*limit c_giu/.test(sql) && !/max\(version\)\s*-\s*c_giu/.test(sql));
+    kt('Bản luu_tkb 4 tham số cũ bị drop — không để PostgREST phải chọn giữa hai bản',
+       /drop function if exists luu_tkb\(uuid, integer, jsonb, text\)/.test(sql));
+  }
 }
 
 /* ---------- Tổng kết ---------- */
