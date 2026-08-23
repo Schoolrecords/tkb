@@ -1559,17 +1559,71 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
   trường* từng viết cứng ba tên Diễn Liên · Diễn Đồng · Diễn Thái nên chỉ đúng
   cho đúng một nhà trường; nay là *Tạo dữ liệu thử*, hỏi tên và số lớp.
 
-### Ngôn ngữ thiết kế — hệ XANH LÁ *(đổi 16/8/2026 theo mẫu chủ dự án gửi)*
+### Ngôn ngữ thiết kế — hệ XANH DƯƠNG *(đổi 24/8/2026 theo mẫu chủ dự án gửi)*
 
-Trước đó là hệ navy theo bộ nhận diện AVATAR. Nay đổi trọn sang xanh lá;
-**tên biến giữ nguyên** (`--nav` nay là xanh lá đậm) vì chúng nói đúng VAI
-TRÒ — màu của thanh điều hướng và của mọi hành động chính — chứ không nói
-tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng được thêm gì.
+Hệ màu đã đổi **hai lần**: navy (AVATAR) → xanh lá (16/8) → **xanh dương
+(24/8)**. **Tên biến giữ nguyên qua cả ba lần** (`--nav` nay là xanh dương
+đậm) vì chúng nói đúng VAI TRÒ — màu của thanh điều hướng và của mọi hành
+động chính — chứ không nói tên màu. Đổi tên thì phải sửa hàng trăm chỗ mà
+chẳng được thêm gì; giữ nguyên thì lần đổi thứ ba này chỉ là một bảng ánh xạ.
 
-- Thanh bên xanh lá chuyển dần `#0B4229 → #1C9068` (mở rộng hai đầu
-  23/8/2026: bốn nấc cũ quá gần nhau nên nhìn ra một mảng xanh bệt, rõ nhất
-  lúc mọi nhóm cùng đóng), rộng **248px**,
-  mục đang chọn `#17794B` kèm vạch vàng, **không có hoạ tiết nào ở đáy**.
+**Sáu mã gốc chủ dự án chốt** — mọi thứ khác suy ra từ đây:
+
+| Vai trò | Mã | Biến |
+|---|---|---|
+| Màu chủ đạo | `#005391` | `--nav` |
+| Xanh đậm | `#003B68` | đỉnh dải thanh bên |
+| Nút / hover | `#0A659F` | `--nav-2` |
+| Nền xanh nhạt | `#EAF5FB` | `--nav-nhat` |
+| Nền tổng thể | `#F4F9FC` | `--nen` |
+| Viền | `#C9E2F0` | `--nav-vien` · `--ke-2` |
+
+**Đổi bằng bảng ánh xạ TƯỜNG MINH, không xoay màu mù.** 59 mã, mỗi mã một
+dòng có ghi chú nó là gì. Ba nhóm **cố ý không đổi**, và có phép thử canh:
+
+- **Màu ngữ nghĩa** — `--xanh #15803D` (báo *đạt*), `--do`, `--canh`. Đây là
+  chỗ dễ quét nhầm nhất: đổi bảng màu giao diện mà kéo luôn màu báo trạng
+  thái đi theo thì người dùng mất hẳn tín hiệu "việc này xong / việc này hỏng".
+- **Màu môn học và màu điểm trường** — sáu sắc phân biệt nhau, không phải màu
+  giao diện. Trong đó có `.m-ta` · `.m-gdtc` · `.m-kh` xanh lá và `--luc`.
+- **Cây cối trong tranh** đầu trang. Mẫu vẫn có cây xanh, chỉ **dịu hẳn** so
+  với bản cũ (đo trên mẫu: `#74A990`, bản cũ là `#8CC65E` xanh nõn chuối).
+  Mái nhà đổi từ cam đất sang xanh; **thân cây đổi sang NÂU** — trước nay nó
+  ăn theo hệ xanh lá nên là xanh xám, mà thân cây xanh dương thì vô lý.
+
+⚠️ **Hai chỗ phải sửa RIÊNG vì dùng chung mã với thứ khác.** Thanh tiến độ
+dùng `#2E9E63` — mà đó cũng là `--luc`, màu điểm trường thứ hai; và `#5FAE87`
+— cũng là chấm báo *đã nối máy chủ*. Thay theo mã là hỏng cả hai thứ kia.
+Phải thay nguyên cụm `linear-gradient` trước, rồi mới quét theo mã.
+
+⚠️ **Vòng tròn tiến độ viết cứng mã màu ngay trong `style=`**, không đi qua
+biến — nên nó **sót lại xanh lá** sau khi cả trang đã xanh dương, và chỉ
+`node docs/anh-giao-dien/chup.mjs` nhìn ra. Hai bộ soi kia đều xanh. Đổi hệ
+màu thì phải soi cả những chỗ viết cứng trong thuộc tính `style`.
+
+⚠️ **Sửa tệp bằng script thì mở ở chế độ nhị phân, hoặc `newline='\n'`.**
+Đoạn Python đổi bảng màu ghi bằng `io.open(p,'w')`, mà trên Windows chế độ ấy
+đổi mọi `\n` thành `\r\n` — **cả 12.707 dòng của `index.html` thành CRLF
+trong một lần ghi**. Bản diff phình từ 981 dòng lên toàn bộ tệp nên không ai
+soi được thay đổi thật, và `npm run soi-mau` vỡ vì nó cắt hàm bằng
+`indexOf('\nfunction …')`. `npm test` và `npm run soi` **vẫn xanh** — chúng
+cắt vùng bằng mốc `#region` nên không đụng tới ký tự xuống dòng. Nay mục
+**17c** của `npm run soi` canh năm tệp gốc.
+
+**Ba chỗ khai màu chủ đề phải bằng nhau**: biến `--nav`, thẻ
+`<meta name="theme-color">`, và `theme_color` trong `manifest.webmanifest`.
+Phép thử nay so **ba chỗ với nhau** thay vì ghi cứng một mã — bản trước ghi
+cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ nào lệch.
+
+- Thanh bên xanh dương chuyển dần `#003B68 → #1580C4` (giữ độ mở rộng hai
+  đầu đã chốt 23/8: bốn nấc quá gần nhau thì nhìn ra một mảng xanh bệt, rõ
+  nhất lúc mọi nhóm cùng đóng), rộng **248px**,
+  mục đang chọn `#0F74B0` kèm vạch vàng `#FFD93E`, **không có hoạ tiết nào ở đáy**.
+  ⚠️ **Lưới chấm trắng phủ nền thanh bên thì GIỮ** — chủ dự án dặn thẳng
+  *"nhớ là vẫn có chấm trắng nhé"*. Chấm 1px, cách nhau 18px, mờ 5,5%: đủ
+  cho nền có chất liệu, không đủ để đọc ra hoa văn. Nó nằm chung khai báo
+  `background` với dải chuyển màu chứ không phải một thuộc tính riêng, nên
+  đổi dải màu là lúc dễ quét mất nó nhất. Có phép thử canh.
   ⚠️ Cụm lá vẽ ngày 16/8 đã **xoá hẳn 23/8**: đối chiếu ảnh mẫu thì ở đó
   không có gì, và trên màn hình thật nó là thứ bắt mắt nhất trong cả thanh
   bên — một hoạ tiết nền mà nặng hơn mọi mục điều hướng nằm trên nó. Đã
@@ -1579,9 +1633,12 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
   ⚠️ Đừng hạ bề ngang xuống nữa: 238px đã thử và làm gãy dòng cả ba chỗ chữ
   dài nhất — tên sản phẩm ở đầu thanh, nhãn nhóm *Tra cứu thời khóa biểu*,
   và vai trò trong thẻ tài khoản.
-- Nền `#E9F1EC`, thẻ trắng bo `14px`, viền `#E2EDE7`, đổ bóng rất nhẹ. Nền
-  cũ `#F1F7F3` gần trắng quá nên thẻ trắng không tách ra khỏi nó, cả trang
-  thành một mảng phẳng.
+- Nền `#F4F9FC`, thẻ trắng bo `14px`, viền `#C9E2F0`, đổ bóng rất nhẹ.
+  ⚠️ Đây là **đảo lại** quyết định ngày 16/8 ("nền gần trắng quá thì thẻ
+  trắng không tách ra khỏi nó"). Đảo được vì mẫu mới chuyển việc phân tách
+  sang **VIỀN**: nền nhạt hẳn nhưng viền thẻ đậm và rõ. Hai cách đều đúng,
+  nhưng phải chọn một — nền nhạt mà viền cũng nhạt thì lại thành mảng phẳng
+  y như bản 16/8 đã chê.
 - **Thanh đầu trang là THẺ TRẮNG có phong cảnh** (trời, mây, chim, đồi,
   cây) ở nửa phải, không còn là khối navy đậm. Chữ vì thế là chữ thường,
   không phải chữ trắng. Mép trái hình phải tan dần bằng một lớp gradient
@@ -1611,7 +1668,7 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
   `.the-luoi` vẫn **trong suốt**: bên trong nó đã có khung trắng riêng của
   cột lớp + lưới, thêm một tấm trắng nữa là trắng lồng trắng. Nút nổi được
   là nhờ **chính nó**, không nhờ tấm nền phía sau.
-- `.b-vang` nay là **xanh lá đậm** chứ không còn màu vàng. Vàng chỉ còn ở
+- `.b-vang` nay là **xanh dương đậm** chứ không còn màu vàng. Vàng chỉ còn ở
   logo, vạch đánh dấu mục đang mở và ô biểu tượng *Cảnh báo*.
 - Ba thẻ dưới Bảng điều hành mang **ô biểu tượng vuông bo tròn** (`.the-ic`)
   màu theo vai trò: xanh đậm = tiến độ, xanh lá = xong, đỏ = có việc gấp,

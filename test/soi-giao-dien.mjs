@@ -1089,14 +1089,48 @@ kt('Nhưng thẻ ĐANG CHỌN vẫn đậm hơn hẳn — hai tín hiệu, khôn
   return /\.xem-nut\.on\{background:var\(--nav\);color:#fff/.test(css)
     && /\.dt-nut\.on\{background:var\(--nav\);color:#fff/.test(css);
 })());
-kt('Bảng màu là hệ XANH LÁ, không còn navy ở bất kỳ biến gốc nào', ...((() => {
-  const css = w.document.documentElement.innerHTML;
-  const lay = ten => (css.match(new RegExp('--' + ten + ':(#[0-9A-Fa-f]{6})')) || [])[1];
-  /* Xanh lá: thành phần lục phải trội hơn hẳn lam. Navy cũ thì ngược lại. */
-  const laLuc = h => { const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16),
-                             b = parseInt(h.slice(5,7),16); return g > b && g > r; };
-  const nav = lay('nav'), nav3 = lay('nav-3'), xanh = lay('xanh');
-  return [!!nav && laLuc(nav) && laLuc(nav3) && laLuc(xanh), `--nav ${nav} · --nav-3 ${nav3}`];
+/* Bảng màu XANH DƯƠNG (24/8/2026 — thay hệ xanh lá của 16/8).
+   Chủ dự án đưa sáu mã: chủ đạo #005391 · xanh đậm #003B68 · nút/hover
+   #0A659F · nền xanh nhạt #EAF5FB · nền tổng thể #F4F9FC · viền #C9E2F0.
+   Tên biến GIỮ NGUYÊN vì chúng nói VAI TRÒ, không nói tên màu. */
+const cssGoc = w.document.documentElement.innerHTML;
+const bien = ten => (cssGoc.match(new RegExp('--' + ten + ':(#[0-9A-Fa-f]{6})')) || [])[1];
+const laLam = h => { const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16),
+                           b = parseInt(h.slice(5,7),16); return b > g && b > r; };
+const laLuc = h => { const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16),
+                           b = parseInt(h.slice(5,7),16); return g > b && g > r; };
+kt('Màu chủ đạo đúng bằng #005391 chủ dự án chốt', ...((() => {
+  const nav = bien('nav');
+  return [nav && nav.toUpperCase() === '#005391', `--nav ${nav}`];
+})()));
+kt('Cả hệ điều hướng là XANH DƯƠNG, không sót mã xanh lá nào', ...((() => {
+  const ten = ['nav', 'nav-2', 'nav-3', 'nav-mo', 'nav-nhat', 'nav-vien', 'nen', 'ke'];
+  const sot = ten.filter(t => { const h = bien(t); return h && laLuc(h); });
+  return [sot.length === 0, sot.length ? sot.map(t => `--${t} ${bien(t)}`).join(' · ')
+    : ten.map(t => bien(t)).join(' ')];
+})()));
+/* Ba màu NGỮ NGHĨA không được đổi theo: xanh lá là "đạt", đỏ là "hỏng".
+   Đổi bảng màu giao diện mà kéo luôn màu báo trạng thái đi theo thì người
+   dùng mất hẳn tín hiệu — đây là chỗ dễ quét nhầm nhất khi thay cả hệ. */
+kt('Màu báo "đạt" VẪN là xanh lá — ngữ nghĩa không đi theo bảng màu', ...((() => {
+  const x = bien('xanh'), d = bien('do');
+  return [!!x && laLuc(x) && !!d && !laLuc(d), `--xanh ${x} · --do ${d}`];
+})()));
+kt('Vạch vàng đánh dấu mục đang mở vẫn còn', ...((() => {
+  const v = bien('vang');
+  return [!!v && !laLam(v) && !laLuc(v), `--vang ${v}`];
+})()));
+/* "Nhớ là vẫn có chấm trắng nhé!" — lưới chấm trắng rất mờ phủ nền thanh
+   bên, thứ cho nó chất liệu thay vì một mảng xanh bệt. Đổi cả hệ màu là
+   lúc dễ quét mất nó nhất, vì nó nằm chung khai báo `background` với dải
+   chuyển màu chứ không phải một thuộc tính riêng. */
+kt('Thanh bên GIỮ lưới chấm trắng mờ phủ trên dải chuyển màu', ...((() => {
+  const m = cssGoc.match(/aside\{[^}]*background:\s*([^;]+);/);
+  const nen = m ? m[1] : '';
+  const coCham = /radial-gradient\(circle at 1px 1px,\s*rgba\(255,255,255,\.0\d+\)/.test(nen);
+  const coDai = /linear-gradient\(178deg,#003B68/.test(nen);
+  return [coCham && coDai, coCham ? (coDai ? 'có cả chấm trắng và dải xanh đậm' : 'thiếu dải')
+    : 'MẤT lưới chấm trắng'];
 })()));
 kt('Có đủ bốn thẻ chuyển cách xem', ...((() => {
   const v = [...w.document.querySelectorAll('[data-dhxem]')].map(b => b.dataset.dhxem);
@@ -1501,8 +1535,26 @@ goTim(oSel, '');
 console.log('\n17. PWA — cài lên màn hình chính điện thoại');
 kt('Trang khai manifest, màu chủ đề và biểu tượng cho iPhone',
    w.document.querySelector('link[rel="manifest"]')?.getAttribute('href') === 'manifest.webmanifest'
-   && w.document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#0F5132'
+   && !!w.document.querySelector('meta[name="theme-color"]')?.getAttribute('content')
    && !!w.document.querySelector('link[rel="apple-touch-icon"]'));
+/* ⚠️ Ba chỗ khai màu chủ đề, và chúng PHẢI bằng nhau: biến `--nav` trong CSS,
+   thẻ theme-color của trang, và theme_color trong manifest. Bản trước ghi
+   thẳng '#0F5132' vào phép thử nên đổi bảng màu là phép thử đỏ mà không nói
+   được chỗ nào lệch. Nay so ba chỗ VỚI NHAU — đổi màu lần sau mà quên một
+   chỗ thì nó chỉ đúng chỗ ấy ra, còn đổi đủ cả ba thì không phải sửa gì. */
+kt('Màu chủ đề khớp nhau ở cả ba chỗ: CSS · thẻ meta · manifest', ...((() => {
+  const meta = w.document.querySelector('meta[name="theme-color"]')?.getAttribute('content');
+  const m = JSON.parse(readFileSync(join(goc, 'src/manifest.webmanifest'), 'utf8'));
+  const css = bien('nav');
+  const b = [css, meta, m.theme_color].map(x => String(x || '').toUpperCase());
+  return [b[0] === b[1] && b[1] === b[2], `CSS ${b[0]} · meta ${b[1]} · manifest ${b[2]}`];
+})()));
+kt('Nền nạp trang của manifest khớp nền tổng thể trong CSS', ...((() => {
+  const m = JSON.parse(readFileSync(join(goc, 'src/manifest.webmanifest'), 'utf8'));
+  const nen = bien('nen');
+  return [String(m.background_color).toUpperCase() === String(nen).toUpperCase(),
+    `manifest ${m.background_color} · --nen ${nen}`];
+})()));
 kt('manifest.webmanifest hợp lệ, đủ tên + biểu tượng + chạy độc lập', (() => {
   const m = JSON.parse(readFileSync(join(goc, 'src/manifest.webmanifest'), 'utf8'));
   return m.name && m.short_name && m.display === 'standalone'
@@ -1994,6 +2046,22 @@ kt('Mọi mã đều đúng dạng rồi thì hộp nói thẳng, không bày n�
   return /đều đã đúng dạng/.test(t) && nut.length === 1 && nut[0] === 'Đóng';
 })());
 w.eval('dong()');
+
+/* Ký tự xuống dòng phải là LF. Đã ăn đòn 24/8/2026: một đoạn Python sửa
+   bảng màu ghi tệp bằng `io.open(p,'w')`, mà trên Windows chế độ ấy đổi mọi
+   `\n` thành `\r\n` — cả 12.707 dòng của index.html thành CRLF trong một lần
+   ghi. Hai hậu quả: bản diff phình từ 981 dòng lên toàn bộ tệp nên không ai
+   soi được thay đổi thật, và `test/soi-mau-excel.mjs` vỡ vì nó cắt hàm bằng
+   `indexOf('\nfunction ...')`. `npm test` và `npm run soi` đều vẫn xanh —
+   chúng cắt vùng bằng mốc `#region` nên không đụng tới ký tự xuống dòng.
+   Sửa tệp bằng script thì mở ở chế độ nhị phân, hoặc `newline='\n'`. */
+console.log('\n17c. Ký tự xuống dòng');
+[['src/index.html'], ['src/manifest.webmanifest'], ['src/sw.js'],
+ ['CLAUDE.md'], ['package.json']].forEach(([t]) => {
+  const d = readFileSync(join(goc, t));
+  const crlf = (d.toString('latin1').match(/\r\n/g) || []).length;
+  kt(`${t} dùng LF, không phải CRLF`, crlf === 0, crlf ? `${crlf} dòng CRLF` : '');
+});
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
