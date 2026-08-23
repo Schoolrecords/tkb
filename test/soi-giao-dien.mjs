@@ -1638,18 +1638,26 @@ kt('Thông tin trường nằm trong DỮ LIỆU NHÀ TRƯỜNG, không phải H
   const dl = [...w.document.querySelectorAll('.nh[data-nh="dl"] .mi')].map(x => x.dataset.t);
   return [m.dataset.nh === 'dl' && dl[0] === 'thongtin', dl.join(' · ')];
 })()));
-kt('Nhãn nhóm NỔI KHỐI, mục con giảm nhẹ — thứ bậc không bị lộn ngược', (() => {
-  /* Canh THỨ BẬC chứ không canh con số cụ thể: nhãn nhóm phải có nền và
-     chữ trắng đậm; mục con thì KHÔNG có nền riêng, để nhãn nhóm nổi hơn.
-     Trước 3/8/2026 ngược lại — mục con là thẻ có nền và viền, nhãn nhóm
-     trong suốt, nên nhìn tổng thể cấp dưới nổi hơn cấp trên. */
+kt('Nhãn nhóm không bị mục con nuốt — phân cấp bằng MÀU, cả hai đều phẳng', (() => {
+  /* Canh THỨ BẬC chứ không canh một cách trình bày cụ thể. Vùng này đã đổi
+     ba lần và lần nào cũng vì cùng một lỗi ở hai chiều ngược nhau, nên phép
+     thử chỉ giữ đúng điều bất biến: nhãn nhóm phải NỔI HƠN mục con.
+
+     Bản 23/8/2026 đạt điều đó bằng màu — nhãn vàng kem đậm 800, giãn cách
+     rộng; mục con trắng ngả xanh, nhẹ 500 — chứ không bằng một tấm nền như
+     bản 3/8. Nên phép thử đòi: nhãn nhóm có màu riêng và weight 800, mục
+     con weight 500 và không nền; và KHÔNG bên nào được đeo nền khối, vì
+     nền khối ở đây chính là thứ làm thanh bên lệch hẳn khỏi ảnh mẫu. */
   const css = w.document.documentElement.innerHTML;
-  const nhom = css.slice(css.indexOf('.nhom{display:flex'), css.indexOf('.nhom{display:flex') + 400);
-  const mi = css.slice(css.indexOf('.mi{display:flex'), css.indexOf('.mi{display:flex') + 400);
-  const nhomCoNen = /background:rgba\(255,255,255,\.1/.test(nhom) && /color:#fff/.test(nhom)
-    && /font-weight:800/.test(nhom);
-  const miNheDi = /background:none/.test(mi) && /border:0/.test(mi);
-  return nhomCoNen && miNheDi;
+  const lat = ten => css.slice(css.indexOf(ten), css.indexOf(ten) + 400);
+  const nhom = lat('.nhom{display:flex'), mi = lat('.mi{display:flex');
+  /* Giãn cách: chỉ đòi CÓ, không khoá con số — nó bị chính bề ngang thanh
+     bên quyết định, nới ra là nhãn dài nhất gãy dòng. */
+  const nhomNoi = nhom.includes('font-weight:800') && nhom.includes('letter-spacing:.')
+    && nhom.includes('color:#') && nhom.includes('background:none');
+  const miNheDi = mi.includes('background:none') && mi.includes('border:0')
+    && mi.includes('font-weight:500');
+  return nhomNoi && miNheDi;
 })());
 kt('Mục đang mở vẫn nổi rõ — ngoại lệ duy nhất của việc giảm nhẹ', (() => {
   const css = w.document.documentElement.innerHTML;

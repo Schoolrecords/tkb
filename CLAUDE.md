@@ -466,11 +466,20 @@ menu không hề bày ra. Nay `TEN_BUOC` dùng đúng tên nhóm của thanh bê
 chỉ còn nhãn nhóm + tên màn hình + hai nút ‹ trước / tiếp theo ›. Có phép thử
 quét cả 12 màn hình, không cho chữ `Bước <số>` nào lọt ra.
 
-**Nhãn nhóm phải ĐẬM HƠN tên mục nằm dưới nó.** Bản đầu để 10px màu `--nav-mo`
-nhạt — đúng kiểu nhãn phụ của bản menu phẳng cũ, nhưng nay nhãn nhóm là **mốc
-điều hướng chính**. Chữ mờ hơn cả mục con là thứ bậc lộn ngược, và chủ dự án
-nhận xét ngay: *"các mục lớn thì bị nuốt"*. Nay 11.5px, `font-weight:800`,
-màu `#B9C4E4`, kèm vạch ngăn phía trên để năm khối tách bạch cả khi cùng đóng.
+**Nhãn nhóm phải ĐẬM HƠN tên mục nằm dưới nó — nhưng bằng MÀU, không bằng
+khối** *(chốt lần ba, 23/8/2026)*. Vùng này đã đổi ba lần, chép lại cả đường
+đi để đừng ai quay vòng:
+
+| Bản | Cách làm | Vì sao đổi |
+|---|---|---|
+| đầu | 10px màu `--nav-mo` nhạt | *"các mục lớn thì bị nuốt"* — thứ bậc lộn ngược |
+| 3/8 | nhãn thành **tấm khối** có nền + vạch vàng, mục con bỏ nền | hết bị nuốt, nhưng thanh bên thành một chồng năm tấm thẻ nặng, lệch hẳn khỏi ảnh mẫu |
+| 23/8 | nhãn **vàng kem** 10px/800/giãn `.1em`, phẳng; mục con trắng ngả xanh 13px/500 | vàng trên nền xanh đậm nổi hơn trắng nhạt, nên thứ bậc vẫn đúng chiều mà không tốn tấm nền nào |
+
+Phép thử vì thế canh **thứ bậc**, không canh một cách trình bày: nhãn có màu
+riêng và `font-weight:800`, mục con `500` và không nền, và không bên nào đeo
+nền khối. ⚠️ Cỡ chữ và giãn cách bị khoá bởi nhãn dài nhất — *"TRA CỨU THỜI
+KHÓA BIỂU"* phải nằm gọn một dòng trong 248px.
 
 Bốn quy tắc, cả bốn đều có phép thử:
 
@@ -1426,10 +1435,16 @@ Trước đó là hệ navy theo bộ nhận diện AVATAR. Nay đổi trọn sa
 TRÒ — màu của thanh điều hướng và của mọi hành động chính — chứ không nói
 tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng được thêm gì.
 
-- Thanh bên xanh lá `#0F5132` chuyển dần xuống `#157547`, mục đang chọn
-  `#17794B` kèm vạch vàng, có **cụm lá** ở đáy (SVG nhúng, `aside::after`,
-  `pointer-events:none` nên không chắn mục nào).
-- Nền `#F1F7F3`, thẻ trắng bo `14px`, viền `#E2EDE7`, đổ bóng rất nhẹ.
+- Thanh bên xanh lá `#0F5132` chuyển dần xuống `#157547`, rộng **248px**,
+  mục đang chọn `#17794B` kèm vạch vàng, có **cụm lá** ở đáy (SVG nhúng,
+  `pointer-events:none` nên không chắn mục nào) — nay để `opacity:.3` vì
+  nó là hoạ tiết nền, không phải khối nội dung.
+  ⚠️ Đừng hạ bề ngang xuống nữa: 238px đã thử và làm gãy dòng cả ba chỗ chữ
+  dài nhất — tên sản phẩm ở đầu thanh, nhãn nhóm *Tra cứu thời khóa biểu*,
+  và vai trò trong thẻ tài khoản.
+- Nền `#E9F1EC`, thẻ trắng bo `14px`, viền `#E2EDE7`, đổ bóng rất nhẹ. Nền
+  cũ `#F1F7F3` gần trắng quá nên thẻ trắng không tách ra khỏi nó, cả trang
+  thành một mảng phẳng.
 - **Thanh đầu trang là THẺ TRẮNG có phong cảnh** (trời, mây, chim, đồi,
   cây) ở nửa phải, không còn là khối navy đậm. Chữ vì thế là chữ thường,
   không phải chữ trắng. Mép trái hình phải tan dần bằng một lớp gradient

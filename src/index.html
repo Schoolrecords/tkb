@@ -44,7 +44,10 @@
      navy cũ vốn nền đậm chữ trắng. Nút đang chọn mới lấy `--nav` đậm —
      hai mức vẫn tách bạch, chỉ đảo chiều sáng tối. */
   --nav-nhat:#EDF5F0; --nav-nhat-2:#E2EFE7; --nav-vien:#D8E9DF;
-  --nen:#F1F7F3; --the:#FFFFFF; --ke:#E2EDE7; --ke-2:#CFE2D6;
+  /* Nền đậm hơn bản cũ (#F1F7F3 → #E9F1EC): nền cũ gần trắng quá nên thẻ
+     trắng nằm trên nó gần như không tách ra khỏi nền, cả trang thành một
+     mảng trắng phẳng. Đo trên ảnh mẫu thì nền là xám ngả xanh rõ rệt. */
+  --nen:#E9F1EC; --the:#FFFFFF; --ke:#E2EDE7; --ke-2:#CFE2D6;
   --chu:#123528; --chu-mo:#6C8B7B;
   --vang:#F5C542; --cam:#D97A29; --luc:#2E9E63; --lam:#3B82F6; --tim:#7C4DDC;
   --do:#DC3545; --do-nen:#FDECEC; --canh:#C77D0A; --canh-nen:#FEF6E4; --xanh:#15803D; --xanh-nen:#E7F6EC;
@@ -73,7 +76,13 @@ button,input,select{font-family:inherit}
    thanh trượt của chính trình duyệt — người dùng quen tay hơn hẳn so với
    cuộn bên trong một khung con. `dvh` để trên điện thoại không bị hụt khi
    thanh địa chỉ thu vào. */
-.boc{display:grid;grid-template-columns:274px 1fr;min-height:100vh;min-height:100dvh}
+/* 248px chứ không phải 274px (23/8/2026 — đo lại trên ảnh mẫu: thanh bên
+   chiếm chừng 15% bề ngang). Hai mươi sáu pixel ấy trả thẳng cho lưới, nơi
+   mỗi cột là một lớp.
+   ⚠️ Đừng hạ thấp hơn nữa: 238px đã thử và làm gãy dòng cả ba chỗ chữ dài
+   nhất — tên sản phẩm ở đầu thanh, nhãn nhóm "Tra cứu thời khóa biểu", và
+   vai trò trong thẻ tài khoản. */
+.boc{display:grid;grid-template-columns:248px 1fr;min-height:100vh;min-height:100dvh}
 /* Navy chuyển từ đậm trên xuống nhạt dưới, phủ lưới chấm trắng rất mờ —
    theo bộ nhận diện AVATAR. Chấm 1px, cách nhau 18px, độ mờ 5% nên chỉ
    thấy chất liệu chứ không đọc ra hoa văn, không làm rối chữ. */
@@ -86,8 +95,11 @@ aside{color:#fff;padding:18px 14px;
    Nằm NGAY TRÊN thẻ tài khoản, thò ra sát hai mép thanh bên. Là hoạ tiết
    nên `pointer-events:none` và nằm ở lớp dưới cùng — hoạ tiết mà chắn mất
    một mục bấm được là lỗi khó chịu nhất của kiểu trang trí này. */
-.bui-la{position:absolute;left:-8px;right:-8px;bottom:84px;height:250px;z-index:0;
-  pointer-events:none}
+/* Mờ hẳn đi (23/8/2026). Bản trước vẽ đậm và cao 250px nên cụm lá to ngang
+   cả một nhóm mục — nó là HOẠ TIẾT NỀN, không phải một khối nội dung, mà
+   nhìn vào thanh bên thì nó lại là thứ bắt mắt nhất. Ảnh mẫu không có nó. */
+.bui-la{position:absolute;left:-8px;right:-8px;bottom:70px;height:190px;z-index:0;
+  opacity:.3;pointer-events:none}
 .bui-la svg{width:100%;height:100%;display:block}
 /* Mọi thứ khác trong thanh bên nằm TRÊN bụi lá */
 aside>*{position:relative;z-index:1}
@@ -101,12 +113,12 @@ aside>*{position:relative;z-index:1}
 .dsmuc::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
 aside::-webkit-scrollbar{width:6px}
 aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6px}
-.hieu{display:flex;align-items:center;gap:13px;padding:0 6px 18px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:16px}
+.hieu{display:flex;align-items:center;gap:11px;padding:0 4px 16px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:16px}
 /* Ô logo: logo là hình tròn nền trắng nên bỏ nền vàng cũ đi, chỉ giữ đổ bóng */
-.hieu-bt{width:52px;height:52px;flex:0 0 52px;border-radius:50%;overflow:hidden;background:#fff;
+.hieu-bt{width:46px;height:46px;flex:0 0 46px;border-radius:50%;overflow:hidden;background:#fff;
   display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.28)}
 .hieu-bt img{width:100%;height:100%;object-fit:contain;display:block}
-.hieu-t{font-size:16px;font-weight:800;letter-spacing:.02em;line-height:1.15}
+.hieu-t{font-size:15px;font-weight:800;letter-spacing:.01em;line-height:1.15;white-space:nowrap}
 .hieu-p{font-size:11.5px;color:var(--nav-mo);font-weight:400}
 /* ---------- Nhóm mục MỞ ĐƯỢC ----------
    Nhãn nhóm nay là một cái NÚT, không còn là dòng chữ trang trí. Vẫn giữ
@@ -121,21 +133,28 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
    tên mục nằm dưới nó thì thứ bậc bị lộn ngược.
    Nay 11.5px, chữ sáng hơn hẳn, và có vạch ngăn phía trên để năm khối tách
    bạch nhìn thấy ngay cả khi mọi nhóm cùng đóng. */
-/* Nhãn nhóm là MỐC CHÍNH — phải nổi khối hơn mục con (sửa lần hai 3/8/2026).
-   Lần trước mới làm chữ đậm và sáng hơn, nhưng mục con vẫn là những tấm thẻ
-   có nền và viền, còn nhãn nhóm thì trong suốt — nên nhìn tổng thể vẫn thấy
-   mục con nổi hơn cấp trên nó. Chủ dự án nhận xét "có vẻ không rõ ràng".
+/* Nhãn nhóm PHẲNG, phân cấp bằng MÀU (làm lại 23/8/2026 theo ảnh mẫu).
+   Đây là lần thứ ba vùng này đổi, nên chép lại cả đường đi để đừng ai quay
+   vòng: bản đầu 10px màu --nav-mo nhạt → "các mục lớn thì bị nuốt"; bản
+   3/8 chữa bằng cách biến nhãn thành TẤM KHỐI có nền và vạch vàng → hết
+   bị nuốt, nhưng thanh bên thành một chồng năm tấm thẻ nặng, khác hẳn ảnh
+   mẫu, và chủ dự án nhìn tổng thể vẫn thấy "không có gì khác cả".
 
-   Nay đảo hẳn thứ bậc: nhãn nhóm thành TẤM KHỐI có nền và vạch vàng bên
-   trái; mục con bỏ nền, bỏ viền, chỉ còn chữ — nhẹ đi để nhường vai. */
-.nhom{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
-  font-size:11.5px;font-weight:800;letter-spacing:.09em;color:#fff;
-  padding:11px 12px;margin:14px 0 6px;border:0;border-radius:10px;
-  background:rgba(255,255,255,.10);border-left:3px solid var(--vang);
-  transition:background .16s}
-.nh:first-child .nhom{margin-top:0}
-.nhom:hover{background:rgba(255,255,255,.17)}
-.nh.mo .nhom{background:rgba(255,255,255,.14)}
+   Bản này giữ đúng bài học của ngày 3/8 — nhãn nhóm không được chìm dưới
+   mục con — nhưng đạt bằng MÀU thay vì bằng khối: nhãn màu VÀNG KEM, in
+   hoa, giãn cách rộng, đậm 800; mục con chữ trắng ngả xanh, cỡ thường,
+   nhẹ 500. Vàng trên nền xanh đậm nổi hơn trắng nhạt, nên thứ bậc vẫn
+   đúng chiều mà không tốn một tấm nền nào. */
+/* ⚠️ Cỡ chữ và giãn cách ở đây bị KHOÁ bởi nhãn dài nhất: "TRA CỨU THỜI
+   KHÓA BIỂU" phải nằm gọn MỘT dòng trong 248px. Nới thêm nửa pixel giãn
+   cách là nó gãy làm hai, và năm nhãn nhóm cao thấp so le nhau. */
+.nhom{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
+  font-size:10px;font-weight:800;letter-spacing:.1em;color:#EBD48A;
+  padding:9px 7px 5px;margin:15px 0 2px;border:0;border-radius:8px;
+  background:none;transition:color .16s}
+.nh:first-child .nhom{margin-top:2px}
+.nhom:hover{color:var(--vang)}
+.nh.mo .nhom{color:#EBD48A}
 .nhom .chev{width:15px;height:15px;flex:0 0 15px;stroke-width:2.4;margin-left:auto;
   transition:transform .2s;opacity:.75}
 .nh.mo .nhom .chev{transform:rotate(180deg)}
@@ -150,9 +169,9 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
    và mắt bắt được ranh giới giữa các mục mà không cần đường kẻ. */
 /* Mục con GIẢM NHẸ để nhường vai cho nhãn nhóm: bỏ nền, bỏ viền, chỉ còn
    chữ và biểu tượng. Thụt vào một chút cho thấy rõ nó nằm trong nhóm. */
-.mi{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;position:relative;
-  padding:10px 13px 10px 16px;border-radius:10px;font-size:13.5px;font-weight:500;
-  color:#C6DED1;margin-bottom:2px;background:none;border:0;
+.mi{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;position:relative;
+  padding:9px 11px 9px 13px;border-radius:10px;font-size:13px;font-weight:500;
+  color:#C6DED1;margin-bottom:1px;background:none;border:0;
   transition:background .16s,color .16s,transform .08s}
 .mi:hover{background:rgba(255,255,255,.09);color:#fff}
 /* Bấm là nẩy LÊN một chút — cảm giác nút thật, lấy đúng từ bộ nhận diện AVATAR.
@@ -167,7 +186,7 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
 /* Vạch vàng bên trái đánh dấu mục đang mở */
 .mi.on::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);
   width:3.5px;height:24px;border-radius:0 4px 4px 0;background:var(--vang)}
-.mi svg{width:19px;height:19px;flex:0 0 19px;stroke-width:1.9}
+.mi svg{width:18px;height:18px;flex:0 0 18px;stroke-width:1.9}
 .mi .n{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.16);
   padding:2px 9px;border-radius:20px;min-width:26px;text-align:center}
 .mi.on .n{background:rgba(255,255,255,.26)}
@@ -175,13 +194,13 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
 /* Dán cứng đáy thanh bên: mười tám mục thì danh sách cuộn, nhưng thẻ tài khoản
    phải luôn nhìn thấy — nó là chỗ duy nhất nói người đang dùng là ai. */
 .duoi{padding-top:14px;margin-top:12px;border-top:1px solid rgba(255,255,255,.1)}
-.tk{display:flex;align-items:center;gap:11px;padding:12px;border-radius:12px;
+.tk{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
 .tk>div:nth-child(2){flex:1;min-width:0}
 .tk .tk-t,.tk .tk-p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tk-av{width:40px;height:40px;flex:0 0 40px;border-radius:50%;background:linear-gradient(145deg,#2E9E63,#0F5132);
+.tk-av{width:36px;height:36px;flex:0 0 36px;border-radius:50%;background:linear-gradient(145deg,#2E9E63,#0F5132);
   display:grid;place-items:center;font-weight:700;font-size:14px}
-.tk-t{font-size:13px;font-weight:700;line-height:1.2}
+.tk-t{font-size:12.5px;font-weight:700;line-height:1.2}
 .tk-p{font-size:11px;color:var(--nav-mo)}
 .nut-duoi{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,.16);
   border-radius:11px;background:rgba(255,255,255,.04);color:#DBEDE3;font-size:12.5px;font-weight:500;cursor:pointer;margin-bottom:6px}
