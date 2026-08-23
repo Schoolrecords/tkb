@@ -202,6 +202,9 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
 .mi svg{width:18px;height:18px;flex:0 0 18px;stroke-width:1.9}
 .mi .n{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.16);
   padding:2px 9px;border-radius:20px;min-width:26px;text-align:center}
+/* Huy hiệu rỗng thì GIẤU HẲN. Không có quy tắc này, một badge chưa có số
+   vẫn hiện ra thành viên xám trống rộng 26px — trông như lỗi vẽ. */
+.mi .n:empty{display:none}
 .mi.on .n{background:rgba(255,255,255,.26)}
 .mi .n.do{background:var(--do);color:#fff}
 /* Dán cứng đáy thanh bên: mười tám mục thì danh sách cuộn, nhưng thẻ tài khoản
@@ -6154,6 +6157,16 @@ function capNhatDem(){
   $('#nPhong').textContent=(S.phong||[]).filter(p=>!S.phamVi||p.dtId===S.phamVi).length;
   $('#nPC').textContent=S.phanCong.filter(trongPV).length;
   $('#nBan').textContent=gvTrongPV().reduce((s,g)=>s+(S.gvNghi[g.id]||[]).length,0);
+  /* Đơn đăng ký chờ duyệt — chủ dự án chốt "phải biết ngay khi có ai đăng
+     ký", nên con số này là chỗ báo. Chưa tải danh sách thì để RỖNG chứ
+     không ghi 0: số 0 nói "đã xem, không có đơn nào", khác hẳn "chưa biết".
+     Huy hiệu rỗng tự ẩn nhờ quy tắc `.mi .n:empty`. */
+  const nHT=$('#nDuyet');
+  if(nHT){
+    const cho=(DS_TRUONG||[]).filter(t=>t.trangThai==='cho_duyet').length;
+    nHT.textContent = DS_TRUONG===null ? '' : cho;
+    nHT.classList.toggle('do', cho>0);
+  }
   /* ---------- Huy hiệu Dạy thay và Thông báo ----------
      §9 nói ba chỗ phải cùng một con số: chuông, mục Dạy thay, Bảng điều
      hành. Cả ba lấy từ vieccanXuLy() — một nguồn sự thật duy nhất. */

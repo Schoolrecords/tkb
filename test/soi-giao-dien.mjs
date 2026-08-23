@@ -2128,6 +2128,30 @@ console.log('\n17d. Duyệt đăng ký trường');
     return w.eval('S.trangHienTai') === 'hethong';
   })());
 
+  /* Huy hiệu đếm đơn chờ — chủ dự án chốt "phải biết ngay khi có ai đăng ký" */
+  dat({ ...goc, vaiTro: 'quan_tri', trangThaiTruong: 'dang_dung', chuHeThong: true });
+  kt('Chưa tải danh sách thì huy hiệu để RỖNG, không ghi 0', (() => {
+    w.eval('DS_TRUONG = null'); w.eval('capNhatDem()');
+    return w.document.querySelector('#nDuyet')?.textContent === '';
+  })());
+  kt('Có đơn chờ thì huy hiệu hiện số và tô ĐỎ', (() => {
+    w.eval(`DS_TRUONG = [{id:'a',trangThai:'cho_duyet'},{id:'b',trangThai:'cho_duyet'},
+                         {id:'c',trangThai:'dang_dung'}]`);
+    w.eval('capNhatDem()');
+    const n = w.document.querySelector('#nDuyet');
+    return n?.textContent === '2' && n.classList.contains('do');
+  })());
+  kt('Hết đơn chờ thì về 0 và thôi đỏ — số 0 không bao giờ tô đỏ', (() => {
+    w.eval(`DS_TRUONG = [{id:'c',trangThai:'dang_dung'}]`); w.eval('capNhatDem()');
+    const n = w.document.querySelector('#nDuyet');
+    return n?.textContent === '0' && !n.classList.contains('do');
+  })());
+  kt('Huy hiệu RỖNG thì bị giấu hẳn, không thành viên xám trống', (() => {
+    const css = w.document.documentElement.innerHTML;
+    return /\.mi \.n:empty\{display:none\}/.test(css);
+  })());
+  w.eval('DS_TRUONG = null');
+
   w.eval(`KHO.nguoiDung = ${JSON.stringify(goc)}; S.trangHienTai='dieuhanh'`);
 }
 
