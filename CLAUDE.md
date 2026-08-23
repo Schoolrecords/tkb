@@ -319,6 +319,69 @@ lưu gì cả. Supabase **xoay vòng** vé làm mới, nên `lamMoiPhien()` xin 
 xong phải ghi lại vé ấy xuống máy; quên bước đó thì hôm sau thầy cô mở app lên
 vẫn bị hỏi mật khẩu, có phép thử canh.
 
+### Duyệt đăng ký trường — vai CHỦ HỆ THỐNG *(24/8/2026 — `db/duyet-truong.sql`)*
+
+Chủ dự án hỏi *"các trường đăng ký thầy có nhận được không?"*. Không —
+và có **ba** lý do tách bạch, cả ba đều phải sửa:
+
+1. `dang_ky_truong()` chỉ ghi vào cơ sở dữ liệu rồi dừng. Không gửi thư,
+   không ghi `nhat_ky`, không webhook. Cả kho mã không có một dòng `smtp`.
+2. Quy tắc `p_truong_doc` chỉ cho đọc trường của **chính mình** — đúng
+   thiết kế cô lập dữ liệu, nhưng cũng nghĩa là không màn hình nào bày ra
+   danh sách toàn hệ thống.
+3. Chưa có vai nào đứng **ngoài** một trường. Vai cao nhất là `quan_tri`
+   — quản trị của *một* trường.
+
+Nay: đăng ký là **gửi đơn**; phải được duyệt và **cấp mã trường 5 chữ số**
+mới dùng được. Cửa vẫn mở cho ai cũng gửi được đơn — chủ dự án chốt thế.
+
+| Hàm | Việc |
+|---|---|
+| `la_chu_he_thong()` | SQL — vai đứng ngoài mọi trường |
+| `dang_ky_truong()` | nhận thêm **điện thoại + Gmail**, đặt `cho_duyet`, mã để trống |
+| `duyet_truong(id, đồng ý, ghi chú)` | cấp mã 5 chữ số; **tự kiểm quyền ở dòng đầu** |
+| `sinh_ma_truong()` | 10000–99999, chống trùng, van 200 lần |
+| `ds_truong_he_thong()` | một lời gọi ra đủ danh sách + số lớp · GV · tiết |
+| `truong_duoc_dung()` | chốt thật ở `p_tkb_ghi` — chưa duyệt thì không lưu được |
+| `laChuHeThong()` · `truongDungDuoc()` | app — vùng QUYEN |
+| `mChoDuyet()` · `mChuHeThong()` | hai màn hình mới |
+
+Bảy điều bắt buộc, cả bảy đều có phép thử (`npm run soi` mục 17d · 17e):
+
+- ⚠️ **Cột `trang_thai_duyet` mặc định `'dang_dung'`, KHÔNG phải
+  `'cho_duyet'`.** Diễn Liên đang chạy thật — 25 lớp, 710 tiết, phiên bản
+  9 đã công bố. Đặt nhầm là sáng mai cả trường mở app lên không vào được.
+  Tệp SQL vì thế `update` mọi dòng cũ về `dang_dung` **trước** khi thêm
+  ràng buộc, không thì lệnh còn hỏng ngay tại chỗ.
+- ⚠️ **Máy chủ chưa chạy tệp SQL thì phải hiểu là "đang dùng", không phải
+  "chờ duyệt".** `napHoSo()` xin thêm cột mới trong một `try`; hỏng thì
+  lùi về lời gọi cũ và `trangThaiTruong` rơi về `'dang_dung'`. Hiểu ngược
+  chiều là mọi trường đang chạy bỗng bị khoá cửa.
+- **Tên cột là `trang_thai_duyet`, không phải `trang_thai`.** `npm run soat`
+  bắt ngay lần chạy đầu: đã có enum `trang_thai_nghi_t` của bảng `bao_nghi`.
+  Đúng khuôn bài học cột `buoi_nghi` — đặt tên trùng một enum khác nghĩa là
+  bẫy đọc nhầm cho người sửa sau.
+- **Vai chủ hệ thống KHÔNG nhét vào enum `vai_tro_t`.** Vai trò trong enum
+  ấy là vai trò *trong một trường*; gộp chung thì mọi câu so vai trò đều
+  phải nhớ loại trừ nó, sớm muộn có chỗ quên. Là một cột `boolean` riêng.
+- **`duyet_truong()` là `security definer` và tự kiểm quyền ở dòng đầu.**
+  Thiếu dòng ấy là bất kỳ ai đăng nhập cũng tự duyệt được trường của mình —
+  đúng thứ tính năng này sinh ra để ngăn. Cùng khuôn `don_du_lieu_cu()`.
+- **Duyệt lại trường đã có mã thì GIỮ NGUYÊN mã cũ.** Cấp mã mới nghĩa là
+  mọi giấy tờ nhà trường đã in ra thành sai.
+- **Chủ hệ thống không bị màn hình chờ nhốt lại.** Nếu trường của chính họ
+  đang `cho_duyet` mà vẫn bị đẩy về màn chờ thì không ai duyệt nổi cho ai.
+
+⚠️ **Chủ dự án phải tự đặt mình làm chủ hệ thống bằng tay, một lần:**
+`update nguoi_dung set la_chu_he_thong = true where email = '…';`
+Cố ý **không** viết sẵn Gmail vào tệp SQL — kho mã là kho công khai. Có
+phép thử canh không cho địa chỉ thật lọt vào đó.
+
+⚠️ **Mã trường (5 chữ số) và mã mời giáo viên (6 chữ cái) là HAI THỨ KHÁC
+NHAU ở hai tầng.** Mã trường đưa một *trường* vào hệ thống; mã mời đưa một
+*giáo viên* vào một trường đã có. Chọn hai dạng khác hẳn nhau chính là để
+nhìn phát biết đang cầm mã gì.
+
 ### Phân quyền trên giao diện — đã dựng
 
 Vùng `/*#region QUYEN*/`, ngay sau vùng DULIEU. Hàng rào thật là RLS trong

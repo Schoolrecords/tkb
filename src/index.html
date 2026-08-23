@@ -1259,6 +1259,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <button class="nhom" data-monh="ht" aria-expanded="false">HỆ THỐNG<span class="nhom-n"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 10l4 4 4-4"/></svg></button>
     <div class="nhom-ds">
       <button class="mi" data-t="nguoidung" data-nh="ht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.6 6.5-5.6s6.5 2.2 6.5 5.6"/><path d="M17 9.5h5M19.5 7v5"/></svg>Người dùng và phân quyền</button>
+      <button class="mi" data-t="hethong" data-nh="ht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M15 12h.01"/></svg>Trường trong hệ thống <span class="n" id="nDuyet"></span></button>
       <button class="mi" data-t="saoluu" data-nh="ht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Sao lưu dữ liệu</button>
       <button class="mi" data-t="huongdan" data-nh="ht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114 2.1c-.9.6-1.6 1-1.6 2.2"/><path d="M12 17.2h.01"/></svg>Hướng dẫn sử dụng</button>
     </div>
@@ -3583,7 +3584,16 @@ async function dangNhap(email, matKhau, nho){
    Tách riêng để cả đăng nhập bằng mật khẩu lẫn vào lại bằng vé đã nhớ
    đều đi chung một đường. */
 async function napHoSo(){
-  const nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
+  /* Xin thêm trạng thái duyệt và mã trường (24/8/2026). Bọc trong try để
+     máy chủ CHƯA chạy db/duyet-truong.sql vẫn đăng nhập bình thường — cột
+     chưa có thì PostgREST trả 400 cho cả lời gọi, không phải chỉ bỏ qua
+     cột thiếu. Đúng nguyên tắc "luôn có đường lui" của vùng này. */
+  let nd = null;
+  try{
+    nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}`
+      + `&select=*,la_chu_he_thong,truong(ten,ma_truong,trang_thai_duyet)`);
+  }catch(e){ nd = null; }
+  if(!nd) nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
   if(!nd?.length)
     /* Tài khoản thật nhưng chưa thuộc trường nào — cờ moCoi để nơi gọi quyết
        biến thành KHÁCH (xem demo, nhập mã mời, đăng ký trường) thay vì đá ra. */
@@ -3601,7 +3611,13 @@ async function napHoSo(){
   KHO.nguoiDung = {
     id:u.id, hoTen:u.ho_ten, email:u.email||KHO.phien.email,
     vaiTro:u.vai_tro, truongId:u.truong_id, tenTruong:u.truong?.ten||'',
-    diemTruongId:u.diem_truong_id||null, gvId:gv?.id||null
+    diemTruongId:u.diem_truong_id||null, gvId:gv?.id||null,
+    /* Máy chủ chưa chạy db/duyet-truong.sql thì hai thứ này undefined —
+       phải hiểu là "trường đang dùng bình thường", KHÔNG phải "chờ duyệt".
+       Hiểu ngược là mọi trường đang chạy bỗng bị khoá cửa. */
+    chuHeThong: u.la_chu_he_thong === true,
+    trangThaiTruong: u.truong?.trang_thai_duyet || 'dang_dung',
+    maTruong: u.truong?.ma_truong || ''
   };
   /* diem_truong_id là thứ quyết định PHT thấy toàn trường hay chỉ một điểm trường */
   S.nguoiDung = {vaiTro:VAI_TRO_XEM[u.vai_tro]||'qt', gvId:gv?.id||null,
@@ -3786,34 +3802,73 @@ async function dungMaMoi(ma){
   }
 }
 
-/* Đăng ký một trường mới. Gọi hàm dang_ky_truong() trong Postgres —
-   xem db/dang-ky-truong.sql để hiểu vì sao phải là hàm riêng. */
+/* Đăng ký một trường mới — nay là GỬI ĐƠN, chưa dùng được ngay (24/8/2026).
+   Mã trường KHÔNG do người đăng ký tự đặt nữa: hệ thống cấp một mã 5 chữ số
+   lúc chủ dự án bấm duyệt. Xem db/duyet-truong.sql. */
 async function dangKyTruong(tt){
   if(!KHO.phien) return {ok:false, loi:'Phải đăng nhập trước khi đăng ký trường.'};
   try{
     const kq=await goiAPI('/rest/v1/rpc/dang_ky_truong', {method:'POST', body:JSON.stringify({
-      p_ten:tt.ten, p_ma_truong:tt.maTruong, p_ho_ten:tt.hoTen,
+      p_ten:tt.ten, p_ho_ten:tt.hoTen,
+      p_dien_thoai:tt.dienThoai||'', p_email:tt.email||null,
       p_tinh:tt.tinh||null, p_xa:tt.xa||null, p_nam_hoc:tt.namHoc||'2026-2027'
     })});
     const d=Array.isArray(kq)?kq[0]:kq;
     if(!d) return {ok:false, loi:'Máy chủ không trả kết quả.'};
     if(!d.ok) return {ok:false, loi:d.thong_bao};
-    /* Đọc lại hồ sơ để biết mình là ai trong trường vừa tạo */
-    const nd=await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
-    const u=nd?.[0];
-    if(u){
-      KHO.nguoiDung={id:u.id, hoTen:u.ho_ten, email:u.email||KHO.phien.email,
-        vaiTro:u.vai_tro, truongId:u.truong_id, tenTruong:u.truong?.ten||tt.ten,
-        diemTruongId:null, gvId:null};
-      S.nguoiDung={vaiTro:'qt', gvId:null, diemTruongId:null};
-    }
-    return {ok:true, thongBao:d.thong_bao};
+    /* Đọc lại hồ sơ để biết mình là ai trong trường vừa tạo. Đi qua
+       napHoSo() chứ không tự dựng lấy: hàm ấy mới là chỗ duy nhất biết
+       đọc trạng thái duyệt, và tự dựng ở đây thì người vừa đăng ký sẽ
+       mang `trangThaiTruong` rỗng — tức là lọt thẳng vào app. */
+    await napHoSo().catch(()=>{});
+    return {ok:true, thongBao:d.thong_bao,
+            choDuyet: KHO.nguoiDung?.trangThaiTruong === 'cho_duyet'};
   }catch(e){
     const m=String(e?.message||'');
-    if(/Could not find the function|does not exist/i.test(m))
-      return {ok:false, loi:'Máy chủ chưa có hàm đăng ký. Quản trị cần chạy db/dang-ky-truong.sql một lần trong SQL Editor.'};
+    if(/Could not find the function|does not exist|PGRST202/i.test(m))
+      return {ok:false, loi:'Máy chủ chưa có hàm đăng ký bản mới. '
+        +'Quản trị cần chạy db/duyet-truong.sql một lần trong SQL Editor.'};
     return {ok:false, loi:dienGiaiLoi(e)};
   }
+}
+
+/* ---------- Duyệt đăng ký — chỉ chủ hệ thống (24/8/2026) ----------
+   Hai hàm này KHÔNG đụng DOM, đúng quy ước của vùng DULIEU: chỉ trả về
+   {ok, ...} rồi để màn hình tự lo phần hiển thị. */
+async function dsTruongHeThong(){
+  if(!coMayChu()) return {ok:false, ds:[], thongBao:'Chưa nối máy chủ.'};
+  try{
+    const ds=await goiAPI('/rest/v1/rpc/ds_truong_he_thong', {method:'POST', body:'{}'});
+    return {ok:true, ds:(ds||[]).map(t=>({
+      id:t.id, ten:t.ten, maTruong:t.ma_truong||'', trangThai:t.trang_thai_duyet,
+      tinh:t.tinh||'', xa:t.xa||'', namHoc:t.nam_hoc||'',
+      dienThoai:t.dien_thoai||'', emailLienHe:t.email_lien_he||'',
+      nguoiDangKy:t.nguoi_dang_ky||'', emailDangKy:t.email_dang_ky||'',
+      taoLuc:t.tao_luc, duyetLuc:t.duyet_luc, ghiChu:t.ghi_chu_duyet||'',
+      soTaiKhoan:+t.so_tai_khoan||0, soLop:+t.so_lop||0,
+      soGiaoVien:+t.so_giao_vien||0, soTiet:+t.so_tiet||0,
+      phienBan:t.phien_ban==null?null:+t.phien_ban
+    })), thongBao:''};
+  }catch(e){
+    const m=String(e?.message||'');
+    if(/ds_truong_he_thong|Could not find the function|PGRST202|404/i.test(m))
+      return {ok:false, ds:[], thongBao:'Máy chủ chưa có hàm duyệt trường. '
+        +'Chạy db/duyet-truong.sql một lần trong SQL Editor.'};
+    return {ok:false, ds:[], thongBao:dienGiaiLoi(e)};
+  }
+}
+
+async function duyetTruong(idTruong, dongY, ghiChu){
+  if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
+  try{
+    const kq=await goiAPI('/rest/v1/rpc/duyet_truong', {method:'POST',
+      body:JSON.stringify({p_truong:idTruong, p_dong_y:!!dongY, p_ghi_chu:ghiChu||null})});
+    const d=Array.isArray(kq)?kq[0]:kq;
+    if(!d) return {ok:false, thongBao:'Máy chủ không trả kết quả.'};
+    if(!d.ok) return {ok:false, thongBao:d.thong_bao};
+    await ghiNhatKy(dongY?'duyet_truong':'tu_choi_truong', {truong:idTruong, ghiChu});
+    return {ok:true, maTruong:d.ma_truong||'', thongBao:d.thong_bao};
+  }catch(e){ return {ok:false, thongBao:dienGiaiLoi(e)}; }
 }
 
 function dangXuat(){
@@ -5280,6 +5335,23 @@ const MUC_GIAO_VIEN = ['cuatoi','tkblop','baonghi','thongbao','huongdan'];
    §18: "Quản lý theo quyền được cấp". */
 const MUC_TOAN_TRUONG = ['nguoidung','saoluu','phienban'];
 
+/* ---------- Chủ hệ thống và trường chờ duyệt (24/8/2026) ----------
+   Vai CHỦ HỆ THỐNG đứng NGOÀI mọi trường: người duyệt đơn đăng ký. Cố ý
+   không nhét vào enum vai_tro_t — vai trò trong enum ấy là vai trò TRONG
+   một trường, gộp chung thì mọi câu so vai trò đều phải nhớ loại trừ nó.
+
+   ⚠️ Cả hai hàm dưới đây phải TRẢ VỀ TRẠNG THÁI AN TOÀN khi máy chủ chưa
+   chạy db/duyet-truong.sql: không phải chủ hệ thống, và trường thì ĐANG
+   DÙNG (không phải chờ duyệt). Hiểu ngược chiều là mọi trường đang chạy
+   tốt bỗng bị khoá cửa — đúng thứ tuyệt đối không được để xảy ra. */
+const laChuHeThong  = () => KHO.nguoiDung?.chuHeThong === true;
+const truongChoDuyet = () => KHO.nguoiDung?.trangThaiTruong === 'cho_duyet';
+const truongBiTuChoi = () => KHO.nguoiDung?.trangThaiTruong === 'tu_choi';
+/* Trường chưa được duyệt thì KHÔNG được xếp, không được lưu — nhưng chốt
+   thật nằm ở RLS (`truong_duoc_dung()` trong p_tkb_ghi), đây chỉ là giao
+   diện. Chủ hệ thống không bị chặn vì họ không thuộc trường nào đang chờ. */
+const truongDungDuoc = () => !truongChoDuyet() && !truongBiTuChoi();
+
 /* Ngược lại: `baonghi` là màn hình của giáo viên. Cán bộ quản lý cũng có
    thể là người đứng lớp nên vẫn thấy — nhưng chỉ khi tài khoản của họ có
    nối với một hồ sơ giáo viên, không thì màn hình ấy trống trơn. */
@@ -5298,6 +5370,13 @@ const canDangNhap = () => !!KHO.cauHinh && !coMayChu() && !KHO.xemDemo;
 
 function thayDuocMuc(t){
   if(canDangNhap()) return false;
+  /* Màn hình duyệt trường chỉ chủ hệ thống thấy — và họ thấy nó ở MỌI
+     trạng thái, kể cả khi hai điều kiện dưới đang chặn người khác. */
+  if(t==='hethong') return laChuHeThong();
+  /* Trường chưa được duyệt thì cả app thu về một màn hình chờ. Bày ra
+     28 mục cho người chưa được dùng là hứa hão. */
+  if(!truongDungDuoc()) return t==='choduyet' || t==='huongdan';
+  if(t==='choduyet') return false;
   const q=quyen();
   if(q.laGV) return MUC_GIAO_VIEN.includes(t);
   if(t==='baonghi') return thayDuocBaoNghi();
@@ -5313,7 +5392,11 @@ function apDungQuyen(){
   else if(S.phamVi && !S.diemTruong.some(d=>d.id===S.phamVi)) S.phamVi = '';
   /* Gõ tay địa chỉ hay bấm nút cũ cũng không lạc sang trang ngoài quyền */
   if(canDangNhap()) S.trangHienTai = 'chao';
-  else if(S.trangHienTai==='chao') S.trangHienTai = q.laGV?'cuatoi':'dieuhanh';
+  /* Trường chờ duyệt thì mọi đường đều dẫn về màn hình chờ — kể cả gõ tay
+     địa chỉ. Xét TRƯỚC mọi thứ khác, và trước cả nhánh 'chao'. */
+  else if(!truongDungDuoc() && !laChuHeThong()) S.trangHienTai = 'choduyet';
+  else if(S.trangHienTai==='chao')
+    S.trangHienTai = laChuHeThong() ? 'hethong' : (q.laGV?'cuatoi':'dieuhanh');
   /* Lạc sang trang ngoài quyền thì đẩy về nhà của ĐÚNG vai trò. Trước đây
      ai cũng bị đẩy về 'cuatoi' — nhưng phó hiệu trưởng phụ trách một điểm
      trường bấm nhầm vào mục quản trị mà rơi ra màn hình lịch cá nhân thì
@@ -6001,6 +6084,8 @@ function ve(){
     : t==='tkbkhoi'   ? mTKBKhoi()
     : t==='xuatin'    ? mXuatIn()
     : t==='huongdan'  ? mHuongDan()
+    : t==='choduyet'  ? mChoDuyet()
+    : t==='hethong'   ? mChuHeThong()
     : t==='thongtin'  ? mThongTin()
     : t==='diemtruong'? mDiemTruong()
     : t==='lop'       ? mLopHoc()
@@ -10031,6 +10116,126 @@ function mHuongDan(){
 }
 
 /* ==================================================================
+   3.7b ĐĂNG KÝ CHỜ DUYỆT VÀ MÀN HÌNH CHỦ HỆ THỐNG  (24/8/2026)
+   ------------------------------------------------------------------
+   Trước hôm nay cửa đăng ký mở cho bất kỳ ai có tài khoản Google: đăng
+   ký xong là dùng được ngay, và chủ dự án không hay biết. Nay đăng ký
+   là GỬI ĐƠN; phải được duyệt và cấp mã trường mới dùng được.
+
+   Hàng rào thật nằm ở RLS (`truong_duoc_dung()` chặn đường ghi
+   tkb_phien_ban trong db/duyet-truong.sql). Hai màn hình dưới đây chỉ
+   lo phần giao diện của ranh giới ấy.
+   ================================================================== */
+
+/* Màn hình DUY NHẤT của một trường đang chờ duyệt. Cố ý không bày gì để
+   bấm ngoài nút tải lại: người dùng chưa có quyền làm gì, bày ra nút mờ
+   chỉ tổ khiến họ thử rồi thất vọng. */
+function mChoDuyet(){
+  const n = KHO.nguoiDung || {};
+  const bi = truongBiTuChoi();
+  return dauTrang(bi ? 'Đơn đăng ký chưa được chấp nhận' : 'Đơn đăng ký đang chờ duyệt',
+    bi ? '' : 'Người quản trị hệ thống sẽ xem và cấp mã trường.', false) + `
+  <div class="the" style="max-width:640px">
+    <div class="canhbao ${bi?'do':''}"><div class="cb-ic">${bi?'!':'i'}</div><div class="cb-t">
+      <b>${bi ? 'Đơn của trường chưa được chấp nhận'
+             : 'Đã nhận đơn — chờ duyệt'}</b>
+      <div class="cb-g">${bi
+        ? 'Liên hệ người quản trị hệ thống để biết lý do và gửi lại.'
+        : 'Phần mềm mở khoá ngay khi đơn được duyệt. Không cần đăng ký lại; '
+          +'mở trang này lúc nào cũng thấy trạng thái mới nhất.'}</div>
+    </div></div>
+    ${n.ghiChuDuyet?`<div class="gy" style="margin-top:12px"><b>Ghi chú của người duyệt:</b>
+       ${esc(n.ghiChuDuyet)}</div>`:''}
+    <div class="hang" style="margin-top:16px">Trường <b>${esc(n.tenTruong||'—')}</b></div>
+    <div class="hang">Người đăng ký <b>${esc(n.hoTen||'—')}</b></div>
+    <div class="hang">Tài khoản <b>${esc(n.email||'—')}</b></div>
+    <div class="hang">Trạng thái
+      <b style="color:${bi?'var(--do)':'var(--canh)'}">${bi?'Chưa chấp nhận':'Đang chờ duyệt'}</b></div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="b b-ch" id="btLamMoiDuyet">Kiểm tra lại</button>
+      <button class="b b-vien" data-di="huongdan">Đọc hướng dẫn trong lúc chờ</button>
+    </div>
+  </div>`;
+}
+
+const TEN_TT_TRUONG = {cho_duyet:'Chờ duyệt', dang_dung:'Đang dùng', tu_choi:'Đã từ chối'};
+const MAU_TT_TRUONG = {cho_duyet:'canh', dang_dung:'ok', tu_choi:'do'};
+
+/* Danh sách mọi trường trong hệ thống. Chỉ chủ hệ thống thấy mục này —
+   `thayDuocMuc('hethong')` là chốt giao diện, `ds_truong_he_thong()` tự
+   kiểm `la_chu_he_thong()` ở máy chủ nên gọi thẳng API cũng không lọt. */
+let DS_TRUONG = null;         /* null = chưa tải; [] = tải rồi mà rỗng */
+let LOI_TRUONG = '';
+
+function mChuHeThong(){
+  if(DS_TRUONG === null){
+    dsTruongHeThong().then(kq=>{
+      DS_TRUONG = kq.ds; LOI_TRUONG = kq.ok ? '' : kq.thongBao;
+      if(S.trangHienTai==='hethong') ve();
+    });
+    return dauTrang('Trường trong hệ thống','Đang tải…',false)
+      + '<div class="the"><div class="trong-hop">Đang tải danh sách…</div></div>';
+  }
+  if(LOI_TRUONG) return dauTrang('Trường trong hệ thống','',false)
+    + `<div class="the"><div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
+       <b>Chưa đọc được danh sách</b><div class="cb-g">${esc(LOI_TRUONG)}</div></div></div></div>`;
+
+  const ds = DS_TRUONG;
+  const cho = ds.filter(t=>t.trangThai==='cho_duyet');
+  const dung = ds.filter(t=>t.trangThai==='dang_dung');
+  const moi7 = ds.filter(t=>Date.now()-new Date(t.taoLuc).getTime() < 7*864e5);
+
+  const dong = t=>{
+    const chuaKhai = t.soLop===0;
+    return `<tr data-loctu="${esc(tuLoc(t.ten,t.maTruong,t.xa,t.tinh,t.nguoiDangKy,t.dienThoai,t.emailDangKy))}">
+      <td><b>${esc(t.ten)}</b>
+        <div style="color:var(--chu-mo);font-size:11.5px">${esc([t.xa,t.tinh].filter(Boolean).join(' · ')||'—')}</div></td>
+      <td style="text-align:center"><b style="font-size:15px;letter-spacing:.06em">${esc(t.maTruong||'—')}</b></td>
+      <td><span class="tag ${MAU_TT_TRUONG[t.trangThai]||''}">${TEN_TT_TRUONG[t.trangThai]||t.trangThai}</span></td>
+      <td>${esc(t.nguoiDangKy||'—')}
+        <div style="color:var(--chu-mo);font-size:11.5px">${esc(t.dienThoai||'—')}${
+          t.emailDangKy?' · '+esc(t.emailDangKy):''}</div></td>
+      <td style="text-align:center">${t.soLop} lớp · ${t.soGiaoVien} GV
+        <div style="color:var(--chu-mo);font-size:11.5px">${
+          chuaKhai?'chưa khai dữ liệu':`${t.soTiet} tiết${t.phienBan?` · bản ${t.phienBan}`:''}`}</div></td>
+      <td style="white-space:nowrap;font-size:12px">${esc(dongGio(t.taoLuc))}</td>
+      <td style="text-align:right;white-space:nowrap">
+        ${t.trangThai==='cho_duyet'
+          ? `<button class="b b-ch b-nho" data-duyet="${t.id}">Duyệt</button>
+             <button class="b b-vien b-nho" data-tuchoi="${t.id}">Từ chối</button>`
+          : t.trangThai==='tu_choi'
+            ? `<button class="b b-vien b-nho" data-duyet="${t.id}">Duyệt lại</button>`
+            : `<span style="color:var(--chu-mo);font-size:12px">—</span>`}
+      </td></tr>`;
+  };
+
+  return dauTrang('Trường trong hệ thống',
+    'Duyệt đơn đăng ký và theo dõi các trường đang dùng phần mềm.', false) + `
+  ${cho.length?`<div class="canhbao" style="margin-bottom:14px"><div class="cb-ic">!</div><div class="cb-t">
+    <b>${cho.length} đơn đăng ký đang chờ duyệt</b>
+    <div class="cb-g">${esc(cho.slice(0,4).map(t=>t.ten).join(' · '))}${cho.length>4?' …':''}.
+      Duyệt xong máy tự cấp mã trường 5 chữ số.</div></div></div>`:''}
+  <div class="cot4" style="margin-bottom:14px">
+    <div class="the ts"><div class="ts-so">${ds.length}</div><div class="ts-n">Tổng số trường</div></div>
+    <div class="the ts"><div class="ts-so" style="color:${cho.length?'var(--canh)':'var(--chu)'}">${cho.length}</div><div class="ts-n">Chờ duyệt</div></div>
+    <div class="the ts"><div class="ts-so">${dung.length}</div><div class="ts-n">Đang dùng</div></div>
+    <div class="the ts"><div class="ts-so">${moi7.length}</div><div class="ts-n">Mới trong 7 ngày</div></div>
+  </div>
+  <div class="the">
+    <div class="the-thanh">
+      <div class="the-t">Danh sách trường</div>
+      <button class="b b-vien b-nho" id="btLamMoiTruong">Tải lại</button>
+    </div>
+    ${oLoc('fTruong', ds.length, 'trường', 'Tìm theo tên trường, mã, xã, người đăng ký…')}
+    <div class="bang"><table class="dl" id="bTruong">
+      <thead><tr><th>Trường</th><th style="text-align:center">Mã</th><th>Trạng thái</th>
+        <th>Người đăng ký</th><th style="text-align:center">Quy mô</th><th>Đăng ký lúc</th><th></th></tr></thead>
+      <tbody>${ds.map(dong).join('')}</tbody></table>
+      ${locRong('bTruong')}</div>
+  </div>`;
+}
+
+/* ==================================================================
    3.8 BƯỚC 1 — KHAI BÁO DỮ LIỆU
    ------------------------------------------------------------------
    Chín màn hình đi theo đúng trình tự người xếp thời khóa biểu vẫn làm:
@@ -10499,6 +10704,20 @@ function noiSuKien(){
   $('#selToi')&&($('#selToi').onchange=e=>{S.nguoiDung.gvId=e.target.value;ve();});
   $$('[data-di]').forEach(b=>b.onclick=()=>chuyen(b.dataset.di));
   $$('[data-dtluoi]').forEach(b=>b.onclick=()=>{ S.dtLuoi=b.dataset.dtluoi; ve(); });
+
+  /* --- Duyệt đăng ký trường (24/8/2026) --- */
+  $('#btLamMoiDuyet')&&($('#btLamMoiDuyet').onclick=async e=>{
+    const b=e.currentTarget, cu=b.textContent;
+    b.disabled=true; b.textContent='Đang kiểm tra…';
+    await napHoSo().catch(()=>{});
+    b.disabled=false; b.textContent=cu;
+    if(truongDungDuoc()){ bao('Đơn đã được duyệt — phần mềm đã mở khoá.'); await taiDuLieu(); }
+    else bao('Đơn vẫn đang chờ duyệt.');
+    ve();
+  });
+  $('#btLamMoiTruong')&&($('#btLamMoiTruong').onclick=()=>{ DS_TRUONG=null; ve(); });
+  $$('[data-duyet]').forEach(b=>b.onclick=()=>hopDuyetTruong(b.dataset.duyet, true));
+  $$('[data-tuchoi]').forEach(b=>b.onclick=()=>hopDuyetTruong(b.dataset.tuchoi, false));
 
   /* Ô tìm kiếm trong danh sách dài — lọc TẠI CHỖ, tuyệt đối không gọi ve():
      vẽ lại màn hình sau mỗi phím là con trỏ nhảy ra và bàn phím điện thoại
@@ -12346,6 +12565,42 @@ async function taiExcelMaMoi(ds){
   await ghiTepXL(wb,`ma-moi-${tenTepXuat('xlsx')}`);
 }
 
+/* Hộp duyệt một đơn đăng ký. Hỏi lại trước khi ghi, vì duyệt là mở cửa
+   cho cả một trường vào hệ thống — và từ chối thì họ nhìn thấy ngay. */
+function hopDuyetTruong(idTruong, dongY){
+  const t = (DS_TRUONG||[]).find(x=>x.id===idTruong);
+  if(!t) return bao('Không tìm thấy trường trong danh sách. Bấm Tải lại.',true);
+  hop(dongY?'Duyệt đăng ký':'Từ chối đăng ký',
+    `<div class="hang">Trường <b>${esc(t.ten)}</b></div>
+     <div class="hang">Địa bàn <b>${esc([t.xa,t.tinh].filter(Boolean).join(' · ')||'—')}</b></div>
+     <div class="hang">Người đăng ký <b>${esc(t.nguoiDangKy||'—')}</b></div>
+     <div class="hang">Điện thoại <b>${esc(t.dienThoai||'—')}</b></div>
+     <div class="hang">Gmail <b>${esc(t.emailDangKy||t.emailLienHe||'—')}</b></div>
+     <div class="hang">Gửi đơn lúc <b>${esc(dongGio(t.taoLuc))}</b></div>
+     <div class="on-l" style="margin-top:14px"><label>Ghi chú (không bắt buộc)</label>
+       <input class="ip" id="dtGhiChu" placeholder="${dongY?'Đã gọi xác minh…':'Lý do từ chối…'}"></div>
+     <div class="canhbao ${dongY?'ok':''}" style="margin-top:13px">
+       <div class="cb-ic">${dongY?'✓':'!'}</div><div class="cb-t">
+       ${dongY
+         ? `<b>Duyệt xong máy tự cấp mã trường 5 chữ số</b>
+            <div class="cb-g">${t.maTruong
+              ? `Trường này đã có mã <b>${esc(t.maTruong)}</b> — duyệt lại thì GIỮ NGUYÊN mã cũ,
+                 vì giấy tờ nhà trường đã in ra rồi.`
+              : 'Trường sẽ dùng được phần mềm ngay sau khi thầy bấm nút này.'}</div>`
+         : `<b>Trường sẽ thấy dòng báo đơn chưa được chấp nhận</b>
+            <div class="cb-g">Dữ liệu họ đã khai vẫn còn nguyên. Đổi ý thì bấm
+              <i>Duyệt lại</i> ở cùng dòng đó.</div>`}
+     </div></div>`,
+    [{ten:'Huỷ',phu:1,lam:dong},
+     {ten:dongY?'Duyệt và cấp mã':'Từ chối',lam:async e=>{
+       const b=e.currentTarget, cu=b.textContent;
+       b.disabled=true; b.textContent='Đang ghi…';
+       const kq=await duyetTruong(idTruong, dongY, $('#dtGhiChu')?.value.trim());
+       if(!kq.ok){ b.disabled=false; b.textContent=cu; return bao(kq.thongBao,true); }
+       DS_TRUONG=null; dong(); bao(kq.thongBao); ve();
+     }}]);
+}
+
 /* Đăng ký trường mới — dành cho trường thứ hai trở đi */
 function hopDangKyTruong(){
   /* Phải đăng nhập Google trước — người đăng ký sẽ thành quản trị của trường,
@@ -12366,8 +12621,14 @@ function hopDangKyTruong(){
       Mỗi tài khoản chỉ thuộc một trường.</p>
      <div class="on-l"><label>Họ và tên người đăng ký</label><input class="ip" id="dkHoTen" placeholder="Nguyễn Văn A"></div>
      <div class="on-l"><label>Tên trường</label><input class="ip" id="dkTen" placeholder="Trường Tiểu học ..."></div>
-     <div class="on-l"><label>Mã trường</label><input class="ip" id="dkMa" placeholder="THABC">
-       <div class="gy">Viết liền, không dấu, ít nhất 3 ký tự. Chỉ dùng nội bộ để phân biệt các trường.</div></div>
+     <div class="cot2" style="gap:12px">
+       <div class="on-l"><label>Số điện thoại</label>
+         <input class="ip" id="dkDT" type="tel" inputmode="numeric" placeholder="0912345678">
+         <div class="gy">Để liên hệ xác minh trước khi duyệt.</div></div>
+       <div class="on-l"><label>Gmail liên hệ</label>
+         <input class="ip" id="dkMail" type="email" value="${esc(KHO.phien.email||'')}">
+         <div class="gy">Mặc định là Gmail vừa đăng nhập.</div></div>
+     </div>
      <div class="cot2" style="gap:12px">
        <div class="on-l"><label>Xã / phường</label><input class="ip" id="dkXa"></div>
        <div class="on-l"><label>Tỉnh</label><input class="ip" id="dkTinh"></div>
@@ -12375,18 +12636,30 @@ function hopDangKyTruong(){
      <div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
        <b>Ghi tên đơn vị theo quyết định hiện hành</b>
        <div class="cb-g">Đúng tên trường và tên xã trong quyết định còn hiệu lực. Đừng chép lại
-         tên cũ hay tên cơ quan chủ quản trước đây.</div></div></div>`,
-    [{ten:'Huỷ',phu:1,lam:dong},{ten:'Đăng ký',lam:async e=>{
+         tên cũ hay tên cơ quan chủ quản trước đây.</div></div></div>
+     <div class="canhbao" style="margin-top:11px"><div class="cb-ic">i</div><div class="cb-t">
+       <b>Đăng ký xong chưa dùng được ngay</b>
+       <div class="cb-g">Người quản trị hệ thống xem đơn rồi cấp <b>mã trường</b> —
+         một dãy 5 chữ số. Phần mềm mở khoá ngay khi đơn được duyệt.</div></div></div>`,
+    [{ten:'Huỷ',phu:1,lam:dong},{ten:'Gửi đăng ký',lam:async e=>{
       const v=id=>$(id).value.trim();
-      const hoTen=v('#dkHoTen'), ten=v('#dkTen'), ma=v('#dkMa');
-      if(!hoTen||!ten||!ma) return bao('Điền đủ họ tên, tên trường và mã trường',true);
+      const hoTen=v('#dkHoTen'), ten=v('#dkTen'), dt=v('#dkDT').replace(/[^0-9]/g,'');
+      if(!hoTen||!ten) return bao('Điền đủ họ tên và tên trường',true);
+      /* Soát ngay tại chỗ để người dùng khỏi phải chờ một vòng máy chủ mới
+         biết mình gõ thiếu. Máy chủ vẫn soát lại — đây chỉ là phép lịch sự. */
+      if(dt.length<9||dt.length>12)
+        return bao('Số điện thoại chưa đúng — ghi 10 chữ số, ví dụ 0912345678',true);
       const b=e.currentTarget, cu=b.textContent;
-      b.disabled=true; b.textContent='Đang tạo trường…';
-      const kq=await dangKyTruong({ten, maTruong:ma, hoTen, xa:v('#dkXa'), tinh:v('#dkTinh')});
+      b.disabled=true; b.textContent='Đang gửi đơn…';
+      const kq=await dangKyTruong({ten, hoTen, dienThoai:dt, email:v('#dkMail'),
+                                   xa:v('#dkXa'), tinh:v('#dkTinh')});
       if(!kq.ok){ b.disabled=false; b.textContent=cu; return bao(kq.loi,true); }
-      const t=await taiDuLieu();
       KQ_XEP=null; dong(); capNhatTaiKhoan();
-      bao(kq.thongBao); chuyen('huongdan');
+      bao(kq.thongBao);
+      /* Chờ duyệt thì về thẳng màn hình chờ; máy chủ chưa chạy tệp SQL mới
+         thì trường dùng được ngay như trước, nên vào hướng dẫn. */
+      if(kq.choDuyet) chuyen('choduyet');
+      else { await taiDuLieu(); chuyen('huongdan'); }
     }}]);
 }
 

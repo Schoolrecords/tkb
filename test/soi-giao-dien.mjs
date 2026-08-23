@@ -2055,6 +2055,141 @@ w.eval('dong()');
    `indexOf('\nfunction ...')`. `npm test` và `npm run soi` đều vẫn xanh —
    chúng cắt vùng bằng mốc `#region` nên không đụng tới ký tự xuống dòng.
    Sửa tệp bằng script thì mở ở chế độ nhị phân, hoặc `newline='\n'`. */
+/* ==================================================================
+   17d. DUYỆT ĐĂNG KÝ TRƯỜNG  (24/8/2026)
+   ------------------------------------------------------------------
+   Điều phải canh chặt nhất KHÔNG phải là cửa duyệt hoạt động đúng, mà
+   là nó KHÔNG khoá nhầm một trường đang chạy. Diễn Liên có 25 lớp, 710
+   tiết, phiên bản 9 đã công bố; đặt nhầm về "chờ duyệt" là sáng mai cả
+   trường mở app lên không vào được.
+   ================================================================== */
+console.log('\n17d. Duyệt đăng ký trường');
+{
+  const dat = (o) => w.eval(`KHO.nguoiDung = ${JSON.stringify(o)}`);
+  const goc = w.eval('JSON.parse(JSON.stringify(KHO.nguoiDung||{}))');
+
+  /* --- Máy chủ CHƯA chạy db/duyet-truong.sql --- */
+  dat({ ...goc, vaiTro: 'quan_tri' });          /* không có hai cột mới */
+  kt('Máy chủ chưa chạy tệp SQL mới thì trường vẫn DÙNG ĐƯỢC BÌNH THƯỜNG',
+     w.eval('truongDungDuoc()') === true && w.eval('truongChoDuyet()') === false);
+  kt('...và không ai bỗng thành chủ hệ thống', w.eval('laChuHeThong()') === false);
+  kt('...mọi mục vẫn hiện như cũ, không thu về màn hình chờ',
+     w.eval(`thayDuocMuc('dieuhanh')`) === true && w.eval(`thayDuocMuc('choduyet')`) === false);
+
+  /* --- Trường đã được duyệt --- */
+  dat({ ...goc, vaiTro: 'quan_tri', trangThaiTruong: 'dang_dung', chuHeThong: false });
+  kt('Trường đang dùng thì vào được Bảng điều hành',
+     w.eval('truongDungDuoc()') === true && w.eval(`thayDuocMuc('dieuhanh')`) === true);
+  kt('Người thường KHÔNG thấy mục Trường trong hệ thống',
+     w.eval(`thayDuocMuc('hethong')`) === false);
+
+  /* --- Trường đang chờ duyệt --- */
+  dat({ ...goc, vaiTro: 'quan_tri', trangThaiTruong: 'cho_duyet', chuHeThong: false });
+  kt('Trường chờ duyệt thì cả app thu về ĐÚNG hai mục: chờ duyệt và hướng dẫn',
+     ['dieuhanh', 'xep', 'lop', 'giaovien', 'phancong', 'nguoidung', 'xuatin', 'cuatoi']
+       .every(t => w.eval(`thayDuocMuc('${t}')`) === false)
+     && w.eval(`thayDuocMuc('choduyet')`) === true
+     && w.eval(`thayDuocMuc('huongdan')`) === true);
+  kt('Gõ tay địa chỉ trang khác cũng bị đẩy về màn hình chờ', (() => {
+    w.eval(`S.trangHienTai='xep'; apDungQuyen()`);
+    return w.eval('S.trangHienTai') === 'choduyet';
+  })());
+  kt('Màn hình chờ nói rõ đang chờ gì, không bày nút vô dụng nào', (() => {
+    w.chuyen('choduyet');
+    const t = w.document.querySelector('#noiDung').textContent;
+    return /chờ duyệt/i.test(t) && /mã trường/i.test(t)
+      && !!w.document.querySelector('#btLamMoiDuyet');
+  })());
+
+  /* --- Trường bị từ chối --- */
+  dat({ ...goc, vaiTro: 'quan_tri', trangThaiTruong: 'tu_choi', chuHeThong: false });
+  kt('Trường bị từ chối cũng về màn hình chờ, nhưng nói khác đi', (() => {
+    w.eval(`S.trangHienTai='dieuhanh'; apDungQuyen()`);
+    w.chuyen('choduyet');
+    const t = w.document.querySelector('#noiDung').textContent;
+    return w.eval('truongDungDuoc()') === false && /chưa được chấp nhận/i.test(t);
+  })());
+
+  /* --- Chủ hệ thống --- */
+  dat({ ...goc, vaiTro: 'quan_tri', trangThaiTruong: 'dang_dung', chuHeThong: true });
+  kt('Chủ hệ thống thấy mục Trường trong hệ thống',
+     w.eval(`thayDuocMuc('hethong')`) === true);
+  kt('Mục ấy có thật trên thanh bên, nằm trong nhóm Hệ thống', (() => {
+    const b = w.document.querySelector('[data-t="hethong"]');
+    return !!b && b.dataset.nh === 'ht';
+  })());
+  /* Chủ hệ thống mà trường của họ đang chờ duyệt thì VẪN vào được màn
+     duyệt — không thì không ai duyệt nổi cho ai, kể cả chính mình. */
+  dat({ ...goc, vaiTro: 'quan_tri', trangThaiTruong: 'cho_duyet', chuHeThong: true });
+  kt('Chủ hệ thống không bị màn hình chờ nhốt lại',
+     w.eval(`thayDuocMuc('hethong')`) === true);
+  kt('...và không bị đẩy về màn hình chờ', (() => {
+    w.eval(`S.trangHienTai='hethong'; apDungQuyen()`);
+    return w.eval('S.trangHienTai') === 'hethong';
+  })());
+
+  w.eval(`KHO.nguoiDung = ${JSON.stringify(goc)}; S.trangHienTai='dieuhanh'`);
+}
+
+/* --- Biểu mẫu đăng ký: điện thoại và Gmail, không còn ô mã trường --- */
+kt('Biểu mẫu đăng ký hỏi số điện thoại và Gmail, BỎ ô mã trường', (() => {
+  w.eval(`KHO.phien = KHO.phien || {email:'thu@gmail.com', uid:'u1'}`);
+  w.eval('hopDangKyTruong()');
+  const n = w.document.querySelector('#hopN');
+  const co = id => !!n.querySelector(id);
+  return co('#dkHoTen') && co('#dkTen') && co('#dkDT') && co('#dkMail')
+    && !co('#dkMa');
+})());
+kt('Gmail điền sẵn bằng tài khoản vừa đăng nhập — không bắt gõ lại',
+   w.document.querySelector('#dkMail')?.value === 'thu@gmail.com',
+   w.document.querySelector('#dkMail')?.value);
+kt('Hộp nói rõ đăng ký xong CHƯA dùng được ngay', (() => {
+  const t = w.document.querySelector('#hopN').textContent;
+  return /chưa dùng được ngay/i.test(t) && /5 chữ số/i.test(t);
+})());
+kt('Nút đổi từ "Đăng ký" thành "Gửi đăng ký" — đúng việc nó làm', (() => {
+  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+  return nut.includes('Gửi đăng ký') && !nut.includes('Đăng ký');
+})());
+w.eval('dong()');
+
+/* --- Tệp SQL: chốt chặn không khoá trường đang chạy --- */
+console.log('\n17e. db/duyet-truong.sql');
+{
+  const sql = readFileSync(join(goc, 'db/duyet-truong.sql'), 'utf8');
+  /* Đây là dòng quan trọng nhất của cả tệp SQL. Đặt default 'cho_duyet'
+     là mọi trường đang chạy bị khoá ngay lần chạy tệp. */
+  kt('Cột trạng thái mặc định là "dang_dung", KHÔNG phải "cho_duyet"',
+     /alter column trang_thai_duyet set default 'dang_dung'/.test(sql)
+     && !/set default 'cho_duyet'/.test(sql));
+  kt('Trường đã có được đặt về "dang_dung" TRƯỚC khi thêm ràng buộc', (() => {
+    const iUpdate = sql.indexOf("update truong set trang_thai_duyet = 'dang_dung'");
+    const iCheck = sql.indexOf('truong_trang_thai_duyet_ok');
+    return iUpdate > 0 && iCheck > iUpdate;
+  })());
+  kt('Đơn mới thì mới mang trạng thái "cho_duyet"',
+     /'cho_duyet', v_dt, nullif\(v_mail,''\)/.test(sql));
+  kt('duyet_truong() TỰ KIỂM QUYỀN ở dòng đầu — security definer bỏ qua RLS', (() => {
+    const i = sql.indexOf('create or replace function duyet_truong');
+    const than = sql.slice(i, i + 1400);
+    return /if not la_chu_he_thong\(\) then/.test(than)
+      && than.indexOf('if not la_chu_he_thong()') < than.indexOf('update truong');
+  })());
+  kt('ds_truong_he_thong() lọc theo la_chu_he_thong() ngay trong câu lệnh',
+     /where la_chu_he_thong\(\)/.test(sql));
+  kt('Mã trường là 5 CHỮ SỐ, khác hẳn mã mời giáo viên 6 chữ cái',
+     /lpad\(\(10000 \+ floor\(random\(\) \* 90000\)\)::int::text, 5, '0'\)/.test(sql));
+  kt('Duyệt lại trường đã có mã thì GIỮ NGUYÊN mã cũ',
+     /if v_ma is null or v_ma !~ '\^\[0-9\]\{5\}\$' then/.test(sql));
+  kt('Vòng sinh mã có van chống treo, không lặp vô hạn',
+     /if i > 200 then/.test(sql));
+  kt('Chặn thật ở đường ghi: trường chưa duyệt thì không lưu được TKB',
+     /truong_duoc_dung\(\)/.test(sql)
+     && /create policy p_tkb_ghi on tkb_phien_ban[\s\S]{0,200}truong_duoc_dung\(\)/.test(sql));
+  kt('KHÔNG viết cứng Gmail của chủ dự án vào tệp — kho mã là kho công khai',
+     !/@gmail\.com/.test(sql.replace(/dia-chi-gmail-cua-thay@gmail\.com/g, '')));
+}
+
 console.log('\n17c. Ký tự xuống dòng');
 [['src/index.html'], ['src/manifest.webmanifest'], ['src/sw.js'],
  ['CLAUDE.md'], ['package.json']].forEach(([t]) => {
