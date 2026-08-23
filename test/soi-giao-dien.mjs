@@ -1004,23 +1004,21 @@ kt('Không còn dải chỉ số nào khác lặp lại cùng mấy con số ấ
 })());
 
 console.log('\n15h2. Bốn cách xem, chuyển TẠI CHỖ trên Bảng điều hành');
-kt('Nút chưa chọn nổi trên nền TRANG — không bao giờ trắng trơn trên thẻ trắng', (() => {
-  /* Đổi 23/8/2026 theo ảnh mẫu: nút chưa chọn nay NỀN TRẮNG chữ đen. Điều
-     đó chỉ đúng vì thẻ bao ngoài đã bỏ nền, nên nút đứng trên nền trang
-     xanh nhạt và vẫn nổi khối. Nguyên tắc ngày 3/8 giữ nguyên — "nhìn màu
-     trắng không rõ" — chỉ đổi cách đạt: nút chưa chọn phải khác màu nền
-     NGAY SAU NÓ, và phải có viền.
+kt('Nút chưa chọn NỔI KHỐI — nền riêng, viền, đổ bóng, không phẳng', (() => {
+  /* Chốt 23/8/2026 sau khi thử cả hai chiều. Bản sáng cùng ngày để nút nền
+     trắng viền mảnh cho đúng ảnh mẫu; trên màn hình thật cả dải bốn nút chỉ
+     còn bốn khung viền nhạt, không nhìn ra chỗ bấm được, và chủ dự án yêu
+     cầu thẳng: nút phải nổi khối như trước.
 
-     Hai vế buộc phải đi cùng nhau nên phép thử soi cả hai: trả nền trắng
-     lại cho .the-luoi mà vẫn để nút trắng là quay đúng về lỗi cũ, và không
-     ai nhận ra cho tới lúc chủ dự án mở lên nhìn. */
+     Nên phép thử canh BA tín hiệu của nút chưa chọn — nền riêng khác trắng,
+     viền, đổ bóng — và một tín hiệu nữa cho nút đang chọn ở phép thử dưới. */
   const css = w.document.documentElement.innerHTML;
-  const lat = ten => css.slice(css.indexOf(ten), css.indexOf(ten) + 340);
-  const xem = lat('.xem-nut{'), dt = lat('.dt-nut{');
-  const co = (chuoi, ...manh) => manh.every(m => chuoi.includes(m));
-  return co(xem, 'background:#fff', 'border:1px solid var(--ke-2)', 'color:var(--chu)')
-    && co(dt, 'background:#fff', 'border:1px solid var(--ke-2)')
-    && css.includes('.the-luoi{background:none;border:0;box-shadow:none}');
+  const lat = ten => css.slice(css.indexOf(ten), css.indexOf(ten) + 400);
+  const xem = lat('.xem-nut{'), dt = lat('.dt-nut{'), cl = lat('.cl-n{');
+  const noiKhoi = kh => kh.includes('background:var(--nav-nhat)')
+    && kh.includes('border:1px solid var(--nav-vien)') && kh.includes('box-shadow:0 2px');
+  return noiKhoi(xem) && noiKhoi(dt)
+    && cl.includes('background:var(--nav-nhat)') && cl.includes('box-shadow:0 2px');
 })());
 kt('Nhưng thẻ ĐANG CHỌN vẫn đậm hơn hẳn — hai tín hiệu, không chỉ một', (() => {
   const css = w.document.documentElement.innerHTML;
@@ -1638,26 +1636,22 @@ kt('Thông tin trường nằm trong DỮ LIỆU NHÀ TRƯỜNG, không phải H
   const dl = [...w.document.querySelectorAll('.nh[data-nh="dl"] .mi')].map(x => x.dataset.t);
   return [m.dataset.nh === 'dl' && dl[0] === 'thongtin', dl.join(' · ')];
 })()));
-kt('Nhãn nhóm không bị mục con nuốt — phân cấp bằng MÀU, cả hai đều phẳng', (() => {
-  /* Canh THỨ BẬC chứ không canh một cách trình bày cụ thể. Vùng này đã đổi
-     ba lần và lần nào cũng vì cùng một lỗi ở hai chiều ngược nhau, nên phép
-     thử chỉ giữ đúng điều bất biến: nhãn nhóm phải NỔI HƠN mục con.
+kt('Nhãn nhóm NỔI KHỐI, mục con giảm nhẹ — thứ bậc không bị lộn ngược', (() => {
+  /* Canh THỨ BẬC, không canh một cách trình bày cụ thể. Vùng này đã đổi bốn
+     lần và lần nào cũng vì cùng một lỗi ở hai chiều ngược nhau, nên phép thử
+     chỉ giữ điều bất biến: nhãn nhóm phải NỔI HƠN mục con.
 
-     Bản 23/8/2026 đạt điều đó bằng màu — nhãn vàng kem đậm 800, giãn cách
-     rộng; mục con trắng ngả xanh, nhẹ 500 — chứ không bằng một tấm nền như
-     bản 3/8. Nên phép thử đòi: nhãn nhóm có màu riêng và weight 800, mục
-     con weight 500 và không nền; và KHÔNG bên nào được đeo nền khối, vì
-     nền khối ở đây chính là thứ làm thanh bên lệch hẳn khỏi ảnh mẫu. */
+     Điều quyết định là TRẠNG THÁI ĐÓNG — năm nhóm cùng đóng thì nhãn nhóm
+     là toàn bộ nội dung thanh bên, và lúc ấy chữ trơn không đủ. Nên nhãn
+     phải có nền khối, mục con thì không. */
   const css = w.document.documentElement.innerHTML;
   const lat = ten => css.slice(css.indexOf(ten), css.indexOf(ten) + 400);
   const nhom = lat('.nhom{display:flex'), mi = lat('.mi{display:flex');
-  /* Giãn cách: chỉ đòi CÓ, không khoá con số — nó bị chính bề ngang thanh
-     bên quyết định, nới ra là nhãn dài nhất gãy dòng. */
-  const nhomNoi = nhom.includes('font-weight:800') && nhom.includes('letter-spacing:.')
-    && nhom.includes('color:#') && nhom.includes('background:none');
+  const nhomCoNen = nhom.includes('background:rgba(255,255,255,.1')
+    && nhom.includes('color:#fff') && nhom.includes('font-weight:800');
   const miNheDi = mi.includes('background:none') && mi.includes('border:0')
     && mi.includes('font-weight:500');
-  return nhomNoi && miNheDi;
+  return nhomCoNen && miNheDi;
 })());
 kt('Mục đang mở vẫn nổi rõ — ngoại lệ duy nhất của việc giảm nhẹ', (() => {
   const css = w.document.documentElement.innerHTML;

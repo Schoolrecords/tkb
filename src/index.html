@@ -101,7 +101,7 @@ button,input,select{font-family:inherit}
 aside{color:#fff;padding:18px 14px;
   background:
     radial-gradient(circle at 1px 1px, rgba(255,255,255,.055) 1px, transparent 1.6px) 0 0/18px 18px,
-    linear-gradient(180deg,#0A3A24 0%,#0F5132 36%,#12643C 74%,#157547 100%);
+    linear-gradient(178deg,#0B4229 0%,#11603C 34%,#167A4E 68%,#1C9068 100%);
   display:flex;flex-direction:column;position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden}
 /* Bụi lá ở đáy thanh bên (16/8/2026 — vẽ lại 16/8 chiều cho đúng mẫu).
    Nằm NGAY TRÊN thẻ tài khoản, thò ra sát hai mép thanh bên. Là hoạ tiết
@@ -144,28 +144,30 @@ aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6p
    tên mục nằm dưới nó thì thứ bậc bị lộn ngược.
    Nay 11.5px, chữ sáng hơn hẳn, và có vạch ngăn phía trên để năm khối tách
    bạch nhìn thấy ngay cả khi mọi nhóm cùng đóng. */
-/* Nhãn nhóm PHẲNG, phân cấp bằng MÀU (làm lại 23/8/2026 theo ảnh mẫu).
-   Đây là lần thứ ba vùng này đổi, nên chép lại cả đường đi để đừng ai quay
-   vòng: bản đầu 10px màu --nav-mo nhạt → "các mục lớn thì bị nuốt"; bản
-   3/8 chữa bằng cách biến nhãn thành TẤM KHỐI có nền và vạch vàng → hết
-   bị nuốt, nhưng thanh bên thành một chồng năm tấm thẻ nặng, khác hẳn ảnh
-   mẫu, và chủ dự án nhìn tổng thể vẫn thấy "không có gì khác cả".
+/* Nhãn nhóm NỔI KHỐI — chốt 23/8/2026 sau bốn lần đổi. Chép lại cả đường
+   đi để đừng ai quay vòng thêm lần nữa:
 
-   Bản này giữ đúng bài học của ngày 3/8 — nhãn nhóm không được chìm dưới
-   mục con — nhưng đạt bằng MÀU thay vì bằng khối: nhãn màu VÀNG KEM, in
-   hoa, giãn cách rộng, đậm 800; mục con chữ trắng ngả xanh, cỡ thường,
-   nhẹ 500. Vàng trên nền xanh đậm nổi hơn trắng nhạt, nên thứ bậc vẫn
-   đúng chiều mà không tốn một tấm nền nào. */
-/* ⚠️ Cỡ chữ và giãn cách ở đây bị KHOÁ bởi nhãn dài nhất: "TRA CỨU THỜI
-   KHÓA BIỂU" phải nằm gọn MỘT dòng trong 248px. Nới thêm nửa pixel giãn
-   cách là nó gãy làm hai, và năm nhãn nhóm cao thấp so le nhau. */
-.nhom{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
-  font-size:10px;font-weight:800;letter-spacing:.1em;color:#EBD48A;
-  padding:9px 7px 5px;margin:15px 0 2px;border:0;border-radius:8px;
-  background:none;transition:color .16s}
-.nh:first-child .nhom{margin-top:2px}
-.nhom:hover{color:var(--vang)}
-.nh.mo .nhom{color:#EBD48A}
+   | bản | cách làm | vì sao đổi |
+   |---|---|---|
+   | đầu | 10px màu --nav-mo nhạt | "các mục lớn thì bị nuốt" |
+   | 3/8 | tấm khối có nền + vạch vàng | đạt, giữ suốt hai tuần |
+   | 23/8 sáng | phẳng, chữ vàng kem, theo ảnh mẫu | năm nhóm cùng đóng thì
+     thanh bên chỉ còn năm dòng chữ mảnh trên một mảng xanh trống |
+   | 23/8 chốt | QUAY LẠI tấm khối, chủ dự án yêu cầu thẳng | |
+
+   Điều quyết định là TRẠNG THÁI ĐÓNG. Bày mở sẵn thì nhãn phẳng trông nhẹ
+   nhõm — đó là dáng trong ảnh mẫu. Nhưng năm nhóm cùng đóng mới là trạng
+   thái thường gặp, và lúc ấy nhãn nhóm là TOÀN BỘ nội dung thanh bên: khối
+   nền cho chúng hình hài, chữ trơn thì không. Ảnh mẫu chụp đúng lúc nhóm
+   đang mở nên không lộ ra điều này. */
+.nhom{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
+  font-size:11px;font-weight:800;letter-spacing:.08em;color:#fff;
+  padding:11px 12px;margin:13px 0 5px;border:0;border-radius:10px;
+  background:rgba(255,255,255,.11);border-left:3px solid var(--vang);
+  box-shadow:0 1px 3px rgba(0,0,0,.14);transition:background .16s}
+.nh:first-child .nhom{margin-top:0}
+.nhom:hover{background:rgba(255,255,255,.18)}
+.nh.mo .nhom{background:rgba(255,255,255,.15)}
 .nhom .chev{width:15px;height:15px;flex:0 0 15px;stroke-width:2.4;margin-left:auto;
   transition:transform .2s;opacity:.75}
 .nh.mo .nhom .chev{transform:rotate(180deg)}
@@ -357,15 +359,12 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 /* Thẻ chứa lưới thời khóa biểu: bớt lề để bảng rộng thêm gần 30px mỗi bên —
    ở đây từng cột là một lớp, mỗi milimét đều đổi thành nội dung đọc được. */
 .the-rong>.the-t{padding:12px 12px 14px}
-/* THẺ LƯỚI KHÔNG CÒN LÀ MỘT TẤM TRẮNG (23/8/2026, theo ảnh mẫu).
-   Nó vốn là thẻ trắng bao ngoài, mà bên trong nay đã có khung trắng riêng
-   của cột lớp + lưới — trắng lồng trắng, hai đường viền song song cách nhau
-   mươi pixel, không ngăn thêm được gì.
-   Bỏ nền còn được cái quan trọng hơn: bốn thẻ chuyển nay đứng trên NỀN
-   TRANG xanh nhạt, nên chúng để nền trắng là nổi hẳn lên — đúng ảnh mẫu,
-   và vẫn giữ nguyên tắc ngày 3/8 là nút chưa chọn phải khác màu nền sau nó.
-   Giữ nguyên tên lớp `the-luoi`: nó là mốc để `ve()` và chế độ toàn màn
-   hình tìm đúng khối lưới. */
+/* Thẻ lưới vẫn TRONG SUỐT (23/8/2026): bên trong nó đã có khung trắng riêng
+   của cột lớp + lưới, để thêm một tấm trắng nữa là trắng lồng trắng, hai
+   đường viền song song cách nhau mươi pixel mà không ngăn thêm được gì.
+   Nút bấm nổi được là nhờ CHÍNH NÓ có nền xanh sáng, viền và đổ bóng — chứ
+   không nhờ tấm nền phía sau. Giữ nguyên tên lớp `the-luoi`: nó là mốc để
+   `ve()` và chế độ toàn màn hình tìm đúng khối lưới. */
 .the-luoi{background:none;border:0;box-shadow:none}
 .the-luoi>.the-t{padding:0}
 
@@ -757,16 +756,15 @@ table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#BBD5C6;letter-spac
    chỉ một. Chưa chọn là nền xanh rất nhạt có viền; đang chọn là nền xanh
    đậm chữ trắng cộng đổ bóng. Nhìn ra ngay đâu là nút bấm được, đâu là nút
    đang mở — chỉ khác là nay nền trang sáng nên nút sáng mới hợp. */
-/* Đi cùng `.xem-nut`: nền trắng trên nền trang xanh nhạt (23/8/2026). Hai
-   dải nút này luôn đứng cạnh nhau trên cùng một màn hình, để lệch màu nhau
-   là mắt tưởng chúng làm hai việc khác loại. */
+/* Đi cùng `.xem-nut`: hai dải nút này luôn đứng cạnh nhau trên cùng một
+   màn hình, để lệch màu nhau là mắt tưởng chúng làm hai việc khác loại. */
 .dt-nut{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:10px;cursor:pointer;
-  border:1px solid var(--ke-2);background:#fff;color:var(--chu);font-size:13.5px;font-weight:600;
-  font-family:inherit;box-shadow:0 1px 2px rgba(16,81,50,.06);
+  border:1px solid var(--nav-vien);background:var(--nav-nhat);color:var(--nav);font-size:13.5px;font-weight:600;
+  font-family:inherit;box-shadow:0 2px 5px rgba(16,81,50,.10);
   transition:background .16s,box-shadow .12s,transform .08s}
-.dt-nut:hover{background:var(--nav-nhat)}
+.dt-nut:hover{background:var(--nav-nhat-2);box-shadow:0 3px 9px rgba(16,81,50,.16)}
 .dt-nut:active{transform:translateY(-2px)}
-.dt-nut span{font-size:11.5px;font-weight:700;background:#EEF4F0;color:var(--chu-mo);
+.dt-nut span{font-size:11.5px;font-weight:700;background:rgba(16,81,50,.10);color:var(--nav);
   padding:2px 8px;border-radius:20px}
 .dt-nut.on{background:var(--nav);color:#fff;border-color:var(--nav);
   box-shadow:0 3px 10px rgba(16,81,50,.28)}
@@ -936,11 +934,16 @@ tr.pa-tot td{background:var(--xanh-nen)}
    nút đang mở — hai tín hiệu chứ không chỉ một. */
 .dai-xem{display:flex;gap:8px;background:transparent;border:0;
   border-radius:var(--r2);padding:0;margin-bottom:12px;flex-wrap:wrap}
+/* NỔI KHỐI, không phẳng (chốt 23/8/2026 — chủ dự án yêu cầu thẳng). Nút
+   trắng viền mảnh của bản sáng nay đúng ảnh mẫu nhưng trên màn hình thật
+   nó lẫn vào nền: cả dải bốn nút chỉ còn bốn khung viền nhạt, không ai
+   nhìn ra đây là chỗ bấm được. Nay nền xanh sáng + viền + đổ bóng — ba
+   tín hiệu — và nút đang chọn hơn hẳn bằng nền đậm chữ trắng. */
 .xem-nut{flex:1 1 auto;min-width:110px;min-height:44px;padding:11px 14px;cursor:pointer;
-  background:#fff;border:1px solid var(--ke-2);border-radius:11px;font-size:13.5px;font-weight:600;
-  color:var(--chu);box-shadow:0 1px 2px rgba(16,81,50,.06);
+  background:var(--nav-nhat);border:1px solid var(--nav-vien);border-radius:11px;font-size:13.5px;font-weight:600;
+  color:var(--nav);box-shadow:0 2px 5px rgba(16,81,50,.10);
   transition:background .16s,box-shadow .12s,transform .08s}
-.xem-nut:hover{background:var(--nav-nhat)}
+.xem-nut:hover{background:var(--nav-nhat-2);box-shadow:0 3px 9px rgba(16,81,50,.16)}
 .xem-nut:active{transform:translateY(-2px)}
 .xem-nut.on{background:var(--nav);color:#fff;font-weight:700;border-color:var(--nav);
   box-shadow:0 3px 10px rgba(16,81,50,.28)}
@@ -998,12 +1001,12 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .cl-khoi:first-child{padding-top:1px}
 .cl-n{display:flex;align-items:center;justify-content:space-between;gap:7px;
   padding:7px 8px 7px 11px;border:1px solid var(--nav-vien);border-radius:9px;cursor:pointer;text-align:left;
-  font-family:inherit;background:#fff;color:var(--chu);
-  box-shadow:0 1px 2px rgba(16,81,50,.05);transition:background .16s,box-shadow .12s,transform .08s}
+  font-family:inherit;background:var(--nav-nhat);color:var(--nav);
+  box-shadow:0 2px 4px rgba(16,81,50,.09);transition:background .16s,box-shadow .12s,transform .08s}
 .cl-n b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cl-n span{flex:0 0 auto;font-size:10.5px;font-weight:700;color:var(--chu-mo);
-  background:#EEF4F0;padding:2px 7px;border-radius:20px}
-.cl-n:hover{background:var(--nav-nhat)}
+.cl-n span{flex:0 0 auto;font-size:10.5px;font-weight:700;color:var(--nav);
+  background:rgba(16,81,50,.10);padding:2px 7px;border-radius:20px}
+.cl-n:hover{background:var(--nav-nhat-2)}
 .cl-n:active{transform:translateY(-2px)}
 .cl-n.on{background:var(--nav);color:#fff;border-color:var(--nav);
   box-shadow:0 3px 10px rgba(16,81,50,.26)}

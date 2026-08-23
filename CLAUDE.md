@@ -466,20 +466,25 @@ menu không hề bày ra. Nay `TEN_BUOC` dùng đúng tên nhóm của thanh bê
 chỉ còn nhãn nhóm + tên màn hình + hai nút ‹ trước / tiếp theo ›. Có phép thử
 quét cả 12 màn hình, không cho chữ `Bước <số>` nào lọt ra.
 
-**Nhãn nhóm phải ĐẬM HƠN tên mục nằm dưới nó — nhưng bằng MÀU, không bằng
-khối** *(chốt lần ba, 23/8/2026)*. Vùng này đã đổi ba lần, chép lại cả đường
-đi để đừng ai quay vòng:
+**Nhãn nhóm NỔI KHỐI — tấm nền + vạch vàng** *(chốt 23/8/2026 sau bốn lần
+đổi)*. Chép lại cả đường đi để đừng ai quay vòng thêm lần nữa:
 
 | Bản | Cách làm | Vì sao đổi |
 |---|---|---|
 | đầu | 10px màu `--nav-mo` nhạt | *"các mục lớn thì bị nuốt"* — thứ bậc lộn ngược |
-| 3/8 | nhãn thành **tấm khối** có nền + vạch vàng, mục con bỏ nền | hết bị nuốt, nhưng thanh bên thành một chồng năm tấm thẻ nặng, lệch hẳn khỏi ảnh mẫu |
-| 23/8 | nhãn **vàng kem** 10px/800/giãn `.1em`, phẳng; mục con trắng ngả xanh 13px/500 | vàng trên nền xanh đậm nổi hơn trắng nhạt, nên thứ bậc vẫn đúng chiều mà không tốn tấm nền nào |
+| 3/8 | nhãn thành **tấm khối** có nền + vạch vàng, mục con bỏ nền | đạt, giữ suốt hai tuần |
+| 23/8 sáng | nhãn **vàng kem** phẳng, theo ảnh mẫu | năm nhóm cùng đóng thì thanh bên chỉ còn năm dòng chữ mảnh trên một mảng xanh trống |
+| 23/8 chốt | **quay lại tấm khối**, chủ dự án yêu cầu thẳng | |
 
-Phép thử vì thế canh **thứ bậc**, không canh một cách trình bày: nhãn có màu
-riêng và `font-weight:800`, mục con `500` và không nền, và không bên nào đeo
-nền khối. ⚠️ Cỡ chữ và giãn cách bị khoá bởi nhãn dài nhất — *"TRA CỨU THỜI
-KHÓA BIỂU"* phải nằm gọn một dòng trong 248px.
+⚠️ Điều quyết định là **TRẠNG THÁI ĐÓNG**. Bày mở sẵn thì nhãn phẳng trông
+nhẹ nhõm — đó là dáng trong ảnh mẫu, và ảnh mẫu chụp đúng lúc nhóm đang mở
+nên không lộ ra điều này. Nhưng năm nhóm cùng đóng mới là trạng thái thường
+gặp, và lúc ấy nhãn nhóm là **toàn bộ** nội dung thanh bên: khối nền cho
+chúng hình hài, chữ trơn thì không. Đánh giá một thành phần menu thì phải
+xem nó ở **cả hai trạng thái**, đừng chỉ xem ở trạng thái ảnh mẫu chụp.
+
+Phép thử canh **thứ bậc**, không canh con số: nhãn có nền khối + chữ trắng
+`800`, mục con `500` và không nền.
 
 Bốn quy tắc, cả bốn đều có phép thử:
 
@@ -1435,7 +1440,9 @@ Trước đó là hệ navy theo bộ nhận diện AVATAR. Nay đổi trọn sa
 TRÒ — màu của thanh điều hướng và của mọi hành động chính — chứ không nói
 tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng được thêm gì.
 
-- Thanh bên xanh lá `#0F5132` chuyển dần xuống `#157547`, rộng **248px**,
+- Thanh bên xanh lá chuyển dần `#0B4229 → #1C9068` (mở rộng hai đầu
+  23/8/2026: bốn nấc cũ quá gần nhau nên nhìn ra một mảng xanh bệt, rõ nhất
+  lúc mọi nhóm cùng đóng), rộng **248px**,
   mục đang chọn `#17794B` kèm vạch vàng, **không có hoạ tiết nào ở đáy**.
   ⚠️ Cụm lá vẽ ngày 16/8 đã **xoá hẳn 23/8**: đối chiếu ảnh mẫu thì ở đó
   không có gì, và trên màn hình thật nó là thứ bắt mắt nhất trong cả thanh
@@ -1468,17 +1475,16 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
   *(23/8/2026)*. Trước đó tìm kiếm và chuông là hai khối xanh đặc, nặng
   ngang cụm chữ tên trường trong khi việc của chúng chỉ là hai lối phụ — và
   nút tài khoản sáng kẹp giữa hai khối tối thì ba nút không đọc ra một cụm.
-- **Nút chưa chọn: NỀN TRẮNG chữ đen, đứng trên nền TRANG** *(sửa 23/8/2026
-  theo ảnh mẫu)*. Nguyên tắc ngày 3/8 giữ nguyên — nút chưa chọn phải khác
-  màu nền ngay sau nó và phải có viền ("nhìn màu trắng không rõ") — chỉ đổi
-  cách đạt. Nút trắng chỉ nổi được vì **thẻ bao ngoài đã bỏ nền**: `.the-luoi`
-  nay trong suốt, nên bốn thẻ chuyển đứng trên nền trang xanh nhạt.
-  ⚠️ Hai vế buộc đi cùng nhau. Trả nền trắng lại cho `.the-luoi` mà vẫn để
-  nút trắng là quay đúng về lỗi cũ — phép thử soi cả hai vế cùng lúc.
-  Bỏ nền thẻ còn dọn luôn chuyện trắng-lồng-trắng: bên trong nó nay đã có
-  khung riêng của cột lớp + lưới, hai đường viền song song cách nhau mươi
-  pixel thì không ngăn thêm được gì. Nút đang chọn vẫn hơn bằng **hai** tín
-  hiệu — màu đậm cộng đổ bóng.
+- **Nút chưa chọn NỔI KHỐI: nền xanh sáng + viền + đổ bóng** *(chốt
+  23/8/2026)*. Đã thử cả hai chiều trong cùng một ngày: bản sáng để nút nền
+  trắng viền mảnh cho đúng ảnh mẫu, nhưng trên màn hình thật cả dải bốn nút
+  chỉ còn bốn khung viền nhạt — không nhìn ra chỗ bấm được. Chủ dự án yêu
+  cầu thẳng là nút phải nổi khối như trước. Nay **ba tín hiệu** cho nút chưa
+  chọn (nền riêng · viền · đổ bóng), và nút đang chọn hơn nữa bằng nền đậm
+  chữ trắng cộng bóng sâu hơn. Áp cho cả `.xem-nut`, `.dt-nut`, `.cl-n`.
+  `.the-luoi` vẫn **trong suốt**: bên trong nó đã có khung trắng riêng của
+  cột lớp + lưới, thêm một tấm trắng nữa là trắng lồng trắng. Nút nổi được
+  là nhờ **chính nó**, không nhờ tấm nền phía sau.
 - `.b-vang` nay là **xanh lá đậm** chứ không còn màu vàng. Vàng chỉ còn ở
   logo, vạch đánh dấu mục đang mở và ô biểu tượng *Cảnh báo*.
 - Ba thẻ dưới Bảng điều hành mang **ô biểu tượng vuông bo tròn** (`.the-ic`)
