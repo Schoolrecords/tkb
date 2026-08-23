@@ -1166,6 +1166,38 @@ cho nó rẻ và đúng:
   xem trước để biết hình hài, không phải để đọc trọn 86 tờ.
 Phép thử ở mục 14c của `npm run soi`.
 
+#### Ô lưới trong tệp .xlsx xuất ra: HAI DÒNG *(24/8/2026)*
+
+Chủ dự án gửi ảnh chụp trang `TOAN_TRUONG`: chữ chồng đè lên nhau, cả bảng
+không đọc nổi. Gốc là hai quy tắc đúng riêng lẻ nhưng đánh nhau khi gặp:
+`thanBangXL()` khoá cứng `height:19` cho **mọi** bảng, còn `trangLuoi()` bật
+`wrapText` cho ô có tiết. Chữ xuống hai dòng trong ô cao một dòng thì Excel
+vẫn vẽ ra — tràn đè xuống hàng dưới.
+
+Bốn thứ đã sửa, tất cả nằm trong `trangLuoi()`:
+
+| | trước | sau |
+|---|---|---|
+| Nội dung ô | `HDTN — Nguyễn Thị Trinh` một dòng | ngắt `\n` ở ` — `: môn trên, người dưới |
+| Chiều cao hàng | 19 (cắt cụt) | **32** |
+| Bề ngang cột | số chết `20` | **đo từ chính dữ liệu**, `min(26, max(gốc, dài nhất+2))` |
+| Dải khối | `Khối 1` lặp năm lần | **gộp ô** mỗi khối một vùng |
+
+⚠️ **Không rút ngắn họ tên để chữa.** Bản xuất phải ghi họ tên đầy đủ — ghi
+"Cô Dung" thì hai cô Dung không phân biệt được, ràng buộc này đã có phép thử
+canh từ trước. Cách đúng là cho ô đủ chỗ, và ngắt dòng ở chỗ **có nghĩa**.
+
+⚠️ **`dauCotXL()` GHI ĐÈ bề ngang mọi cột nó chạm tới.** Đặt bề ngang ở
+`ws.columns` phía trên rồi mà quên truyền vào đây thì nó lặng lẽ kéo về số
+cũ. Phép thử đầu tiên vẫn xanh vì `daiNhat <= rong` **tình cờ đúng bằng nhau**
+(20 ≤ 20) — đúng khuôn cái bẫy ở mục 3; siết thành `<` là lộ ngay.
+
+⚠️ Chỗ đáng lo hơn cả hai lỗi trên: **đường xuất Excel là thứ nhà trường
+dùng nhiều nhất, mà tới 24/8/2026 chưa có một phép soi nào chạm vào tệp
+`.xlsx` nó ghi ra.** `npm test` chỉ kiểm bảng hai chiều thuần dữ liệu — đếm
+đúng số ô, đúng số cột — nên nó xanh suốt trong khi tệp mở lên là mớ chữ
+chồng nhau. Nay `npm run soi-mau` sinh tệp thật rồi đọc lại bằng ExcelJS.
+
 - Bảng rộng thì **cuộn ngang trong khung của chính nó** (`.tt-boc`), thân trang
   không bao giờ cuộn ngang — người dùng chủ yếu dùng điện thoại.
 - Ô của khối tan sớm ghi rõ **"Nghỉ"**, không để trống. Trống lẫn với tiết chưa

@@ -48,17 +48,18 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [],
 let TEP = null;
 const NGUON = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}
 ${catHam('trangXL')}${catHam('tieuDeXL')}${catHam('dauCotXL')}${catHam('thanBangXL')}
-${catHam('apKhoaXL')}${catHam('taiMauTronGoi')}
+${catHam('apKhoaXL')}${catHam('taiMauTronGoi')}${catHam('xuatExcel')}
 async function ghiTepXL(wb, ten){ ghiRa(wb, ten); }
 async function sanSangExcelJS(){ return true; }
 function bao(){}
-; return { taiMauTronGoi, bangMauTronGoi, duLieuTuTronGoi,
-           S, napVaoS, NGUON, maGVTu };`;
+; return { taiMauTronGoi, bangMauTronGoi, duLieuTuTronGoi, xuatExcel,
+           S, napVaoS, NGUON, maGVTu, xepTuDong, tenTepXuat };`;
 
 const app = new Function('document', 'window', 'fetch', 'ExcelJS',
   'MAU_XL', 'VIEN_MANH', 'ghiRa', 'TIET_CHUAN_X', NGUON)(
   documentGia, {}, () => {}, ExcelJS,
-  { navy: 'FF0F5132', xanh: 'FF17794B', nhat: 'FFF3F8F5', vien: 'FFB9CFC2' },
+  { navy: 'FF0F5132', xanh: 'FF17794B', nhat: 'FFF3F8F5', vien: 'FFB9CFC2',
+    camNhat: 'FFFDF3E6' },
   { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } },
   (wb, ten) => { TEP = { wb, ten }; }, null);
 
@@ -208,14 +209,120 @@ kt('Vòng qua tệp thật giữ đúng tổng số tiết',
 kt('Vòng qua tệp thật giữ đúng khung giờ',
    dl.khungGio.filter(k => k.bat !== false).length === 8);
 
+/* ==================================================================
+   PHẦN 2 — TỆP XUẤT RA (TOAN_TRUONG · KHOI_* · TKB_LOP · TKB_GV)
+   ------------------------------------------------------------------
+   Dựng 24/8/2026 sau khi chủ dự án gửi ảnh chụp: ô lưới ghi
+   `HDTN — Nguyễn Thị Trinh` một dòng, bật wrapText, mà `thanBangXL()`
+   khoá cứng `height=19` — chữ xuống hai dòng trong ô cao một dòng nên
+   TRÀN ĐÈ lên dòng dưới. Cả bảng thành mớ chữ chồng nhau.
+
+   Đây là đường xuất người dùng chạy nhiều nhất, mà trước hôm nay
+   KHÔNG có một phép soi nào chạm tới tệp .xlsx nó ghi ra.
+   ================================================================== */
+console.log('\n\x1b[1mSoi tệp Excel XUẤT RA\x1b[0m');
+
+app.xepTuDong(0);                       /* cần có lưới thì mới có ô để soi */
+TEP = null;
+await app.xuatExcel();
+kt('xuatExcel() chạy trọn, không ném lỗi', !!TEP, TEP?.ten);
+
+const bufX = await TEP.wb.xlsx.writeBuffer();
+const wbX = new ExcelJS.Workbook();
+await wbX.xlsx.load(bufX);
+kt('Đọc lại được tệp xuất ra', wbX.worksheets.length > 0,
+   wbX.worksheets.map(w => w.name).join(' · '));
+
+const tt = wbX.getWorksheet('TOAN_TRUONG');
+
+/* --- Lỗi chính: ô hai dòng nằm trong hàng cao một dòng --- */
+{
+  /* Times 10pt cần khoảng 13 điểm mỗi dòng; lấy 12 cho rộng tay. */
+  const xau = [];
+  let soODoi = 0, cao = null;
+  tt.eachRow((row, i) => {
+    if (i <= 4) return;                 /* tiêu đề · dải khối · tên cột */
+    row.eachCell((o, j) => {
+      if (j <= 3) return;
+      const v = String(o.value || '');
+      if (!v.trim()) return;
+      const dong = v.split('\n').length;
+      if (dong > 1) soODoi++;
+      cao = row.height;
+      if (dong * 12 > (row.height || 15))
+        xau.push(`dòng ${i} cột ${j}: ${dong} dòng chữ / cao ${row.height}`);
+    });
+  });
+  kt('Ô lưới ngắt thành HAI DÒNG — môn trên, giáo viên dưới',
+     soODoi > 0, `${soODoi} ô hai dòng, hàng cao ${cao}`);
+  kt('Không ô nào có nhiều dòng chữ hơn chiều cao hàng cho phép',
+     xau.length === 0, xau.slice(0, 3).join(' | '));
+}
+
+/* --- Bề ngang cột phải đủ cho dòng chữ dài nhất --- */
+{
+  let daiNhat = 0, viDu = '';
+  tt.eachRow((row, i) => {
+    if (i <= 4) return;
+    row.eachCell((o, j) => {
+      if (j <= 3) return;
+      String(o.value || '').split('\n').forEach(x => {
+        if (x.length > daiNhat) { daiNhat = x.length; viDu = x; }
+      });
+    });
+  });
+  const rong = tt.getColumn(4).width;
+  /* Đòi DƯ ra ít nhất một ký tự, không cho vừa khít. Ngưỡng đúng-bằng đã
+     từng che một lỗi thật: `dauCotXL()` ghi đè bề ngang về con số cũ (20)
+     mà phép thử `<=` vẫn xanh vì hai vế tình cờ bằng nhau. */
+  kt('Cột đủ rộng cho dòng chữ dài nhất — không đẩy sang dòng thứ ba',
+     daiNhat < rong, `dài nhất ${daiNhat} ("${viDu}") · cột rộng ${rong}`);
+}
+
+/* --- Dải khối gộp ô, không lặp "Khối 1" năm lần --- */
+{
+  /* Chỉ đếm vùng gộp NẰM TRÊN dòng 3 — dòng tiêu đề cũng gộp ô, cộng chung
+     vào là con số nói dối. */
+  const gop = (tt.model.merges || []).filter(m => /^[A-Z]+3:[A-Z]+3$/.test(m));
+  const soKhoi = new Set(app.S.lop.map(l => l.khoi)).size;
+  kt('Dải khối GỘP Ô — mỗi khối một vùng, không lặp "Khối 1" ở từng cột',
+     gop.length === soKhoi, `${gop.length} vùng gộp / ${soKhoi} khối · ${gop.join(' ')}`);
+}
+
+/* --- Họ tên đầy đủ vẫn còn nguyên: ràng buộc đã có phép thử từ trước --- */
+{
+  const co = [];
+  tt.eachRow((row, i) => {
+    if (i <= 4) return;
+    row.eachCell((o, j) => { if (j > 3) co.push(String(o.value || '')); });
+  });
+  const mau = app.S.giaoVien.find(g => g.hoTen.split(/\s+/).length >= 4) || app.S.giaoVien[0];
+  kt('Bản xuất vẫn ghi HỌ TÊN ĐẦY ĐỦ, không rút gọn thành "Cô Dung"',
+     co.some(x => x.includes(mau.hoTen)), mau.hoTen);
+}
+
+kt('Mọi trang lưới đều khoá ba cột giờ và dòng tiêu đề khi cuộn',
+   ['TOAN_TRUONG', 'TKB_LOP', 'TKB_GV'].every(n => {
+     const v = wbX.getWorksheet(n)?.views?.[0];
+     return v?.state === 'frozen' && v.xSplit === 3 && v.ySplit >= 3;
+   }));
+
+/* ⚠️ Dòng tổng kết phải nằm SAU cả hai phần. Bản đầu để nó ở cuối phần 1
+   nên nó báo "25 đạt" trong khi phần 2 còn tám phép nữa chưa chạy — con số
+   đúng nhưng nói dối về phạm vi. Mã thoát thì vẫn đúng vì `hong` đọc ở dòng
+   cuối; sai duy nhất ở chỗ BÁO CÁO, mà đó lại là thứ người đọc tin. */
 console.log(`\n\x1b[1mKết quả: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
+
 /* --ghi <thư mục>: ghi tệp ra để xem bằng mắt. Cố ý KHÔNG ghi vào trong
    dự án — đây là tệp sinh ra, không phải mã nguồn. */
 const iGhi = process.argv.indexOf('--ghi');
 if (iGhi > 0) {
   const { writeFileSync } = await import('node:fs');
   const thuMuc = process.argv[iGhi + 1] || process.cwd();
-  writeFileSync(join(thuMuc, TEP.ten), Buffer.from(buf));
+  writeFileSync(join(thuMuc, TEP.ten), Buffer.from(bufX));      /* tệp XUẤT RA */
   console.log('Đã ghi ' + join(thuMuc, TEP.ten));
+  const tenMau = 'Mau-TKB-tron-goi.xlsx';
+  writeFileSync(join(thuMuc, tenMau), Buffer.from(buf));        /* tệp MẪU NHẬP */
+  console.log('Đã ghi ' + join(thuMuc, tenMau));
 }
 process.exit(hong ? 1 : 0);

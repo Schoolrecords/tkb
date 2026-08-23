@@ -9014,12 +9014,29 @@ async function xuatExcel(){
 
   /* Lưới thời khóa biểu: ba cột đầu là giờ, còn lại mỗi cột một lớp hoặc một
      giáo viên. Tô màu ô có tiết để mắt bắt được ngay cột nào còn trống. */
+  /* Ô lưới xuống HAI DÒNG: môn trên, người/lớp dưới (24/8/2026).
+     Bản cũ ghi `HDTN — Nguyễn Thị Trinh` một dòng rồi bật wrapText, mà
+     `thanBangXL()` lại khoá cứng `height=19` — chữ xuống hai dòng trong một ô
+     cao một dòng nên TRÀN ĐÈ lên dòng dưới, cả bảng thành một mớ chữ chồng
+     nhau. Chủ dự án gửi ảnh chụp mới lộ ra.
+
+     Không rút ngắn họ tên để chữa: bản xuất PHẢI ghi họ tên đầy đủ, ghi
+     "Cô Dung" thì hai cô Dung không phân biệt được — có phép thử canh. Cách
+     đúng là cho ô đủ chỗ, và ngắt dòng ở chỗ CÓ NGHĨA: hết tên môn. */
+  const haiDong = v => String(v).replace(' — ', '\n');
+
   const trangLuoi=(ten, tieu, a, soCotDL, rongDL, huong)=>{
     const soCot=a[3]?.length || a[a.length-1].length;
     /* Lưới thời khóa biểu luôn nằm ngang: ba cột giờ cộng thêm mỗi lớp một cột
        thì khổ dọc không bao giờ đủ, kể cả khối chỉ có ba lớp. */
     const ws=trangXL(wb,ten, huong||'ngang');
-    ws.columns=[{width:11},{width:9},{width:7},...Array.from({length:soCotDL},()=>({width:rongDL||22}))];
+    /* Bề ngang cột đo từ CHÍNH dữ liệu: dòng dài nhất sau khi ngắt đôi, cộng
+       hai ký tự đệm. Đặt một con số chết thì trường nào có "Nguyễn Thị Hương
+       Giang" là lại tràn sang dòng thứ ba. */
+    const daiNhat=Math.max(0,...a.slice(4).flatMap(h=>h.slice(3)
+      .flatMap(v=>haiDong(v).split('\n').map(x=>x.length))));
+    const rong=Math.min(26, Math.max(rongDL||22, daiNhat+2));
+    ws.columns=[{width:11},{width:9},{width:7},...Array.from({length:soCotDL},()=>({width:rong}))];
     let r=tieuDeXL(ws,1,soCot,tieu,namHoc);
     /* Bỏ ba dòng đầu của mảng (đã thành tiêu đề). Riêng lưới toàn trường còn
        thêm một dòng ghi khối phía trên tên lớp — nhận ra nó bằng ba ô đầu để
@@ -9039,12 +9056,26 @@ async function xuatExcel(){
         o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.camNhat}};
         o.border=VIEN_MANH;
       });
+      /* GỘP Ô các cột cùng khối (24/8/2026). Trước đó dải khối lặp lại
+         "Khối 1" năm lần liền nhau — vừa ồn vừa không nói được điều nó sinh
+         ra để nói: năm cột này là MỘT khối. Trên màn hình dải khối vốn đã
+         gộp ô rồi; bản Excel lệch với chính nó là không có lý do gì. */
+      for(let j=3;j<dongKhoi.length;){
+        const v=String(dongKhoi[j]||'').trim();
+        let k=j; while(k+1<dongKhoi.length && String(dongKhoi[k+1]||'').trim()===v) k++;
+        if(v && k>j) ws.mergeCells(r, j+1, r, k+1);
+        j=k+1;
+      }
       rk.height=20; r++;
     }
     const dCot=r;
-    r=dauCotXL(ws,r, con[0].map((c,i)=>({ten:String(c), rong:i<3?[11,9,7][i]:(rongDL||22)})));
-    const than=con.slice(1);
-    r=thanBangXL(ws,r,than,['center','center','center',...Array.from({length:soCotDL},()=>'left')]);
+    /* ⚠️ Phải truyền `rong` đã tính, không phải `rongDL` gốc: `dauCotXL()`
+       GHI ĐÈ bề ngang mọi cột nó chạm tới, nên đặt ở `ws.columns` phía trên
+       rồi mà quên chỗ này là bề ngang quay về con số cũ — chữ lại tràn. */
+    r=dauCotXL(ws,r, con[0].map((c,i)=>({ten:String(c), rong:i<3?[11,9,7][i]:rong})));
+    /* Ngắt đôi TRƯỚC khi đổ vào trang tính — ba cột giờ đầu giữ nguyên */
+    const than=con.slice(1).map(h=>h.map((v,j)=>j<3?v:haiDong(v)));
+    r=thanBangXL(ws,r,than,['center','center','center',...Array.from({length:soCotDL},()=>'center')]);
     /* Ô "Nghỉ" làm mờ đi, ô có tiết giữ nền trắng — nhìn ra ngay lưới của khối */
     for(let i=0;i<than.length;i++){
       const row=ws.getRow(dCot+1+i);
@@ -9056,9 +9087,14 @@ async function xuatExcel(){
           o.alignment={horizontal:'center',vertical:'middle'};
         }else if(String(v).trim()){
           o.font={name:'Times New Roman',size:10};
-          o.alignment={vertical:'middle',wrapText:true};
+          o.alignment={horizontal:'center',vertical:'middle',wrapText:true};
         }
       });
+      /* ⚠️ Đè lại chiều cao mà `thanBangXL()` vừa đặt. Hàm ấy khoá 19 cho MỌI
+         bảng — đúng với bảng một dòng, nhưng ở đây ô có hai dòng chữ. Đây
+         chính là chỗ đã sinh ra cảnh chữ chồng nhau: bật wrapText mà không
+         nới chiều cao thì Excel vẫn cắt đúng 19 điểm. */
+      row.height=32;
     }
     ws.views=[{state:'frozen',xSplit:3,ySplit:dCot}];
     return ws;
