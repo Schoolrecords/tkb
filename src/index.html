@@ -327,6 +327,17 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 /* Thẻ chứa lưới thời khóa biểu: bớt lề để bảng rộng thêm gần 30px mỗi bên —
    ở đây từng cột là một lớp, mỗi milimét đều đổi thành nội dung đọc được. */
 .the-rong>.the-t{padding:12px 12px 14px}
+/* THẺ LƯỚI KHÔNG CÒN LÀ MỘT TẤM TRẮNG (23/8/2026, theo ảnh mẫu).
+   Nó vốn là thẻ trắng bao ngoài, mà bên trong nay đã có khung trắng riêng
+   của cột lớp + lưới — trắng lồng trắng, hai đường viền song song cách nhau
+   mươi pixel, không ngăn thêm được gì.
+   Bỏ nền còn được cái quan trọng hơn: bốn thẻ chuyển nay đứng trên NỀN
+   TRANG xanh nhạt, nên chúng để nền trắng là nổi hẳn lên — đúng ảnh mẫu,
+   và vẫn giữ nguyên tắc ngày 3/8 là nút chưa chọn phải khác màu nền sau nó.
+   Giữ nguyên tên lớp `the-luoi`: nó là mốc để `ve()` và chế độ toàn màn
+   hình tìm đúng khối lưới. */
+.the-luoi{background:none;border:0;box-shadow:none}
+.the-luoi>.the-t{padding:0}
 
 .vong{display:flex;align-items:center;gap:22px}
 /* Cụm chữ phải nằm GIỮA lỗ tròn. Bản cũ dùng `display:grid` với hai con:
@@ -396,13 +407,25 @@ table.tkb tr:last-child td{border-bottom:none}
    nền đậm thêm một nấc (11% → 15%) và tên môn to hơn nửa cỡ chữ. Bản nhạt
    trước đó đọc được trên màn hình văn phòng, nhưng nhoè hẳn khi chiếu máy
    chiếu phòng họp hội đồng — chỗ tấm thời khóa biểu hay bị đem ra soi nhất. */
-.o-tiet{min-height:56px;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;cursor:grab;
-  background:color-mix(in srgb,var(--mc,#2563EB) 15%,#fff);border:1px solid color-mix(in srgb,var(--mc,#2563EB) 30%,#fff);
+.o-tiet{min-height:58px;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;cursor:grab;
+  background:color-mix(in srgb,var(--mc,#2563EB) 24%,#fff);border:1px solid color-mix(in srgb,var(--mc,#2563EB) 40%,#fff);
   border-left:3px solid var(--mc,#2563EB);transition:box-shadow .14s,transform .09s;position:relative}
 .o-tiet:hover{box-shadow:0 5px 16px rgba(16,81,50,.14);transform:translateY(-1px);z-index:2}
 .o-tiet.keo{opacity:.4}
-.o-mon{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 80%,#000);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.o-gv{font-size:11px;color:var(--chu-mo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Chừa chỗ cho biểu tượng góc phải — thiếu `padding-right` là "Tiếng Việt"
+   chạy thẳng vào dưới hình, hai thứ chồng nhau ở đúng ô hẹp nhất. */
+.o-mon{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 82%,#000);padding-right:17px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Biểu tượng môn: nét mảnh, mờ, nằm dưới chữ về thứ bậc thị giác. Không
+   bắt sự kiện chuột — ô này còn phải kéo thả và chạm chọn. */
+.o-ic,.tiet-ca>.o-ic{position:absolute;top:7px;right:8px;width:15px;height:15px;
+  color:var(--mc,#2563EB);opacity:.42;stroke-width:1.7;pointer-events:none}
+.o-tiet.ghim .o-ic{display:none}
+.tiet-ca{position:relative}
+.tiet-ca>.o-ic{top:9px;right:9px;width:16px;height:16px}
+/* Nền đậm hơn thì chữ phụ cũng phải đậm theo, không thì tên giáo viên chìm
+   vào chính màu môn. Lấy màu môn pha đen thay cho xám trung tính. */
+.o-gv{font-size:11px;color:color-mix(in srgb,var(--mc) 42%,#4A5A52);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Chỉnh tay bằng cách chạm: ô đang chọn viền đậm, ô đặt được sáng xanh,
    ô vướng ràng buộc mờ đi. Thấy trước chỗ đặt thì không phải thử rồi bị từ chối. */
 .o-tiet.chon{outline:2.5px solid var(--nav);outline-offset:1px;box-shadow:0 7px 20px rgba(16,81,50,.22);z-index:3}
@@ -441,8 +464,13 @@ button.o-ghim:hover{transform:scale(1.2)}
    hai tiết cùng môn nằm sát nhau thì hai nền trùng màu dính thành một khối,
    nhìn ra một tiết dài chứ không phải hai tiết. Viền cộng khoảng hở mới tách
    được (chủ dự án chỉ ra 2/8/2026). */
-.tiet-ca{border-radius:9px;padding:8px 10px;background:color-mix(in srgb,var(--mc,#2563EB) 9%,#fff);
-  border:1px solid color-mix(in srgb,var(--mc,#2563EB) 26%,#fff);
+/* CÙNG độ đậm với ô tiết của lưới (23/8/2026) — 15% nền, 30% viền. Hai chỗ
+   này vẽ cùng một thứ: một tiết học. Trước đó thẻ tiết ở lịch cá nhân để
+   nhạt hơn (9%) nên cùng một môn, cùng một buổi, thầy cô mở "Thời khóa biểu
+   của tôi" lại thấy nhạt hơn hẳn lúc xem theo lớp — mà đây mới là màn hình
+   nhóm đông nhất mở mỗi sáng, và thường là mở ngoài sân, dưới nắng. */
+.tiet-ca{border-radius:9px;padding:8px 10px;background:color-mix(in srgb,var(--mc,#2563EB) 24%,#fff);
+  border:1px solid color-mix(in srgb,var(--mc,#2563EB) 40%,#fff);
   border-left:3px solid var(--mc,#2563EB)}
 .tiet-ca .st{font-size:10px;font-weight:700;color:var(--chu-mo);letter-spacing:.05em}
 /* Nhãn buổi trong lịch cá nhân. Dùng lại đúng bộ màu đã quy ước ở lưới rộng:
@@ -458,7 +486,7 @@ button.o-ghim:hover{transform:scale(1.2)}
 .bnhan span{margin-left:auto;font-weight:600;letter-spacing:0;color:var(--chu-mo)}
 .bnhom.chieu .bnhan{background:#FBF3E6;color:var(--cam)}
 .bnhom.chieu .bnhan span{color:#A98A5F}
-.tiet-ca .sm{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 76%,#000)}
+.tiet-ca .sm{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 82%,#000);padding-right:18px}
 .tiet-ca .sl{font-size:11px;color:var(--chu-mo)}
 .ngay-trong{font-size:12px;color:var(--chu-mo);text-align:center;padding:16px 0}
 
@@ -699,13 +727,16 @@ table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#BBD5C6;letter-spac
    chỉ một. Chưa chọn là nền xanh rất nhạt có viền; đang chọn là nền xanh
    đậm chữ trắng cộng đổ bóng. Nhìn ra ngay đâu là nút bấm được, đâu là nút
    đang mở — chỉ khác là nay nền trang sáng nên nút sáng mới hợp. */
+/* Đi cùng `.xem-nut`: nền trắng trên nền trang xanh nhạt (23/8/2026). Hai
+   dải nút này luôn đứng cạnh nhau trên cùng một màn hình, để lệch màu nhau
+   là mắt tưởng chúng làm hai việc khác loại. */
 .dt-nut{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:10px;cursor:pointer;
-  border:1px solid var(--nav-vien);background:var(--nav-nhat);color:var(--nav);font-size:13.5px;font-weight:600;
+  border:1px solid var(--ke-2);background:#fff;color:var(--chu);font-size:13.5px;font-weight:600;
   font-family:inherit;box-shadow:0 1px 2px rgba(16,81,50,.06);
   transition:background .16s,box-shadow .12s,transform .08s}
-.dt-nut:hover{background:var(--nav-nhat-2)}
+.dt-nut:hover{background:var(--nav-nhat)}
 .dt-nut:active{transform:translateY(-2px)}
-.dt-nut span{font-size:11.5px;font-weight:700;background:rgba(16,81,50,.10);color:var(--nav);
+.dt-nut span{font-size:11.5px;font-weight:700;background:#EEF4F0;color:var(--chu-mo);
   padding:2px 8px;border-radius:20px}
 .dt-nut.on{background:var(--nav);color:#fff;border-color:var(--nav);
   box-shadow:0 3px 10px rgba(16,81,50,.28)}
@@ -876,10 +907,10 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .dai-xem{display:flex;gap:8px;background:transparent;border:0;
   border-radius:var(--r2);padding:0;margin-bottom:12px;flex-wrap:wrap}
 .xem-nut{flex:1 1 auto;min-width:110px;min-height:44px;padding:11px 14px;cursor:pointer;
-  background:var(--nav-nhat);border:1px solid var(--nav-vien);border-radius:11px;font-size:13.5px;font-weight:600;
-  color:var(--nav);box-shadow:0 1px 2px rgba(16,81,50,.06);
+  background:#fff;border:1px solid var(--ke-2);border-radius:11px;font-size:13.5px;font-weight:600;
+  color:var(--chu);box-shadow:0 1px 2px rgba(16,81,50,.06);
   transition:background .16s,box-shadow .12s,transform .08s}
-.xem-nut:hover{background:var(--nav-nhat-2)}
+.xem-nut:hover{background:var(--nav-nhat)}
 .xem-nut:active{transform:translateY(-2px)}
 .xem-nut.on{background:var(--nav);color:#fff;font-weight:700;border-color:var(--nav);
   box-shadow:0 3px 10px rgba(16,81,50,.28)}
@@ -926,7 +957,7 @@ tr.pa-tot td{background:var(--xanh-nen)}
    Hai lớp viền chồng nhau là ra một đường kẻ đôi mờ ở khắp bốn cạnh. */
 .cl-boc .luoi-boc{border:0;border-radius:0;box-shadow:none;height:100%}
 .cot-lop{flex:0 0 160px;width:160px;position:relative;
-  border-right:1px solid var(--ke);background:#FAFDFB}
+  border-right:1px solid var(--ke);background:#F7FBF9}
 .cl-trong{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;padding:11px 10px}
 .cot-lop .loc{margin:0}
 .cot-lop .loc-o{max-width:none}
@@ -937,12 +968,12 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .cl-khoi:first-child{padding-top:1px}
 .cl-n{display:flex;align-items:center;justify-content:space-between;gap:7px;
   padding:7px 8px 7px 11px;border:1px solid var(--nav-vien);border-radius:9px;cursor:pointer;text-align:left;
-  font-family:inherit;background:var(--nav-nhat);color:var(--nav);
+  font-family:inherit;background:#fff;color:var(--chu);
   box-shadow:0 1px 2px rgba(16,81,50,.05);transition:background .16s,box-shadow .12s,transform .08s}
 .cl-n b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cl-n span{flex:0 0 auto;font-size:10.5px;font-weight:700;color:var(--nav);
-  background:rgba(16,81,50,.10);padding:2px 7px;border-radius:20px}
-.cl-n:hover{background:var(--nav-nhat-2)}
+.cl-n span{flex:0 0 auto;font-size:10.5px;font-weight:700;color:var(--chu-mo);
+  background:#EEF4F0;padding:2px 7px;border-radius:20px}
+.cl-n:hover{background:var(--nav-nhat)}
 .cl-n:active{transform:translateY(-2px)}
 .cl-n.on{background:var(--nav);color:#fff;border-color:var(--nav);
   box-shadow:0 3px 10px rgba(16,81,50,.26)}
@@ -1336,52 +1367,56 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
         <path d="M188 86C242 50 298 36 358 36C428 36 492 58 600 76V86Z" fill="url(#doi-truoc)"/>
         <path d="M358 36C428 36 492 58 600 76V86H398C398 63 380 45 358 36Z" fill="#5AA24F" opacity=".32"/>
         <!-- NGÔI TRƯỜNG (23/8/2026, theo ảnh mẫu chủ dự án gửi) — điểm nhìn
-             chính của bức tranh. Đặt ở khoảng x 166–300: vừa qua chỗ mặt nạ
-             tan mờ, vừa cách mép phải đủ xa để cụm nút (Đăng nhập · tìm ·
-             chuông) không lấn tới. Nút "Đăng nhập" là nhãn dài nhất mà nút
-             ấy từng mang — canh chỗ theo nó thì mọi trạng thái khác đều dư. -->
-        <g transform="translate(166 0)">
+             chính của bức tranh, nên nó phải TO: bản đầu vẽ rộng 130 đơn vị,
+             đặt cạnh mấy tán cây thì đọc ra một cái nhà nhỏ ven đồi chứ không
+             ra ngôi trường. Bản này rộng 170 và DÀI RA HAI BÊN chứ không cao
+             thêm — thanh đầu trang chỉ cao chừng 76px, cao thêm là cụt mái.
+             Đứng ở x 140–310: vừa qua chỗ mặt nạ tan mờ (hết mờ ở 126), vừa
+             cách mép phải đủ xa để cụm nút không lấn tới. Canh theo nhãn
+             "Đăng nhập" — nhãn dài nhất nút ấy từng mang, nên mọi trạng thái
+             khác đều dư chỗ. -->
+        <g transform="translate(140 0)">
           <!-- bóng đổ trên cỏ, cho nhà đứng chứ không dán lên đồi -->
-          <ellipse cx="66" cy="76" rx="62" ry="5" fill="#3F7F3D" opacity=".18"/>
-          <!-- cánh trái và cánh phải: thân kem, mái cam đất -->
+          <ellipse cx="86" cy="77" rx="84" ry="5" fill="#3F7F3D" opacity=".16"/>
+          <!-- hai cánh nhà: thân kem, mái cam đất -->
           <g fill="#FCF3DE" stroke="#E6D6B0" stroke-width=".8">
-            <rect x="6" y="55" width="40" height="21" rx="1.5"/>
-            <rect x="86" y="55" width="40" height="21" rx="1.5"/>
+            <rect x="2" y="55" width="54" height="21" rx="1.5"/>
+            <rect x="116" y="55" width="54" height="21" rx="1.5"/>
           </g>
           <g fill="#D9814A">
-            <path d="M2 56L26 44l24 12z"/><path d="M82 56l24-12 24 12z"/>
+            <path d="M-3 56L29 43l32 13z"/><path d="M111 56l32-13 32 13z"/>
           </g>
           <!-- khối giữa cao hơn, có tháp và cột cờ -->
-          <rect x="44" y="46" width="44" height="30" rx="1.5" fill="#FEF8EA" stroke="#E6D6B0" stroke-width=".8"/>
-          <path d="M39 47L66 31l27 16z" fill="#C96C3C"/>
-          <path d="M66 31v-13" stroke="#6E6257" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M66.8 18l9 3-9 3z" fill="#DC3545"/>
+          <rect x="57" y="44" width="58" height="32" rx="1.5" fill="#FEF8EA" stroke="#E6D6B0" stroke-width=".8"/>
+          <path d="M51 45L86 28l35 17z" fill="#C96C3C"/>
+          <path d="M86 28V14" stroke="#6E6257" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M86.8 14.5l9.5 3-9.5 3z" fill="#DC3545"/>
           <!-- đồng hồ mặt tiền: chi tiết nhỏ nhưng nói ngay đây là trường học -->
-          <circle cx="66" cy="41" r="3.6" fill="#FDF6E3" stroke="#B08A5A" stroke-width=".9"/>
-          <path d="M66 41v-2M66 41l1.6 1" stroke="#8A6B44" stroke-width=".7" stroke-linecap="round"/>
+          <circle cx="86" cy="39" r="3.8" fill="#FDF6E3" stroke="#B08A5A" stroke-width=".9"/>
+          <path d="M86 39v-2.1M86 39l1.7 1.1" stroke="#8A6B44" stroke-width=".7" stroke-linecap="round"/>
           <!-- cửa chính vòm và bậc thềm -->
-          <path d="M60 76V65a6 6 0 0112 0v11z" fill="#B9793F"/>
-          <rect x="57" y="74" width="18" height="2.6" rx="1" fill="#E4D6B8"/>
-          <!-- cửa sổ: hai dãy, kính xanh nhạt -->
+          <path d="M79 76V65a7 7 0 0114 0v11z" fill="#B9793F"/>
+          <rect x="75" y="74" width="22" height="2.6" rx="1" fill="#E4D6B8"/>
+          <!-- cửa sổ: kính xanh nhạt, dàn đều hai cánh -->
           <g fill="#BFE1F0" stroke="#fff" stroke-width=".9">
-            <rect x="12" y="60" width="8" height="8" rx="1"/><rect x="24" y="60" width="8" height="8" rx="1"/>
-            <rect x="36" y="60" width="6" height="8" rx="1"/>
-            <rect x="90" y="60" width="6" height="8" rx="1"/>
-            <rect x="100" y="60" width="8" height="8" rx="1"/><rect x="112" y="60" width="8" height="8" rx="1"/>
-            <rect x="48" y="53" width="7" height="7" rx="1"/><rect x="77" y="53" width="7" height="7" rx="1"/>
+            <rect x="8" y="60" width="9" height="9" rx="1"/><rect x="21" y="60" width="9" height="9" rx="1"/>
+            <rect x="34" y="60" width="9" height="9" rx="1"/><rect x="47" y="60" width="6" height="9" rx="1"/>
+            <rect x="119" y="60" width="6" height="9" rx="1"/><rect x="129" y="60" width="9" height="9" rx="1"/>
+            <rect x="142" y="60" width="9" height="9" rx="1"/><rect x="155" y="60" width="9" height="9" rx="1"/>
+            <rect x="62" y="52" width="8" height="8" rx="1"/><rect x="102" y="52" width="8" height="8" rx="1"/>
           </g>
         </g>
-        <!-- cây hai bên trường, nhỏ hơn ngôi nhà để nhà giữ vai chính -->
+        <!-- cây hai bên trường, thấp hơn mái để nhà giữ vai chính -->
         <g>
-          <rect x="146" y="64" width="2.6" height="13" rx="1.3" fill="#4B5A54"/>
-          <circle cx="147" cy="61" r="9.5" fill="url(#tan)"/>
-          <circle cx="140" cy="66" r="6.5" fill="url(#tan-nho)"/>
-          <rect x="312" y="62" width="3" height="15" rx="1.5" fill="#46534E"/>
-          <circle cx="313.5" cy="58" r="11" fill="url(#tan)"/>
-          <circle cx="305" cy="64" r="7" fill="url(#tan-nho)"/>
-          <circle cx="322" cy="64" r="6.5" fill="#8CC65E"/>
-          <rect x="120" y="72" width="2.2" height="9" rx="1.1" fill="#4B5A54"/>
-          <circle cx="121" cy="70" r="6.5" fill="#8CC65E"/>
+          <rect x="118" y="65" width="2.6" height="12" rx="1.3" fill="#4B5A54"/>
+          <circle cx="119" cy="62" r="8.5" fill="url(#tan)"/>
+          <circle cx="112" cy="67" r="6" fill="url(#tan-nho)"/>
+          <rect x="324" y="63" width="3" height="14" rx="1.5" fill="#46534E"/>
+          <circle cx="325.5" cy="59" r="10.5" fill="url(#tan)"/>
+          <circle cx="317" cy="65" r="6.5" fill="url(#tan-nho)"/>
+          <circle cx="334" cy="65" r="6" fill="#8CC65E"/>
+          <rect x="96" y="72" width="2.2" height="9" rx="1.1" fill="#4B5A54"/>
+          <circle cx="97" cy="70" r="6.5" fill="#8CC65E"/>
         </g>
         <!-- dải cỏ trước sân, khép chân nhà vào mặt đất -->
         <path d="M120 86c60-9 130-11 200-6 60 4 180 3 280-4v10z" fill="#8FC96A" opacity=".55"/>
@@ -6161,6 +6196,39 @@ function luoiTuanKhung(oNoi){
   return bang+'</tbody></table></div>';
 }
 
+/* ==================================================================
+   BIỂU TƯỢNG TỪNG MÔN (23/8/2026 — theo ảnh mẫu chủ dự án gửi)
+   ------------------------------------------------------------------
+   Tra theo LỚP MÀU (`m-tv`, `m-toan`…) chứ không theo tên môn: trường
+   tự khai thêm môn thì chỉ chọn màu, không ai đi khai một hình vẽ. Môn
+   mới vì thế mượn luôn hình của màu mình chọn — "Tiếng Pháp" chọn màu
+   Tiếng Anh thì ra quả địa cầu, đúng nghĩa hơn là một ô trống.
+
+   Nét mảnh, không tô nền, và mờ 42% ở lớp dưới chữ. Biểu tượng ở đây là
+   MỐC NHẬN DIỆN NHANH cho mắt lướt qua 30 ô một lúc, không phải thông
+   tin — thông tin vẫn nằm ở tên môn viết đủ chữ. Đậm bằng chữ là nó
+   tranh chỗ với chính cái tên nó đi kèm.
+   ================================================================== */
+const IC_MON = {
+  'm-tv'  :'<path d="M12 7C10 5.4 7.6 5 5 5v12c2.6 0 5 .4 7 2 2-1.6 4.4-2 7-2V5c-2.6 0-5 .4-7 2z"/><path d="M12 7v12"/>',
+  'm-toan':'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 13h2M11 13h2M15 13h1M8 17h2M11 17h2M15 17h1"/>',
+  'm-ta'  :'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.6 2.4 12.4 0 16-2.4-3.6-2.4-13.4 0-16"/>',
+  'm-hdtn':'<circle cx="12" cy="7" r="3"/><path d="M5.5 20c.6-3.7 3.3-5.5 6.5-5.5s5.9 1.8 6.5 5.5"/>',
+  'm-gdtc':'<path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/>',
+  'm-tnxh':'<path d="M12 21v-6"/><path d="M12 15c-3.3 0-5.5-2.2-5.5-5.2S8.7 3.5 12 3.5s5.5 3.3 5.5 6.3S15.3 15 12 15z"/>',
+  'm-dd'  :'<path d="M12 20S4.8 15.4 4.8 10.6A3.9 3.9 0 0112 8.2a3.9 3.9 0 017.2 2.4C19.2 15.4 12 20 12 20z"/>',
+  'm-an'  :'<path d="M9 17V5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>',
+  'm-mt'  :'<path d="M15.5 4.5l4 4-9.5 9.5H6v-4z"/><path d="M13.5 6.5l4 4"/>',
+  'm-ls'  :'<path d="M9 4.5L3 6.5v13l6-2 6 2 6-2v-13l-6 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/>',
+  'm-kh'  :'<path d="M9.5 3v6.2L4.8 18a2 2 0 001.7 3h11a2 2 0 001.7-3l-4.7-8.8V3"/><path d="M8.5 3h7M7.4 14h9.2"/>',
+  'm-th'  :'<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/>',
+  'm-cn'  :'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3M6 6l2.1 2.1M15.9 15.9L18 18M18 6l-2.1 2.1M8.1 15.9L6 18"/>'
+};
+/* Ô đã ghim thì KHÔNG bày biểu tượng — dấu ghim 📌 ngồi đúng chỗ ấy, và
+   giữa một thông tin thật với một mốc nhận diện thì thông tin thắng. */
+const icMon = m => `<svg class="o-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC_MON[mLop(m)]||IC_MON['m-tv']}</svg>`;
+
 /* Lưới tuần của MỘT GIÁO VIÊN. Màn hình Theo giáo viên dùng chung hàm này. */
 function luoiTuanGV(id){
   const bb=buoiBat(), lich={};
@@ -6171,7 +6239,7 @@ function luoiTuanGV(id){
     if(!k||i>=k.tiet) return '<div class="o-nghi"></div>';
     const v=lich[`${t}-${b}-${i}`];
     if(!v) return '<div class="o-trong"></div>';
-    return `<div class="o-tiet ${mLop(v.mon)}"><div class="o-mon">${esc(v.mon)}</div>
+    return `<div class="o-tiet ${mLop(v.mon)}">${icMon(v.mon)}<div class="o-mon">${esc(v.mon)}</div>
       <div class="o-gv">Lớp ${esc(lopId(v.lp)?.ten)} · ${esc(tenDT(S.lopDT[v.lp]))}</div></div>`;
   });
 }
@@ -6185,7 +6253,7 @@ function luoiTuanLop(id){
     const v=o[`${t}-${b}-${i}`];
     if(!v) return '<div class="o-trong"></div>';
     const g=gvId(v.gvId);
-    return `<div class="o-tiet ${mLop(v.mon)}" style="cursor:default">
+    return `<div class="o-tiet ${mLop(v.mon)}" style="cursor:default">${icMon(v.mon)}
       <div class="o-mon">${esc(v.mon)}</div>
       <div class="o-gv">${esc(tenTat(g?.hoTen||''))}</div></div>`;
   });
@@ -6648,7 +6716,7 @@ function mTKBLop(){
     const g=gvId(v.gvId);
     return `<div class="o-tiet ${mLop(v.mon)}${v.ghim?' ghim':''}${khoa===S.oChon?' chon':''}${nhan(khoa)}"
       ${suaDuoc?`draggable="true" data-keo="${khoa}" data-tha="${khoa}"${cham}`:'style="cursor:default"'}
-      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}">
+      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}">${icMon(v.mon)}
       <div class="o-mon">${esc(v.mon)}</div><div class="o-gv">${esc(tenTat(g?.hoTen||''))}</div>
       ${v.ghim&&suaDuoc?`<button class="o-ghim" data-boghim="${khoa}" title="Bỏ ghim tiết này">📌</button>`
         :v.ghim?'<span class="o-ghim">📌</span>':''}</div>`;
@@ -6703,7 +6771,7 @@ function mTKBGV(){
     const v=lich[`${t}-${b}-${i}`];
     if(!v) return `<div class="o-trong"></div>`;
     const dt=S.lopDT[v.lp];
-    return `<div class="o-tiet ${mLop(v.mon)}"><div class="o-mon">${esc(v.mon)}</div>
+    return `<div class="o-tiet ${mLop(v.mon)}">${icMon(v.mon)}<div class="o-mon">${esc(v.mon)}</div>
       <div class="o-gv">Lớp ${esc(lopId(v.lp)?.ten)} · ${esc(tenDT(dt))}</div></div>`;
   };
   let bang=`<div class="luoi-boc"><table class="tkb"><thead><tr><th class="gt">Buổi</th><th style="width:52px">Tiết</th>
@@ -6829,7 +6897,7 @@ function mCuaToi(){
             if(!ds.length) return '';
             return `<div class="bnhom ${b==='S'?'sang':'chieu'}">
               <div class="bnhan">${ten}<span>${ds.length} tiết</span></div>
-              ${ds.map(x=>`<div class="tiet-ca ${mLop(x.mon)}">
+              ${ds.map(x=>`<div class="tiet-ca ${mLop(x.mon)}">${icMon(x.mon)}
                 <div class="st">Tiết ${x.i+1}</div>
                 <div class="sm">${esc(x.mon)}</div>
                 <div class="sl">Lớp ${esc(lopId(x.lp)?.ten)} · ${esc(tenDT(S.lopDT[x.lp]))}</div>

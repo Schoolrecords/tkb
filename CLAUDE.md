@@ -1434,34 +1434,64 @@ tên màu, và đổi tên thì phải sửa hàng trăm chỗ mà chẳng đư�
   cây) ở nửa phải, không còn là khối navy đậm. Chữ vì thế là chữ thường,
   không phải chữ trắng. Mép trái hình phải tan dần bằng một lớp gradient
   trắng phủ lên — thiếu nó là lộ một vạch dọc cắt ngang thanh.
-  **Giữa tranh là NGÔI TRƯỜNG** *(23/8/2026)* — thân kem, mái cam đất, tháp
-  giữa có đồng hồ và cột cờ. Nó đứng ở khoảng `x 166–300` của `viewBox` 600
-  đơn vị, và chỗ ấy là chỗ duy nhất đặt được: lệch trái thì rơi vào vùng mặt
-  nạ còn đang tan mờ, lệch phải thì cụm nút *Đăng nhập · tìm · chuông* che
-  mất mái. Canh chỗ theo nhãn **"Đăng nhập"** — nhãn dài nhất nút ấy từng
-  mang, nên mọi trạng thái khác đều dư chỗ.
+  **Giữa tranh là NGÔI TRƯỜNG** *(23/8/2026)* — hai cánh nhà, khối giữa có
+  đồng hồ và cột cờ, thân kem mái cam đất. Nó đứng ở `x 140–310` của
+  `viewBox` 600 đơn vị, và chỗ ấy là chỗ duy nhất đặt được: lệch trái thì
+  rơi vào vùng mặt nạ còn đang tan mờ (hết mờ ở 126), lệch phải thì cụm nút
+  *Đăng nhập · tìm · chuông* che mất mái. Canh chỗ theo nhãn **"Đăng nhập"**
+  — nhãn dài nhất nút ấy từng mang, nên mọi trạng thái khác đều dư chỗ.
+  ⚠️ **To ra thì DÀI RA HAI BÊN, đừng cao thêm.** Bản đầu vẽ rộng 130 đơn vị,
+  đặt cạnh mấy tán cây thì đọc ra một cái nhà nhỏ ven đồi chứ không ra ngôi
+  trường — chủ dự án nhận ra ngay khi đối chiếu với ảnh mẫu. Nay rộng 170 mà
+  giữ nguyên chiều cao: thanh đầu trang chỉ cao chừng 76px, và `viewBox` cắt
+  theo mép **dưới** (`xMaxYMax slice`) nên cao thêm là cụt mái.
 - **Ba nút góc phải thanh đầu cùng một dáng: tròn, nền trắng viền nhạt**
   *(23/8/2026)*. Trước đó tìm kiếm và chuông là hai khối xanh đặc, nặng
   ngang cụm chữ tên trường trong khi việc của chúng chỉ là hai lối phụ — và
   nút tài khoản sáng kẹp giữa hai khối tối thì ba nút không đọc ra một cụm.
-- **Nút trên nền trắng: nền SÁNG chữ xanh, đang chọn mới đậm.** Đảo chiều
-  so với bản navy ngày 3/8, nhưng giữ nguyên nguyên tắc của hôm ấy: nút
-  chưa chọn vẫn phải có nền và viền riêng, không được trắng trơn như nền
-  thẻ ("nhìn màu trắng không rõ"), và nút đang chọn hơn nó bằng **hai** tín
-  hiệu — màu đậm cộng đổ bóng. Có phép thử canh cả hai vế.
+- **Nút chưa chọn: NỀN TRẮNG chữ đen, đứng trên nền TRANG** *(sửa 23/8/2026
+  theo ảnh mẫu)*. Nguyên tắc ngày 3/8 giữ nguyên — nút chưa chọn phải khác
+  màu nền ngay sau nó và phải có viền ("nhìn màu trắng không rõ") — chỉ đổi
+  cách đạt. Nút trắng chỉ nổi được vì **thẻ bao ngoài đã bỏ nền**: `.the-luoi`
+  nay trong suốt, nên bốn thẻ chuyển đứng trên nền trang xanh nhạt.
+  ⚠️ Hai vế buộc đi cùng nhau. Trả nền trắng lại cho `.the-luoi` mà vẫn để
+  nút trắng là quay đúng về lỗi cũ — phép thử soi cả hai vế cùng lúc.
+  Bỏ nền thẻ còn dọn luôn chuyện trắng-lồng-trắng: bên trong nó nay đã có
+  khung riêng của cột lớp + lưới, hai đường viền song song cách nhau mươi
+  pixel thì không ngăn thêm được gì. Nút đang chọn vẫn hơn bằng **hai** tín
+  hiệu — màu đậm cộng đổ bóng.
 - `.b-vang` nay là **xanh lá đậm** chứ không còn màu vàng. Vàng chỉ còn ở
   logo, vạch đánh dấu mục đang mở và ô biểu tượng *Cảnh báo*.
 - Ba thẻ dưới Bảng điều hành mang **ô biểu tượng vuông bo tròn** (`.the-ic`)
   màu theo vai trò: xanh đậm = tiến độ, xanh lá = xong, đỏ = có việc gấp,
   vàng = cảnh báo.
 - Mỗi môn học một màu riêng (nền pastel + viền trái đậm, suy từ `--mc` bằng
-  `color-mix`), mỗi điểm trường một màu riêng. **Không dùng biểu tượng cho
-  từng môn** — chủ dự án chốt bỏ, và giữ nguyên khi hỏi lại 23/8/2026 dù ảnh
-  mẫu hôm ấy có vẽ icon trong ô.
-- **Ô tiết đậm hơn một nấc** *(23/8/2026)*: nền `11% → 15%` màu môn, viền
-  `26% → 30%`, tên môn 12.5px, ô cao 56px. Bản nhạt trước đó đọc được trên
+  `color-mix`), mỗi điểm trường một màu riêng.
+- **MỖI MÔN MỘT BIỂU TƯỢNG** *(23/8/2026 — `IC_MON` · `icMon()`)*. Đảo lại
+  quyết định "chốt bỏ icon" cũ: ảnh mẫu chủ dự án gửi có icon ở mọi ô, và khi
+  hỏi lại thì chốt là thêm. Ba điều của bộ này:
+  - **Tra theo LỚP MÀU** (`m-tv`, `m-toan`…), không theo tên môn. Trường tự
+    khai thêm môn thì chỉ chọn màu, không ai đi khai một hình vẽ — môn mới vì
+    thế mượn luôn hình của màu mình chọn.
+  - **Nét mảnh, mờ 42%, nằm dưới chữ về thứ bậc.** Nó là mốc nhận diện nhanh
+    cho mắt lướt 30 ô một lúc, không phải thông tin — thông tin vẫn nằm ở tên
+    môn viết đủ chữ. Đậm bằng chữ là tranh chỗ với chính cái tên nó đi kèm.
+  - **Ô đã ghim thì KHÔNG bày icon** (`.o-tiet.ghim .o-ic{display:none}`):
+    dấu ghim 📌 ngồi đúng góc ấy, và giữa một thông tin thật với một mốc
+    trang trí thì thông tin thắng.
+  ⚠️ `.o-mon` phải có `padding-right` — thiếu là "Tiếng Việt" chạy thẳng vào
+  dưới hình ở đúng những ô hẹp nhất.
+- **Ô tiết đậm hơn HAI nấc** *(23/8/2026)*: nền `11% → 24%` màu môn, viền
+  `26% → 40%`, tên môn 12.5px, ô cao 58px. Bản nhạt trước đó đọc được trên
   màn hình văn phòng nhưng nhoè hẳn khi chiếu máy chiếu phòng họp hội đồng —
-  chỗ tấm thời khóa biểu hay bị đem ra soi nhất.
+  chỗ tấm thời khóa biểu hay bị đem ra soi nhất. Nền đậm lên thì **tên giáo
+  viên cũng phải đổi** từ xám trung tính sang màu môn pha đen, không thì nó
+  chìm vào chính cái nền ấy.
+- Lịch cá nhân (`.tiet-ca`, màn *Thời khóa biểu của tôi*) đi **cùng một mức
+  đậm và cùng bộ icon** với ô tiết của lưới. Hai chỗ vẽ cùng một thứ — một
+  tiết học — mà để lệch thì thầy cô mở lịch mình lại thấy nhạt hơn lúc xem
+  theo lớp, đúng cái màn hình nhóm đông nhất mở mỗi sáng, thường là ngoài
+  sân dưới nắng.
 - **Cột lớp và lưới là MỘT KHỐI LIỀN, không phải hai mảng rời** *(23/8/2026 —
   `.cl-boc`)*. Trước đó cột lớp nằm trần trên nền trang còn lưới là thẻ trắng
   có viền riêng: hai thứ luôn dùng cùng nhau mà nhìn ra hai vật thể, đúng kiểu

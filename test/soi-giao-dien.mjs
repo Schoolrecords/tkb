@@ -1004,18 +1004,23 @@ kt('Không còn dải chỉ số nào khác lặp lại cùng mấy con số ấ
 })());
 
 console.log('\n15h2. Bốn cách xem, chuyển TẠI CHỖ trên Bảng điều hành');
-kt('Thẻ chuyển và nút điểm trường cùng một hệ màu, không có nút nào nền trắng trơn', (() => {
-  /* Bảng màu đổi sang xanh lá 16/8/2026 và đảo chiều sáng tối: chưa chọn
-     nay là NỀN SÁNG CHỮ XANH có viền, đang chọn là nền xanh đậm chữ trắng.
-     Nguyên tắc gốc của ngày 3/8 vẫn giữ — "nhìn màu trắng không rõ" nên nút
-     chưa chọn phải có nền và viền riêng, không được trắng trơn như nền thẻ. */
+kt('Nút chưa chọn nổi trên nền TRANG — không bao giờ trắng trơn trên thẻ trắng', (() => {
+  /* Đổi 23/8/2026 theo ảnh mẫu: nút chưa chọn nay NỀN TRẮNG chữ đen. Điều
+     đó chỉ đúng vì thẻ bao ngoài đã bỏ nền, nên nút đứng trên nền trang
+     xanh nhạt và vẫn nổi khối. Nguyên tắc ngày 3/8 giữ nguyên — "nhìn màu
+     trắng không rõ" — chỉ đổi cách đạt: nút chưa chọn phải khác màu nền
+     NGAY SAU NÓ, và phải có viền.
+
+     Hai vế buộc phải đi cùng nhau nên phép thử soi cả hai: trả nền trắng
+     lại cho .the-luoi mà vẫn để nút trắng là quay đúng về lỗi cũ, và không
+     ai nhận ra cho tới lúc chủ dự án mở lên nhìn. */
   const css = w.document.documentElement.innerHTML;
-  const xem = css.slice(css.indexOf('.xem-nut{'), css.indexOf('.xem-nut{') + 340);
-  const dt  = css.slice(css.indexOf('.dt-nut{'),  css.indexOf('.dt-nut{')  + 340);
-  return /background:var\(--nav-nhat\)/.test(xem) && /color:var\(--nav\)/.test(xem)
-    && /border:1px solid var\(--nav-vien\)/.test(xem)
-    && /background:var\(--nav-nhat\)/.test(dt)  && /color:var\(--nav\)/.test(dt)
-    && /--nav-nhat:#/.test(css);
+  const lat = ten => css.slice(css.indexOf(ten), css.indexOf(ten) + 340);
+  const xem = lat('.xem-nut{'), dt = lat('.dt-nut{');
+  const co = (chuoi, ...manh) => manh.every(m => chuoi.includes(m));
+  return co(xem, 'background:#fff', 'border:1px solid var(--ke-2)', 'color:var(--chu)')
+    && co(dt, 'background:#fff', 'border:1px solid var(--ke-2)')
+    && css.includes('.the-luoi{background:none;border:0;box-shadow:none}');
 })());
 kt('Nhưng thẻ ĐANG CHỌN vẫn đậm hơn hẳn — hai tín hiệu, không chỉ một', (() => {
   const css = w.document.documentElement.innerHTML;
