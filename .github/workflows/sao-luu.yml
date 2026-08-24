@@ -19,9 +19,13 @@
 #
 # CÀI ĐẶT MỘT LẦN — Settings → Secrets and variables → Actions:
 #   DB_URL      chuỗi kết nối Postgres của dự án Supabase.
-#               Lấy ở: Project Settings → Database → Connection string
-#               → URI, chọn cổng 5432 (direct connection).
-#               Dạng: postgresql://postgres:MẬT-KHẨU@db.xxx.supabase.co:5432/postgres
+#               Lấy ở: nút Connect trên bảng điều khiển → Session pooler.
+#               Dạng: postgresql://postgres.xxx:MẬT-KHẨU@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
+#               ⚠️ PHẢI dùng Session pooler, KHÔNG dùng direct connection
+#               (db.xxx.supabase.co): địa chỉ ấy chỉ có IPv6, máy chạy của
+#               GitHub chỉ có IPv4 — nối là hỏng ngay từ bước quay số.
+#               Mật khẩu có ký tự đặc biệt (@, :, /) thì phải mã hoá URL
+#               (@ viết thành %40).
 #   BACKUP_KEY  một chuỗi dài tự đặt để mã hoá. Cất riêng ra ngoài
 #               GitHub — giấy, sổ tay, trình quản lý mật khẩu.
 #
@@ -79,6 +83,11 @@ jobs:
           BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
         run: |
           set -euo pipefail
+          # Máy chạy có sẵn pg_dump 16 ở /usr/bin và bản ấy THẮNG trên PATH
+          # dù đã cài postgresql-client-17 — đã hỏng thật 25/8/2026 với lỗi
+          # "server version mismatch". Trỏ thẳng vào bản 17 vừa cài.
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          pg_dump --version
           ngay=$(date -u +%Y-%m-%d)
           # Chỉ lấy schema `public`: bảng nghiệp vụ của mình. Không đụng
           # `auth` và các schema nội bộ của Supabase — chúng do nền tảng
