@@ -1635,7 +1635,10 @@ const oTuanLop = id => oTuan(lopId(id)?.khoi);
 /* Sức chứa tối đa mỗi tuần của từng khối */
 const sucChuaKhoi = () => Object.fromEntries([1,2,3,4,5].map(k=>[k, oTuan(k).length]));
 function bao(m,loi){const b=$('#bao');b.textContent=m;b.className=(loi?'loi ':'')+'on';
-  clearTimeout(b._h);b._h=setTimeout(()=>b.className='',2800);}
+  /* Câu ngắn 2,8 giây như cũ; câu dài thêm thời gian theo độ dài (≈ 55 ms
+     mỗi ký tự, tối đa 12 giây) — các lời nhắc của luồng nhận danh sách vắng
+     từ Quản trị số dài 100–150 ký tự, 2,8 giây là tắt trước khi đọc xong. */
+  clearTimeout(b._h);b._h=setTimeout(()=>b.className='',Math.min(12000,Math.max(2800,String(m).length*55)));}
 
 /* Lớp trong phạm vi đang xem */
 const lopTrongPV=()=>S.phamVi?S.lop.filter(l=>S.lopDT[l.id]===S.phamVi):S.lop;
@@ -5676,6 +5679,8 @@ function khongDau(s){
    ⚠️ KHÔNG ghi vào gv_nghi: bảng ấy là buổi bận LẶP LẠI hằng tuần, dùng để
       XẾP thời khóa biểu. Nghỉ đột xuất một ngày là bao_nghi. */
 const HSS_KHOA_HASH = 'hss-vang=';
+/* Khoá cất tạm trong sessionStorage — xem catTamVangHSS(). */
+const HSS_KHOA_CAT = 'hss-vang-cho';
 
 /* Đọc và tách khỏi địa chỉ. Gọi MỘT lần lúc mở trang, TRƯỚC khi xoá hash. */
 function docVangTuHSS(){
@@ -5720,18 +5725,66 @@ function xoaHashHSS(){
   try{ w?.history?.replaceState(null, '', w.location.pathname + w.location.search); }catch(e){}
 }
 
+/* ---- Cất tạm qua vòng đăng nhập Google (vá 24/8/2026) ----
+   LỖ HỔNG ĐÃ CÓ THẬT: mở đường dẫn #hss-vang khi máy này CHƯA có vé nhớ sẵn
+   (lần đầu trên máy, vé hết hạn, hay iPhone: app cài ở màn hình chính có kho
+   riêng, còn link từ Quản trị số lại mở trong Safari) thì khoiDong() không
+   mời nhận, người dùng bấm Đăng nhập Google, redirect_to chỉ mang origin +
+   pathname, GoTrue trả về #access_token=… ĐÈ LÊN #hss-vang=… → danh sách
+   vắng mất im lặng, không ai được báo.
+
+   Không mang hash qua redirect_to được (GoTrue tự ghi fragment của nó), nên
+   cất vào sessionStorage: sống đúng bằng TAB này, qua được vòng chuyển hướng
+   sang Google rồi về, đóng tab là tự mất — không lây sang tab khác, không
+   nằm lại máy như localStorage. Đăng nhập xong khoiDong() chạy lại, đọc từ
+   đây thay cho hash. */
+function catTamVangHSS(goi){
+  try{ cuaSo()?.sessionStorage?.setItem(HSS_KHOA_CAT, JSON.stringify(goi)); }catch(e){}
+}
+function layVangCatTam(){
+  try{
+    const ss = cuaSo()?.sessionStorage; if(!ss) return null;
+    const t = ss.getItem(HSS_KHOA_CAT); if(!t) return null;
+    const goi = JSON.parse(t);
+    if(!goi || !Array.isArray(goi.ds) || !goi.ds.length) return null;
+    /* Tab để mở nhiều ngày rồi mới đăng nhập lại: gói của hôm kia không
+       còn nghĩa — bỏ, đừng mời nhận danh sách vắng cũ. Nhận từ HÔM QUA trở
+       đi (buổi chiều hôm trước bấm, sáng nay mới đăng nhập vẫn hợp lý). */
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    const homQua = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if(String(goi.ngay || '') < homQua){ ss.removeItem(HSS_KHOA_CAT); return null; }
+    return goi;
+  }catch(e){ return null; }
+}
+function xoaVangCatTam(){
+  try{ cuaSo()?.sessionStorage?.removeItem(HSS_KHOA_CAT); }catch(e){}
+}
+
 /* Mời Hiệu trưởng nhận danh sách. Cố ý dùng hộp hỏi của trình duyệt: đây là
    việc mỗi ngày một lần, không đáng dựng thêm một hộp thoại riêng — và ít
    chỗ hỏng hơn. */
 async function moiNhanVangHSS(goi){
-  xoaHashHSS();
+  /* Dọn chỗ cất tạm ngay — nhận hay không thì gói này cũng đã được xử lý.
+     Còn hash thì xoá SAU khi hộp hỏi có kết quả (vá 24/8/2026): trước đây
+     xoá ngay đầu hàm, bấm Huỷ nhầm hay Chrome đã tích "không hiện thêm hộp
+     thoại" (confirm trả false tức thì) là mất lặng lẽ, không lời nào. */
+  /* Kho tạm cũng xoá CÙNG LÚC với hash — soát đối kháng 24/8 chỉ ra: xoá
+     kho tạm ngay đầu hàm thì gói vừa qua vòng Google (chỉ còn trong kho tạm)
+     bị mất nếu trang nạp lại lúc hộp hỏi đang mở — lại đúng lỗ hổng #2. */
+  const thoat = (m, loi) => { xoaHashHSS(); xoaVangCatTam(); if(m) bao(m, loi); };
+  /* Máy chủ không tải được thì S.giaoVien là bộ MẪU — khớp vào đó rồi liệt
+     kê tên giả trong hộp hỏi chỉ gây hoang mang, mà guiBaoNghi cũng từ chối. */
+  if(KHO.nguon !== 'may-chu'){
+    return thoat('Chưa tải được dữ liệu trường từ máy chủ nên chưa nhận được danh sách vắng '
+      + 'từ Quản trị số. Có mạng thì bấm "Bố trí dạy thay" bên đó lần nữa.', true);
+  }
   let dsND = null;
   /* Lấy danh sách người dùng để khớp theo email — chính xác hơn khớp tên.
      Lỗi thì thôi, vẫn còn đường khớp theo họ tên. */
   try{ dsND = await goiAPI('/rest/v1/nguoi_dung?select=id,email'); }catch(e){}
 
   const {khop, hut} = ganVangHSS(goi, dsND);
-  if(!khop.length && !hut.length) return;
+  if(!khop.length && !hut.length) return thoat();
 
   const ngayVN = String(goi.ngay || '').split('-').reverse().join('/');
   let hoi = `Hồ sơ số chuyển sang ${goi.ds.length} người vắng ngày ${ngayVN}.\n\n`;
@@ -5745,10 +5798,13 @@ async function moiNhanVangHSS(goi){
       + `hoặc hai người trùng tên):\n  · ` + hut.join('\n  · ')
       + '\n\nNhững người này phải khai tay ở mục Báo nghỉ.\n\n';
   }
-  if(!khop.length){ bao(hoi.replace(/\n{2,}/g,' '), true); return; }
+  if(!khop.length) return thoat(hoi.replace(/\n{2,}/g,' '), true);
   hoi += 'Nhận vào không?';
 
-  if(!cuaSo()?.confirm(hoi)) return;
+  if(!cuaSo()?.confirm(hoi)){
+    return thoat('Chưa nhận danh sách vắng. Muốn nhận thì bấm "Bố trí dạy thay" bên Quản trị số lần nữa.');
+  }
+  xoaHashHSS(); xoaVangCatTam();
 
   let xong = 0; const loi = [];
   for(const k of khop){
@@ -12874,7 +12930,9 @@ async function khoiDong(){
   let kq, vaoLai=false, gg=null;
   /* 0. Danh sách vắng do Hồ sơ số chuyển sang — ĐỌC TRƯỚC donVeOAuth, vì hàm
         ấy xoá hash sau khi đón vé Google. Đọc xong mới xoá phần của mình. */
-  const vangHSS = docVangTuHSS();
+  /* Không có trên hash thì xem có gói cất tạm từ TRƯỚC vòng đăng nhập Google
+     không (catTamVangHSS) — đây chính là lúc Google vừa trả về. */
+  const vangHSS = docVangTuHSS() || layVangCatTam();
   /* 1. Địa chỉ có mang vé Google trả về không? Đón trước tiên. */
   try{ await taiCauHinh(); gg=await donVeOAuth(); }catch(e){}
   /* 2. Không thì vào lại bằng vé đã nhớ — giáo viên mở trang là thấy lịch */
@@ -12890,8 +12948,28 @@ async function khoiDong(){
   if(!canDangNhap() && !soTietDaXep() && !quyen().laGV) KQ_XEP = xepTuDong();
   ve();
   /* Danh sách vắng từ Hồ sơ số: chỉ mời nhận khi ĐÃ đăng nhập và là quản lý.
-     Giáo viên bấm nhầm đường dẫn thì không có quyền ghi, mời cũng vô ích. */
+     Giáo viên bấm nhầm đường dẫn thì không có quyền ghi, mời cũng vô ích —
+     nhưng phải NÓI RA (vá 24/8/2026), trước đây im lặng như mở trang thường. */
   if(vangHSS && daVao && !quyen().laGV){ moiNhanVangHSS(vangHSS); return; }
+  if(vangHSS && daVao){
+    xoaHashHSS(); xoaVangCatTam();
+    bao('Danh sách vắng từ Quản trị số chỉ cán bộ quản lý mới nhận được — tài khoản này là giáo viên.', true);
+    return;
+  }
+  if(vangHSS && ((gg?.ok && gg.khach) || vaoLai==='khach')){
+    xoaHashHSS(); xoaVangCatTam();
+    bao('Tài khoản chưa thuộc trường nào nên chưa nhận được danh sách vắng từ Quản trị số.', true);
+    return;
+  }
+  if(vangHSS && !daVao){
+    /* Chưa có phiên: cất tạm rồi mời đăng nhập; đăng nhập xong khoiDong()
+       chạy lại và đọc từ chỗ cất (xem catTamVangHSS). Xoá hash để F5 hay
+       vòng OAuth không phải mang nó theo. */
+    catTamVangHSS(vangHSS); xoaHashHSS();
+    bao(gg && !gg.ok ? gg.loi
+      : 'Đăng nhập Google xong sẽ nhận danh sách vắng từ Quản trị số.', !!(gg && !gg.ok));
+    return;
+  }
   if(daVao) bao(`Chào ${KHO.nguoiDung.hoTen}`);
   else if(gg?.ok && gg.khach)
     bao('Đã đăng nhập Google. Tài khoản chưa thuộc trường nào — chọn một lối trên màn hình.');
