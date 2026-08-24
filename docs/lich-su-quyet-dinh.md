@@ -920,3 +920,44 @@ cascade chỉ đi từ `auth.users` xuống `nguoi_dung`, không đi ngược; x
 
 Kết quả soi: 2 dòng chủ hệ thống, 0 tài khoản mồ côi, 1 trường. Địa chỉ
 email cố ý không ghi vào tệp nào trong kho.
+
+### Soi mã thừa trong `index.html` *(24/8/2026)*
+
+Chủ dự án hỏi tệp có quá lớn, có rác không. Số đo trước khi dọn: **812 KB
+thô · 258 KB gzip** (GitHub Pages nén gzip, con số thứ hai mới là thứ đi qua
+mạng). Cấu tạo: JS 678 KB (bốn vùng LOGIC · DULIEU · QUYEN · XUAT = 268 KB,
+giao diện ≈ 411 KB), CSS 80 KB, hai ảnh base64 32 KB, dữ liệu mẫu nhúng 23 KB.
+Ghi chú chiếm ≈ 166 KB thô — **cố ý**, đó là tài liệu sống của dự án và nén
+rất tốt.
+
+Soi bằng script (314 hàm top-level, 72 hằng, 302 lớp CSS): **0 hàm trùng
+tên, 0 hằng thừa, 0 `console.log`/`debugger`/`TODO`**. Rác tìm được và
+đã dọn, tất cả là cặn của mấy lần đổi giao diện:
+
+| Thứ | Vì sao chết |
+|---|---|
+| `luoiTKB()` | `luoiTuanKhung()` đã thay, không ai gọi |
+| `goiYDayThay()` | `ungVienThay()` (3/8) thay hẳn; chỉ còn ba phép thử nuôi nó — **chuyển ba phép thử ấy sang `ungVienThay`** thay vì giữ hàm chết |
+| CSS `.bang-ron`, `.br-eb/.br-t/.br-p/.br-ngay` | băng rôn bỏ 3/8, hàm `bangRon()` không còn; một ghi chú vẫn trỏ tới nó |
+| CSS `.kg-n/.kg-h/.kg-b` | khung giờ dạng thẻ cột cũ |
+| `.ts` khai hai lần | bản navy 2/8 rồi bản trắng đè lên — gộp một |
+| `.nh.mo .nhom` · `.tiet-ca` · `.xem-xuat` | mỗi cái khai hai chỗ, gộp |
+| favicon 64px riêng | cùng hình với logo — nay gán từ logo lúc khởi động |
+
+Kết quả **812 → 797 KB thô, 258 → 248 KB gzip**. Khiêm tốn, và đó là kết
+luận thật: tệp lớn vì **nó chứa cả ứng dụng**, không phải vì rác.
+
+⚠️ Hai bẫy khi dọn:
+- Cắt hàm bằng mốc `\n}\n\n` nuốt luôn **hai màn hình đang dùng**
+  (`mTKBLop`, `mTKBGV`) vì `luoiTKB` kết thúc không có dòng trống. Phát
+  hiện nhờ đếm ký tự cắt được (7.829 thay vì ~700) trước khi chạy phép thử.
+  Mốc cuối phải là **dòng `return` của chính hàm ấy**.
+- Phép thử *"thẻ số liệu nền trắng"* soi đúng chuỗi ghi đè `.ts::after
+  {display:none}` — canh **cách vá**, nên gộp hai khối lại là nó đỏ dù kết
+  quả y hệt. Viết lại để canh **kết quả**: khối `.ts` tự khai nền trắng,
+  không chữ trắng, không vòng tròn trang trí.
+
+Chưa đụng: `src/bieu-tuong-512.png` **344 KB** — biểu tượng PWA, chỉ tải
+lúc cài app lên màn hình chính, nhưng 512px không có lý gì nặng thế; máy
+không có pngquant/ImageMagick nên để lại. `docs/anh-giao-dien/` 6,6 MB là
+tài liệu, không đi ra trang.

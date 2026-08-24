@@ -1171,9 +1171,13 @@ kt('Lưới trong Bảng điều hành CHỈ ĐỌC — không kéo thả, khôn
   return ok;
 })());
 kt('Thẻ số liệu nay là nền TRẮNG, không còn navy phủ kín đầu trang', (() => {
+  /* Canh KẾT QUẢ, không canh cách vá: khối .ts phải khai nền trắng ngay
+     trong chính nó (không phải một khối sau đè lên), không chữ trắng, và
+     không còn vòng tròn trang trí ::after của bản navy cũ. */
   const css = w.document.documentElement.innerHTML;
-  const i = css.indexOf('.ts{background:var(--the)');
-  return i > 0 && /\.ts::after\{display:none\}/.test(css);
+  const khoi = css.match(/\.ts\{[^}]*\}/)?.[0] || '';
+  return /background:var\(--the\)/.test(khoi) && !/color:#fff/.test(khoi)
+    && !/\.ts::after\{content/.test(css);
 })());
 kt('Bốn cách xem nay là THẺ CHUYỂN tại chỗ, chỉ Xuất/in mới rời trang', (() => {
   const xem = [...w.document.querySelectorAll('#noiDung [data-dhxem]')].map(b => b.dataset.dhxem);

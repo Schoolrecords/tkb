@@ -40,7 +40,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   taiChoGiaoVien, taiChoQuanLy, taiLuoiDayDu, taiThemNgayNghi, coThayDoiChuaLuu,
   tuMayChu, napVaoS, dongGoiTKB, docTKB, taiCauHinh,
   diaChiDangNhapGoogle, donVeOAuth, dungMaMoi, sinhMaMoi, taoMaMoi, dsMaMoi,
-  tietVangCua, goiYDayThay, luuDayThay, xoaDayThay,
+  tietVangCua, luuDayThay, xoaDayThay,
   tietCanThay, ungVienThay, phuongAnThay, xungDotDayThay, vieccanXuLy,
   thongBaoCuaGV, buoiCuaNghi, ngayISO, ngayCong, ngayDayDu, thuTuISO,
   LY_DO_NGHI, TEN_BUOI_NGHI, chiSoPhuongAn, guiBaoNghi, huyBaoNghi, danhDauXuLy,
@@ -69,7 +69,7 @@ const taoUngDung = (doc, win, layMang) =>
 
 const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiNhatKy, sinhMaMoi,
-        tietVangCua, goiYDayThay, luuDayThay,
+        tietVangCua, luuDayThay,
         tietCanThay, ungVienThay, phuongAnThay, xungDotDayThay, vieccanXuLy,
         thongBaoCuaGV, buoiCuaNghi, ngayISO, ngayCong, ngayDayDu,
         chiSoPhuongAn, guiBaoNghi,
@@ -843,7 +843,7 @@ kt('Liệt kê đúng các tiết của giáo viên vắng trong ngày, sáng tr
 /* Tiết chào cờ (thứ Hai sáng tiết 1): CẢ 25 giáo viên chủ nhiệm đều đang
    đứng lớp mình — ứng viên dạy thay chỉ có thể là giáo viên bộ môn rảnh. */
 const chaoCo = vangT2.find(o => o.buoi === 'S' && o.i === 0);
-const uvChaoCo = goiYDayThay(chaoCo, chaoCo.lopId, gvCN1A.id);
+const uvChaoCo = ungVienThay(chaoCo, gvCN1A.id, '2026-09-07');
 kt('Giờ chào cờ mọi chủ nhiệm đều bận — gợi ý chỉ còn giáo viên bộ môn rảnh', (() => {
   const lich = lichTraGV();
   return uvChaoCo.length > 0 &&
@@ -857,7 +857,7 @@ kt('Ứng viên xếp hạng giảm dần theo điểm, kèm lý do đọc đư�
 kt('Người đăng ký bận buổi đó không bao giờ được gợi ý', (() => {
   const dau = uvChaoCo[0]?.gv.id; if (!dau) return false;
   S.gvNghi[dau] = ['2-S'];
-  const sau = goiYDayThay(chaoCo, chaoCo.lopId, gvCN1A.id);
+  const sau = ungVienThay(chaoCo, gvCN1A.id, '2026-09-07');
   delete S.gvNghi[dau];
   return !sau.some(u => u.gv.id === dau);
 })());

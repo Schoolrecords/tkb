@@ -620,7 +620,10 @@ trong `#noiDung` không được còn nút đăng nhập nào.
 
 **Logo** nhúng base64 ngay trong trang (`.hieu-bt img`) và làm luôn favicon.
 Ảnh gốc 1254px/1,3 MB thu về **96px/16 KB** trước khi mã hoá — nhét nguyên ảnh
-gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px.
+gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px. **Nhúng đúng MỘT lần**
+*(24/8/2026)*: thẻ `<link rel="icon">` không mang `href` tĩnh, một dòng đầu
+script gán nó từ chính `.hieu-bt img`. Bản 64px nhúng riêng trước đó là 11 KB
+base64 — thứ gzip không nén được — cho cùng một hình.
 
 **Chỉ còn MỘT logo, ở đầu thanh bên** *(16/8/2026)*. Bản trước bày thêm một
 cái nữa ở thanh đầu trang (`.thanh-bt`), tức là cùng một hình, hai lần, cách
