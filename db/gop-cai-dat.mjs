@@ -66,6 +66,7 @@ ${NGUON.map((t, i) => `--   ${i + 1}. db/${t}`).join('\n')}
 --   db/du-lieu-dien-lien.sql   nạp dữ liệu mẫu Diễn Liên
 --   db/cong-bo-ngay.sql · soi-loi-cong-bo.sql · sua-tai-khoan-mo-coi.sql
 --   · dat-lai-mat-khau.sql     công cụ xử lý sự cố
+--   db/xoa-truong.sql          xoá hẳn một trường đăng ký thử (hai bước: soi rồi xoá)
 --   db/edge-function-tai-khoan.ts  cấp tài khoản hàng loạt (Edge Function,
 --                              triển khai riêng theo README)
 -- ============================================================

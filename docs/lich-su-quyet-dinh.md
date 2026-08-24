@@ -894,3 +894,29 @@ tại, còn logo thanh bên vẫn phải là ảnh nhúng base64.
       và nhận `p_pham_vi`, `p_truong_sua`, và bộ duyệt trường.
       Việc còn lại làm tay, không ghi vào tệp: `update nguoi_dung set
       la_chu_he_thong = true where email = '…'`.
+
+### Dọn tài khoản trên máy chủ thật, đặt hai chủ hệ thống *(24/8/2026, cùng buổi)*
+
+Câu soi cuối của `db/xoa-truong.sql` (viết để xoá trường đăng ký thử
+*TH ABC*, mã 2323 — 0 lớp, 0 giáo viên, một người lạ vào thử ngày 16/8) lộ ra
+**10 tài khoản đăng nhập không thuộc trường nào**, kể cả Gmail chính của chủ
+dự án. Không phải lỗi: đó là trạng thái *khách* mà luồng mã mời cố ý tạo —
+đăng nhập Google là có dòng `auth.users`, gõ mã mời mới có `nguoi_dung`.
+Nhưng nó cũng cho thấy câu `update nguoi_dung … where email = '<Gmail>'`
+ghi trong CLAUDE.md sẽ trả 0 dòng nếu Gmail ấy chưa từng vào trường —
+**phải dò theo email ĐĂNG NHẬP ở `auth.users`**, và trước hết phải biết
+tài khoản đang dùng hằng ngày là tài khoản nào.
+
+Đã làm, một giao dịch, theo đúng thứ tự này:
+1. Nối tài khoản Google thứ hai của chủ dự án vào Diễn Liên vai `quan_tri`
+   (insert `nguoi_dung` với `id` lấy từ `auth.users`, không tạo tài khoản mới).
+2. Bật `la_chu_he_thong` cho **hai** tài khoản của chủ dự án.
+3. Xoá mọi `auth.users` không có `nguoi_dung` — 9 tài khoản khách.
+
+⚠️ Thứ tự là có chủ ý: bước 3 chạy trước bước 1 là xoá mất chính tài khoản
+định thêm. Và xoá trường thì phải xoá `auth.users` **trước** `truong` —
+cascade chỉ đi từ `auth.users` xuống `nguoi_dung`, không đi ngược; xoá
+`truong` trước là để lại tài khoản mồ côi, đúng sự cố 31/7.
+
+Kết quả soi: 2 dòng chủ hệ thống, 0 tài khoản mồ côi, 1 trường. Địa chỉ
+email cố ý không ghi vào tệp nào trong kho.
