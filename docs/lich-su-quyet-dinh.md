@@ -961,3 +961,58 @@ Chưa đụng: `src/bieu-tuong-512.png` **344 KB** — biểu tượng PWA, ch�
 lúc cài app lên màn hình chính, nhưng 512px không có lý gì nặng thế; máy
 không có pngquant/ImageMagick nên để lại. `docs/anh-giao-dien/` 6,6 MB là
 tài liệu, không đi ra trang.
+
+---
+
+## 25/8/2026 — Sao lưu hằng đêm chạy thật: khai `DB_URL` và ba bẫy
+
+Việc cuối của hệ sao lưu (dựng 18/8) đã đóng. Nguyên văn mục cũ trong §9:
+
+- [x] **Khai nốt secret `DB_URL` cho lịch sao lưu** *(18/8/2026 — còn
+      đúng một việc này)*. Đã xong: tệp `.github/workflows/sao-luu.yml`
+      nằm trên GitHub và ở trạng thái active; secret `BACKUP_KEY` đã đặt,
+      khoá ghi ở `J:\Chung_Drive\App HoSoSo Truong hoc\KHOA-SAO-LUU.txt`
+      — **ngoài** thư mục dự án nên không bị đẩy lên, chép vào sổ rồi xoá
+      tệp ấy đi.
+      Còn lại: vào Settings → Secrets and variables → Actions, thêm
+      `DB_URL` — chuỗi kết nối lấy ở Supabase → Project Settings →
+      Database → Connection string → **URI**, cổng **5432**, nhớ thay
+      `[YOUR-PASSWORD]` bằng mật khẩu thật. Rồi tab Actions → *Sao lưu
+      cơ sở dữ liệu* → **Run workflow**, tải tệp ở mục Artifacts về, và
+      **soi thử một bản** bằng `npm run soi-sao-luu` — sao lưu chưa từng
+      thử mở ra xem thì chưa phải là sao lưu.
+
+**Diễn biến thật ngày 25/8:** trước khi khai, workflow đã đỏ 5 đêm liền
+(20–24/8) vì thiếu secret — van kiểm tra ở bước đầu báo đúng. Khai xong
+thì lộ tiếp ba bẫy, mỗi bẫy một tầng, đều KHÔNG nhìn ra được từ tài liệu
+Supabase mà phải thử kết nối thật mới thấy:
+
+1. **Hướng dẫn cũ trong chính mục §9 này SAI**: "Connection string →
+   URI, cổng 5432" trỏ vào đường nối thẳng `db.<ref>.supabase.co` —
+   địa chỉ ấy trên gói miễn phí **chỉ có bản ghi AAAA (IPv6)**, mà máy
+   chạy GitHub Actions chỉ có IPv4. Đêm nào cũng sẽ hỏng từ bước quay
+   số. Đường đúng là **Session pooler**: `postgres.<ref>` @
+   `aws-0-ap-southeast-1.pooler.supabase.com:5432`. Dò bằng
+   `Resolve-DnsName` trước khi đoán; thử cả `aws-1` (dự án này nằm ở
+   `aws-0`, cổng kia trả "tenant not found").
+2. **Mật khẩu của chủ dự án chứa ký tự `@`** — trùng dấu ngăn của URI.
+   Phải mã hoá thành `%40`. Cách soát rẻ nhất: viết script Node dùng
+   `pg` nối thử bằng chính chuỗi sẽ dán vào secret, TRƯỚC khi dán —
+   bắt được cả sai mật khẩu lẫn sai địa chỉ trong 5 giây thay vì chờ
+   một vòng workflow 2 phút.
+3. **Cài `postgresql-client-17` xong, `pg_dump` trên PATH vẫn là bản
+   16.15 cài sẵn** → `server version mismatch` với máy chủ 17.6, dù
+   bước cài báo thành công. Vá: `export PATH=/usr/lib/postgresql/17/bin:$PATH`
+   ngay trong bước kết xuất, kèm `pg_dump --version` in vào log.
+
+Chuyện quyền: tài khoản git thiếu scope `workflow` nên không push được
+bản vá — `gh auth refresh -h github.com -s workflow` chạy nền, đọc mã
+thiết bị từ tệp output đưa chủ dự án gõ vào `github.com/login/device`
+(mã hết hạn nhanh, lần đầu trượt vì chờ quá lâu; lấy mã xong phải gõ
+ngay). Sau khi có scope, push bình thường.
+
+**Kết quả kiểm chứng:** chạy tay lần 32792656144 xanh cả 6 bước; bản
+`sao-luu-2026-08-25.sql.gz.enc` (67 KB) tải về, `npm run soi-sao-luu`
+mở được bằng đúng khoá trong sổ: 15 bảng, 386 dòng — 25 lớp, 35 giáo
+viên, 265 phân công, 9 phiên bản TKB, khớp dữ liệu thật. Tệp Notepad
+chứa mật khẩu và bản sao lưu tạm đã xoá khỏi máy sau khi soát.

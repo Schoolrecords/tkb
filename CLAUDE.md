@@ -263,12 +263,27 @@ xem. Xoá bản cũ là việc của **hệ thống**, không phải quyền c�
 Đo lại sau khi làm: **903 MB → 150 MB**, băng thông **40,4 GB → 2,0 GB**
 mỗi tháng ở quy mô 300 trường. Cả hai đều vừa gói miễn phí.
 
-#### Sao lưu hằng đêm — `.github/workflows/sao-luu.yml` *(18/8/2026)*
+#### Sao lưu hằng đêm — `.github/workflows/sao-luu.yml` *(18/8/2026, CHẠY THẬT từ 25/8/2026)*
 
 Gói miễn phí của Supabase **không có sao lưu tự động**. Đây là rủi ro nặng
 hơn cả chuyện vượt hạn dung lượng: vượt hạn thì còn biết trước mà xử lý,
 mất dữ liệu thì không. Lịch chạy 1 giờ sáng, `pg_dump` schema `public` →
-gzip → **mã hoá AES-256** → cất làm tệp đính kèm, giữ 90 ngày.
+gzip → **mã hoá AES-256** → cất làm tệp đính kèm, giữ 90 ngày. Bản đầu
+tiên (25/8/2026) đã tải về và mở thử bằng `npm run soi-sao-luu`: đủ 15
+bảng, 386 dòng — khớp dữ liệu thật của Diễn Liên.
+
+⚠️ Ba bẫy đã trả giá khi khai `DB_URL` lần đầu (25/8/2026), cả ba đều
+làm workflow đỏ mà tệp SQL không có lỗi nào:
+- **`DB_URL` phải là Session pooler** (`aws-0-ap-southeast-1.pooler.supabase.com`,
+  user `postgres.<ref>`, cổng 5432), KHÔNG phải đường nối thẳng
+  `db.<ref>.supabase.co` — địa chỉ ấy trên gói miễn phí **chỉ có IPv6**,
+  mà máy chạy GitHub Actions chỉ nói IPv4: nối là hỏng từ bước quay số.
+- **Mật khẩu chứa ký tự đặc biệt phải mã hoá URL** — `@` viết thành `%40`,
+  không thì dấu `@` trong mật khẩu bị đọc thành dấu ngăn với tên máy chủ.
+- **`pg_dump` bản 16 cài sẵn của máy chạy THẮNG trên PATH** dù đã cài
+  `postgresql-client-17` — lỗi `server version mismatch` (máy chủ 17.6).
+  Bước kết xuất phải `export PATH=/usr/lib/postgresql/17/bin:$PATH` và in
+  `pg_dump --version` vào log để lần sau nhìn ra ngay.
 
 ⚠️ **Bắt buộc mã hoá.** Bản dump chứa họ tên và email toàn bộ giáo viên —
 dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP — mà tệp đính kèm của một kho
@@ -1814,37 +1829,6 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
         và một màn hình soi lại; không nên nằm trên đường tới ngày khai giảng.
 - [ ] Dọn hồ sơ giáo viên và lớp thừa của bộ dữ liệu thử trên máy chủ thật
       *(2/8/2026)*. Chạy `db/soi-tai-khoan-gv.sql` để biết còn sót gì.
-- [ ] **Khai nốt secret `DB_URL` cho lịch sao lưu** *(18/8/2026 — còn
-      đúng một việc này)*. Đã xong: tệp `.github/workflows/sao-luu.yml`
-      nằm trên GitHub và ở trạng thái active; secret `BACKUP_KEY` đã đặt,
-      khoá ghi ở `J:\Chung_Drive\App HoSoSo Truong hoc\KHOA-SAO-LUU.txt`
-      — **ngoài** thư mục dự án nên không bị đẩy lên, chép vào sổ rồi xoá
-      tệp ấy đi.
-      Còn lại: vào Settings → Secrets and variables → Actions, thêm
-      `DB_URL` — chuỗi kết nối lấy ở Supabase → Project Settings →
-      Database → Connection string → **URI**, cổng **5432**, nhớ thay
-      `[YOUR-PASSWORD]` bằng mật khẩu thật. Rồi tab Actions → *Sao lưu
-      cơ sở dữ liệu* → **Run workflow**, tải tệp ở mục Artifacts về
-      (nhớ giải nén tệp .zip ra mới thấy tệp `.sql.gz.enc`), và **soi
-      thử một bản**:
-      `npm run soi-sao-luu -- sao-luu-<ngày>.sql.gz.enc --khoa-tep="J:\Chung_Drive\App HoSoSo Truong hoc\KHOA-SAO-LUU.txt"`
-      — sao lưu chưa từng thử mở ra xem thì chưa phải là sao lưu.
-      ⚠️ Tới khi xong việc này thì cơ sở dữ liệu **vẫn chưa có bản sao
-      lưu nào**: gói miễn phí của Supabase không sao lưu tự động, hỏng
-      là mất trắng dữ liệu của mọi trường. Cách giải mã và khôi phục nằm
-      ngay đầu `.github/workflows/sao-luu.yml`; `db/soi-sao-luu.mjs`
-      *(18/8/2026)* làm sẵn đường giải mã ấy bằng Node — máy không có
-      `openssl` hay `psql` vẫn soi được, và mặc định **không ghi bản rõ
-      ra đĩa** vì bản dump là dữ liệu cá nhân của toàn bộ giáo viên.
-      Nó bắt ba thứ mà workflow không thấy được vì chúng nằm bên trong
-      lớp mã hoá: khoá cất trong sổ không mở được tệp, dump đứt giữa
-      chừng (tệp vẫn to, vẫn đúng định dạng), và dump rỗng ruột vì nối
-      nhầm cơ sở dữ liệu.
-      ⚠️ Tài khoản git trên máy chủ dự án **thiếu quyền `workflow`** nên
-      không push được tệp trong `.github/workflows/`. Sửa bằng
-      `gh auth refresh -s workflow` (lệnh tương tác, phải tự gõ trong
-      terminal), hoặc tạo thẳng tệp trên giao diện web GitHub như đã làm
-      lần này.
 - [ ] **Bước tối ưu đang dừng theo ĐỒNG HỒ nên chất lượng phụ thuộc máy**
       *(đo 16/8/2026, chủ dự án chốt để SAU KHAI GIẢNG mới làm — không đụng
       thuật toán trong lúc đang chạy thật cho Diễn Liên)*. `toiUuHoanDoi()`
