@@ -1377,6 +1377,21 @@ kt('Hộp đăng nhập chỉ còn nút Google và lối đăng ký trường m�
   w.eval('dong()');
   return co;
 })());
+kt('Nút Google trong hộp đăng nhập mang logo chữ G bốn màu chuẩn', (() => {
+  /* Google là cửa vào duy nhất — logo G giúp thầy cô nhận ra ngay "dùng
+     Gmail sẵn có", không phải tạo mật khẩu mới. Nhúng SVG tại chỗ, không
+     tải gì từ ngoài. */
+  w.eval('hopMayChu()');
+  const sv = w.document.querySelector('#dnGoogle svg')?.innerHTML || '';
+  const du = ['#EA4335', '#4285F4', '#FBBC05', '#34A853'].every(m => sv.includes(m));
+  w.eval('dong()');
+  return du;
+})());
+kt('Chưa đăng nhập: nút thanh trên mang icon mũi tên, không có vòng chữ cái', (() => {
+  w.eval('capNhatTaiKhoan()');
+  return w.document.querySelector('#icDangNhap').style.display !== 'none' &&
+    w.document.querySelector('#avTren').style.display === 'none';
+})());
 w.document.querySelector('#btChaoDemo').dispatchEvent(new w.Event('click', { bubbles: true }));
 kt('Bấm demo là vào thẳng bảng điều hành với dữ liệu mẫu, có dải nổi nhắc',
    w.eval('KHO.xemDemo') === true && w.eval('S.trangHienTai') === 'dieuhanh' &&
@@ -1397,6 +1412,12 @@ kt('Là khách thì nút trên thanh hiện tên tài khoản, không mời đă
   const chu = w.document.querySelector('#chuDangNhap').textContent;
   return chu !== 'Đăng nhập' && /khach/.test(chu);
 })());
+kt('Là khách thì icon mũi tên nhường chỗ cho vòng chữ cái đầu email', (() => {
+  /* Icon "đi vào cửa" là ngôn ngữ của nút Đăng nhập — đứng cạnh tên người
+     đã vào là hai tín hiệu ngược nhau trên một nút. */
+  const ic = w.document.querySelector('#icDangNhap'), av = w.document.querySelector('#avTren');
+  return ic.style.display === 'none' && av.style.display !== 'none' && av.textContent === 'K';
+})());
 kt('Bấm nút đó khi là khách thì mở lối thoát, không mở lại hộp đăng nhập', (() => {
   w.eval('hopMayChu()');
   const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
@@ -1415,6 +1436,15 @@ kt('Bấm "Nhập mã mời" là mở hộp gõ mã',
    /Nhập mã mời/.test(w.document.querySelector('#hopT').textContent) &&
    !!w.document.querySelector('#mmMa'));
 w.eval('dong()');
+kt('Đăng nhập hẳn rồi: vòng tròn mang đúng hai chữ cái tên người dùng', (() => {
+  w.eval(`KHO.khach=null; KHO.phien={email:'c@x.vn'};
+    KHO.nguoiDung={hoTen:'Trần Thanh Chung', vaiTro:'quan_tri', diemTruongId:null};
+    capNhatTaiKhoan()`);
+  const av = w.document.querySelector('#avTren');
+  return av.style.display !== 'none' && av.textContent === 'TC' &&
+    w.document.querySelector('#chuDangNhap').textContent === 'T.Chung' &&
+    w.document.querySelector('#icDangNhap').style.display === 'none';
+})());
 w.eval(`dangXuat(); KHO.cauHinh=null; S.trangHienTai='dieuhanh'; ve()`);
 kt('Dọn xong trạng thái thử — app về bình thường',
    !w.eval('KHO.khach') && !w.document.querySelector('#theDemo'));

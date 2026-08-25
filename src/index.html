@@ -278,6 +278,11 @@ main{min-width:0;padding:20px 24px 70px;display:flex;flex-direction:column}
 #btDangNhapTren{background:#fff;color:var(--nav);border:1.5px solid var(--nav-vien);
   box-shadow:0 1px 4px rgba(0,83,145,.10)}
 #btDangNhapTren:hover{background:var(--nav-nhat);filter:none}
+/* Vòng tròn chữ cái thay icon "đi vào cửa" khi ĐÃ đăng nhập — icon ấy là
+   ngôn ngữ của nút Đăng nhập, đứng cạnh tên người đang dùng là hai tín hiệu
+   ngược nhau trên một nút. Cùng kiểu avatar của thẻ tài khoản thanh bên. */
+.av-tren{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--nav);
+  color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;letter-spacing:.02em}
 
 .dau-trang{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap}
 h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
@@ -1362,7 +1367,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <button class="nut-menu" id="btMenu" aria-label="Mở danh sách mục"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <div class="thanh-ten"><div class="thanh-t" id="tenTruong">THỜI KHÓA BIỂU</div><div class="thanh-p" id="diaChi">Đang tải…</div></div>
     <div class="thanh-phai">
-      <button class="b b-vang" id="btDangNhapTren" title="Đăng nhập để xem thời khóa biểu của trường"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span id="chuDangNhap">Đăng nhập</span></button>
+      <button class="b b-vang" id="btDangNhapTren" title="Đăng nhập để xem thời khóa biểu của trường"><svg id="icDangNhap" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span class="av-tren" id="avTren" style="display:none"></span><span id="chuDangNhap">Đăng nhập</span></button>
       <button class="chuong" id="btTim" title="Tìm giáo viên, lớp, môn học hoặc điểm trường"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
       <button class="chuong" id="btChuong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8.5a6 6 0 10-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="sl" id="slChuong"></span></button>
     </div>
@@ -12145,12 +12150,17 @@ function capNhatTaiKhoan(){
      trong thanh bên — nút "Máy chủ dữ liệu" đã chuyển vào Thông tin trường. */
   $('#chamMC').classList.toggle('on', coMayChu());
   $('#chamMC').title = coMayChu()?'Đã nối máy chủ':'Chưa nối máy chủ — đang chạy dữ liệu trên máy này';
-  /* Nút trên thanh đầu trang: chưa vào thì mời đăng nhập, vào rồi thì hiện tên */
-  const nut=$('#btDangNhapTren');
+  /* Nút trên thanh đầu trang: chưa vào thì mời đăng nhập, vào rồi thì hiện tên.
+     Icon đổi theo trạng thái: mũi tên "đi vào cửa" chỉ dành cho lúc CHƯA vào —
+     vào rồi mà còn mang nó là icon nói "chưa vào" cạnh cái tên nói "đã vào". */
+  const nut=$('#btDangNhapTren'), ic=$('#icDangNhap'), av=$('#avTren');
+  const datIcon=chu=>{ ic.style.display=chu?'none':''; av.style.display=chu?'':'none';
+                       if(chu) av.textContent=chu; };
   if(coMayChu()){
     $('#chuDangNhap').textContent = tenTat(n.hoTen);
     nut.className='b b-vien';
     nut.title = n.hoTen+' — bấm để đăng xuất';
+    datIcon(chuCai(n.hoTen));
   }else if(KHO.khach){
     /* Đã đăng nhập Google nhưng chưa thuộc trường nào. Để nguyên chữ
        "Đăng nhập" thì thầy cô tưởng mình chưa vào được — mời họ đăng
@@ -12159,10 +12169,12 @@ function capNhatTaiKhoan(){
     $('#chuDangNhap').textContent = em.length>12 ? em.slice(0,11)+'…' : em;
     nut.className='b b-vien';
     nut.title = KHO.khach.email+' — đã đăng nhập, chưa thuộc trường nào. Bấm để đăng xuất.';
+    datIcon((em[0]||'?').toUpperCase());
   }else{
     $('#chuDangNhap').textContent = 'Đăng nhập';
     nut.className='b b-vang';
     nut.title = 'Đăng nhập để xem thời khóa biểu của trường';
+    datIcon('');
   }
   if(!coMayChu()) return;
   const q=quyen();
@@ -12209,6 +12221,7 @@ export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
         có sẵn trên máy — một chạm là vào, không phải nhớ thêm mật khẩu nào.</p>
        <button class="b" id="dnGoogle" style="width:100%;padding:14px 20px;background:#fff;color:#005391;
          border:2px solid var(--ke-2);justify-content:center;font-weight:700;font-size:15px">
+         <svg viewBox="0 0 48 48" style="width:20px;height:20px;flex:0 0 auto"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
          Đăng nhập bằng Google</button>
        <div class="gy" style="margin-top:14px">Lần đầu vào, phần mềm hỏi <b>mã mời</b> —
          mã 6 ký tự người quản trị gửi cho thầy cô. Chưa có mã thì hỏi nhà trường.</div>
