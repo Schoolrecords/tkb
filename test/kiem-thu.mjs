@@ -419,6 +419,12 @@ async function mangGia(url, opt = {}) {
     }
     return dap([HANG.truong]);
   }
+  /* GHI.truongTrong mô phỏng trường VỪA ĐƯỢC DUYỆT: có thông tin trường,
+     điểm trường và khung giờ mặc định, nhưng chưa có lớp · giáo viên ·
+     phân công nào — đúng trạng thái Tiểu học Châu Đình 25/8/2026. */
+  if (GHI.truongTrong && (!opt.method || opt.method === 'GET')
+      && (co('/lop?') || co('/giao_vien?') || co('/phan_cong?') || co('/gv_nghi?')))
+    return dap([]);
   if (co('/diem_truong?')) return dap(HANG.diem_truong);
   if (co('/khung_gio?')) return dap(HANG.khung_gio);
   if (co('/giao_vien?')) return dap(HANG.giao_vien);
@@ -503,6 +509,22 @@ kt('Tải về đủ dữ liệu trường kèm phiên bản mới nhất',
    taiMC.nguon === 'may-chu' && taiMC.version === 3 && MC.KHO.version === 3 &&
    MC.S.lop.length === 2 && MC.S.tenTruong === HANG.truong.ten &&
    Object.keys(MC.S.tkb.l1).length === 1, taiMC.thongBao);
+
+kt('Trường MỚI trống trơn: tải máy chủ vẫn OK, KHÔNG rơi về dữ liệu mẫu', await (async () => {
+  /* Lỗi thật 25/8/2026: Tiểu học Châu Đình vừa được duyệt, 0 lớp — nhánh
+     tải coi trường trống là LỖI và ném ra, taiDuLieu() bắt được rồi rơi về
+     bộ mẫu: trường mới mở app thấy nguyên thời khóa biểu 25 lớp của trường
+     lạ, tưởng bị đưa nhầm dữ liệu. Quyển vở mới phải là vở trắng — trống
+     không phải lỗi. */
+  GHI.truongTrong = true;
+  const kq = await MC.taiDuLieu();
+  const dat = kq.ok === true && kq.nguon === 'may-chu' && MC.KHO.nguon === 'may-chu' &&
+    MC.S.lop.length === 0 && MC.S.giaoVien.length === 0 &&
+    MC.S.tenTruong === HANG.truong.ten;
+  GHI.truongTrong = false;
+  await MC.taiDuLieu();          /* trả lại dữ liệu đầy đủ cho các phép thử sau */
+  return dat;
+})());
 
 kt('Chọn ghi nhớ thì vé làm mới nằm lại trên máy, kèm email để điền sẵn',
    vePhienNho()?.lamMoi === 'RF1' && vePhienNho()?.email === 'c@t.vn',

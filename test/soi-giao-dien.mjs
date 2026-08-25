@@ -2268,7 +2268,29 @@ kt('Nút đổi từ "Đăng ký" thành "Gửi đăng ký" — đúng việc n�
   const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
   return nut.includes('Gửi đăng ký') && !nut.includes('Đăng ký');
 })());
+kt('Gõ Gmail liên hệ KHÁC Gmail đăng nhập là bật cảnh báo tài khoản quản trị', (() => {
+  /* Bài học Tiểu học Châu Đình 25/8/2026: hồ sơ quản trị gắn theo tài khoản
+     ĐANG ĐĂNG NHẬP, không phải địa chỉ gõ trong ô liên hệ — mà người dùng
+     đinh ninh ngược lại, sau duyệt đăng nhập bằng Gmail trường thì thành
+     "chưa thuộc trường nào". */
+  const o = w.document.querySelector('#dkMail'), k = w.document.querySelector('#dkCanhMail');
+  const anLucDau = k && k.style.display === 'none';
+  o.value = 'c1truong@nghean.edu.vn'; o.oninput && o.oninput();
+  const hienKhiKhac = k.style.display !== 'none' && /thu@gmail\.com/.test(k.textContent);
+  o.value = 'thu@gmail.com'; o.oninput && o.oninput();
+  const anKhiTrung = k.style.display === 'none';
+  return anLucDau && hienKhiKhac && anKhiTrung;
+})());
 w.eval('dong()');
+kt('Hộp mời đăng nhập trước khi đăng ký khuyên dùng Gmail CỦA NHÀ TRƯỜNG', (() => {
+  const phienCu = w.eval('KHO.phien');
+  w.eval('KHO.phien = null');
+  w.eval('hopDangKyTruong()');
+  const co = /Gmail của nhà trường/i.test(w.document.querySelector('#hopN').textContent);
+  w.eval('dong()');
+  w.eval(`KHO.phien = ${JSON.stringify(phienCu)}`);
+  return co;
+})());
 
 /* --- Tệp SQL: chốt chặn không khoá trường đang chạy --- */
 console.log('\n17e. db/duyet-truong.sql');

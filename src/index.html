@@ -4117,9 +4117,8 @@ async function taiChoGiaoVien(t, bang){
       bang('bao_nghi', locBN+'&order=ngay.desc&limit=200').catch(()=>[]),
       luoiCuaToi()
     ]);
-  if(!lop?.length)
-    throw new Error('Trường chưa có lớp nào trong cơ sở dữ liệu. Nhập bảng phân công trước đã.');
-
+  /* Trường trống không phải lỗi — cùng lý do đã ghi ở taiChoQuanLy: ném
+     lỗi ở đây là rơi về dữ liệu mẫu, thầy cô thấy lịch của trường lạ. */
   napVaoS(tuMayChu({truong:truong?.[0], diem_truong, khung_gio, giao_vien, lop,
                     phan_cong:[], gv_nghi:[], mon_hoc, phong:[],
                     day_thay, bao_nghi, nguoi_dung:[]}));
@@ -4228,9 +4227,12 @@ async function taiChoQuanLy(t, bang){
     /* Bản đang công bố — để màn hình nói rõ giáo viên đang xem bản nào */
     goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true&select=version&limit=1`).catch(()=>[])
   ]);
-  if(!lop?.length)
-    throw new Error('Trường chưa có lớp nào trong cơ sở dữ liệu. Nhập bảng phân công trước đã.');
-
+  /* Trường MỚI chưa có lớp nào KHÔNG phải là lỗi — đó là quyển vở trắng.
+     Trước 25/8/2026 chỗ này ném lỗi, taiDuLieu() bắt được rồi rơi về DỮ LIỆU
+     MẪU: Tiểu học Châu Đình vừa được duyệt, mở app lên thấy nguyên thời khóa
+     biểu 25 lớp của bộ mẫu — tưởng bị đưa nhầm dữ liệu trường khác. Nay nạp
+     đúng phần trường đã có (thông tin trường, điểm trường, khung giờ mặc
+     định dựng lúc đăng ký) và để Bảng điều hành dẫn đi ba bước khai báo. */
   napVaoS(tuMayChu({truong:truong?.[0], diem_truong, khung_gio, giao_vien, lop,
                     phan_cong, gv_nghi, mon_hoc, phong, day_thay, bao_nghi, nguoi_dung}));
   KHO.version = +pb?.[0]?.version || 0;
@@ -4251,7 +4253,9 @@ async function taiChoQuanLy(t, bang){
     ok:true, nguon:'may-chu', version:KHO.version, soTiet:d.nap, boQua:d.boQua,
     thongBao: (KHO.version
       ? `Đã tải phiên bản ${KHO.version} — ${d.nap} tiết${d.boQua?`, bỏ ${d.boQua} ô không còn hợp lệ`:''}.`
-      : `Đã tải dữ liệu ${S.lop.length} lớp. Chưa có phiên bản thời khóa biểu nào.`) + nhacMa
+      : S.lop.length
+        ? `Đã tải dữ liệu ${S.lop.length} lớp. Chưa có phiên bản thời khóa biểu nào.`
+        : `Trường chưa có dữ liệu — bắt đầu từ Thông tin trường trong nhóm Dữ liệu nhà trường.`) + nhacMa
   };
 }
 
@@ -12648,8 +12652,9 @@ function hopDangKyTruong(){
     `<p style="font-size:13px;margin-bottom:14px">Đăng ký trường mới cần biết <b>ai</b> là người
       đăng ký — người đó sẽ thành quản trị của trường.</p>
      <div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
-       <b>Đăng nhập bằng Google trước, rồi quay lại đăng ký</b>
-       <div class="cb-g">Tài khoản Gmail vừa đăng nhập sẽ là tài khoản quản trị của trường mới.</div>
+       <b>Đăng nhập bằng Gmail CỦA NHÀ TRƯỜNG, rồi quay lại đăng ký</b>
+       <div class="cb-g">Tài khoản vừa đăng nhập sẽ là tài khoản quản trị của trường mới —
+         dùng Gmail của nhà trường (ví dụ c1tenxa@tinh.edu.vn), đừng dùng Gmail cá nhân.</div>
      </div></div>`,
     [{ten:'Huỷ',phu:1,lam:dong},
      {ten:'Đăng nhập bằng Google',lam:()=>{ const k=dangNhapGoogle(); if(!k.ok) bao(k.loi,true); }}]);
@@ -12668,6 +12673,11 @@ function hopDangKyTruong(){
          <input class="ip" id="dkMail" type="email" value="${esc(KHO.phien.email||'')}">
          <div class="gy">Mặc định là Gmail vừa đăng nhập.</div></div>
      </div>
+     <div class="canhbao" id="dkCanhMail" style="display:none;margin-top:11px"><div class="cb-ic">!</div><div class="cb-t">
+       <b>Tài khoản quản trị vẫn là ${esc(KHO.phien.email||'')}</b>
+       <div class="cb-g">Ô Gmail liên hệ chỉ để liên lạc, không phải tài khoản đăng nhập.
+         Muốn Gmail của nhà trường làm tài khoản quản trị thì bấm Huỷ, đăng xuất,
+         đăng nhập lại bằng Gmail ấy rồi mới đăng ký.</div></div></div>
      <div class="cot2" style="gap:12px">
        <div class="on-l"><label>Xã / phường</label><input class="ip" id="dkXa"></div>
        <div class="on-l"><label>Tỉnh</label><input class="ip" id="dkTinh"></div>
@@ -12700,6 +12710,16 @@ function hopDangKyTruong(){
       if(kq.choDuyet) chuyen('choduyet');
       else { await taiDuLieu(); chuyen('huongdan'); }
     }}]);
+  /* Gõ Gmail liên hệ KHÁC Gmail đang đăng nhập là bật cảnh báo ngay. Bài
+     học Tiểu học Châu Đình 25/8/2026: người đăng ký đăng nhập Gmail cá nhân
+     nhưng gõ Gmail trường vào ô liên hệ, rồi đinh ninh Gmail trường là tài
+     khoản — sau duyệt đăng nhập bằng nó thì thành "chưa thuộc trường nào",
+     phải chuyển hồ sơ bằng SQL tay. Dòng dặn tĩnh phía trên không đủ. */
+  const oMail=$('#dkMail');
+  const soMail=()=>{ const k=$('#dkCanhMail'); if(!k||!oMail) return;
+    const go=oMail.value.trim().toLowerCase();
+    k.style.display = (go && go!==String(KHO.phien.email||'').toLowerCase()) ? '' : 'none'; };
+  if(oMail){ oMail.oninput=soMail; soMail(); }
 }
 
 async function hopLichSu(){

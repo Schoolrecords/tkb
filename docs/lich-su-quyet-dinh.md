@@ -1128,3 +1128,28 @@ Bài học chung: phép thử app-với-máy-chủ-giả không kiểm được 
 lớp lỗi chỉ nổ lúc chạy trên Postgres (ambiguous, enum sai, min(uuid))
 phải bắt bằng `npm run soat`, và mỗi lần dính một lỗi loại ấy thì thêm
 một luật vào đó.
+
+---
+
+## Trường mới trống trơn phải là QUYỂN VỞ TRẮNG, không phải bộ mẫu (25/8/2026)
+
+Tiểu học Châu Đình đăng nhập sau khi được duyệt thì thấy nguyên thời khóa
+biểu 25 lớp "Trường Tiểu học mới" — chủ dự án: *"Phải là 1 quyển vở mới mà
+họ cần vẽ lên đó chứ!"*. Không phải lộ dữ liệu (RLS vẫn kín): đó là BỘ MẪU
+nhúng trong app. Gốc: `taiChoQuanLy()` và `taiChoGiaoVien()` có dòng
+`if(!lop?.length) throw` — coi trường trống là LỖI, `taiDuLieu()` bắt được
+rồi rơi về dữ liệu mẫu theo đường lui mất-mạng. Với trường mới, trống là
+trạng thái BÌNH THƯỜNG đầu đời.
+
+Vá: bỏ cả hai chỗ ném lỗi — trường trống nạp đúng phần đã có (thông tin
+trường, điểm trường, khung giờ mặc định dựng lúc đăng ký), `KHO.nguon`
+giữ `'may-chu'`, Bảng điều hành tự vào thế "chưa xếp gì" dẫn đi ba bước
+khai báo. Phép thử mới (`npm test` mục 6, mock `GHI.truongTrong`): trường
+0 lớp tải về `ok:true · nguon 'may-chu' · S.lop rỗng · đúng tên trường`.
+
+Cùng ngày, cùng gốc "tài khoản đăng ký": biểu mẫu đăng ký thêm cảnh báo
+bật ngay khi ô Gmail liên hệ khác Gmail đang đăng nhập (*"Tài khoản quản
+trị vẫn là 〈Gmail đang đăng nhập〉"*), và hộp mời đăng nhập trước khi đăng
+ký khuyên thẳng: dùng Gmail CỦA NHÀ TRƯỜNG, đừng dùng Gmail cá nhân —
+bài học hồ sơ quản trị Châu Đình gắn nhầm vào Gmail cá nhân, phải chuyển
+bằng SQL tay.
