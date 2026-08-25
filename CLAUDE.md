@@ -1817,6 +1817,16 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
 > có hướng dẫn từng bước: **`docs/huong-dan-may-chu-truoc-khai-giang.md`**
 > *(3/8/2026)* — làm theo đúng thứ tự trong đó, một buổi tối là xong.
 
+- [ ] **Kèm Tiểu học Châu Đình khai báo dữ liệu** *(25/8/2026 — trường
+      ngoài đầu tiên, mã 74334, quản trị `c1chaudinh.qh@nghean.edu.vn`)*.
+      Đường nhanh nhất: tải *Mẫu trọn gói Excel* về điền rồi nhập một cửa.
+      Nhật ký ngày vào hệ thống (bốn chỗ vấp, đã vá cả bốn) ở
+      `docs/lich-su-quyet-dinh.md`. Quy tắc rút ra: **trường đăng ký bằng
+      Gmail CỦA NHÀ TRƯỜNG**, không dùng Gmail cá nhân.
+- [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
+      hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
+      app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi
+      quảng bá rộng**.
 - [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Nút *Tạo N mã* trong hộp **Mã
       mời** nay làm cả mẻ trong một cú bấm, kèm nút chép và tải Excel — việc
       còn lại là gửi Zalo. Hai nhóm bị **cố ý bỏ qua**: người đã có tài khoản,

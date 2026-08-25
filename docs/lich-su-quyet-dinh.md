@@ -1153,3 +1153,49 @@ trị vẫn là 〈Gmail đang đăng nhập〉"*), và hộp mời đăng nhậ
 ký khuyên thẳng: dùng Gmail CỦA NHÀ TRƯỜNG, đừng dùng Gmail cá nhân —
 bài học hồ sơ quản trị Châu Đình gắn nhầm vào Gmail cá nhân, phải chuyển
 bằng SQL tay.
+
+---
+
+## Nhật ký 25/8/2026 — ngày trường ngoài ĐẦU TIÊN vào hệ thống
+
+**Cột mốc:** Tiểu học Châu Đình (Quỳ Hợp, Nghệ An) tự đăng ký, được duyệt,
+nhận mã trường **74334** — trường đầu tiên ngoài Diễn Liên, và là phép thử
+thật đầu tiên của toàn bộ đường triển khai. Đúng như dự đoán trong bản rà
+soát cùng ngày: *"trường thứ hai chính là phép thử xem hướng dẫn trong app
+đã đủ chưa — chỗ nào họ vấp là chỗ đáng sửa nhất trước khi thương mại hoá."*
+Họ vấp bốn chỗ, cả bốn đã vá trong ngày (chi tiết ở ba mục phía trên):
+
+1. `duyet_truong()` nổ "ambiguous" ngay lần duyệt đầu → bí danh bảng
+   + luật (d) của `npm run soat`.
+2. Màn duyệt bày `[object Object]` → gọi nhầm `dongGio()`/`dinhDangLuc()`.
+3. Đăng ký bằng Gmail cá nhân nhưng đinh ninh Gmail trường là tài khoản
+   → chuyển hồ sơ bằng SQL + cảnh báo ngay trong biểu mẫu + nguyên tắc mới:
+   **hướng dẫn trường đăng ký bằng Gmail của nhà trường**.
+4. Đăng nhập xong thấy bộ dữ liệu mẫu 25 lớp thay vì trang trắng
+   → trường trống là trạng thái bình thường, không rơi về mẫu nữa.
+
+**Việc khác trong ngày:**
+
+- **Mã mời quản lý gán được điểm trường** ngay lúc tạo (mục riêng phía trên)
+  — mở khoá mô hình PHT-phụ-trách-điểm-trường cho trường mới.
+- **Nút tài khoản thanh đầu trang đổi biểu tượng theo trạng thái**: icon
+  "đi vào cửa" chỉ còn khi CHƯA đăng nhập; vào rồi là vòng tròn chữ cái
+  (cùng kiểu thẻ tài khoản thanh bên). Lý do: icon đăng-nhập đứng cạnh tên
+  người đã-đăng-nhập là hai tín hiệu ngược nhau trên một nút.
+- **Logo chữ G bốn màu** vào nút "Đăng nhập bằng Google" trong hộp đăng
+  nhập (SVG nhúng ~0,9 KB). Không gắn lên nút thanh đầu trang — nút ấy là
+  nút tài khoản, không phải nút bấm-phát-đi-Google.
+- **Dán link vào Zalo có ảnh đại diện**: `src/og-anh.png` 1200×630 (dựng
+  bằng Chrome thật, theo hệ màu app) + bộ thẻ `og:*`. `og:image` phải là
+  URL tuyệt đối tới tệp thật nên og-anh.png là ngoại lệ thứ ba của quy ước
+  một tệp. Zalo đệm bản xem trước theo link — thử bản mới thì thêm `?v=2`.
+- Tên miền chính thức đang chạy: **tkb.quantrisotruonghoc.com** (GitHub
+  Pages, workflow `pages.yml` đưa thư mục `src/` lên).
+
+**Số đo cuối ngày:** `npm test` 406 · `npm run soi` 380 · `npm run soat`
+0 lỗi · `npm run soi-mau` không đổi. Hệ thống: 2 trường (Diễn Liên đang
+dùng thật, Châu Đình vừa vào — 0 lớp, chờ khai báo).
+
+**Việc mở ra từ hôm nay:** kèm Châu Đình khai báo dữ liệu qua Zalo;
+thông báo hai chiều cho khâu duyệt (đơn mới → báo chủ hệ thống, duyệt
+xong → báo trường) phải làm trước khi quảng bá rộng.
