@@ -673,6 +673,14 @@ kt('Tạo mã mời ghi lên máy chủ, nối đúng trường và giáo viên'
   return t.ok === true && /^[A-HJ-KM-NP-Z2-9]{6}$/.test(t.ma) &&
     GHI.maMoi[0].truong_id === 't1' && GHI.maMoi[0].giao_vien_id === 'g2';
 })());
+kt('Mã mời quản lý mang được điểm trường — PHT phụ trách điểm nhận đúng phạm vi khi vào', await (async () => {
+  /* dung_ma_moi phía máy chủ chép diem_truong_id của mã vào nguoi_dung,
+     nên gán sai ở đây là PHT một điểm vào app với quyền toàn trường. */
+  const t = await G.taoMaMoi({ vaiTro: 'pho_hieu_truong', diemTruongId: 'd2' });
+  const dong = GHI.maMoi[GHI.maMoi.length - 1];
+  return t.ok === true && dong.vai_tro === 'pho_hieu_truong' &&
+    dong.diem_truong_id === 'd2' && !dong.giao_vien_id;
+})());
 GHI.oauthUser = 'u1';
 
 /* ---------- 7. Phân quyền theo điểm trường ---------- */

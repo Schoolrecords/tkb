@@ -1738,6 +1738,36 @@ console.log('\n17b. Lịch trống thì phải nói ĐÚNG vì sao trống');
      /Bỏ qua \d+ hồ sơ/.test(hopN?.textContent || ''));
   w.eval('dong()');
 
+  /* Dựng đúng bối cảnh trường MỘT điểm trường — kịch bản đang chạy có sẵn
+     nhiều điểm nên phải cắt tạm, xong trả lại nguyên trạng. */
+  const dtGiu = S.diemTruong.splice(1);
+  await w.eval('hopMaMoi()');
+  kt('Trường MỘT điểm trường thì không bày ô "Phụ trách" — thứ không có gì để chọn',
+     !w.document.querySelector('#hopN #mmKhuDT'));
+  w.eval('dong()');
+  dtGiu.forEach(d => S.diemTruong.push(d));
+
+  /* Trường NHIỀU điểm trường: mã quản lý phải gán được điểm trường ngay lúc
+     tạo — không thì PHT phụ trách một điểm vào app với quyền toàn trường, và
+     toàn bộ hàng rào phạm vi (khoá lưới, gộp khi lưu theo p_pham_vi) không
+     bao giờ được kích hoạt nếu không có người chạy SQL tay. */
+  S.diemTruong.push({ id: 'dt-thu2', ten: 'Điểm trường thử', coPhongTin: false });
+  await w.eval('hopMaMoi()');
+  const hopMM2 = w.document.querySelector('#hopN');
+  const khuDT = hopMM2?.querySelector('#mmKhuDT');
+  kt('Trường nhiều điểm trường: có ô "Phụ trách", GIẤU khi đang chọn giáo viên',
+     !!khuDT && khuDT.style.display === 'none');
+  const selMM = hopMM2?.querySelector('#mmChonGV');
+  if (selMM) { selMM.value = ''; selMM.onchange && selMM.onchange(); }
+  kt('Chọn vai quản lý là ô Phụ trách hiện ra, đủ mọi điểm trường + toàn trường',
+     !!khuDT && khuDT.style.display !== 'none' &&
+     [...khuDT.querySelectorAll('option')].length === S.diemTruong.length + 1,
+     khuDT ? `${khuDT.querySelectorAll('option').length} lựa chọn` : '(không có ô)');
+  kt('Lựa chọn đầu là "toàn trường" — bỏ trống điểm trường vẫn là mặc định an toàn',
+     khuDT?.querySelector('option')?.value === '');
+  w.eval('dong()');
+  S.diemTruong.pop();
+
   /* Trả lại nguyên trạng cho các phép thử sau */
   S.phanCong.pop();
   S.giaoVien.length = 0; gvCu.forEach(g => S.giaoVien.push(g));

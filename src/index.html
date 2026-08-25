@@ -3725,8 +3725,9 @@ async function dsMaMoi(){
     /* Lấy cả giao_vien_id: phát mã hàng loạt phải biết ai ĐÃ có mã còn hiệu
        lực để không phát chồng hai mã cho cùng một người. */
     const ds=await goiAPI(`/rest/v1/ma_moi?truong_id=eq.${KHO.nguoiDung.truongId}`
-      +'&select=id,ma,vai_tro,het_han,dung_luc,giao_vien_id,giao_vien(ho_ten)&order=tao_luc.desc&limit=300');
+      +'&select=id,ma,vai_tro,het_han,dung_luc,giao_vien_id,diem_truong_id,giao_vien(ho_ten)&order=tao_luc.desc&limit=300');
     return {ok:true, ds:(ds||[]).map(x=>({id:x.id, ma:x.ma, vaiTro:x.vai_tro, gvId:x.giao_vien_id||'',
+      diemTruongId:x.diem_truong_id||'',
       hetHan:dinhDangLuc(x.het_han), conHan:new Date(x.het_han)>new Date(),
       daDung:!!x.dung_luc, hoTen:x.giao_vien?.ho_ten||''}))};
   }catch(e){ return {ok:false, ds:[], loi:dienGiaiLoi(e)}; }
@@ -12373,6 +12374,13 @@ async function hopMaMoi(){
           ${dsGV.map(g=>`<option value="${g.id}" data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(nhanChonGV(g))}</option>`).join('')}
           <option value="">— Cán bộ quản lý (phó hiệu trưởng) —</option>
         </select></div>
+      ${S.diemTruong.length>1?`<div class="on-l" id="mmKhuDT" style="margin:0;flex:1;min-width:220px;display:none">
+        <label>Phụ trách</label>
+        <select class="ip" id="mmChonDT" style="width:100%">
+          <option value="">Chuyên môn toàn trường</option>
+          ${S.diemTruong.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}
+        </select>
+        <div class="gy">Chọn một điểm trường thì quyền sửa của vị này bó vào đúng điểm ấy.</div></div>`:''}
       <button class="b b-ch" id="btTaoMaMoi">Tạo mã</button>
     </div>
     ${(()=>{ const c=canPhatMa(kq.ok?kq.ds:[]);
@@ -12392,7 +12400,8 @@ async function hopMaMoi(){
           <th>Mã</th><th>Cho ai</th><th>Tình trạng</th><th>Hạn</th><th></th></tr></thead><tbody>
           ${kq.ds.map(x=>`<tr>
             <td style="font-weight:700;letter-spacing:.15em">${esc(x.ma)}</td>
-            <td>${esc(x.hoTen||TEN_VAI_TRO[x.vaiTro]||x.vaiTro)}</td>
+            <td>${esc(x.hoTen||TEN_VAI_TRO[x.vaiTro]||x.vaiTro)}${
+              !x.gvId&&x.diemTruongId?`<br><span style="font-size:11px;color:var(--chu-mo)">Phụ trách ${esc(dtId(x.diemTruongId)?.ten||'')}</span>`:''}</td>
             <td>${x.daDung?'<span class="tag ok">Đã dùng</span>':'<span class="tag">Chưa dùng</span>'}</td>
             <td style="white-space:nowrap">${esc(x.hetHan)}</td>
             <td class="phai">${x.daDung?'':`<button class="b b-vien b-nho" data-xoamamoi="${x.id}">Thu hồi</button>`}</td>
@@ -12406,15 +12415,22 @@ async function hopMaMoi(){
     const i=b.parentElement.querySelector('input'); if(!i) return;
     i.value=''; locChon(i); i.focus();
   });
+  /* Ô "Phụ trách" chỉ có nghĩa cho vai quản lý — đang chọn giáo viên thì giấu,
+     kẻo người tạo mã tưởng gán được điểm trường cho thầy cô đứng lớp. */
+  const suaKhuDT=()=>{ const k=$('#mmKhuDT'); if(k) k.style.display=$('#mmChonGV').value?'none':''; };
+  $('#mmChonGV').onchange=suaKhuDT; suaKhuDT();
   $('#btTaoMaMoi').onclick=async()=>{
     const gvId=$('#mmChonGV').value;
+    const dtQL=gvId?'':($('#mmChonDT')?.value||'');
     const b=$('#btTaoMaMoi'); b.disabled=true; b.textContent='Đang tạo…';
-    const t=await taoMaMoi(gvId?{gvId, vaiTro:'giao_vien'}:{vaiTro:'pho_hieu_truong'});
+    const t=await taoMaMoi(gvId?{gvId, vaiTro:'giao_vien'}
+                               :{vaiTro:'pho_hieu_truong', diemTruongId:dtQL||null});
     b.disabled=false; b.textContent='Tạo mã';
     if(!t.ok) return bao(t.loi,true);
     $('#mmKQ').innerHTML=`<div class="canhbao ok" style="margin-bottom:13px"><div class="cb-ic">✓</div>
       <div class="cb-t"><b>Mã mời: <span style="font-size:21px;letter-spacing:.3em">${esc(t.ma)}</span></b>
-      <div class="cb-g">Chép mã này gửi cho ${esc(gvId?(S.giaoVien.find(g=>g.id===gvId)?.hoTen||'thầy cô'):'cán bộ quản lý')} —
+      <div class="cb-g">Chép mã này gửi cho ${esc(gvId?(S.giaoVien.find(g=>g.id===gvId)?.hoTen||'thầy cô')
+        :(dtQL?`cán bộ quản lý phụ trách ${dtId(dtQL)?.ten||''}`:'cán bộ quản lý'))} —
         họ đăng nhập Google rồi gõ mã là xong.</div></div></div>`;
   };
   $$('[data-xoamamoi]').forEach(b=>b.onclick=async()=>{

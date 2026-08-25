@@ -1073,3 +1073,30 @@ Ghi chú vận hành: kích thước tệp CSDL sau thử là 19,8 MB so với 1
 gốc dù dữ liệu đã xoá hết — là chỗ trống autovacuum giữ lại để dùng lại,
 không phải dữ liệu sót. Script thử nằm ở scratchpad phiên làm việc,
 không đưa vào kho — phần mô tả trên đủ để dựng lại khi cần.
+
+---
+
+## Mã mời quản lý gán được điểm trường ngay lúc tạo (25/8/2026)
+
+Phát hiện khi rà đường triển khai cho trường mới (kịch bản Trường TH Quảng
+Châu 1, ba điểm trường): hộp Mã mời chỉ có hai lựa chọn — giáo viên, hoặc
+"Cán bộ quản lý" — và mã quản lý **không mang điểm trường**, dù `taoMaMoi()`
+đã nhận `diemTruongId` và `dung_ma_moi` phía máy chủ đã chép cột ấy vào
+`nguoi_dung` từ đầu. Màn *Người dùng và phân quyền* cũng không có đường gán
+sau. Hệ quả: trường nhiều điểm trường **không tự bổ nhiệm được PHT phụ trách
+điểm trường** — toàn bộ hàng rào phạm vi (khoá lưới theo điểm, gộp khi lưu
+theo `p_pham_vi`) chỉ kích hoạt được nếu có người chạy SQL tay.
+
+Đã làm, chỉ đụng giao diện `hopMaMoi()` + `dsMaMoi()`, **không đổi SQL**:
+
+- Ô chọn **"Phụ trách"** hiện khi chọn vai quản lý, mặc định *Chuyên môn
+  toàn trường* (bỏ trống `diem_truong_id` — đúng nghĩa PHT toàn trường).
+- Trường **một** điểm trường thì không bày ô này — không có gì để chọn.
+- Bảng mã ghi rõ *Phụ trách 〈tên điểm〉* ở cột "Cho ai"; lời xác nhận sau
+  khi tạo cũng nói rõ phạm vi.
+
+Phép thử: `npm test` (mã quản lý ghi đúng `diem_truong_id` lên máy chủ),
+`npm run soi` (ba trạng thái ô Phụ trách: ẩn khi chọn giáo viên, đủ lựa
+chọn khi chọn quản lý, không bày ở trường một điểm). Bẫy nhỏ khi viết phép
+thử: kịch bản soi đang có sẵn 2 điểm trường nên phép thử "trường một điểm"
+phải tự cắt `S.diemTruong` về một rồi trả lại, không được giả định.
