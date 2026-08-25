@@ -1100,3 +1100,31 @@ Phép thử: `npm test` (mã quản lý ghi đúng `diem_truong_id` lên máy ch
 chọn khi chọn quản lý, không bày ở trường một điểm). Bẫy nhỏ khi viết phép
 thử: kịch bản soi đang có sẵn 2 điểm trường nên phép thử "trường một điểm"
 phải tự cắt `S.diemTruong` về một rồi trả lại, không được giả định.
+
+---
+
+## Đơn đăng ký trường đầu tiên làm lộ hai lỗi màn duyệt (25/8/2026)
+
+Tiểu học Châu Đình (Quỳ Hợp, Nghệ An) — trường ngoài đầu tiên tự đăng ký —
+bấm duyệt là nổ, tức là tính năng duyệt hỏng ngay ở lần dùng thật đầu tiên
+dù mọi phép thử đều xanh:
+
+- **`column reference "ma_truong" is ambiguous`** — `duyet_truong()` khai
+  cột TRẢ VỀ tên `ma_truong`, trùng tên cột bảng `truong`; plpgsql gặp tên
+  nước đôi thì từ chối chạy. Cú pháp hợp lệ nên không bộ soát nào kêu, và
+  phép thử app dùng máy chủ giả nên không chạm tới SQL thật. Vá: mọi cột
+  trong thân hàm mang bí danh bảng (`t.ma_truong`). Sửa ở cả
+  `db/duyet-truong.sql` lẫn `db/cai-dat.sql`; máy chủ thật đã chạy lại tệp.
+  `npm run soat` thêm luật (d): hàm plpgsql có `returns table` mà cột trả
+  về xuất hiện trần trong `select … into` / `where … =` là đỏ ngay — luật
+  đã kiểm bằng tệp cố ý sai (bắt được) và cả 31 tệp hiện có (không báo oan).
+- **Ô "Gửi đơn lúc" bày ~30 cái `[object Object]`** — hai màn hình chủ hệ
+  thống gọi nhầm `dongGio()` (hàm dựng Ô GIỜ của lưới TKB, trả mảng đối
+  tượng) thay vì `dinhDangLuc()` (định dạng ngày giờ). Hai cái tên gần nhau
+  quá; phép thử mới trong `npm run soi` cấm chuỗi `[object Object]` và đòi
+  đúng dạng `15:09 25/08/2026` ở cả bảng lẫn hộp duyệt.
+
+Bài học chung: phép thử app-với-máy-chủ-giả không kiểm được SQL thật —
+lớp lỗi chỉ nổ lúc chạy trên Postgres (ambiguous, enum sai, min(uuid))
+phải bắt bằng `npm run soat`, và mỗi lần dính một lỗi loại ấy thì thêm
+một luật vào đó.

@@ -10214,7 +10214,7 @@ function mChuHeThong(){
       <td style="text-align:center">${t.soLop} lớp · ${t.soGiaoVien} GV
         <div style="color:var(--chu-mo);font-size:11.5px">${
           chuaKhai?'chưa khai dữ liệu':`${t.soTiet} tiết${t.phienBan?` · bản ${t.phienBan}`:''}`}</div></td>
-      <td style="white-space:nowrap;font-size:12px">${esc(dongGio(t.taoLuc))}</td>
+      <td style="white-space:nowrap;font-size:12px">${esc(dinhDangLuc(t.taoLuc))}</td>
       <td style="text-align:right;white-space:nowrap">
         ${t.trangThai==='cho_duyet'
           ? `<button class="b b-ch b-nho" data-duyet="${t.id}">Duyệt</button>
@@ -12615,7 +12615,7 @@ function hopDuyetTruong(idTruong, dongY){
      <div class="hang">Người đăng ký <b>${esc(t.nguoiDangKy||'—')}</b></div>
      <div class="hang">Điện thoại <b>${esc(t.dienThoai||'—')}</b></div>
      <div class="hang">Gmail <b>${esc(t.emailDangKy||t.emailLienHe||'—')}</b></div>
-     <div class="hang">Gửi đơn lúc <b>${esc(dongGio(t.taoLuc))}</b></div>
+     <div class="hang">Gửi đơn lúc <b>${esc(dinhDangLuc(t.taoLuc))}</b></div>
      <div class="on-l" style="margin-top:14px"><label>Ghi chú (không bắt buộc)</label>
        <input class="ip" id="dtGhiChu" placeholder="${dongY?'Đã gọi xác minh…':'Lý do từ chối…'}"></div>
      <div class="canhbao ${dongY?'ok':''}" style="margin-top:13px">

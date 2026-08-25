@@ -123,6 +123,28 @@ for (const t of dsTep) {
       than.push(`❌ ${m[1]}(${m[2]}) — cột kiểu uuid không có min/max. `
         + `Viết ${m[1]}(${m[2]}::text)::uuid`);
 
+  /* d) Cột trả về của hàm plpgsql trùng tên cột bảng — "ambiguous".
+     RETURNS TABLE biến mỗi cột trả về thành một biến trong thân hàm. Gặp
+     `select ma_truong … from truong` thì plpgsql KHÔNG chọn giúp mà nổ
+     "column reference is ambiguous" — cú pháp hợp lệ nên bộ phân tích im
+     lặng, lỗi chỉ nổ lúc chạy. Đã cắn thật 25/8/2026: duyet_truong() hỏng
+     ngay ở đơn đăng ký trường đầu tiên. Cách viết đúng: mang bí danh bảng
+     ở MỌI cột trong thân hàm — `select t.ma_truong from truong t`.
+     Chỉ soát plpgsql: hàm `language sql` tự ưu tiên cột bảng, không nổ. */
+  for (const f of ma.matchAll(
+    /function\s+(\w+)\s*\([^)]*\)\s*returns\s+table\s*\(([^)]*)\)\s*language\s+plpgsql[\s\S]*?as\s*\$\$([\s\S]*?)\$\$/gi)) {
+    const cotRa = [...f[2].matchAll(/(\w+)\s+\w/g)].map(m => m[1].toLowerCase());
+    for (const s of f[3].matchAll(/\bselect\s+([^;]*?)\s+into\b/gi))
+      for (const muc of s[1].split(','))
+        if (cotRa.includes(muc.trim().toLowerCase()))
+          than.push(`❌ hàm ${f[1]}(): "select ${muc.trim()} … into" — trùng tên cột trả về, `
+            + `plpgsql nổ "ambiguous". Viết bí danh: select t.${muc.trim()} from … t`);
+    for (const s of f[3].matchAll(/\b(?:where|and|or)\s+(\w+)\s*[=<>]/gi))
+      if (cotRa.includes(s[1].toLowerCase()))
+        than.push(`❌ hàm ${f[1]}(): "where ${s[1]} =" — trùng tên cột trả về, `
+          + `plpgsql nổ "ambiguous". Viết bí danh: where t.${s[1]} = …`);
+  }
+
   const nang = than.filter(x => x.startsWith('❌'));
   if (nang.length) loi += nang.length;
   canh += than.length - nang.length;

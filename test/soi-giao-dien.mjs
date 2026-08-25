@@ -2226,6 +2226,23 @@ console.log('\n17d. Duyệt đăng ký trường');
     const css = w.document.documentElement.innerHTML;
     return /\.mi \.n:empty\{display:none\}/.test(css);
   })());
+  kt('Bảng trường và hộp duyệt ghi NGÀY GIỜ đọc được, không phải [object Object]', (() => {
+    /* Lỗi thật 25/8/2026, lộ ra ở đơn đăng ký đầu tiên: hai chỗ này gọi nhầm
+       dongGio() — hàm dựng Ô GIỜ của lưới TKB, trả về mảng ~30 đối tượng —
+       thay vì dinhDangLuc(). Màn hình vì thế bày một dãy [object Object]. */
+    w.eval(`DS_TRUONG = [{id:'x', ten:'Tiểu học Thử', maTruong:'', trangThai:'cho_duyet',
+      tinh:'Nghệ An', xa:'Quỳ Hợp', namHoc:'2026-2027', dienThoai:'0912345678',
+      emailLienHe:'', nguoiDangKy:'Cô Thử', emailDangKy:'thu@x.vn',
+      taoLuc:'2026-08-25T15:09:00', duyetLuc:null, ghiChu:'',
+      soTaiKhoan:1, soLop:0, soGiaoVien:0, soTiet:0, phienBan:null}];
+      S.trangHienTai='hethong'; ve()`);
+    const bang = w.document.querySelector('#noiDung').textContent;
+    w.eval(`hopDuyetTruong('x', true)`);
+    const hopDT = w.document.querySelector('#hopN').textContent;
+    w.eval('dong()');
+    return !bang.includes('[object Object]') && !hopDT.includes('[object Object]')
+      && /15:09 25\/08\/2026/.test(bang) && /15:09 25\/08\/2026/.test(hopDT);
+  })());
   w.eval('DS_TRUONG = null');
 
   w.eval(`KHO.nguoiDung = ${JSON.stringify(goc)}; S.trangHienTai='dieuhanh'`);

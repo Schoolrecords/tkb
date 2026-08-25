@@ -1654,7 +1654,11 @@ begin
       'Chỉ người quản trị hệ thống mới duyệt được đăng ký.'::text; return;
   end if;
 
-  select ten, trang_thai_duyet into v_ten, v_tt from truong where id = p_truong;
+  -- ⚠️ Mọi cột trong thân hàm đều phải mang bí danh bảng (t.…): hàm khai
+  -- RETURNS TABLE có cột `ma_truong`, mà plpgsql gặp tên vừa là cột bảng
+  -- vừa là cột trả về thì từ chối chạy — "column reference is ambiguous".
+  -- Đã nổ thật ngay lần duyệt trường đầu tiên (25/8/2026).
+  select t.ten, t.trang_thai_duyet into v_ten, v_tt from truong t where t.id = p_truong;
   if v_ten is null then
     return query select false, null::text, 'Không tìm thấy trường.'::text; return;
   end if;
@@ -1669,7 +1673,7 @@ begin
 
   -- Duyệt lại một trường đã duyệt thì GIỮ NGUYÊN mã cũ. Cấp mã mới nghĩa
   -- là mọi giấy tờ nhà trường đã in ra thành sai.
-  select ma_truong into v_ma from truong where id = p_truong;
+  select t.ma_truong into v_ma from truong t where t.id = p_truong;
   if v_ma is null or v_ma !~ '^[0-9]{5}$' then
     v_ma := sinh_ma_truong();
   end if;
