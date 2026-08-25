@@ -1016,3 +1016,60 @@ ngay). Sau khi có scope, push bình thường.
 mở được bằng đúng khoá trong sổ: 15 bảng, 386 dòng — 25 lớp, 35 giáo
 viên, 265 phân công, 9 phiên bản TKB, khớp dữ liệu thật. Tệp Notepad
 chứa mật khẩu và bản sao lưu tạm đã xoá khỏi máy sau khi soát.
+
+---
+
+## 25/8/2026 (chiều) — Thử tải 50 trường trên máy chủ thật: dự trữ 62 lần
+
+Chủ dự án hỏi *"nếu số lượng trường lên 50–100 thì sao?"* — trả lời bằng
+phép đo thật thay vì ngoại suy. Cách thử, đủ để làm lại ở Pha 2:
+
+- **Nhân bản dữ liệu Diễn Liên thành 50 trường tải thử** ngay trên máy chủ
+  thật, mã trường vùng riêng 90001–90050, tên `Trường tải thử N`. Mỗi
+  trường đủ 25 lớp · 35 GV · 265 phân công · 1 bản TKB công bố 58 KB, và
+  **uuid giáo viên trong blob được thay bằng uuid mới** để truy vấn lọc
+  `tkb_cua_toi` phải làm việc thật chứ không trả rỗng.
+- **Bắn đúng bộ 9 truy vấn của `taiChoGiaoVien()`** (kể cả lọc blob) qua
+  cổng trung chuyển, nhiều kết nối song song; trộn 5% lượt mở của quản lý
+  (14 truy vấn, blob đầy đủ). Kịch bản chuẩn: sáng thứ Hai, 50 trường ×
+  35 GV = 1.750 lượt mở trong ~1 giờ → cần ≥ 29 lượt/phút.
+- **Kỷ luật an toàn:** chụp số dòng 15 bảng + số liệu riêng từng trường
+  thật TRƯỚC khi dựng; xoá theo đúng danh sách `truong_id` (con trước cha
+  sau — `lop` phải xoá trước `diem_truong` vì FK restrict); đối chiếu SAU
+  khi dọn. Kết quả đối chiếu: **khớp tuyệt đối từng dòng**, Diễn Liên
+  nguyên vẹn (25 lớp · 35 GV · 265 PC · 9 phiên bản).
+
+**Số đo** (độ trễ tính trọn một lượt mở app = 9 truy vấn tuần tự):
+
+| Pha | Lượt mở/phút | p50 | p95 | Lỗi |
+|---|---|---|---|---|
+| 5 kết nối song song | 655 | 0,46s | 0,47s | 0 |
+| 10 kết nối | 1.341 | 0,45s | 0,47s | 0 |
+| 14 kết nối, 5% quản lý | **1.813** | 0,45s | 0,62s | 0 |
+| Bão Lưu: 150 lần lưu blob 58 KB | **88 lần/giây** | — | — | 0 |
+
+Độ trễ **không tăng** khi gấp ba số kết nối → máy chủ còn xa mới kịch
+trần; 0,45s chủ yếu là đường mạng VN↔Singapore (9 lượt khứ hồi), không
+phải máy chủ chậm. **Dự trữ 62 lần** so với nhu cầu 50 trường, ~30 lần
+nếu 100 trường. Dung lượng: ~110 KB/trường — 50 trường thêm 5,4 MB.
+
+**Hai phát hiện về cổng kết nối** (đo thật, 20 kết nối cùng lúc):
+
+- Cổng **5432 (session)** của gói miễn phí chỉ cho **15 máy khách** —
+  xin 18 là `EMAXCONNSESSION`. **App KHÔNG vướng hạn này** (đi REST, máy
+  chủ tự xếp hàng), nhưng công cụ nối thẳng CSDL thì phải nhớ.
+- Cổng **6543 (transaction)**: 20/20 vào ngon, chịu tới ~200 máy khách.
+  Cần hơn 15 kết nối thẳng thì chỉ việc đổi số cổng trong chuỗi kết nối;
+  đánh đổi là không giữ trạng thái phiên giữa các câu lệnh. `pg_dump`
+  của sao lưu đêm chỉ dùng MỘT kết nối — để nguyên 5432.
+
+Giới hạn của phép thử, ghi lại cho trung thực: đo ở tầng CSDL qua cổng
+trung chuyển, chưa đi qua lớp PostgREST (chạy cùng máy — dự trữ 62 lần
+đủ rộng để bao); và kết luận từ đánh giá cùng ngày vẫn nguyên: điểm
+nghẽn thật ở 100 trường là CON NGƯỜI (một mình chủ dự án duyệt đơn và
+hỗ trợ), không phải máy chủ.
+
+Ghi chú vận hành: kích thước tệp CSDL sau thử là 19,8 MB so với 12,5 MB
+gốc dù dữ liệu đã xoá hết — là chỗ trống autovacuum giữ lại để dùng lại,
+không phải dữ liệu sót. Script thử nằm ở scratchpad phiên làm việc,
+không đưa vào kho — phần mô tả trên đủ để dựng lại khi cần.
