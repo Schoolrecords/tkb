@@ -9,7 +9,7 @@
    Cần cài một lần:  npm install --no-save jsdom
    Chưa cài thì phép thử tự bỏ qua, `npm test` vẫn chạy độc lập như cũ.
    ================================================================== */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -1582,6 +1582,18 @@ kt('Màu chủ đề khớp nhau ở cả ba chỗ: CSS · thẻ meta · manifes
   const css = bien('nav');
   const b = [css, meta, m.theme_color].map(x => String(x || '').toUpperCase());
   return [b[0] === b[1] && b[1] === b[2], `CSS ${b[0]} · meta ${b[1]} · manifest ${b[2]}`];
+})()));
+/* Dán link vào Zalo phải ra ảnh đại diện — Zalo, Messenger, Facebook đều
+   đọc bộ thẻ og:*. Ảnh phải là URL TUYỆT ĐỐI tới một tệp thật đang nằm
+   trong src/ (data: không dùng được cho og:image). */
+kt('Dán link vào Zalo có ảnh đại diện: đủ bộ thẻ og:* và tệp ảnh tồn tại', ...((() => {
+  const og = t => w.document.querySelector(`meta[property="og:${t}"]`)?.getAttribute('content') || '';
+  const anh = og('image');
+  const tenTep = anh.split('/').pop();
+  const coTep = anh.startsWith('https://') && existsSync(join(goc, 'src', tenTep));
+  return [og('title') && og('description') && og('url').startsWith('https://') && coTep
+    && +og('image:width') >= 600 && +og('image:height') >= 315,
+    coTep ? `${tenTep} có thật` : `og:image "${anh}" không trỏ tới tệp nào trong src/`];
 })()));
 kt('Nền nạp trang của manifest khớp nền tổng thể trong CSS', ...((() => {
   const m = JSON.parse(readFileSync(join(goc, 'src/manifest.webmanifest'), 'utf8'));
