@@ -379,9 +379,24 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .donut::before{content:'';position:absolute;inset:14px;background:var(--the);border-radius:50%}
 .donut b{position:relative;font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1}
 .donut span{position:relative;font-size:10px;color:var(--chu-mo);line-height:1;margin-top:5px}
-.hang{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--ke);font-size:13.5px}
+.hang{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;
+  padding:11px 0;border-bottom:1px solid var(--ke);font-size:13.5px}
 .hang:last-child{border-bottom:none}
-.hang b{font-weight:700;font-size:15px}
+.hang b{font-weight:700;font-size:15px;text-align:right;overflow-wrap:anywhere}
+/* Cột "Dạy" của bảng Giáo viên — mỗi nhóm lớp một dòng, chữ nhỏ để 35 dòng
+   vẫn đọc lướt được. Nút bọc ngoài phải TRONG SUỐT: nó là chỗ bấm, không
+   phải một khối tranh chỗ với chính nội dung nó chứa. */
+.gv-day{font-size:12px;line-height:1.45;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* ⚠️ `nowrap` mà thiếu `overflow:hidden` thì chữ dài không bị cắt — nó TRÀN
+   sang ô bên cạnh và nằm đè lên tag điểm trường. `max-width` trên ô `<td>`
+   không tự cắt được cho con bên trong. */
+.gv-day b{font-weight:600}
+.gv-day-them{color:var(--chu-mo)}
+.gv-day-o{max-width:228px}
+.gv-day-nut{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;
+  text-align:left;cursor:pointer;border-radius:6px;display:block;max-width:100%;overflow:hidden}
+.gv-day-nut:hover{background:var(--nav-nhat)}
 .hang b.cam{color:var(--cam)} .hang b.do{color:var(--do)} .hang b.xanh{color:var(--xanh)}
 
 .canhbao{display:flex;gap:11px;align-items:flex-start;background:var(--canh-nen);border:1px solid #EDD9A6;
@@ -1423,7 +1438,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
 document.querySelector('link[rel="icon"]').href = document.querySelector('.hieu-bt img').src;
 
 /*#region LOGIC*/
-const NGUON = {"giaoVien":[{"id":"gv_nguyen_thi_trinh","hoTen":"Nguyễn Thị Trinh","tenNgan":"Cô Trinh","cn":"1A","dinhMuc":23},{"id":"gv_cao_thi_minh_khue","hoTen":"Cao Thị Minh Khuê","tenNgan":"Cô Khuê","cn":"1B","dinhMuc":23},{"id":"gv_bui_thi_dung","hoTen":"Bùi Thị Dung","tenNgan":"Cô DungB","cn":"1C","dinhMuc":23},{"id":"gv_hoang_thi_linh","hoTen":"Hoàng Thị Linh","tenNgan":"Cô Linh","cn":"1D","dinhMuc":23},{"id":"gv_dang_thi_hue","hoTen":"Đặng Thị Huệ","tenNgan":"Cô Huệ","cn":"1E","dinhMuc":23},{"id":"gv_nguyen_thi_khanh","hoTen":"Nguyễn Thị Khánh","tenNgan":"Cô Khánh","cn":"2A","dinhMuc":23},{"id":"gv_cao_thi_hoe","hoTen":"Cao Thị Hòe","tenNgan":"Cô Hòe","cn":"2B","dinhMuc":23},{"id":"gv_truong_thi_phuong","hoTen":"Trương Thị Phương","tenNgan":"Cô Phương","cn":"2C","dinhMuc":23},{"id":"gv_nguyen_thi_thoa","hoTen":"Nguyễn Thị Thoa","tenNgan":"Cô Thoa","cn":"2D","dinhMuc":23},{"id":"gv_nguyen_thi_tram","hoTen":"Nguyễn Thị Trầm","tenNgan":"Cô Trầm","cn":"2E","dinhMuc":23},{"id":"gv_dang_thi_dung","hoTen":"Đặng Thị Dung","tenNgan":"Cô Dung","cn":"3A","dinhMuc":23},{"id":"gv_ho_thi_hang","hoTen":"Hồ Thị Hằng","tenNgan":"Cô Hằng","cn":"3B","dinhMuc":23},{"id":"gv_chu_thi_tham","hoTen":"Chu Thị Thắm","tenNgan":"Cô Thắm","cn":"3C","dinhMuc":23},{"id":"gv_nguyen_thi_lam","hoTen":"Nguyễn Thị Lam","tenNgan":"Cô Lam","cn":"3D","dinhMuc":23},{"id":"gv_tang_thi_huong_giang","hoTen":"Tăng Thị Hương Giang","tenNgan":"Cô Giang","cn":"3E","dinhMuc":23},{"id":"gv_nguyen_thi_oanh","hoTen":"Nguyễn Thị Oanh","tenNgan":"Cô Oanh","cn":"4A","dinhMuc":23},{"id":"gv_phan_thi_bien","hoTen":"Phan Thị Biên","tenNgan":"Cô Biên","cn":"4B","dinhMuc":23},{"id":"gv_nguyen_thi_hong_thuy","hoTen":"Nguyễn Thị Hồng Thủy","tenNgan":"Cô Thủy","cn":"4C","dinhMuc":23},{"id":"gv_nguyen_thi_thuy","hoTen":"Nguyễn Thị Thùy","tenNgan":"Cô Thùy","cn":"4D","dinhMuc":23},{"id":"gv_nguyen_thi_hoa","hoTen":"Nguyễn Thị Hòa","tenNgan":"Cô Hòa","cn":"4E","dinhMuc":23},{"id":"gv_bui_duc_hong","hoTen":"Bùi Đức Hồng","tenNgan":"Thầy Hồng","cn":"5A","dinhMuc":23},{"id":"gv_truong_thi_hong_ngoc","hoTen":"Trương Thị Hồng Ngọc","tenNgan":"Cô Ngọc","cn":"5B","dinhMuc":23},{"id":"gv_cao_thi_thanh_huong","hoTen":"Cao Thị Thanh Hương","tenNgan":"Cô Hương","cn":"5C","dinhMuc":23},{"id":"gv_nguyen_thi_hoan_my","hoTen":"Nguyễn Thị Hoàn Mỹ","tenNgan":"Cô Mỹ","cn":"5D","dinhMuc":23},{"id":"gv_pham_van_tuan","hoTen":"Phạm Văn Tuấn","tenNgan":"Thầy Tuấn","cn":"5E","dinhMuc":23},{"id":"gv_nguyen_thi_luyen","hoTen":"Nguyễn Thị Luyến","tenNgan":"Cô Luyến","cn":"","dinhMuc":23},{"id":"gv_tang_thi_tu","hoTen":"Tăng Thị Tú","tenNgan":"Cô Tú","cn":"","dinhMuc":23},{"id":"gv_vo_thi_van_anh","hoTen":"Võ Thị Vân Anh","tenNgan":"Cô Anh","cn":"","dinhMuc":23},{"id":"gv_nguyen_khanh_linh","hoTen":"Nguyễn Khánh Linh","tenNgan":"Cô LinhA","cn":"","dinhMuc":23},{"id":"gv_phan_thi_huong","hoTen":"Phan Thị Hương","tenNgan":"Cô P.Hương","cn":"","dinhMuc":23},{"id":"gv_nguyen_thi_kim_oanh","hoTen":"Nguyễn Thị Kim Oanh","tenNgan":"Cô K.Oanh","cn":"","dinhMuc":23},{"id":"gv_hoang_thi_mai","hoTen":"Hoàng Thị Mai","tenNgan":"Cô Mai","cn":"","dinhMuc":23},{"id":"gv_tran_thanh_chung","hoTen":"Trần Thanh Chung","tenNgan":"Thầy Chung","cn":"","dinhMuc":23},{"id":"gv_nguyen_thi_hoa_ht","hoTen":"Nguyễn Thị Hòa HT","tenNgan":"Cô Hòa HT","cn":"","dinhMuc":23},{"id":"gv_phan_thi_thuong","hoTen":"Phan Thị Thương","tenNgan":"Cô Thương","cn":"","dinhMuc":23}],"lop":[{"id":"lop_1A","ten":"1A","khoi":1},{"id":"lop_1B","ten":"1B","khoi":1},{"id":"lop_1C","ten":"1C","khoi":1},{"id":"lop_1D","ten":"1D","khoi":1},{"id":"lop_1E","ten":"1E","khoi":1},{"id":"lop_2A","ten":"2A","khoi":2},{"id":"lop_2B","ten":"2B","khoi":2},{"id":"lop_2C","ten":"2C","khoi":2},{"id":"lop_2D","ten":"2D","khoi":2},{"id":"lop_2E","ten":"2E","khoi":2},{"id":"lop_3A","ten":"3A","khoi":3},{"id":"lop_3B","ten":"3B","khoi":3},{"id":"lop_3C","ten":"3C","khoi":3},{"id":"lop_3D","ten":"3D","khoi":3},{"id":"lop_3E","ten":"3E","khoi":3},{"id":"lop_4A","ten":"4A","khoi":4},{"id":"lop_4B","ten":"4B","khoi":4},{"id":"lop_4C","ten":"4C","khoi":4},{"id":"lop_4D","ten":"4D","khoi":4},{"id":"lop_4E","ten":"4E","khoi":4},{"id":"lop_5A","ten":"5A","khoi":5},{"id":"lop_5B","ten":"5B","khoi":5},{"id":"lop_5C","ten":"5C","khoi":5},{"id":"lop_5D","ten":"5D","khoi":5},{"id":"lop_5E","ten":"5E","khoi":5}],"phanCong":[{"gvId":"gv_vo_thi_van_anh","lopId":"lop_1C","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_1D","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_1E","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_2A","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_2B","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_2C","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_2D","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vo_thi_van_anh","lopId":"lop_2E","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"GDTC","soTiet":2},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"HDTN","soTiet":3},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"Khoa học","soTiet":2},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"Toán","soTiet":5},{"gvId":"gv_phan_thi_bien","lopId":"lop_4B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"CN","soTiet":1},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"GDTC","soTiet":2},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"HDTN","soTiet":3},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"TNXH","soTiet":2},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"Toán","soTiet":5},{"gvId":"gv_dang_thi_dung","lopId":"lop_3A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_bui_thi_dung","lopId":"lop_1C","mon":"GDTC","soTiet":2},{"gvId":"gv_bui_thi_dung","lopId":"lop_1C","mon":"HDTN","soTiet":3},{"gvId":"gv_bui_thi_dung","lopId":"lop_1C","mon":"TNXH","soTiet":2},{"gvId":"gv_bui_thi_dung","lopId":"lop_1C","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_bui_thi_dung","lopId":"lop_1C","mon":"Toán","soTiet":3},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"CN","soTiet":1},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"GDTC","soTiet":2},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"HDTN","soTiet":3},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"TNXH","soTiet":2},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"Toán","soTiet":5},{"gvId":"gv_tang_thi_huong_giang","lopId":"lop_3E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_dang_thi_hue","lopId":"lop_1E","mon":"GDTC","soTiet":2},{"gvId":"gv_dang_thi_hue","lopId":"lop_1E","mon":"HDTN","soTiet":3},{"gvId":"gv_dang_thi_hue","lopId":"lop_1E","mon":"TNXH","soTiet":2},{"gvId":"gv_dang_thi_hue","lopId":"lop_1E","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_dang_thi_hue","lopId":"lop_1E","mon":"Toán","soTiet":3},{"gvId":"gv_nguyen_thi_hoa","lopId":"lop_4E","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_hoa","lopId":"lop_4E","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_hoa","lopId":"lop_4E","mon":"Khoa học","soTiet":2},{"gvId":"gv_nguyen_thi_hoa","lopId":"lop_4E","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_nguyen_thi_hoa","lopId":"lop_4E","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_nguyen_thi_hoa","lopId":"lop_4E","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_hoa_ht","lopId":"lop_2A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_nguyen_thi_hoa_ht","lopId":"lop_2B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_cao_thi_hoe","lopId":"lop_2B","mon":"GDTC","soTiet":2},{"gvId":"gv_cao_thi_hoe","lopId":"lop_2B","mon":"HDTN","soTiet":3},{"gvId":"gv_cao_thi_hoe","lopId":"lop_2B","mon":"TNXH","soTiet":2},{"gvId":"gv_cao_thi_hoe","lopId":"lop_2B","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_cao_thi_hoe","lopId":"lop_2B","mon":"Toán","soTiet":5},{"gvId":"gv_cao_thi_thanh_huong","lopId":"lop_5C","mon":"GDTC","soTiet":2},{"gvId":"gv_cao_thi_thanh_huong","lopId":"lop_5C","mon":"HDTN","soTiet":3},{"gvId":"gv_cao_thi_thanh_huong","lopId":"lop_5C","mon":"Khoa học","soTiet":2},{"gvId":"gv_cao_thi_thanh_huong","lopId":"lop_5C","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_cao_thi_thanh_huong","lopId":"lop_5C","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_cao_thi_thanh_huong","lopId":"lop_5C","mon":"Toán","soTiet":5},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"CN","soTiet":1},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"GDTC","soTiet":2},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"HDTN","soTiet":3},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"TNXH","soTiet":2},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"Toán","soTiet":5},{"gvId":"gv_ho_thi_hang","lopId":"lop_3B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_1A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_1B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_1C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_1D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_1E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_2A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_2B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_2C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_2D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_kim_oanh","lopId":"lop_2E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_cao_thi_minh_khue","lopId":"lop_1B","mon":"GDTC","soTiet":2},{"gvId":"gv_cao_thi_minh_khue","lopId":"lop_1B","mon":"HDTN","soTiet":3},{"gvId":"gv_cao_thi_minh_khue","lopId":"lop_1B","mon":"TNXH","soTiet":2},{"gvId":"gv_cao_thi_minh_khue","lopId":"lop_1B","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_cao_thi_minh_khue","lopId":"lop_1B","mon":"Toán","soTiet":3},{"gvId":"gv_nguyen_thi_khanh","lopId":"lop_2A","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_khanh","lopId":"lop_2A","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_khanh","lopId":"lop_2A","mon":"TNXH","soTiet":2},{"gvId":"gv_nguyen_thi_khanh","lopId":"lop_2A","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_nguyen_thi_khanh","lopId":"lop_2A","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"TNXH","soTiet":2},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_lam","lopId":"lop_3D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_hoang_thi_linh","lopId":"lop_1D","mon":"GDTC","soTiet":2},{"gvId":"gv_hoang_thi_linh","lopId":"lop_1D","mon":"HDTN","soTiet":3},{"gvId":"gv_hoang_thi_linh","lopId":"lop_1D","mon":"TNXH","soTiet":2},{"gvId":"gv_hoang_thi_linh","lopId":"lop_1D","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_hoang_thi_linh","lopId":"lop_1D","mon":"Toán","soTiet":3},{"gvId":"gv_nguyen_khanh_linh","lopId":"lop_1A","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_nguyen_khanh_linh","lopId":"lop_1B","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_nguyen_khanh_linh","lopId":"lop_3C","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_khanh_linh","lopId":"lop_3D","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_khanh_linh","lopId":"lop_3E","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_luyen","lopId":"lop_3A","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_luyen","lopId":"lop_4C","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_luyen","lopId":"lop_4D","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_luyen","lopId":"lop_5B","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_luyen","lopId":"lop_5C","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_luyen","lopId":"lop_5E","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_hoang_thi_mai","lopId":"lop_3A","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_3B","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_3C","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_3D","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_3E","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4A","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4A","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4B","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4B","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4C","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4C","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4D","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4D","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4E","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_4E","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5A","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5A","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5B","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5C","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5C","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5D","mon":"Tin học","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5E","mon":"CN","soTiet":1},{"gvId":"gv_hoang_thi_mai","lopId":"lop_5E","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"Khoa học","soTiet":2},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_hoan_my","lopId":"lop_5D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"GDTC","soTiet":2},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"HDTN","soTiet":3},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"Khoa học","soTiet":2},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"Toán","soTiet":5},{"gvId":"gv_truong_thi_hong_ngoc","lopId":"lop_5B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"Khoa học","soTiet":2},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_oanh","lopId":"lop_4A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_1A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_1B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_1C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_1D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_1E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_2A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_2B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_2C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_2D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_2E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_3A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_3B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_3C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_3D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_3E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_4A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_4B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_4C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_4D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_4E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_5A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_5B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_5C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_5D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_phan_thi_huong","lopId":"lop_5E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_truong_thi_phuong","lopId":"lop_2C","mon":"GDTC","soTiet":2},{"gvId":"gv_truong_thi_phuong","lopId":"lop_2C","mon":"HDTN","soTiet":3},{"gvId":"gv_truong_thi_phuong","lopId":"lop_2C","mon":"TNXH","soTiet":2},{"gvId":"gv_truong_thi_phuong","lopId":"lop_2C","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_truong_thi_phuong","lopId":"lop_2C","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_thoa","lopId":"lop_2D","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_thoa","lopId":"lop_2D","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_thoa","lopId":"lop_2D","mon":"TNXH","soTiet":2},{"gvId":"gv_nguyen_thi_thoa","lopId":"lop_2D","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_nguyen_thi_thoa","lopId":"lop_2D","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"Khoa học","soTiet":2},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_thuy","lopId":"lop_4D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_1A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_1B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_1C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_1D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_1E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_2C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_2D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_2E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_3A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_3B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_3C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_3D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_3E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_4A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_4B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_4C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_4D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_4E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_5A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_5B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_5C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_5D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_phan_thi_thuong","lopId":"lop_5E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"CN","soTiet":1},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"GDTC","soTiet":2},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"HDTN","soTiet":3},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"TNXH","soTiet":2},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"Toán","soTiet":5},{"gvId":"gv_chu_thi_tham","lopId":"lop_3C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"Khoa học","soTiet":2},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"Toán","soTiet":5},{"gvId":"gv_nguyen_thi_hong_thuy","lopId":"lop_4C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_nguyen_thi_trinh","lopId":"lop_1A","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_trinh","lopId":"lop_1A","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_trinh","lopId":"lop_1A","mon":"TNXH","soTiet":2},{"gvId":"gv_nguyen_thi_trinh","lopId":"lop_1A","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_nguyen_thi_trinh","lopId":"lop_1A","mon":"Toán","soTiet":3},{"gvId":"gv_nguyen_thi_tram","lopId":"lop_2E","mon":"GDTC","soTiet":2},{"gvId":"gv_nguyen_thi_tram","lopId":"lop_2E","mon":"HDTN","soTiet":3},{"gvId":"gv_nguyen_thi_tram","lopId":"lop_2E","mon":"TNXH","soTiet":2},{"gvId":"gv_nguyen_thi_tram","lopId":"lop_2E","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_nguyen_thi_tram","lopId":"lop_2E","mon":"Toán","soTiet":5},{"gvId":"gv_tang_thi_tu","lopId":"lop_3B","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_tang_thi_tu","lopId":"lop_4A","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_tang_thi_tu","lopId":"lop_4B","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_tang_thi_tu","lopId":"lop_4E","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_tang_thi_tu","lopId":"lop_5A","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_tang_thi_tu","lopId":"lop_5D","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_tran_thanh_chung","lopId":"lop_4E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thanh_chung","lopId":"lop_5B","mon":"CN","soTiet":1},{"gvId":"gv_tran_thanh_chung","lopId":"lop_5C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thanh_chung","lopId":"lop_5D","mon":"CN","soTiet":1},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"GDTC","soTiet":2},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"HDTN","soTiet":3},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"Khoa học","soTiet":2},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"Toán","soTiet":5},{"gvId":"gv_bui_duc_hong","lopId":"lop_5A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"GDTC","soTiet":2},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"HDTN","soTiet":3},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"Khoa học","soTiet":2},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"Toán","soTiet":5},{"gvId":"gv_pham_van_tuan","lopId":"lop_5E","mon":"Âm nhạc","soTiet":1}]};
+const NGUON = {"giaoVien":[{"id":"gv_le_thi_nguyet","hoTen":"Lê Thị Nguyệt","tenNgan":"Cô Nguyệt","cn":"1A","dinhMuc":23},{"id":"gv_vu_thi_bich_van","hoTen":"Vũ Thị Bích Vân","tenNgan":"Cô Vân","cn":"1B","dinhMuc":23},{"id":"gv_do_thi_nhai","hoTen":"Đỗ Thị Nhài","tenNgan":"Cô NhàiB","cn":"1C","dinhMuc":23},{"id":"gv_trinh_thi_man","hoTen":"Trịnh Thị Mận","tenNgan":"Cô Mận","cn":"1D","dinhMuc":23},{"id":"gv_ly_thi_sim","hoTen":"Lý Thị Sim","tenNgan":"Cô Sim","cn":"1E","dinhMuc":23},{"id":"gv_mai_thi_cam","hoTen":"Mai Thị Cẩm","tenNgan":"Cô Cẩm","cn":"2A","dinhMuc":23},{"id":"gv_dinh_thi_luu","hoTen":"Đinh Thị Lựu","tenNgan":"Cô Lựu","cn":"2B","dinhMuc":23},{"id":"gv_ta_thi_quyen","hoTen":"Tạ Thị Quyên","tenNgan":"Cô Quyên","cn":"2C","dinhMuc":23},{"id":"gv_duong_thi_nhung","hoTen":"Dương Thị Nhung","tenNgan":"Cô Nhung","cn":"2D","dinhMuc":23},{"id":"gv_ngo_thi_diep","hoTen":"Ngô Thị Diệp","tenNgan":"Cô Diệp","cn":"2E","dinhMuc":23},{"id":"gv_bach_thi_nhai","hoTen":"Bạch Thị Nhài","tenNgan":"Cô Nhài","cn":"3A","dinhMuc":23},{"id":"gv_luong_thi_xoan","hoTen":"Lương Thị Xoan","tenNgan":"Cô Xoan","cn":"3B","dinhMuc":23},{"id":"gv_doan_thi_nhan","hoTen":"Đoàn Thị Nhẫn","tenNgan":"Cô Nhẫn","cn":"3C","dinhMuc":23},{"id":"gv_ha_thi_may","hoTen":"Hà Thị Mây","tenNgan":"Cô Mây","cn":"3D","dinhMuc":23},{"id":"gv_lam_thi_thanh_truc","hoTen":"Lâm Thị Thanh Trúc","tenNgan":"Cô Trúc","cn":"3E","dinhMuc":23},{"id":"gv_ngo_thi_sen","hoTen":"Ngô Thị Sen","tenNgan":"Cô Sen","cn":"4A","dinhMuc":23},{"id":"gv_vuong_thi_net","hoTen":"Vương Thị Nết","tenNgan":"Cô Nết","cn":"4B","dinhMuc":23},{"id":"gv_dang_thi_kim_hanh","hoTen":"Đặng Thị Kim Hạnh","tenNgan":"Cô Hạnh","cn":"4C","dinhMuc":23},{"id":"gv_do_thi_hanh","hoTen":"Đỗ Thị Hanh","tenNgan":"Cô Hanh","cn":"4D","dinhMuc":23},{"id":"gv_truong_thi_men","hoTen":"Trương Thị Mến","tenNgan":"Cô Mến","cn":"4E","dinhMuc":23},{"id":"gv_phung_duc_kien","hoTen":"Phùng Đức Kiên","tenNgan":"Thầy Kiên","cn":"5A","dinhMuc":23},{"id":"gv_to_thi_bich_ngan","hoTen":"Tô Thị Bích Ngân","tenNgan":"Cô Ngân","cn":"5B","dinhMuc":23},{"id":"gv_bui_thi_thanh_nha","hoTen":"Bùi Thị Thanh Nhã","tenNgan":"Cô Nhã","cn":"5C","dinhMuc":23},{"id":"gv_ho_thi_diem_quynh","hoTen":"Hồ Thị Diễm Quỳnh","tenNgan":"Cô Quỳnh","cn":"5D","dinhMuc":23},{"id":"gv_dao_van_loc","hoTen":"Đào Văn Lộc","tenNgan":"Thầy Lộc","cn":"5E","dinhMuc":23},{"id":"gv_cao_thi_yen","hoTen":"Cao Thị Yến","tenNgan":"Cô Yến","cn":"","dinhMuc":23},{"id":"gv_vu_thi_tuyet","hoTen":"Vũ Thị Tuyết","tenNgan":"Cô Tuyết","cn":"","dinhMuc":23},{"id":"gv_phan_thi_kim_chi","hoTen":"Phan Thị Kim Chi","tenNgan":"Cô Chi","cn":"","dinhMuc":23},{"id":"gv_le_khanh_man","hoTen":"Lê Khánh Mận","tenNgan":"Cô MậnA","cn":"","dinhMuc":23},{"id":"gv_dinh_thi_nha","hoTen":"Đinh Thị Nhã","tenNgan":"Cô Đ.Nhã","cn":"","dinhMuc":23},{"id":"gv_tran_thi_kim_sen","hoTen":"Trần Thị Kim Sen","tenNgan":"Cô K.Sen","cn":"","dinhMuc":23},{"id":"gv_nguyen_thi_mo","hoTen":"Nguyễn Thị Mơ","tenNgan":"Cô Mơ","cn":"","dinhMuc":23},{"id":"gv_ho_quang_dai","hoTen":"Hồ Quang Đại","tenNgan":"Thầy Đại","cn":"","dinhMuc":23},{"id":"gv_tran_thi_men_ht","hoTen":"Trần Thị Mến HT","tenNgan":"Cô Mến HT","cn":"","dinhMuc":23},{"id":"gv_vu_thi_thao","hoTen":"Vũ Thị Thảo","tenNgan":"Cô Thảo","cn":"","dinhMuc":23}],"lop":[{"id":"lop_1A","ten":"1A","khoi":1},{"id":"lop_1B","ten":"1B","khoi":1},{"id":"lop_1C","ten":"1C","khoi":1},{"id":"lop_1D","ten":"1D","khoi":1},{"id":"lop_1E","ten":"1E","khoi":1},{"id":"lop_2A","ten":"2A","khoi":2},{"id":"lop_2B","ten":"2B","khoi":2},{"id":"lop_2C","ten":"2C","khoi":2},{"id":"lop_2D","ten":"2D","khoi":2},{"id":"lop_2E","ten":"2E","khoi":2},{"id":"lop_3A","ten":"3A","khoi":3},{"id":"lop_3B","ten":"3B","khoi":3},{"id":"lop_3C","ten":"3C","khoi":3},{"id":"lop_3D","ten":"3D","khoi":3},{"id":"lop_3E","ten":"3E","khoi":3},{"id":"lop_4A","ten":"4A","khoi":4},{"id":"lop_4B","ten":"4B","khoi":4},{"id":"lop_4C","ten":"4C","khoi":4},{"id":"lop_4D","ten":"4D","khoi":4},{"id":"lop_4E","ten":"4E","khoi":4},{"id":"lop_5A","ten":"5A","khoi":5},{"id":"lop_5B","ten":"5B","khoi":5},{"id":"lop_5C","ten":"5C","khoi":5},{"id":"lop_5D","ten":"5D","khoi":5},{"id":"lop_5E","ten":"5E","khoi":5}],"phanCong":[{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_1C","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_1D","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_1E","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_2A","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_2B","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_2C","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_2D","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_phan_thi_kim_chi","lopId":"lop_2E","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"GDTC","soTiet":2},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"HDTN","soTiet":3},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"Khoa học","soTiet":2},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"Toán","soTiet":5},{"gvId":"gv_vuong_thi_net","lopId":"lop_4B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"CN","soTiet":1},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"GDTC","soTiet":2},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"HDTN","soTiet":3},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"TNXH","soTiet":2},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"Toán","soTiet":5},{"gvId":"gv_bach_thi_nhai","lopId":"lop_3A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_do_thi_nhai","lopId":"lop_1C","mon":"GDTC","soTiet":2},{"gvId":"gv_do_thi_nhai","lopId":"lop_1C","mon":"HDTN","soTiet":3},{"gvId":"gv_do_thi_nhai","lopId":"lop_1C","mon":"TNXH","soTiet":2},{"gvId":"gv_do_thi_nhai","lopId":"lop_1C","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_do_thi_nhai","lopId":"lop_1C","mon":"Toán","soTiet":3},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"CN","soTiet":1},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"GDTC","soTiet":2},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"HDTN","soTiet":3},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"TNXH","soTiet":2},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"Toán","soTiet":5},{"gvId":"gv_lam_thi_thanh_truc","lopId":"lop_3E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_ly_thi_sim","lopId":"lop_1E","mon":"GDTC","soTiet":2},{"gvId":"gv_ly_thi_sim","lopId":"lop_1E","mon":"HDTN","soTiet":3},{"gvId":"gv_ly_thi_sim","lopId":"lop_1E","mon":"TNXH","soTiet":2},{"gvId":"gv_ly_thi_sim","lopId":"lop_1E","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_ly_thi_sim","lopId":"lop_1E","mon":"Toán","soTiet":3},{"gvId":"gv_truong_thi_men","lopId":"lop_4E","mon":"GDTC","soTiet":2},{"gvId":"gv_truong_thi_men","lopId":"lop_4E","mon":"HDTN","soTiet":3},{"gvId":"gv_truong_thi_men","lopId":"lop_4E","mon":"Khoa học","soTiet":2},{"gvId":"gv_truong_thi_men","lopId":"lop_4E","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_truong_thi_men","lopId":"lop_4E","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_truong_thi_men","lopId":"lop_4E","mon":"Toán","soTiet":5},{"gvId":"gv_tran_thi_men_ht","lopId":"lop_2A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_tran_thi_men_ht","lopId":"lop_2B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_dinh_thi_luu","lopId":"lop_2B","mon":"GDTC","soTiet":2},{"gvId":"gv_dinh_thi_luu","lopId":"lop_2B","mon":"HDTN","soTiet":3},{"gvId":"gv_dinh_thi_luu","lopId":"lop_2B","mon":"TNXH","soTiet":2},{"gvId":"gv_dinh_thi_luu","lopId":"lop_2B","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_dinh_thi_luu","lopId":"lop_2B","mon":"Toán","soTiet":5},{"gvId":"gv_bui_thi_thanh_nha","lopId":"lop_5C","mon":"GDTC","soTiet":2},{"gvId":"gv_bui_thi_thanh_nha","lopId":"lop_5C","mon":"HDTN","soTiet":3},{"gvId":"gv_bui_thi_thanh_nha","lopId":"lop_5C","mon":"Khoa học","soTiet":2},{"gvId":"gv_bui_thi_thanh_nha","lopId":"lop_5C","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_bui_thi_thanh_nha","lopId":"lop_5C","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_bui_thi_thanh_nha","lopId":"lop_5C","mon":"Toán","soTiet":5},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"CN","soTiet":1},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"GDTC","soTiet":2},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"HDTN","soTiet":3},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"TNXH","soTiet":2},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"Toán","soTiet":5},{"gvId":"gv_luong_thi_xoan","lopId":"lop_3B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_1A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_1B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_1C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_1D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_1E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_2A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_2B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_2C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_2D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_tran_thi_kim_sen","lopId":"lop_2E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_vu_thi_bich_van","lopId":"lop_1B","mon":"GDTC","soTiet":2},{"gvId":"gv_vu_thi_bich_van","lopId":"lop_1B","mon":"HDTN","soTiet":3},{"gvId":"gv_vu_thi_bich_van","lopId":"lop_1B","mon":"TNXH","soTiet":2},{"gvId":"gv_vu_thi_bich_van","lopId":"lop_1B","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_vu_thi_bich_van","lopId":"lop_1B","mon":"Toán","soTiet":3},{"gvId":"gv_mai_thi_cam","lopId":"lop_2A","mon":"GDTC","soTiet":2},{"gvId":"gv_mai_thi_cam","lopId":"lop_2A","mon":"HDTN","soTiet":3},{"gvId":"gv_mai_thi_cam","lopId":"lop_2A","mon":"TNXH","soTiet":2},{"gvId":"gv_mai_thi_cam","lopId":"lop_2A","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_mai_thi_cam","lopId":"lop_2A","mon":"Toán","soTiet":5},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"CN","soTiet":1},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"GDTC","soTiet":2},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"HDTN","soTiet":3},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"TNXH","soTiet":2},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"Toán","soTiet":5},{"gvId":"gv_ha_thi_may","lopId":"lop_3D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_trinh_thi_man","lopId":"lop_1D","mon":"GDTC","soTiet":2},{"gvId":"gv_trinh_thi_man","lopId":"lop_1D","mon":"HDTN","soTiet":3},{"gvId":"gv_trinh_thi_man","lopId":"lop_1D","mon":"TNXH","soTiet":2},{"gvId":"gv_trinh_thi_man","lopId":"lop_1D","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_trinh_thi_man","lopId":"lop_1D","mon":"Toán","soTiet":3},{"gvId":"gv_le_khanh_man","lopId":"lop_1A","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_le_khanh_man","lopId":"lop_1B","mon":"Tiếng Anh","soTiet":2},{"gvId":"gv_le_khanh_man","lopId":"lop_3C","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_le_khanh_man","lopId":"lop_3D","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_le_khanh_man","lopId":"lop_3E","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_cao_thi_yen","lopId":"lop_3A","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_cao_thi_yen","lopId":"lop_4C","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_cao_thi_yen","lopId":"lop_4D","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_cao_thi_yen","lopId":"lop_5B","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_cao_thi_yen","lopId":"lop_5C","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_cao_thi_yen","lopId":"lop_5E","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_3A","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_3B","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_3C","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_3D","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_3E","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4A","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4A","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4B","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4B","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4C","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4C","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4D","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4D","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4E","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_4E","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5A","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5A","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5B","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5C","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5C","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5D","mon":"Tin học","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5E","mon":"CN","soTiet":1},{"gvId":"gv_nguyen_thi_mo","lopId":"lop_5E","mon":"Tin học","soTiet":1},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"GDTC","soTiet":2},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"HDTN","soTiet":3},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"Khoa học","soTiet":2},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"Toán","soTiet":5},{"gvId":"gv_ho_thi_diem_quynh","lopId":"lop_5D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"GDTC","soTiet":2},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"HDTN","soTiet":3},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"Khoa học","soTiet":2},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"Toán","soTiet":5},{"gvId":"gv_to_thi_bich_ngan","lopId":"lop_5B","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"GDTC","soTiet":2},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"HDTN","soTiet":3},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"Khoa học","soTiet":2},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"Toán","soTiet":5},{"gvId":"gv_ngo_thi_sen","lopId":"lop_4A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_1A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_1B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_1C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_1D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_1E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_2A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_2B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_2C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_2D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_2E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_3A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_3B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_3C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_3D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_3E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_4A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_4B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_4C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_4D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_4E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_5A","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_5B","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_5C","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_5D","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_dinh_thi_nha","lopId":"lop_5E","mon":"Mỹ thuật","soTiet":1},{"gvId":"gv_ta_thi_quyen","lopId":"lop_2C","mon":"GDTC","soTiet":2},{"gvId":"gv_ta_thi_quyen","lopId":"lop_2C","mon":"HDTN","soTiet":3},{"gvId":"gv_ta_thi_quyen","lopId":"lop_2C","mon":"TNXH","soTiet":2},{"gvId":"gv_ta_thi_quyen","lopId":"lop_2C","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_ta_thi_quyen","lopId":"lop_2C","mon":"Toán","soTiet":5},{"gvId":"gv_duong_thi_nhung","lopId":"lop_2D","mon":"GDTC","soTiet":2},{"gvId":"gv_duong_thi_nhung","lopId":"lop_2D","mon":"HDTN","soTiet":3},{"gvId":"gv_duong_thi_nhung","lopId":"lop_2D","mon":"TNXH","soTiet":2},{"gvId":"gv_duong_thi_nhung","lopId":"lop_2D","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_duong_thi_nhung","lopId":"lop_2D","mon":"Toán","soTiet":5},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"GDTC","soTiet":2},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"HDTN","soTiet":3},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"Khoa học","soTiet":2},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"Toán","soTiet":5},{"gvId":"gv_do_thi_hanh","lopId":"lop_4D","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_1A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_1B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_1C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_1D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_1E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_2C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_2D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_2E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_3A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_3B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_3C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_3D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_3E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_4A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_4B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_4C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_4D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_4E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_5A","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_5B","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_5C","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_5D","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_vu_thi_thao","lopId":"lop_5E","mon":"Đạo Đức","soTiet":1},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"CN","soTiet":1},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"GDTC","soTiet":2},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"HDTN","soTiet":3},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"TNXH","soTiet":2},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"Toán","soTiet":5},{"gvId":"gv_doan_thi_nhan","lopId":"lop_3C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"GDTC","soTiet":2},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"HDTN","soTiet":3},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"Khoa học","soTiet":2},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"Toán","soTiet":5},{"gvId":"gv_dang_thi_kim_hanh","lopId":"lop_4C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_le_thi_nguyet","lopId":"lop_1A","mon":"GDTC","soTiet":2},{"gvId":"gv_le_thi_nguyet","lopId":"lop_1A","mon":"HDTN","soTiet":3},{"gvId":"gv_le_thi_nguyet","lopId":"lop_1A","mon":"TNXH","soTiet":2},{"gvId":"gv_le_thi_nguyet","lopId":"lop_1A","mon":"Tiếng Việt","soTiet":12},{"gvId":"gv_le_thi_nguyet","lopId":"lop_1A","mon":"Toán","soTiet":3},{"gvId":"gv_ngo_thi_diep","lopId":"lop_2E","mon":"GDTC","soTiet":2},{"gvId":"gv_ngo_thi_diep","lopId":"lop_2E","mon":"HDTN","soTiet":3},{"gvId":"gv_ngo_thi_diep","lopId":"lop_2E","mon":"TNXH","soTiet":2},{"gvId":"gv_ngo_thi_diep","lopId":"lop_2E","mon":"Tiếng Việt","soTiet":10},{"gvId":"gv_ngo_thi_diep","lopId":"lop_2E","mon":"Toán","soTiet":5},{"gvId":"gv_vu_thi_tuyet","lopId":"lop_3B","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_vu_thi_tuyet","lopId":"lop_4A","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_vu_thi_tuyet","lopId":"lop_4B","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_vu_thi_tuyet","lopId":"lop_4E","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_vu_thi_tuyet","lopId":"lop_5A","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_vu_thi_tuyet","lopId":"lop_5D","mon":"Tiếng Anh","soTiet":4},{"gvId":"gv_ho_quang_dai","lopId":"lop_4E","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_ho_quang_dai","lopId":"lop_5B","mon":"CN","soTiet":1},{"gvId":"gv_ho_quang_dai","lopId":"lop_5C","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_ho_quang_dai","lopId":"lop_5D","mon":"CN","soTiet":1},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"GDTC","soTiet":2},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"HDTN","soTiet":3},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"Khoa học","soTiet":2},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"Toán","soTiet":5},{"gvId":"gv_phung_duc_kien","lopId":"lop_5A","mon":"Âm nhạc","soTiet":1},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"GDTC","soTiet":2},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"HDTN","soTiet":3},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"Khoa học","soTiet":2},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"LS&ĐL","soTiet":2},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"Tiếng Việt","soTiet":7},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"Toán","soTiet":5},{"gvId":"gv_dao_van_loc","lopId":"lop_5E","mon":"Âm nhạc","soTiet":1}]};
 
 const CHUAN_KHOI = {1:27, 2:27, 3:28, 4:30, 5:30};   /* CT GDPT 2018 */
 const DINH_MUC = 23;
@@ -1469,6 +1484,27 @@ function dsMonMacDinh(){
     phong:ten==='Tin học'?'Tin học':'',   /* cần phòng chức năng loại nào */
     chuan:{...(TIET_CHUAN[ten]||{})}
   }));
+}
+
+/* Một dòng đọc ra ngay "người này dạy gì ở đâu" — gom bảng phân công theo
+   LỚP: `1A · Toán, Tiếng Việt, TNXH` rồi `1B · Mỹ thuật`. Đây là cột chủ dự
+   án đề xuất cho bảng Giáo viên (28/8/2026), và nó CHỈ ĐỌC: máy tự ghi từ
+   phân công thật, không ai gõ vào được, nên không bao giờ lệch với phân công.
+   Nhiều lớp cùng một bộ môn thì gộp lại — cô Mỹ thuật dạy 25 lớp mà kể ra
+   25 dòng thì cột này dài hơn cả bảng. */
+function dayGiCua(idGV){
+  const theoLop={};
+  S.phanCong.filter(p=>p.gvId===idGV).forEach(p=>{
+    (theoLop[p.lopId]=theoLop[p.lopId]||[]).push(p.mon); });
+  /* Gộp các lớp có CÙNG bộ môn: khoá là danh sách môn đã sắp xếp */
+  const theoBo={};
+  Object.entries(theoLop).forEach(([id,mon])=>{
+    const k=[...new Set(mon)].sort().join(', ');
+    (theoBo[k]=theoBo[k]||[]).push(id);
+  });
+  return Object.entries(theoBo)
+    .sort((a,b)=>b[1].length-a[1].length)
+    .map(([mon,ds])=>({mon, lop:ds, soLop:ds.length}));
 }
 
 /* ---------- Trạng thái ---------- */
@@ -3404,7 +3440,7 @@ let KHO = {
 };
 
 const TEN_NGUON = {
-  'may-chu':'Máy chủ Supabase',
+  'may-chu':'Máy chủ hệ thống',
   'tep-mau':'Tệp data/truong-dien-lien.json',
   'nhung':'Dữ liệu mẫu nhúng sẵn'
 };
@@ -3478,7 +3514,7 @@ async function suaHang(duong, than){
 }
 /* Câu nói chung cho trường hợp máy chủ nhận lệnh mà không đổi được dòng nào */
 const NHAC_CAI_DAT = 'Máy chủ nhận lệnh nhưng không sửa được dòng nào — cơ sở dữ liệu '
-  + 'chưa có quy tắc cho phép ghi vào chỗ này. Quản trị mở Supabase → SQL Editor, '
+  + 'chưa có quy tắc cho phép ghi vào chỗ này. Quản trị mở trang quản trị Hệ thống → SQL Editor, '
   + 'dán toàn bộ db/cai-dat.sql rồi bấm Run một lần. Dữ liệu đang có không mất gì.';
 
 async function lamMoiPhien(){
@@ -3513,7 +3549,7 @@ function dienGiaiLoi(e){
      PostgREST báo bằng tiếng Anh và tên cột kỹ thuật — dịch sang việc phải làm. */
   const thieuCot = m.match(/Could not find the '([^']+)' column of '([^']+)'/i);
   if(thieuCot) return `Cơ sở dữ liệu của trường còn thiếu cột "${thieuCot[1]}" ở bảng "${thieuCot[2]}" `
-    +'— đây là cơ sở dữ liệu dựng từ bản cũ. Quản trị mở Supabase → SQL Editor, '
+    +'— đây là cơ sở dữ liệu dựng từ bản cũ. Quản trị mở trang quản trị Hệ thống → SQL Editor, '
     +'dán toàn bộ db/cai-dat.sql rồi bấm Run một lần là xong. Dữ liệu đang có không mất gì.';
   if(/schema cache/i.test(m))
     return 'Máy chủ chưa nhận ra bảng hoặc cột vừa thêm. Chạy lại db/cai-dat.sql trong SQL Editor, '
@@ -3553,7 +3589,29 @@ async function dangNhap(email, matKhau, nho){
 /* Dò hồ sơ trong trường: vai trò, trường nào, phụ trách điểm trường nào.
    Tách riêng để cả đăng nhập bằng mật khẩu lẫn vào lại bằng vé đã nhớ
    đều đi chung một đường. */
-async function napHoSo(){
+/* Tự nhận mình bằng Gmail nhà trường đã khai sẵn — KHÔNG cần mã mời
+   (28/8/2026, db/gmail-giao-vien.sql).
+
+   Đề xuất của chủ dự án: *"cần có thêm cột gmail để khỏi phải mời nữa"*.
+   Phát quyền cho 35 thầy cô trước đây là bốn bước mỗi người — tạo mã, gửi
+   Zalo, thầy cô đăng nhập, gõ mã — và mã thì hết hạn. Nay nhà trường khai
+   Gmail ngay trong bảng Giáo viên; thầy cô bấm Đăng nhập bằng Google là vào.
+
+   ⚠️ Địa chỉ do MÁY CHỦ đọc từ vé đăng nhập, hàm này không gửi lên gì cả.
+   Gửi email lên là ai cũng tự khai mình là người khác. */
+async function vaoBangGmail(){
+  try{
+    const kq=await goiAPI('/rest/v1/rpc/vao_bang_gmail',{method:'POST',body:'{}'});
+    const d=Array.isArray(kq)?kq[0]:kq;
+    return {ok:!!d?.ok, thongBao:d?.thong_bao||''};
+  }catch(e){
+    /* Máy chủ chưa chạy db/gmail-giao-vien.sql thì PostgREST trả 404 — im
+       lặng lùi về đường mã mời như cũ, đừng để lộ lỗi kỹ thuật ra màn hình. */
+    return {ok:false, thongBao:''};
+  }
+}
+
+async function napHoSo(thuGmail=true){
   /* Xin thêm trạng thái duyệt và mã trường (24/8/2026). Bọc trong try để
      máy chủ CHƯA chạy db/duyet-truong.sql vẫn đăng nhập bình thường — cột
      chưa có thì PostgREST trả 400 cho cả lời gọi, không phải chỉ bỏ qua
@@ -3564,12 +3622,17 @@ async function napHoSo(){
       + `&select=*,la_chu_he_thong,truong(ten,ma_truong,trang_thai_duyet)`);
   }catch(e){ nd = null; }
   if(!nd) nd = await goiAPI(`/rest/v1/nguoi_dung?id=eq.${KHO.phien.uid}&select=*,truong(ten)`);
-  if(!nd?.length)
+  if(!nd?.length){
+    /* Chưa thuộc trường nào — thử nhận mình bằng Gmail đã khai trước khi
+       kết luận. Chỉ thử MỘT LẦN (`thuGmail`), không thì hai hàm gọi vòng nhau. */
+    if(thuGmail && (await vaoBangGmail()).ok) return napHoSo(false);
     /* Tài khoản thật nhưng chưa thuộc trường nào — cờ moCoi để nơi gọi quyết
        biến thành KHÁCH (xem demo, nhập mã mời, đăng ký trường) thay vì đá ra. */
     return {ok:false, moCoi:true,
       loi:'Tài khoản này chưa thuộc trường nào trong hệ thống. '
-      +'Nhập mã mời của trường, hoặc báo người quản trị cấp quyền.'};
+      +'Nhập mã mời của trường, hoặc nhờ người quản trị khai Gmail của thầy cô '
+      +'vào mục Giáo viên.'};
+  }
   const u = nd[0];
   /* Nếu là giáo viên thì nối tiếp về bản ghi giao_vien để mở thẳng lịch cá nhân */
   let gv = null;
@@ -3862,7 +3925,10 @@ function tuMayChu(hang){
   const giaoVien = (hang.giao_vien||[]).map(g=>({
     id:g.id, hoTen:g.ho_ten, maGV:g.ma_gv||'', tenNgan:g.ma_gv||'',
     cn:cnCuaGV[g.id]||'', dinhMuc:+g.dinh_muc||DINH_MUC,
-    nguoiDungId:g.nguoi_dung_id||null
+    nguoiDungId:g.nguoi_dung_id||null,
+    /* Gmail nhà trường khai TRƯỚC cho thầy cô — đừng nhầm với
+       nguoi_dung.email, thứ GoTrue ghi SAU khi người ấy đăng nhập */
+    email:g.email||'', ghiChu:g.ghi_chu||''
   }));
 
   const diemTruong = (hang.diem_truong||[])
@@ -4374,22 +4440,99 @@ async function taiPhienBan(version){
    Đổi ba bảng đọc từ Excel thành bộ dữ liệu chuẩn của ứng dụng.
    Soát lỗi ngay tại đây và nói rõ SAI Ở DÒNG NÀO — người nhập cầm tệp Excel
    trong tay, biết dòng là sửa được ngay; báo "tệp sai định dạng" thì chịu. */
-function duLieuTuBang(hangGV, hangLop, hangPC){
-  const loi=[];
-  const chu=x=>String(x??'').trim();
 
-  const giaoVien=hangGV.map((r,i)=>{
+/* ---------- 5.0 Bộ gom lỗi dùng chung (28/8/2026) ----------
+   Chủ dự án điền tệp mẫu rồi nhập, phần mềm trả về **"Tệp còn 199 chỗ chưa
+   đúng"** kèm một danh sách dài — *"khó biết sai như thế nào"*. Soi lại thì
+   phần lớn 199 chỗ ấy KHÔNG phải lỗi của người điền:
+
+   a) **Dòng chưa điền bị đếm là lỗi.** Mẫu đặt khoá dư ra vài trăm dòng để
+      người dùng gõ thêm; chỉ cần chạm vào một ô rồi xoá là Excel giữ lại một
+      dòng rỗng, và bộ soát cũ bắt luôn 4 lỗi một dòng — *thiếu Ma_GV* ·
+      *thiếu Ma_lop* · *thiếu tên môn* · *So_tiet phải lớn hơn 0*. Ảnh chụp
+      gửi về có đúng dấu vết ấy: `6_PHAN_CONG dòng 2: … môn "" … khối ?`.
+   b) **Cùng một vấn đề lặp lại N lần.** Năm dòng *thiếu Ten_diem_truong* là
+      năm câu y hệt nhau, mắt phải tự gom lấy mới hiểu ra chuyện gì.
+
+   Nay: dòng mà MỌI ô bắt buộc đều trống thì **bỏ qua, không phải lỗi** — chỉ
+   ghi một dòng cảnh báo cho biết đã bỏ bao nhiêu dòng. Lỗi thì gom theo
+   (trang · nội dung) rồi mới dựng câu. */
+
+const oTrongXL = x => String(x ?? '').trim() === '';
+
+/* Giữ NGUYÊN số dòng như Excel hiển thị (`__dong`) sau khi lọc — người nhập
+   cầm tệp trong tay, báo sai số dòng còn tệ hơn không báo. */
+function locDongDaDien(hang, cotBatBuoc){
+  const co = [], bo = [];
+  (hang || []).forEach((r, i) => {
+    const d = Object.assign({}, r, {__dong: i + 2});
+    (cotBatBuoc.some(c => !oTrongXL(r[c])) ? co : bo).push(d);
+  });
+  return {co, bo};
+}
+
+/* Một nơi duy nhất biết cách dựng câu lỗi, nên mọi lối nhập đọc giống hệt nhau.
+   Nhận cả chuỗi trần (lỗi mức trang) lẫn {t, d, v} (lỗi mức dòng). */
+function dienGiaiLoiNhap(ds){
+  const nhom = new Map();
+  (ds || []).forEach((x, i) => {
+    if (typeof x === 'string') return void nhom.set('chuoi' + i, {chu: x});
+    const k = 'g' + x.t + '|' + x.v;
+    const g = nhom.get(k) || {t: x.t, v: x.v, dong: []};
+    if (x.d) g.dong.push(x.d);
+    nhom.set(k, g);
+  });
+  return [...nhom.values()].map(g => {
+    if (g.chu) return g.chu;
+    const dau = g.t ? g.t + ' ' : '';
+    if (!g.dong.length) return (g.t ? g.t + ': ' : '') + g.v;
+    if (g.dong.length === 1) return `${dau}dòng ${g.dong[0]}: ${g.v}`;
+    const bay = g.dong.slice(0, 8).join(', ');
+    return (g.t ? g.t + ': ' : '') + `${g.dong.length} dòng ${g.v} — dòng ${bay}`
+         + (g.dong.length > 8 ? `, …và ${g.dong.length - 8} dòng nữa` : '');
+  });
+}
+
+/* Câu cảnh báo cho những dòng đã bỏ qua. Nói ra chứ không im lặng: người
+   dùng phải biết máy đọc bao nhiêu dòng, không thì thiếu dữ liệu mà không hay. */
+function canhDongBo(trang, bo){
+  if (!bo.length) return null;
+  const ds = bo.map(r => r.__dong);
+  return `${trang}: bỏ qua ${ds.length} dòng chưa điền (dòng ${ds.slice(0, 8).join(', ')}`
+       + (ds.length > 8 ? ', …' : '') + ') — dòng trống, không phải lỗi';
+}
+
+function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
+  const loi=[], canh=[];
+  const chu=x=>String(x??'').trim();
+  /* Ba lối nhập gọi hàm này với ba bộ tên trang khác nhau; câu lỗi phải gọi
+     đúng tên trang người dùng đang mở, không thì họ đi tìm nhầm chỗ. */
+  const T={gv:'DANH_SACH_GV', lop:'DANH_SACH_LOP', pc:'PCGD', ...(tenTrang||{})};
+
+  /* Dòng chưa điền thì BỎ QUA, không đếm là lỗi — xem ghi chú ở mục 5.0 */
+  const lGV =locDongDaDien(hangGV, ['Ma_GV','Ho_ten']);
+  const lLop=locDongDaDien(hangLop,['Ma_lop','Ten_lop']);
+  const lPC =locDongDaDien(hangPC, ['Ma_GV','Ma_lop','Mon']);
+  [[T.gv,lGV],[T.lop,lLop],[T.pc,lPC]].forEach(([t,x])=>{
+    const c=canhDongBo(t,x.bo); if(c) canh.push(c);
+  });
+
+  const giaoVien=lGV.co.map(r=>{
     const ma=chu(r.Ma_GV), ten=chu(r.Ho_ten);
-    if(!ma||!ten) loi.push(`DANH_SACH_GV dòng ${i+2}: thiếu Ma_GV hoặc Ho_ten`);
+    if(!ma) loi.push({t:T.gv, d:r.__dong, v:'thiếu Ma_GV'});
+    if(!ten) loi.push({t:T.gv, d:r.__dong, v:'thiếu Ho_ten'});
     return {id:ma, hoTen:ten, maGV:ma, tenNgan:ma,
             /* giữ nguyên ô người dùng gõ, lát nữa dò về mã lớp */
-            cn:chu(r.Chu_nhiem), dongCN:i+2, dinhMuc:+r.Dinh_muc||DINH_MUC};
+            cn:chu(r.Chu_nhiem), dongCN:r.__dong, dinhMuc:+r.Dinh_muc||DINH_MUC,
+            email:chu(r.Gmail||r.Email), ghiChu:chu(r.Ghi_chu)};
   });
-  const lopTho=hangLop.map((r,i)=>{
+  const lopTho=lLop.co.map(r=>{
     const ma=chu(r.Ma_lop), ten=chu(r.Ten_lop);
-    if(!ma||!ten) loi.push(`DANH_SACH_LOP dòng ${i+2}: thiếu Ma_lop hoặc Ten_lop`);
+    if(!ma) loi.push({t:T.lop, d:r.__dong, v:'thiếu Ma_lop'});
+    if(!ten) loi.push({t:T.lop, d:r.__dong, v:'thiếu Ten_lop'});
     const k=+r.Khoi;
-    if(!(k>=1&&k<=5)) loi.push(`DANH_SACH_LOP dòng ${i+2}: Khoi phải từ 1 đến 5, đang là "${chu(r.Khoi)}"`);
+    if(!(k>=1&&k<=5)) loi.push({t:T.lop, d:r.__dong,
+      v:`Khoi phải là số từ 1 đến 5 (đang là "${chu(r.Khoi)}")`});
     return {id:ma, ten, khoi:k>=1&&k<=5?k:1, dt:chu(r.Diem_truong)||'Điểm trường chính'};
   });
 
@@ -4398,30 +4541,32 @@ function duLieuTuBang(hangGV, hangLop, hangPC){
   const lopDT={}; lopTho.forEach(l=>{ lopDT[l.id]=diemTruong.find(d=>d.ten===l.dt).id; });
 
   const coGV=new Set(giaoVien.map(g=>g.id)), coLop=new Set(lopTho.map(l=>l.id));
-  const phanCong=hangPC.map((r,i)=>{
+  const phanCong=lPC.co.map(r=>{
     const g=chu(r.Ma_GV), l=chu(r.Ma_lop), m=chu(r.Mon), n=+r.So_tiet;
-    if(!coGV.has(g)) loi.push(`PCGD dòng ${i+2}: không có giáo viên mã "${g}"`);
-    if(!coLop.has(l)) loi.push(`PCGD dòng ${i+2}: không có lớp mã "${l}"`);
-    if(!m) loi.push(`PCGD dòng ${i+2}: thiếu tên môn`);
-    if(!(n>0)) loi.push(`PCGD dòng ${i+2}: So_tiet phải là số lớn hơn 0`);
+    if(!coGV.has(g)) loi.push({t:T.pc, d:r.__dong,
+      v:`không có giáo viên mã "${g}" ở trang ${T.gv}`});
+    if(!coLop.has(l)) loi.push({t:T.pc, d:r.__dong,
+      v:`không có lớp mã "${l}" ở trang ${T.lop}`});
+    if(!m) loi.push({t:T.pc, d:r.__dong, v:'thiếu tên môn'});
+    if(!(n>0)) loi.push({t:T.pc, d:r.__dong, v:'So_tiet phải là số lớn hơn 0'});
     return {gvId:g, lopId:l, mon:m, soTiet:n>0?n:0};
   });
 
   /* Mã lặp thì không dò ngược được — chính là bài học từ bốn cặp trùng tên */
   const lap=(ds,lay,ten,cot)=>{
-    const d={}; ds.forEach(x=>{ const v=lay(x); d[v]=(d[v]||0)+1; });
+    const d={}; ds.forEach(x=>{ const v=lay(x); if(v) d[v]=(d[v]||0)+1; });
     Object.entries(d).filter(([,n])=>n>1).forEach(([v,n])=>
       loi.push(`${ten}: ${cot} "${v}" xuất hiện ${n} lần, phải là duy nhất`));
   };
-  lap(giaoVien, g=>g.id, 'DANH_SACH_GV', 'Ma_GV');
-  lap(lopTho, l=>l.id, 'DANH_SACH_LOP', 'Ma_lop');
+  lap(giaoVien, g=>g.id, T.gv, 'Ma_GV');
+  lap(lopTho, l=>l.id, T.lop, 'Ma_lop');
   /* Tên lớp chỉ cần duy nhất TRONG MỘT ĐIỂM TRƯỜNG. Sau sáp nhập, cả ba nơi
      đều có lớp "1A" — bắt đặt tên khác nhau là bắt nhà trường đổi thói quen
      chỉ vì phần mềm. Mã lớp mới là thứ phải duy nhất. */
   const trungTrongDiem={};
   lopTho.forEach(l=>{ const k=l.dt+'|'+l.ten; (trungTrongDiem[k]=trungTrongDiem[k]||[]).push(l); });
   Object.entries(trungTrongDiem).filter(([,a])=>a.length>1).forEach(([k,a])=>
-    loi.push(`DANH_SACH_LOP: Ten_lop "${a[0].ten}" xuất hiện ${a.length} lần trong ${k.split('|')[0]}, phải là duy nhất trong một điểm trường`));
+    loi.push(`${T.lop}: Ten_lop "${a[0].ten}" xuất hiện ${a.length} lần trong ${k.split('|')[0]}, phải là duy nhất trong một điểm trường`));
 
   /* Chủ nhiệm: nhận Ma_lop (chắc chắn) hoặc Ten_lop (nếu tên đó chỉ có một lớp) */
   const theoMa=new Set(lopTho.map(l=>l.id));
@@ -4432,9 +4577,10 @@ function duLieuTuBang(hangGV, hangLop, hangPC){
     if(theoMa.has(g.cn)) return;                       /* đã ghi bằng Ma_lop */
     const ds=theoTen[g.cn]||[];
     if(ds.length===1){ g.cn=ds[0]; return; }           /* tên chỉ trỏ một lớp */
-    if(ds.length>1) loi.push(
-      `DANH_SACH_GV dòng ${g.dongCN}: có ${ds.length} lớp cùng tên "${g.cn}" ở các điểm trường khác nhau — ghi Ma_lop vào cột Chu_nhiem để rõ là lớp nào`);
-    else loi.push(`DANH_SACH_GV dòng ${g.dongCN}: ${g.hoTen} ghi chủ nhiệm lớp "${g.cn}" nhưng không có lớp đó`);
+    if(ds.length>1) loi.push({t:T.gv, d:g.dongCN,
+      v:`có ${ds.length} lớp cùng tên "${g.cn}" ở các điểm trường khác nhau — ghi Ma_lop vào cột Chu_nhiem để rõ là lớp nào`});
+    else loi.push({t:T.gv, d:g.dongCN,
+      v:`ghi chủ nhiệm lớp "${g.cn}" nhưng trang ${T.lop} không có lớp đó`});
     g.cn='';
   });
   giaoVien.forEach(g=>{ delete g.dongCN; });
@@ -4443,11 +4589,14 @@ function duLieuTuBang(hangGV, hangLop, hangPC){
     giaoVien, lop:lopTho.map(({id,ten,khoi})=>({id,ten,khoi,maLop:id})),
     diemTruong, lopDT, phanCong,
     khungGio:khungGioMacDinh(), gvNghi:{},
-    loi:loi.slice(0,12), soLoi:loi.length,
+    /* GOM trước rồi mới cắt: gom xong "5 dòng thiếu Ten_diem_truong" chỉ còn
+       MỘT dòng, nên 12 dòng bày ra là 12 vấn đề khác nhau chứ không phải
+       12 lần cùng một vấn đề. Cắt trước khi gom là bày 12 câu y hệt nhau. */
+    ...(x=>({loi:x.slice(0,12), soLoi:x.length}))(dienGiaiLoiNhap(loi)),
     /* Hai mức tách nhau từ 23/8/2026 — LỖI thì chặn, CẢNH BÁO thì cho qua.
        Ba lối nhập đều trả cùng một hình dạng, nên màn hình chỉ có một cách
-       đọc kết quả. Đường 3 trang và ma trận chưa sinh cảnh báo nào. */
-    canh:[], soCanh:0,
+       đọc kết quả. */
+    canh:canh.slice(0,12), soCanh:canh.length,
     tongTiet:phanCong.reduce((s,p)=>s+p.soTiet,0)
   };
 }
@@ -4631,10 +4780,13 @@ function duLieuTuTronGoi(doc){
   const hTruong=lay('1_TRUONG'), hDiem=lay('2_DIEM_TRUONG'), hKhung=lay('3_KHUNG_GIO');
   const hLop   =lay('4_LOP'),    hGV  =lay('5_GIAO_VIEN'),   hPC   =lay('6_PHAN_CONG');
   const hPhong =lay('7_PHONG'),  hBan =lay('8_BUOI_BAN');
+  const lGV=locDongDaDien(hGV,['Ma_GV','Ho_ten']);
 
-  [['4_LOP',hLop],['5_GIAO_VIEN',hGV],['6_PHAN_CONG',hPC]]
-    .filter(([,h])=>!h.length)
-    .forEach(([t])=>loi.push(`Trang ${t} không có dòng nào — đây là trang bắt buộc`));
+  [['4_LOP',hLop,['Ma_lop','Ten_lop']],
+   ['5_GIAO_VIEN',hGV,['Ma_GV','Ho_ten']],
+   ['6_PHAN_CONG',hPC,['Ma_GV','Ma_lop','Mon']]]
+    .filter(([,h,c])=>!locDongDaDien(h,c).co.length)
+    .forEach(([t])=>loi.push(`Trang ${t} không có dòng nào đã điền — đây là trang bắt buộc`));
 
   /* --- 1_TRUONG: đúng một dòng --- */
   const r0=hTruong[0]||{};
@@ -4645,9 +4797,11 @@ function duLieuTuTronGoi(doc){
   /* --- 2_DIEM_TRUONG: danh sách CHÍNH THỨC, kèm cờ phòng Tin.
      Bản 3 trang suy điểm trường từ cột Diem_truong của bảng lớp nên gõ sai
      một chữ là đẻ ra một điểm trường ma. Nay có danh sách gốc để đối chiếu. */
-  const diemTho=hDiem.map((r,i)=>{
+  const lDiem=locDongDaDien(hDiem,['Ten_diem_truong','Ten']);
+  {const c=canhDongBo('2_DIEM_TRUONG',lDiem.bo); if(c) canh.push(c);}
+  const diemTho=lDiem.co.map(r=>{
     const ten=chu(r.Ten_diem_truong)||chu(r.Ten);
-    if(!ten) loi.push(`2_DIEM_TRUONG dòng ${i+2}: thiếu Ten_diem_truong`);
+    if(!ten) loi.push({t:'2_DIEM_TRUONG', d:r.__dong, v:'thiếu Ten_diem_truong'});
     return {ten, phongTin:laCo(r.Co_phong_tin)};
   }).filter(d=>d.ten);
   const demDiem={}; diemTho.forEach(d=>demDiem[d.ten]=(demDiem[d.ten]||0)+1);
@@ -4656,29 +4810,36 @@ function duLieuTuTronGoi(doc){
   const tenDiemCo=new Set(diemTho.map(d=>d.ten));
 
   /* --- 4_LOP: kiểm cột Diem_truong TRỎ ĐÚNG trang 2 --- */
-  hLop.forEach((r,i)=>{
+  const lLop=locDongDaDien(hLop,['Ma_lop','Ten_lop']);
+  lLop.co.forEach(r=>{
     const d=chu(r.Diem_truong);
     if(d && tenDiemCo.size && !tenDiemCo.has(d))
-      loi.push(`4_LOP dòng ${i+2}: không có điểm trường "${d}" ở trang 2_DIEM_TRUONG`);
+      loi.push({t:'4_LOP', d:r.__dong,
+        v:`không có điểm trường "${d}" ở trang 2_DIEM_TRUONG`});
   });
   /* Một điểm trường thì cột Diem_truong bỏ trống được — điền hộ tên duy nhất */
   const diemMacDinh = diemTho.length===1 ? diemTho[0].ten : '';
-  const lopRow=hLop.map(r=>({...r, Diem_truong:chu(r.Diem_truong)||diemMacDinh}));
+  const lopRow=lLop.co.map(r=>({...r, Diem_truong:chu(r.Diem_truong)||diemMacDinh}));
 
   /* --- 6_PHAN_CONG: So_tiet bỏ trống thì lấy tiết chuẩn theo khối của lớp --- */
-  const khoiTheoMa={}; hLop.forEach(r=>{ khoiTheoMa[chu(r.Ma_lop)]=+r.Khoi; });
-  const pcRow=hPC.map((r,i)=>{
+  const khoiTheoMa={}; lLop.co.forEach(r=>{ khoiTheoMa[chu(r.Ma_lop)]=+r.Khoi; });
+  const lPC=locDongDaDien(hPC,['Ma_GV','Ma_lop','Mon']);
+  const pcRow=lPC.co.map(r=>{
     const st=chu(r.So_tiet);
     if(st!=='') return r;
     const mon=chu(r.Mon), k=khoiTheoMa[chu(r.Ma_lop)];
     const c=chuanMon(mon,k);
-    if(!(c>0)) loi.push(`6_PHAN_CONG dòng ${i+2}: bỏ trống So_tiet nhưng môn `
-      +`"${mon}" không có tiết chuẩn cho khối ${k||'?'} — ghi rõ số tiết vào ô đó`);
+    if(!(c>0)) loi.push({t:'6_PHAN_CONG', d:r.__dong,
+      v:`bỏ trống So_tiet mà môn "${mon}" không có tiết chuẩn cho khối ${k||'?'}`
+        +' — ghi rõ số tiết vào ô đó'});
     return {...r, So_tiet:c>0?c:0};
   });
 
-  /* Soát lõi và dựng ba bảng chuẩn — MỘT đường duy nhất với hai mẫu kia */
-  const dl=duLieuTuBang(hGV, lopRow, pcRow);
+  /* Soát lõi và dựng ba bảng chuẩn — MỘT đường duy nhất với hai mẫu kia.
+     Truyền tên trang của mẫu này vào để câu lỗi gọi đúng trang người dùng
+     đang mở, không bảo họ đi tìm "DANH_SACH_GV" trong tệp mười trang. */
+  const dl=duLieuTuBang(lGV.co, lopRow, pcRow,
+    {gv:'5_GIAO_VIEN', lop:'4_LOP', pc:'6_PHAN_CONG'});
 
   /* Ghép cờ phòng Tin của trang 2 vào danh sách điểm trường vừa dựng */
   const diemTruong=dl.diemTruong.map(d=>{
@@ -4689,22 +4850,27 @@ function duLieuTuTronGoi(doc){
   /* --- 3_KHUNG_GIO --- Trang này quyết định có bao nhiêu Ô để xếp, nên soát
      kỹ nhất: sai một ô là cả trường thiếu chỗ mà không ai hiểu vì sao. */
   let khungGio=khungGioMacDinh();
-  if(hKhung.length){
+  const lKhung=locDongDaDien(hKhung,['Thu','Buoi']);
+  {const c=canhDongBo('3_KHUNG_GIO',lKhung.bo); if(c) canh.push(c);}
+  if(lKhung.co.length){
     const co=new Set();
-    khungGio=hKhung.map((r,i)=>{
+    khungGio=lKhung.co.map(r=>{
       const thu=+r.Thu, b=chu(r.Buoi).toUpperCase();
       if(!THU_XL.includes(thu))
-        loi.push(`3_KHUNG_GIO dòng ${i+2}: Thu phải là 2, 3, 4, 5 hoặc 6 — đang là "${chu(r.Thu)}"`);
+        loi.push({t:'3_KHUNG_GIO', d:r.__dong,
+          v:`Thu phải là 2, 3, 4, 5 hoặc 6 (đang là "${chu(r.Thu)}")`});
       if(!BUOI_XL.includes(b))
-        loi.push(`3_KHUNG_GIO dòng ${i+2}: Buoi phải là S (sáng) hoặc C (chiều) — đang là "${chu(r.Buoi)}"`);
+        loi.push({t:'3_KHUNG_GIO', d:r.__dong,
+          v:`Buoi phải là S (sáng) hoặc C (chiều) (đang là "${chu(r.Buoi)}")`});
       const k=`${thu}-${b}`;
-      if(co.has(k)) loi.push(`3_KHUNG_GIO dòng ${i+2}: buổi ${k} đã khai ở dòng trên`);
+      if(co.has(k)) loi.push({t:'3_KHUNG_GIO', d:r.__dong, v:`buổi ${k} đã khai ở dòng trên`});
       co.add(k);
       const tietKhoi={};
       [1,2,3,4,5].forEach(x=>{
         const n=+r['K'+x];
         if(!Number.isFinite(n)||n<0||n>10)
-          loi.push(`3_KHUNG_GIO dòng ${i+2}: K${x} phải là số từ 0 đến 10 — đang là "${chu(r['K'+x])}"`);
+          loi.push({t:'3_KHUNG_GIO', d:r.__dong,
+            v:`K${x} phải là số từ 0 đến 10 (đang là "${chu(r['K'+x])}")`});
         tietKhoi[x]=Number.isFinite(n)&&n>0?n:0;
       });
       return {thu, buoi:b, bat:laCo(r.Day_hoc), tietKhoi,
@@ -4714,7 +4880,7 @@ function duLieuTuTronGoi(doc){
        phải lỗi: trường dạy một buổi hay có tiết tăng cường thì con số khác
        chuẩn là chuyện bình thường — nhưng THIẾU chỗ thì phải nói ngay, không
        để tới lúc xếp mới lòi ra "chưa xếp được 40 tiết". */
-    const khoiCo=new Set(hLop.map(r=>+r.Khoi).filter(k=>k>=1&&k<=5));
+    const khoiCo=new Set(lLop.co.map(r=>+r.Khoi).filter(k=>k>=1&&k<=5));
     [...khoiCo].sort().forEach(k=>{
       const suc=khungGio.filter(x=>x.bat!==false)
                         .reduce((s,x)=>s+(x.tietKhoi[k]||0),0);
@@ -4728,24 +4894,30 @@ function duLieuTuTronGoi(doc){
 
   /* --- 7_PHONG --- */
   const idDiem=ten=>diemTruong.find(d=>d.ten===ten)?.id;
-  const phong=hPhong.map((r,i)=>{
+  const lPhong=locDongDaDien(hPhong,['Ten_phong']);
+  {const c=canhDongBo('7_PHONG',lPhong.bo); if(c) canh.push(c);}
+  const phong=lPhong.co.map((r,i)=>{
     const ten=chu(r.Ten_phong), d=chu(r.Diem_truong)||diemMacDinh;
-    if(!ten){ loi.push(`7_PHONG dòng ${i+2}: thiếu Ten_phong`); return null; }
+    if(!ten){ loi.push({t:'7_PHONG', d:r.__dong, v:'thiếu Ten_phong'}); return null; }
     if(d && !idDiem(d)){
-      loi.push(`7_PHONG dòng ${i+2}: không có điểm trường "${d}"`); return null; }
+      loi.push({t:'7_PHONG', d:r.__dong,
+        v:`không có điểm trường "${d}" ở trang 2_DIEM_TRUONG`}); return null; }
     return {id:'ph'+(i+1), ten, mon:chu(r.Mon), dtId:idDiem(d)};
   }).filter(Boolean);
 
   /* --- 8_BUOI_BAN --- khoá là MÃ giáo viên, đúng như ghiDuLieuNguon() chờ */
   const maGVCo=new Set(dl.giaoVien.map(g=>g.id));
   const gvNghi={};
-  hBan.forEach((r,i)=>{
+  const lBan=locDongDaDien(hBan,['Ma_GV']);
+  {const c=canhDongBo('8_BUOI_BAN',lBan.bo); if(c) canh.push(c);}
+  lBan.co.forEach(r=>{
     const ma=chu(r.Ma_GV), thu=+r.Thu, b=chu(r.Buoi).toUpperCase();
-    if(!ma) return;
     if(!maGVCo.has(ma))
-      return void loi.push(`8_BUOI_BAN dòng ${i+2}: không có giáo viên mã "${ma}"`);
+      return void loi.push({t:'8_BUOI_BAN', d:r.__dong,
+        v:`không có giáo viên mã "${ma}" ở trang 5_GIAO_VIEN`});
     if(!THU_XL.includes(thu)||!BUOI_XL.includes(b))
-      return void loi.push(`8_BUOI_BAN dòng ${i+2}: Thu phải 2–6 và Buoi phải S hoặc C`);
+      return void loi.push({t:'8_BUOI_BAN', d:r.__dong,
+        v:'Thu phải là 2–6 và Buoi phải là S hoặc C'});
     (gvNghi[ma]=gvNghi[ma]||[]).push(`${thu}-${b}`);
   });
 
@@ -4765,10 +4937,438 @@ function duLieuTuTronGoi(doc){
   if(khongViec.length) canh.push(`${khongViec.length} giáo viên không có dòng phân công nào: `
     +khongViec.slice(0,6).map(g=>g.hoTen).join(' · ')+(khongViec.length>6?' …':''));
 
+  /* GOM rồi mới ghép và cắt — `dl.loi` đã gom sẵn ở duLieuTuBang(), phần lỗi
+     của riêng hàm này thì gom ở đây. Cắt trước khi gom là bày ra 14 câu y hệt
+     nhau, đúng thứ đã làm chủ dự án bó tay trước danh sách "199 chỗ". */
+  const loiG=dienGiaiLoiNhap(loi);
+  const canhG=[...canh, ...(dl.canh||[])];
   return {...dl, tenTruong, namHoc:chu(r0.Nam_hoc), tinh:chu(r0.Tinh), xa:chu(r0.Xa),
     diemTruong, khungGio, phong, gvNghi, tronGoi:true,
-    loi:[...loi, ...dl.loi].slice(0,14), soLoi:loi.length+dl.soLoi,
-    canh:canh.slice(0,10), soCanh:canh.length};
+    loi:[...loiG, ...dl.loi].slice(0,14), soLoi:loiG.length+dl.soLoi,
+    canh:canhG.slice(0,10), soCanh:canhG.length};
+}
+
+/* ==================================================================
+   5b. NHẬP TỪNG MỤC — mỗi màn hình một trang tính  (28/8/2026)
+   ------------------------------------------------------------------
+   Chủ dự án: *"ta nhập từng mục chứ 10 trang làm cho giáo viên rối quá!"* —
+   và ông đã thử thật: điền hết mười trang, nhập lên, nhận về "199 chỗ chưa
+   đúng" mà *"khó biết sai như thế nào"*.
+
+   Mẫu trọn gói sai ở chỗ nó bắt người dùng làm XONG TOÀN BỘ rồi mới được
+   biết mình đúng hay sai. Bảy thứ phụ thuộc nhau qua mã, nên một chỗ sai ở
+   trang 4 làm hỏng cả trang 6 — và tất cả cùng đổ ra một lúc.
+
+   Nay mỗi màn hình khai báo có mẫu MỘT TRANG của đúng mục ấy: khai lớp thì
+   nhập lớp, khai giáo viên thì nhập giáo viên. Vòng "sửa → nhập lại" rút từ
+   cả buổi xuống vài phút, và lỗi ở một mục không kéo theo mục nào khác.
+
+   Ba nguyên tắc, cả ba đều có phép thử:
+
+   · **THÊM và CẬP NHẬT, không bao giờ XOÁ.** Nhập theo khoá tự nhiên
+     (mã lớp · mã giáo viên · tên điểm trường…). Nhập lại đúng tệp ấy lần
+     thứ hai thì kết quả y hệt — không nhân đôi. Muốn bỏ một dòng thì xoá
+     trong app; tệp Excel không phải là bản tuyên bố "chỉ có bấy nhiêu".
+     Đây là khác biệt lớn nhất với mẫu trọn gói, thứ thay sạch bảng cũ.
+   · **Mục nào cũng soi trên dữ liệu ĐANG CÓ.** Nhập phân công thì mã lớp
+     phải trỏ vào lớp thật trong app, không phải vào một trang tính khác
+     trong cùng tệp. Vì thế mỗi mục khai rõ `can` — những mục phải khai
+     trước — và hộp nhập chặn ngay từ đầu nếu chưa đủ.
+   · **Một bộ khai, hai đầu dùng.** Cột · khoá kiểm tra · dòng điền sẵn ·
+     dòng ví dụ đều nằm ở `MUC_NHAP`; `taiMauMuc()` dịch xuôi ra Excel,
+     `duLieuTuMuc()` đọc ngược. Không có cách nào để mẫu và trình soát lệch
+     nhau — cùng bài học đã ghi cho mẫu trọn gói ngày 23/8.
+   ================================================================== */
+
+/* Đọc một ô Có/Không của Excel. Bỏ trống hiểu là CÓ — cột này luôn là thứ
+   bật sẵn (điểm trường có phòng Tin, buổi có dạy học). */
+const laCoXL = v => {
+  const t = khongDau(String(v ?? '').trim()).toLowerCase();
+  return t === '' || t === 'co' || t === 'x' || t === '1' || t === 'true';
+};
+
+const MUC_NHAP = {
+
+  diemtruong:{
+    ten:'Điểm trường', trang:'DIEM_TRUONG', khoaDong:['Ten_diem_truong'],
+    nhac:'Mỗi nơi dạy học một dòng. Trường một điểm thì để nguyên một dòng.',
+    duThua:12,
+    cot:[{ten:'Ten_diem_truong', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
+         {ten:'Co_phong_tin',    rong:16, khoa:{kieu:'chon', nguon:'DM_Co_khong'}}],
+    hang:()=>S.diemTruong.map(d=>[d.ten, d.phongTin===false?'Không':'Có']),
+    viDu:[['Điểm trường chính','Có'],['Điểm trường lẻ','Không']],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      co.forEach(r=>{
+        const ten=String(r.Ten_diem_truong??'').trim();
+        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_diem_truong'});
+        const cu=kho.diemTruong.find(d=>d.ten===ten);
+        if(cu){ cu.phongTin=laCoXL(r.Co_phong_tin); capNhat++; }
+        else { kho.diemTruong.push({id:'dt'+(Date.now()%1e6)+'_'+kho.diemTruong.length,
+                 ten, phongTin:laCoXL(r.Co_phong_tin)}); them++; }
+      });
+      return {them, capNhat};
+    }
+  },
+
+  khunggio:{
+    ten:'Khối và khung giờ', trang:'KHUNG_GIO', khoaDong:['Thu','Buoi'],
+    nhac:'Số tiết của TỪNG KHỐI trong mỗi buổi — khối nhỏ tan sớm hơn. '
+        +'Buổi cả trường nghỉ thì Day_hoc ghi Không.',
+    duThua:6,
+    cot:[{ten:'Thu',     rong:9,  khoa:{kieu:'chon', nguon:'DM_Thu', batBuoc:true}},
+         {ten:'Buoi',    rong:9,  khoa:{kieu:'chon', nguon:'DM_Buoi', batBuoc:true}},
+         {ten:'Day_hoc', rong:11, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
+         {ten:'K1', rong:7, khoa:{kieu:'so', tu:0, den:10}},
+         {ten:'K2', rong:7, khoa:{kieu:'so', tu:0, den:10}},
+         {ten:'K3', rong:7, khoa:{kieu:'so', tu:0, den:10}},
+         {ten:'K4', rong:7, khoa:{kieu:'so', tu:0, den:10}},
+         {ten:'K5', rong:7, khoa:{kieu:'so', tu:0, den:10}}],
+    hang:()=>(S.khungGio?.length?S.khungGio:khungGioMacDinh())
+      .map(k=>[k.thu, k.buoi, k.bat===false?'Không':'Có',
+               ...[1,2,3,4,5].map(x=>k.tietKhoi?.[x] ?? k.tiet ?? 0)]),
+    viDu:[],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      co.forEach(r=>{
+        const thu=+r.Thu, b=String(r.Buoi??'').trim().toUpperCase();
+        if(!THU_XL.includes(thu)) return void loi.push({t:this.trang, d:r.__dong,
+          v:`Thu phải là 2, 3, 4, 5 hoặc 6 (đang là "${String(r.Thu??'').trim()}")`});
+        if(!BUOI_XL.includes(b)) return void loi.push({t:this.trang, d:r.__dong,
+          v:`Buoi phải là S (sáng) hoặc C (chiều) (đang là "${String(r.Buoi??'').trim()}")`});
+        const tietKhoi={}; let xau=false;
+        [1,2,3,4,5].forEach(x=>{
+          const n=+r['K'+x];
+          if(!Number.isFinite(n)||n<0||n>10){
+            loi.push({t:this.trang, d:r.__dong,
+              v:`K${x} phải là số từ 0 đến 10 (đang là "${String(r['K'+x]??'').trim()}")`});
+            xau=true;
+          }
+          tietKhoi[x]=Number.isFinite(n)&&n>0?n:0;
+        });
+        if(xau) return;
+        const moi={thu, buoi:b, bat:laCoXL(r.Day_hoc), tietKhoi,
+                   tiet:Math.max(0,...Object.values(tietKhoi))};
+        const i=kho.khungGio.findIndex(k=>k.thu===thu&&k.buoi===b);
+        if(i>=0){ kho.khungGio[i]=moi; capNhat++; } else { kho.khungGio.push(moi); them++; }
+      });
+      /* Thiếu chỗ thì cả trường không xếp đủ tiết — phải chặn ngay tại đây,
+         chứ không để tới lúc xếp mới lòi ra "chưa xếp được 40 tiết". */
+      const khoiCo=new Set(kho.lop.map(l=>+l.khoi).filter(k=>k>=1&&k<=5));
+      [...khoiCo].sort().forEach(k=>{
+        const suc=kho.khungGio.filter(x=>x.bat!==false)
+                              .reduce((t,x)=>t+(x.tietKhoi?.[k]||0),0);
+        if(suc<CHUAN_KHOI[k]) loi.push(`${this.trang}: khối ${k} chỉ có ${suc} ô mỗi tuần, `
+          +`chuẩn CT GDPT 2018 là ${CHUAN_KHOI[k]} tiết — thiếu ${CHUAN_KHOI[k]-suc} chỗ, không xếp đủ được`);
+      });
+      return {them, capNhat};
+    }
+  },
+
+  lop:{
+    ten:'Lớp học', trang:'LOP', khoaDong:['Ma_lop','Ten_lop'],
+    nhac:'Ma_lop phải duy nhất trong CẢ TRƯỜNG. Ten_lop được phép trùng giữa các điểm trường.',
+    duThua:80, can:['diemtruong'],
+    cot:[{ten:'Ma_lop',      rong:18, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+         {ten:'Ten_lop',     rong:14, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+         {ten:'Khoi',        rong:9,  khoa:{kieu:'so', tu:1, den:5, batBuoc:true}},
+         {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}},
+         {ten:'Chu_nhiem',   rong:20, khoa:{kieu:'chon', nguon:'DM_Ma_GV'}}],
+    hang:()=>S.lop.map(l=>[l.maLop||l.id, l.ten, l.khoi,
+      dtId(S.lopDT[l.id])?.ten||'', (cnCuaLop(l.id)?.maGV)||'']),
+    viDu:[['1A','1A',1,'Điểm trường chính',''],
+          ['1B','1B',1,'Điểm trường chính',''],
+          ['2A','2A',2,'Điểm trường chính','']],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      const dtMacDinh=kho.diemTruong.length===1?kho.diemTruong[0]:null;
+      co.forEach(r=>{
+        const ma=String(r.Ma_lop??'').trim(), ten=String(r.Ten_lop??'').trim();
+        if(!ma) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ma_lop'});
+        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_lop'});
+        const k=+r.Khoi;
+        if(!(k>=1&&k<=5)) return void loi.push({t:this.trang, d:r.__dong,
+          v:`Khoi phải là số từ 1 đến 5 (đang là "${String(r.Khoi??'').trim()}")`});
+        const tenDT=String(r.Diem_truong??'').trim();
+        const dt = tenDT ? kho.diemTruong.find(d=>d.ten===tenDT) : dtMacDinh;
+        if(tenDT && !dt) return void loi.push({t:this.trang, d:r.__dong,
+          v:`chưa khai điểm trường "${tenDT}" — vào mục Điểm trường thêm nơi này trước`});
+        if(!dt) return void loi.push({t:this.trang, d:r.__dong,
+          v:'trường có nhiều điểm trường nên cột Diem_truong không được bỏ trống'});
+        const maCN=String(r.Chu_nhiem??'').trim();
+        let gvCN=null;
+        if(maCN){
+          gvCN=kho.giaoVien.find(g=>(g.maGV||g.id)===maCN);
+          if(!gvCN) loi.push({t:this.trang, d:r.__dong,
+            v:`chưa khai giáo viên mã "${maCN}" — vào mục Giáo viên thêm người này trước`});
+        }
+        const cu=kho.lop.find(l=>(l.maLop||l.id)===ma);
+        const id = cu ? cu.id : ('lop_'+ma);
+        if(cu){ cu.ten=ten; cu.khoi=k; capNhat++; }
+        else { kho.lop.push({id, ten, khoi:k, maLop:ma}); them++; }
+        kho.lopDT[id]=dt.id;
+        /* Chủ nhiệm gỡ ràng buộc ở CẢ HAI đầu — không ai chủ nhiệm hai lớp,
+           không lớp nào có hai chủ nhiệm. Đúng luật của datCN(). */
+        if(gvCN){
+          kho.giaoVien.forEach(g=>{ if(g.cn===id) g.cn=''; });
+          gvCN.cn=id;
+        }
+      });
+      return {them, capNhat};
+    }
+  },
+
+  giaovien:{
+    ten:'Giáo viên', trang:'GIAO_VIEN', khoaDong:['Ma_GV','Ho_ten'],
+    nhac:'Ghi ĐỦ HỌ TÊN — trường 35 người đã có bốn cặp trùng tên gọi. '
+        +'Gmail điền sẵn thì thầy cô đăng nhập bằng Google là vào thẳng, không cần mã mời.',
+    duThua:120,
+    cot:[{ten:'TT',        rong:6,  khoa:{kieu:'so', tu:1, den:999}},
+         {ten:'Ma_GV',     rong:20, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+         {ten:'Ho_ten',    rong:30, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
+         {ten:'Gmail',     rong:30, khoa:{kieu:'chu', toiDa:120}},
+         {ten:'Chu_nhiem', rong:16, khoa:{kieu:'chon', nguon:'DM_Ma_lop'}},
+         {ten:'Dinh_muc',  rong:11, khoa:{kieu:'so', tu:1, den:30}},
+         {ten:'Ghi_chu',   rong:34, khoa:{kieu:'chu', toiDa:200}}],
+    hang:()=>S.giaoVien.map((g,i)=>[i+1, g.maGV||g.id, g.hoTen, g.email||'',
+      g.cn?(lopId(g.cn)?.maLop||g.cn):'', g.dinhMuc||DINH_MUC, g.ghiChu||'']),
+    viDu:[[1,'An_NT','Nguyễn Thị An','','',DINH_MUC,''],
+          [2,'Binh_TV','Trần Văn Bình','','',DINH_MUC,''],
+          [3,'Chi_LT','Lê Thị Chi','','',DINH_MUC,'']],
+    doc(co, kho, loi, canh){
+      let them=0, capNhat=0;
+      co.forEach(r=>{
+        const ma=String(r.Ma_GV??'').trim(), ten=String(r.Ho_ten??'').trim();
+        if(!ma) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ma_GV'});
+        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ho_ten'});
+        const mail=String(r.Gmail??r.Email??'').trim().toLowerCase();
+        if(mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail))
+          return void loi.push({t:this.trang, d:r.__dong,
+            v:`"${mail}" không phải một địa chỉ thư hợp lệ`});
+        const dm=+r.Dinh_muc;
+        const cu=kho.giaoVien.find(g=>(g.maGV||g.id)===ma);
+        const g = cu || {id:'gv_'+ma, maGV:ma, cn:''};
+        g.hoTen=ten; g.maGV=ma;
+        g.dinhMuc = dm>0 ? dm : (cu?.dinhMuc||DINH_MUC);
+        /* Ô Gmail để TRỐNG thì GIỮ NGUYÊN địa chỉ cũ, không xoá. Người dùng
+           bỏ trống một ô là "tôi không khai", không phải "hãy thu quyền của
+           thầy cô này" — mà xoá email ở đây chính là thu quyền đăng nhập. */
+        if(mail) g.email=mail;
+        if(String(r.Ghi_chu??'').trim()) g.ghiChu=String(r.Ghi_chu).trim();
+        const maCN=String(r.Chu_nhiem??'').trim();
+        if(maCN){
+          const l=kho.lop.find(x=>(x.maLop||x.id)===maCN);
+          if(!l) loi.push({t:this.trang, d:r.__dong,
+            v:`chưa khai lớp mã "${maCN}" — vào mục Lớp học thêm lớp này trước`});
+          else { kho.giaoVien.forEach(x=>{ if(x.cn===l.id) x.cn=''; }); g.cn=l.id; }
+        }
+        if(cu) capNhat++; else { kho.giaoVien.push(g); them++; }
+      });
+      /* Một Gmail chỉ được trỏ về một người: hai hồ sơ cùng địa chỉ thì lúc
+         đăng nhập máy không biết mở lịch của ai. Đúng bài học sự cố 2/8. */
+      const dem={}; kho.giaoVien.forEach(g=>{ if(g.email) dem[g.email]=(dem[g.email]||0)+1; });
+      Object.entries(dem).filter(([,n])=>n>1).forEach(([m,n])=>
+        loi.push(`${this.trang}: Gmail "${m}" khai cho ${n} người — mỗi địa chỉ chỉ được một người`));
+      const chuaMail=kho.giaoVien.filter(g=>!g.email).length;
+      if(chuaMail) canh.push(`${chuaMail} giáo viên chưa có Gmail — những người này vẫn phải nhận mã mời`);
+      return {them, capNhat};
+    }
+  },
+
+  monhoc:{
+    ten:'Môn học', trang:'MON_HOC', khoaDong:['Ten_mon'],
+    nhac:'Số tiết chuẩn mỗi tuần của TỪNG KHỐI. Bỏ trống nghĩa là khối đó không học môn này.',
+    duThua:20,
+    cot:[{ten:'Ten_mon',  rong:24, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
+         {ten:'Mon_nang', rong:12, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
+         {ten:'Mon_nhe',  rong:12, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
+         {ten:'Phong',    rong:18, khoa:{kieu:'chu', toiDa:40}},
+         {ten:'K1', rong:7, khoa:{kieu:'so', tu:0, den:20}},
+         {ten:'K2', rong:7, khoa:{kieu:'so', tu:0, den:20}},
+         {ten:'K3', rong:7, khoa:{kieu:'so', tu:0, den:20}},
+         {ten:'K4', rong:7, khoa:{kieu:'so', tu:0, den:20}},
+         {ten:'K5', rong:7, khoa:{kieu:'so', tu:0, den:20}}],
+    hang:()=>(S.monHoc||dsMonMacDinh()).map(m=>[m.ten, m.nang?'Có':'Không',
+      m.nhe?'Có':'Không', m.phong||'', ...[1,2,3,4,5].map(k=>m.chuan?.[k]||'')]),
+    viDu:[],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      co.forEach(r=>{
+        const ten=String(r.Ten_mon??'').trim();
+        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_mon'});
+        const chuan={};
+        [1,2,3,4,5].forEach(k=>{ const n=+r['K'+k]; if(n>0) chuan[k]=n; });
+        const cu=kho.monHoc.find(m=>m.ten===ten);
+        const m=cu||{ten, mau:'#4A7FB5'};
+        m.nang=laCoXL(r.Mon_nang)&&String(r.Mon_nang??'').trim()!=='';
+        m.nhe =laCoXL(r.Mon_nhe) &&String(r.Mon_nhe??'').trim()!=='';
+        m.phong=String(r.Phong??'').trim();
+        m.chuan=chuan;
+        if(cu) capNhat++; else { kho.monHoc.push(m); them++; }
+      });
+      return {them, capNhat};
+    }
+  },
+
+  phancong:{
+    ten:'Phân công chuyên môn', trang:'PHAN_CONG', khoaDong:['Ma_GV','Ma_lop','Mon'],
+    nhac:'Mỗi dòng là một môn của một giáo viên ở một lớp. '
+        +'So_tiet bỏ trống thì máy lấy số tiết chuẩn CT GDPT 2018 theo khối.',
+    duThua:400, can:['lop','giaovien'],
+    cot:[{ten:'Ma_GV',   rong:20, khoa:{kieu:'chon', nguon:'DM_Ma_GV', batBuoc:true}},
+         {ten:'Ma_lop',  rong:18, khoa:{kieu:'chon', nguon:'DM_Ma_lop', batBuoc:true}},
+         {ten:'Mon',     rong:20, khoa:{kieu:'chon', nguon:'DM_Mon', batBuoc:true}},
+         {ten:'So_tiet', rong:10, khoa:{kieu:'so', tu:1, den:20}}],
+    hang:()=>S.phanCong.map(p=>[gvId(p.gvId)?.maGV||p.gvId,
+      lopId(p.lopId)?.maLop||p.lopId, p.mon, p.soTiet]),
+    viDu:[['An_NT','1A','Tiếng Việt',12],['An_NT','1A','Toán',3],
+          ['Chi_LT','1A','Mỹ thuật',''],['Chi_LT','1B','Mỹ thuật','']],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      co.forEach(r=>{
+        const maG=String(r.Ma_GV??'').trim(), maL=String(r.Ma_lop??'').trim();
+        const mon=String(r.Mon??'').trim();
+        const g=kho.giaoVien.find(x=>(x.maGV||x.id)===maG);
+        const l=kho.lop.find(x=>(x.maLop||x.id)===maL);
+        if(!g) return void loi.push({t:this.trang, d:r.__dong,
+          v:`chưa khai giáo viên mã "${maG}" — vào mục Giáo viên thêm người này trước`});
+        if(!l) return void loi.push({t:this.trang, d:r.__dong,
+          v:`chưa khai lớp mã "${maL}" — vào mục Lớp học thêm lớp này trước`});
+        if(!mon) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu tên môn'});
+        /* So_tiet bỏ trống thì lấy tiết chuẩn theo khối — lý do trường "chỉ
+           có bảng phân công, không biết số tiết" vẫn nhập được. */
+        const o=String(r.So_tiet??'').trim();
+        let n=+r.So_tiet;
+        if(o===''){
+          n=chuanMon(mon, l.khoi);
+          if(!(n>0)) return void loi.push({t:this.trang, d:r.__dong,
+            v:`bỏ trống So_tiet mà môn "${mon}" không có tiết chuẩn cho khối ${l.khoi}`
+              +' — ghi rõ số tiết vào ô đó'});
+        }
+        if(!(n>0)) return void loi.push({t:this.trang, d:r.__dong,
+          v:`So_tiet phải là số lớn hơn 0 (đang là "${o}")`});
+        const cu=kho.phanCong.find(p=>p.gvId===g.id&&p.lopId===l.id&&p.mon===mon);
+        if(cu){ cu.soTiet=n; capNhat++; }
+        else { kho.phanCong.push({gvId:g.id, lopId:l.id, mon, soTiet:n}); them++; }
+      });
+      return {them, capNhat};
+    }
+  },
+
+  phonghoc:{
+    ten:'Phòng học', trang:'PHONG', khoaDong:['Ten_phong'],
+    nhac:'Khai rồi thì phòng thành ràng buộc cứng: hai lớp không học cùng một phòng một tiết.',
+    duThua:24, can:['diemtruong'],
+    cot:[{ten:'Ten_phong',   rong:26, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
+         {ten:'Mon',         rong:20, khoa:{kieu:'chon', nguon:'DM_Mon'}},
+         {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}],
+    hang:()=>(S.phong||[]).map(p=>[p.ten, p.mon||'', dtId(p.dtId)?.ten||'']),
+    viDu:[['Phòng máy 1','Tin học','Điểm trường chính']],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      const dtMacDinh=kho.diemTruong.length===1?kho.diemTruong[0]:null;
+      co.forEach(r=>{
+        const ten=String(r.Ten_phong??'').trim();
+        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_phong'});
+        const tenDT=String(r.Diem_truong??'').trim();
+        const dt = tenDT ? kho.diemTruong.find(d=>d.ten===tenDT) : dtMacDinh;
+        if(tenDT && !dt) return void loi.push({t:this.trang, d:r.__dong,
+          v:`chưa khai điểm trường "${tenDT}" — vào mục Điểm trường thêm nơi này trước`});
+        const cu=kho.phong.find(p=>p.ten===ten);
+        if(cu){ cu.mon=String(r.Mon??'').trim(); cu.dtId=dt?.id||null; capNhat++; }
+        else { kho.phong.push({id:'ph_'+kho.phong.length+'_'+ten, ten,
+                 mon:String(r.Mon??'').trim(), dtId:dt?.id||null}); them++; }
+      });
+      return {them, capNhat};
+    }
+  },
+
+  buoiban:{
+    ten:'Buổi bận', trang:'BUOI_BAN', khoaDong:['Ma_GV'],
+    nhac:'Buổi LẶP LẠI mỗi tuần (đi học nâng chuẩn, con nhỏ…). Ốm một hôm thì '
+        +'không ghi ở đây — thầy cô tự báo nghỉ trong app.',
+    duThua:60, can:['giaovien'],
+    cot:[{ten:'Ma_GV', rong:20, khoa:{kieu:'chon', nguon:'DM_Ma_GV', batBuoc:true}},
+         {ten:'Thu',   rong:9,  khoa:{kieu:'chon', nguon:'DM_Thu', batBuoc:true}},
+         {ten:'Buoi',  rong:9,  khoa:{kieu:'chon', nguon:'DM_Buoi', batBuoc:true}}],
+    hang:()=>Object.entries(S.gvNghi||{}).flatMap(([id,ds])=>
+      ds.map(k=>[gvId(id)?.maGV||id, +k.split('-')[0], k.split('-')[1]])),
+    viDu:[['Binh_TV',5,'C']],
+    doc(co, kho, loi){
+      let them=0, capNhat=0;
+      co.forEach(r=>{
+        const ma=String(r.Ma_GV??'').trim();
+        const g=kho.giaoVien.find(x=>(x.maGV||x.id)===ma);
+        if(!g) return void loi.push({t:this.trang, d:r.__dong,
+          v:`chưa khai giáo viên mã "${ma}" — vào mục Giáo viên thêm người này trước`});
+        const thu=+r.Thu, b=String(r.Buoi??'').trim().toUpperCase();
+        if(!THU_XL.includes(thu)||!BUOI_XL.includes(b))
+          return void loi.push({t:this.trang, d:r.__dong,
+            v:'Thu phải là 2–6 và Buoi phải là S hoặc C'});
+        const k=`${thu}-${b}`;
+        const ds=(kho.gvNghi[g.id]=[...(kho.gvNghi[g.id]||[])]);
+        if(ds.includes(k)) capNhat++; else { ds.push(k); them++; }
+      });
+      return {them, capNhat};
+    }
+  }
+};
+
+/* Bản sao dữ liệu nguồn để soát — KHÔNG bao giờ đụng vào `S` trước khi người
+   dùng bấm xác nhận. Nhập hỏng nửa chừng mà đã sửa vào S thì màn hình đằng
+   sau hộp thoại đã đổi, người dùng không còn đường lui. */
+function chepKhoNguon(g){
+  const n = g || S;
+  return {
+    diemTruong:(n.diemTruong||[]).map(d=>({...d})),
+    khungGio:(n.khungGio?.length?n.khungGio:khungGioMacDinh()).map(k=>({...k})),
+    lop:(n.lop||[]).map(l=>({...l})),
+    lopDT:{...(n.lopDT||{})},
+    giaoVien:(n.giaoVien||[]).map(x=>({...x})),
+    monHoc:(n.monHoc||dsMonMacDinh()).map(m=>({...m})),
+    phong:(n.phong||[]).map(p=>({...p})),
+    phanCong:(n.phanCong||[]).map(p=>({...p})),
+    gvNghi:Object.fromEntries(Object.entries(n.gvNghi||{}).map(([k,v])=>[k,[...v]]))
+  };
+}
+
+/* Mục nào phải khai xong trước mục này. Trả câu nói thẳng phải làm gì. */
+function thieuMucTruoc(ma){
+  const m=MUC_NHAP[ma]; if(!m?.can) return '';
+  const rong={diemtruong:()=>!S.diemTruong.length, lop:()=>!S.lop.length,
+              giaovien:()=>!S.giaoVien.length};
+  const thieu=m.can.filter(c=>rong[c]?.());
+  if(!thieu.length) return '';
+  return 'Khai xong '+thieu.map(c=>MUC_NHAP[c].ten).join(' và ')+' trước đã — '
+    +`trang ${m.trang} tham chiếu tới đó bằng mã.`;
+}
+
+/* Đọc một trang tính về đúng MỘT mục, soát trên dữ liệu ĐANG CÓ.
+   Trả về bản sao đã trộn (`kho`) chứ không sửa `S` — nơi gọi tự quyết. */
+function duLieuTuMuc(ma, hangTho, nguon){
+  const m=MUC_NHAP[ma];
+  if(!m) return {soLoi:1, loi:[`Không có mục nhập tên "${ma}"`], canh:[], soCanh:0};
+  const kho=chepKhoNguon(nguon);
+  const loi=[], canh=[];
+  const {co, bo}=locDongDaDien(hangTho, m.khoaDong);
+  const c=canhDongBo(m.trang, bo); if(c) canh.push(c);
+  const dem = co.length ? m.doc(co, kho, loi, canh) : {them:0, capNhat:0};
+  if(!co.length) loi.push(`Trang ${m.trang} không có dòng nào đã điền`);
+  const g=dienGiaiLoiNhap(loi);
+  return {ma, ten:m.ten, trang:m.trang, kho,
+          them:dem.them, capNhat:dem.capNhat, doc:co.length,
+          loi:g.slice(0,12), soLoi:g.length,
+          canh:canh.slice(0,8), soCanh:canh.length};
+}
+
+/* Nạp kết quả đã xác nhận vào S. Một đường duy nhất, để không nơi nào tự
+   ghép tay rồi quên mất một bảng. */
+function napMucVaoS(kq){
+  const k=kq.kho;
+  S.diemTruong=k.diemTruong; S.khungGio=k.khungGio;
+  S.lop=k.lop; S.lopDT=k.lopDT; S.giaoVien=k.giaoVien;
+  S.monHoc=k.monHoc; S.phong=k.phong;
+  S.phanCong=k.phanCong; S.gvNghi=k.gvNghi;
 }
 
 /* Ghi bộ dữ liệu nguồn lên máy chủ.
@@ -4821,13 +5421,29 @@ async function ghiDuLieuNguon(dl){
        thì upsert theo `id` để sửa đúng dòng cũ. */
     const maCuaGV=g=>g.maGV||g.id;
     const hangGV=g=>({truong_id:t, ma_gv:maCuaGV(g), ho_ten:g.hoTen,
-                      dinh_muc:g.dinhMuc||DINH_MUC});
+                      dinh_muc:g.dinhMuc||DINH_MUC,
+                      ...(KHO.coCotGV===false?{}:{email:g.email||null, ghi_chu:g.ghiChu||null})});
+    /* ⚠️ ĐƯỜNG LUI cho hai cột thêm ngày 28/8/2026 (db/gmail-giao-vien.sql).
+       Máy chủ chưa chạy tệp ấy thì PostgREST từ chối CẢ lệnh chứ không bỏ qua
+       cột thiếu — nghĩa là mất luôn cả lần lưu, kể cả họ tên và định mức. Nên
+       bắt đúng lỗi ấy, ghi lại KHÔNG kèm hai cột, và nhớ để lần sau khỏi thử.
+       Nâng cấp phần mềm không được làm một trường đang chạy tốt mất nút Lưu. */
+    const thieuCot=e=>/Could not find the '(email|ghi_chu)' column/i.test(String(e?.message||''));
+    const gopGV=async (hang, khoa)=>{
+      try{ return await gop('giao_vien', hang, khoa); }
+      catch(e){
+        if(!thieuCot(e)) throw e;
+        KHO.coCotGV=false;
+        const gon=hang.map(({email, ghi_chu, ...r})=>r);
+        return gop('giao_vien', gon, khoa);
+      }
+    };
     const gvDaCo=dl.giaoVien.filter(g=>laUUID(g.id));
     const gvMoiKhai=dl.giaoVien.filter(g=>!laUUID(g.id));
     if(gvDaCo.length)
-      await gop('giao_vien', gvDaCo.map(g=>({id:g.id, ...hangGV(g)})), 'id');
+      await gopGV(gvDaCo.map(g=>({id:g.id, ...hangGV(g)})), 'id');
     if(gvMoiKhai.length)
-      await gop('giao_vien', gvMoiKhai.map(hangGV), 'truong_id,ma_gv');
+      await gopGV(gvMoiKhai.map(hangGV), 'truong_id,ma_gv');
     const gvSv=await goiAPI(`/rest/v1/giao_vien?truong_id=eq.${t}&select=id,ma_gv`);
     const svTheoMa={}; (gvSv||[]).forEach(g=>svTheoMa[g.ma_gv]=g.id);
     /* Bản đồ id-trong-app → id-trên-máy-chủ. Trước đây tra thẳng bằng bảng
@@ -4858,7 +5474,7 @@ async function ghiDuLieuNguon(dl){
       await gop('lop', daCoTrenSv.map(l=>({id:l.id, ...hangLop(l)})), 'id');
     if(lopMoiKhai.length)
       await gop('lop', lopMoiKhai.map(hangLop), 'truong_id,ma_lop');
-    const lopSv=await goiAPI(`/rest/v1/lop?truong_id=eq.${t}&select=id,ma_lop,ten`);
+    const lopSv=await goiAPI(`/rest/v1/lop?truong_id=eq.${t}&select=id,ma_lop,ten,diem_truong_id`);
     const maLop={}; (lopSv||[]).forEach(l=>maLop[l.ma_lop]=l.id);
 
     /* 5. Phân công: thay mới hoàn toàn */
@@ -4936,12 +5552,42 @@ async function ghiDuLieuNguon(dl){
     const lopThua=(lopSv||[]).filter(l=>!maTepLop.has(l.ma_lop)).map(l=>l.ten);
     const gvThua=(gvSv||[]).filter(g=>!maTrongTep.has(g.ma_gv)).map(g=>g.ma_gv);
 
+    /* ---------- ĐIỂM TRƯỜNG ĐÃ XOÁ THÌ XOÁ THẬT (28/8/2026) ----------
+       Chủ dự án xoá một điểm trường thừa, bấm Lưu, mở lại vẫn thấy đủ bốn.
+       Gốc: bước 1 chỉ biết THÊM cái chưa có, không bao giờ bỏ cái không còn —
+       nên xoá trong app chỉ là xoá khỏi bộ nhớ trình duyệt.
+
+       Điểm trường KHÁC lớp và giáo viên ở chỗ nó không mang dữ liệu nào của
+       riêng mình: xoá một lớp là mất cả phân công và làm hỏng phiên bản TKB
+       đã lưu, nên hai bảng kia cố ý chỉ báo `lopThua`/`gvThua`. Còn điểm
+       trường thì nút Xoá trong app đã dời hết lớp sang nơi khác trước rồi —
+       giữ lại dòng trên máy chủ chỉ là bày ra một cái tên không ai dùng.
+
+       ⚠️ Xoá SAU bước 4. `lop.diem_truong_id` khai `on delete restrict`, nên
+       xoá trước khi lớp kịp trỏ sang nơi mới là máy chủ chặn thẳng.
+       ⚠️ Và chỉ xoá nơi KHÔNG CÒN LỚP NÀO trỏ tới — lớp thừa trên máy chủ
+       (`lopThua`) vẫn giữ điểm trường của nó sống. Bọc riêng try/catch: xoá
+       không được thì báo, tuyệt đối không làm hỏng cả lần lưu. */
+    let dtChuaXoa=[];
+    const tenGiu=new Set(dl.diemTruong.map(d=>d.ten));
+    const dtBo=(dtCu||[]).filter(d=>!tenGiu.has(d.ten));
+    if(dtBo.length){
+      const conDung=new Set((lopSv||[]).map(l=>l.diem_truong_id).filter(Boolean));
+      for(const d of dtBo){
+        if(conDung.has(d.id)){ dtChuaXoa.push(d.ten); continue; }
+        try{ await goiAPI(`/rest/v1/diem_truong?id=eq.${d.id}`,
+               {method:'DELETE', headers:{Prefer:'return=minimal'}}); }
+        catch(e){ dtChuaXoa.push(d.ten); }
+      }
+    }
+
     ghiNhatKy('nhap_du_lieu_nguon',
       {lop:dl.lop.length, giaoVien:dl.giaoVien.length, phanCong:hangPC.length});
-    return {ok:true, lopThua, gvThua, loiTruong,
+    return {ok:true, lopThua, gvThua, loiTruong, dtChuaXoa,
       chiTiet:{diemTruong:Object.keys(maDT).length, khungGio:dl.khungGio.length,
                giaoVien:dl.giaoVien.length, lop:dl.lop.length, phanCong:hangPC.length},
       thongBao:`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${hangPC.length} dòng phân công.`
+        + (dtChuaXoa.length?` ⚠️ Chưa xoá được ${dtChuaXoa.join(', ')} — trên máy chủ còn lớp học ở đó.`:'')
         + (loiTruong?` ⚠️ ${loiTruong}`:'')};
   }catch(e){
     return {ok:false, thongBao:dienGiaiLoi(e)};
@@ -5101,10 +5747,10 @@ async function danhDauDaXem(dsId){
    Gọi Edge Function `tai-khoan`. Tạo tài khoản đăng nhập cần khoá bí mật,
    khoá đó chỉ nằm trên máy chủ Supabase — xem db/edge-function-tai-khoan.ts. */
 /* ---------- Nối tài khoản đăng nhập vào ĐÚNG hồ sơ giáo viên ----------
-   SỰ CỐ THẬT 2/8/2026: cô Nguyễn Thị Oanh nhập mã mời, vào được phần mềm,
-   thấy đúng tên mình — nhưng màn hình trắng. Trường có HAI hồ sơ cùng tên
-   "Nguyễn Thị Oanh": một hồ sơ 22 tiết, một hồ sơ 0 tiết (sót lại từ bộ dữ
-   liệu thử). Ô chọn trong hộp Mã mời chỉ bày họ tên, nên chọn nhầm là chuyện
+   SỰ CỐ THẬT 2/8/2026: một cô giáo nhập mã mời, vào được phần mềm, thấy
+   đúng tên mình — nhưng màn hình trắng. Trường có HAI hồ sơ trùng họ tên
+   của cô: một hồ sơ 22 tiết, một hồ sơ 0 tiết (sót lại từ bộ dữ liệu thử).
+   Ô chọn trong hộp Mã mời chỉ bày họ tên, nên chọn nhầm là chuyện
    sớm muộn — và chọn nhầm rồi thì KHÔNG CÓ ĐƯỜNG NÀO sửa trong phần mềm.
 
    Hàm này là đường sửa ấy. Chạy thẳng trên bảng giao_vien bằng quy tắc RLS
@@ -5559,66 +6205,27 @@ function luoiTheoKhoiHoc(khoi, ds){
    Mẫu dựng từ CHÍNH dữ liệu đang có nếu trường đã khai — người dùng thấy
    ngay cách ghi, và sửa bảng phân công trên Excel rồi nhập ngược lại được.
    Trường trắng thì sinh vài dòng ví dụ. */
-function bangMauNhap(){
-  const coThat = S.lop.length>0 && S.giaoVien.length>0;
-  const nhieuDiem = S.diemTruong.length>1;
+/* ---------- Điền sẵn TỪNG BẢNG một, đừng gộp thành một cờ (28/8/2026) ----------
+   Cả ba mẫu Excel trước đây hỏi đúng một câu — "trường đã khai ĐỦ chưa?" —
+   rồi hoặc đổ hết dữ liệu thật, hoặc đổ hết dòng ví dụ bịa. Nên trường mới
+   gõ tay được hai giáo viên, hay đã khai 25 lớp mà chưa có dòng phân công
+   nào, tải mẫu về vẫn nhận một tệp toàn tên người không có thật — đúng phần
+   việc họ vừa làm xong thì mất, phải gõ lại từ đầu.
 
-  const huong = [
-    ['MẪU NHẬP DỮ LIỆU THỜI KHÓA BIỂU'],
-    [],
-    ['Tệp này có ba trang tính bắt buộc. Điền vào rồi nhập lại bằng nút "Nhập từ Excel".'],
-    [],
-    ['Trang tính','Cột bắt buộc','Cột có thể bỏ trống','Ghi chú'],
-    ['DANH_SACH_GV','Ma_GV · Ho_ten','Chu_nhiem · Dinh_muc',
-      'Ma_GV phải duy nhất. Chu_nhiem ghi MÃ LỚP. Dinh_muc bỏ trống thì lấy '+DINH_MUC+' tiết.'],
-    ['DANH_SACH_LOP','Ma_lop · Ten_lop · Khoi','Diem_truong',
-      'Ma_lop phải duy nhất trong cả trường. Ten_lop được phép trùng nhau giữa các điểm trường.'],
-    ['PCGD','Ma_GV · Ma_lop · Mon · So_tiet','',
-      'Mỗi dòng là một môn của một giáo viên ở một lớp.'],
-    [],
-    ['ĐIỀU QUAN TRỌNG NHẤT'],
-    ['Ma_GV và Ma_lop là thứ nối ba trang tính với nhau.'],
-    ['Đó là lý do phần mềm không bao giờ nhầm hai giáo viên trùng tên,'],
-    ['và ba điểm trường cùng có lớp tên "1A" vẫn phân biệt được.'],
-    ['Đặt mã rồi thì đừng đổi.'],
-    [],
-    ['GỢI Ý ĐẶT MÃ LỚP'],
-    ['Nhiều điểm trường thì thêm tiền tố: DL-1A · DD-1A · DT-1A'],
-    ['Một điểm trường thì lấy luôn tên lớp làm mã: 1A · 1B · 2A'],
-    [],
-    ['SỐ TIẾT CHUẨN MỖI TUẦN — CT GDPT 2018'],
-    ['Môn','Khối 1','Khối 2','Khối 3','Khối 4','Khối 5'],
-    ...Object.keys(TIET_CHUAN).map(m=>[m,...[1,2,3,4,5].map(k=>TIET_CHUAN[m][k]||'')]),
-    ['Tổng',...[1,2,3,4,5].map(k=>CHUAN_KHOI[k])]
-  ];
+   Nay mỗi bảng tự quyết: CÓ dữ liệu thật thì điền dữ liệu thật, chưa có thì
+   để trống. Dòng ví dụ chỉ dành cho trường TRẮNG — chưa khai một thứ gì.
+   Đó cũng chính là cái bẫy đã ghi ở mục 3 của CLAUDE.md: dòng ví dụ trong
+   một tệp của trường thật là dòng trỏ vào lớp và giáo viên không tồn tại,
+   nhập ngược lại là hỏng. */
+const truongTrang = () =>
+  !S.lop.length && !S.giaoVien.length && !S.phanCong.length;
 
-  const gv = [['Ma_GV','Ho_ten','Chu_nhiem','Dinh_muc']];
-  const lop = [['Ma_lop','Ten_lop','Khoi','Diem_truong']];
-  const pc = [['Ma_GV','Ma_lop','Mon','So_tiet']];
-
-  if(coThat){
-    S.giaoVien.forEach(g=>gv.push([g.maGV||g.id, g.hoTen,
-      g.cn ? (lopId(g.cn)?.maLop||g.cn) : '', g.dinhMuc||DINH_MUC]));
-    S.lop.forEach(l=>lop.push([l.maLop||l.id, l.ten, l.khoi,
-      nhieuDiem ? (dtId(S.lopDT[l.id])?.ten||'') : '']));
-    S.phanCong.forEach(p=>{
-      const g=gvId(p.gvId), l=lopId(p.lopId);
-      if(g&&l) pc.push([g.maGV||g.id, l.maLop||l.id, p.mon, p.soTiet]);
-    });
-  }else{
-    /* Trường trắng: vài dòng ví dụ đủ để hiểu cách ghi */
-    gv.push(['GV01','Nguyễn Thị An','1A',DINH_MUC],
-            ['GV02','Trần Văn Bình','1B',DINH_MUC],
-            ['GV03','Lê Thị Chi','',DINH_MUC]);
-    lop.push(['1A','1A',1,'Điểm trường chính'],
-             ['1B','1B',1,'Điểm trường chính'],
-             ['2A','2A',2,'Điểm trường chính']);
-    pc.push(['GV01','1A','Tiếng Việt',12],
-            ['GV01','1A','Toán',3],
-            ['GV03','1A','Mỹ thuật',1],
-            ['GV03','1B','Mỹ thuật',1]);
-  }
-  return {huong, gv, lop, pc, coThat};
+/* Đếm những gì mẫu vừa mang theo, để câu báo nói đúng thay vì hứa chung chung
+   "điền sẵn dữ liệu đang có" — người dùng cần biết phần mình gõ tay đã vào tệp. */
+function tomTatMau(){
+  const c=[[S.lop.length,'lớp'], [S.giaoVien.length,'giáo viên'],
+           [S.phanCong.length,'dòng phân công']].filter(x=>x[0]>0);
+  return c.length ? c.map(x=>x[0]+' '+x[1]).join(' · ') : '';
 }
 
 /* Mẫu MỘT TRANG kiểu ma trận — đúng tờ phân công chuyên môn các trường vẫn
@@ -5626,13 +6233,17 @@ function bangMauNhap(){
    KHÔNG PHẢI GHI: máy tự lấy tiết chuẩn CT GDPT 2018 theo khối của từng lớp.
    Ô nào cần bộ lớp khác cột Lop_day thì ghi thẳng danh sách lớp vào ô đó. */
 function bangMauMaTran(){
-  const coThat = S.lop.length>0 && S.giaoVien.length>0 && S.phanCong.length>0;
+  const trang  = truongTrang();
+  const coThat = !trang;
   const nhieuDiem = S.diemTruong.length>1;
   const dsMon = (S.monHoc||[]).map(m=>m.ten);
   const mt=[['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban',...dsMon]];
   const lop=[['Ma_lop','Ten_lop','Khoi','Diem_truong']];
 
-  if(coThat){
+  /* Chưa có dòng phân công nào thì vẫn dựng đủ danh sách giáo viên, các cột
+     môn để trống — đúng tờ phân công nhà trường đang kẻ dở, chỉ việc đánh
+     dấu x. Trước đây thiếu phân công là cả bảng rơi về bốn cái tên bịa. */
+  {
     const maCuaLop=id=>lopId(id)?.maLop||id;
     S.giaoVien.forEach((g,i)=>{
       /* bộ lớp của từng môn; bộ xuất hiện nhiều môn nhất làm Lop_day */
@@ -5654,7 +6265,8 @@ function bangMauMaTran(){
     });
     S.lop.forEach(l=>lop.push([l.maLop||l.id, l.ten, l.khoi,
       nhieuDiem?(dtId(S.lopDT[l.id])?.ten||''):'']));
-  }else{
+  }
+  if(trang){
     /* Ví dụ đủ ba kiểu người: chủ nhiệm đánh x theo lớp mình, bộ môn một môn
        nhiều lớp, và người có một ô ghi riêng danh sách lớp khác Lop_day */
     const vd=(tt,ma,ten,cn,ld,ban,oMon)=>
@@ -5900,8 +6512,21 @@ const THU_XL    = [2,3,4,5,6];
 const BUOI_XL   = ['S','C'];
 const CO_KHONG  = ['Có','Không'];
 
+/* ⚠️ KHÔNG CÒN TẢI VỀ ĐƯỢC (28/8/2026). Chủ dự án chốt bỏ hẳn mẫu mười trang
+   — *"10 trang làm cho giáo viên rối quá"* — nên `taiMauTronGoi()` đã xoá và
+   hộp Nhập từ Excel chỉ còn mẫu MỘT TRANG của mục đang mở.
+
+   Hàm này thì GIỮ, vì nó là bộ khai của định dạng mười trang mà `duLieuTuTronGoi()`
+   vẫn phải đọc được: trường nào đã điền dở tệp cũ thì không được bỗng mất công.
+   Nó cũng là dữ liệu cho phép thử vòng tròn của chính trình đọc ấy (mục 21) —
+   bỏ nó đi là đường lui còn đó mà không ai canh nữa. */
 function bangMauTronGoi(){
-  const coThat   = S.lop.length>0 && S.giaoVien.length>0;
+  /* Điền theo TỪNG BẢNG — xem ghi chú ở `truongTrang()`. Bảng nào đã có
+     dữ liệu thật thì lấy dữ liệu thật; chưa có thì để trống. Dòng ví dụ chỉ
+     dành cho trường TRẮNG, vì ở trường đã khai dở thì dòng ví dụ là dòng trỏ
+     vào lớp và giáo viên không tồn tại — nhập ngược lại là hỏng. */
+  const trang    = truongTrang();
+  const coThat   = !trang;
   const dsMon    = (S.monHoc||[]).map(m=>m.ten);
   const maCuaLop = id => lopId(id)?.maLop || id;
   const maCuaGV  = id => gvId(id)?.maGV  || id;
@@ -5910,10 +6535,12 @@ function bangMauTronGoi(){
      dropdown không bao giờ rỗng — ô xổ xuống trống trơn làm người điền
      tưởng tệp hỏng. */
   const danhMuc = {
-    DM_Diem_truong: coThat && S.diemTruong.length ? S.diemTruong.map(d=>d.ten)
-                                                  : ['Điểm trường chính'],
-    DM_Ma_lop:      coThat ? S.lop.map(l=>l.maLop||l.id)        : ['1A','1B','2A'],
-    DM_Ma_GV:       coThat ? S.giaoVien.map(g=>g.maGV||g.id)    : ['An_NT','Binh_TV','Chi_LT'],
+    DM_Diem_truong: S.diemTruong.length ? S.diemTruong.map(d=>d.ten)
+                                        : ['Điểm trường chính'],
+    DM_Ma_lop:      S.lop.length      ? S.lop.map(l=>l.maLop||l.id)
+                    : trang ? ['1A','1B','2A'] : [],
+    DM_Ma_GV:       S.giaoVien.length ? S.giaoVien.map(g=>g.maGV||g.id)
+                    : trang ? ['An_NT','Binh_TV','Chi_LT'] : [],
     DM_Mon:         dsMon.length ? dsMon : dsMonMacDinh().map(m=>m.ten),
     DM_Thu:         THU_XL,
     DM_Buoi:        BUOI_XL,
@@ -5942,7 +6569,7 @@ function bangMauTronGoi(){
       {ten:'Ten_diem_truong', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
       {ten:'Co_phong_tin',    rong:16, khoa:{kieu:'chon', nguon:'DM_Co_khong'}}
     ],
-    hang: coThat && S.diemTruong.length
+    hang: S.diemTruong.length
       ? S.diemTruong.map(d=>[d.ten, d.phongTin===false?'Không':'Có'])
       : [['Điểm trường chính','Có']]
   };
@@ -5975,11 +6602,11 @@ function bangMauTronGoi(){
       {ten:'Khoi',        rong:9,  khoa:{kieu:'so', tu:1, den:5, batBuoc:true}},
       {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}
     ],
-    hang: coThat
+    hang: S.lop.length
       ? S.lop.map(l=>[l.maLop||l.id, l.ten, l.khoi, dtId(S.lopDT[l.id])?.ten||''])
-      : [['1A','1A',1,'Điểm trường chính'],
-         ['1B','1B',1,'Điểm trường chính'],
-         ['2A','2A',2,'Điểm trường chính']]
+      : trang ? [['1A','1A',1,'Điểm trường chính'],
+                 ['1B','1B',1,'Điểm trường chính'],
+                 ['2A','2A',2,'Điểm trường chính']] : []
   };
 
   const tGV = {
@@ -5993,12 +6620,12 @@ function bangMauTronGoi(){
       {ten:'Chu_nhiem', rong:16, khoa:{kieu:'chon', nguon:'DM_Ma_lop'}},
       {ten:'Dinh_muc',  rong:11, khoa:{kieu:'so', tu:1, den:30}}
     ],
-    hang: coThat
+    hang: S.giaoVien.length
       ? S.giaoVien.map(g=>[g.maGV||g.id, g.hoTen,
                            g.cn?maCuaLop(g.cn):'', g.dinhMuc||DINH_MUC])
-      : [['An_NT','Nguyễn Thị An','1A',DINH_MUC],
-         ['Binh_TV','Trần Văn Bình','1B',DINH_MUC],
-         ['Chi_LT','Lê Thị Chi','',DINH_MUC]]
+      : trang ? [['An_NT','Nguyễn Thị An','1A',DINH_MUC],
+                 ['Binh_TV','Trần Văn Bình','1B',DINH_MUC],
+                 ['Chi_LT','Lê Thị Chi','',DINH_MUC]] : []
   };
 
   /* So_tiet ĐỂ TRỐNG ĐƯỢC: máy lấy tiết chuẩn CT GDPT 2018 theo khối của lớp.
@@ -6015,12 +6642,12 @@ function bangMauTronGoi(){
       {ten:'Mon',     rong:20, khoa:{kieu:'chon', nguon:'DM_Mon', batBuoc:true}},
       {ten:'So_tiet', rong:10, khoa:{kieu:'so', tu:1, den:20}}
     ],
-    hang: coThat
+    hang: S.phanCong.length
       ? S.phanCong.map(p=>[maCuaGV(p.gvId), maCuaLop(p.lopId), p.mon, p.soTiet])
-      : [['An_NT','1A','Tiếng Việt',12],
-         ['An_NT','1A','Toán',3],
-         ['Chi_LT','1A','Mỹ thuật',''],
-         ['Chi_LT','1B','Mỹ thuật','']]
+      : trang ? [['An_NT','1A','Tiếng Việt',12],
+                 ['An_NT','1A','Toán',3],
+                 ['Chi_LT','1A','Mỹ thuật',''],
+                 ['Chi_LT','1B','Mỹ thuật','']] : []
   };
 
   const tPhong = {
@@ -6042,7 +6669,7 @@ function bangMauTronGoi(){
        ấy hai cái tên kia có thật ở trang 2 và trang 5. */
     hang: (S.phong||[]).length
       ? S.phong.map(p=>[p.ten, p.mon||'', dtId(p.dtId)?.ten||''])
-      : coThat ? [] : [['Phòng máy 1','Tin học','Điểm trường chính']]
+      : trang ? [['Phòng máy 1','Tin học','Điểm trường chính']] : []
   };
 
   /* Đây là `gv_nghi` — buổi LẶP LẠI hằng tuần, dữ liệu nguồn để XẾP lịch.
@@ -6061,20 +6688,10 @@ function bangMauTronGoi(){
     hang: Object.keys(S.gvNghi||{}).length
       ? Object.entries(S.gvNghi).flatMap(([id,ds])=>
           ds.map(k=>[maCuaGV(id), +k.split('-')[0], k.split('-')[1]]))
-      : coThat ? [] : [['Binh_TV',5,'C']]
+      : trang ? [['Binh_TV',5,'C']] : []
   };
 
   return {trang:[tTruong,tDiem,tKhung,tLop,tGV,tPC,tPhong,tBan], danhMuc, coThat};
-}
-
-/* Bảng kiểm ở trang 0_BAT_DAU — dựng từ CHÍNH bộ khai trên, nên thêm một
-   trang tính là dòng hướng dẫn tự có, không phải nhớ sửa hai chỗ. */
-function bangKiemMau(m){
-  return [
-    ['Trang tính','Bắt buộc','Cột phải điền','Ghi chú'],
-    ...m.trang.map(t=>[t.ten, t.batBuoc?'Có':'Tuỳ chọn',
-      t.cot.filter(c=>c.khoa?.batBuoc).map(c=>c.ten).join(' · ') || '—', t.nhac])
-  ];
 }
 
 /*#endregion XUAT*/
@@ -6231,12 +6848,22 @@ function capNhatDem(){
     : `${vc.soNghi} giáo viên báo nghỉ chưa xử lý · ${vc.soCanhBao} cảnh báo thời khóa biểu`;
   /* Kính lúp tìm chung: việc của người quản lý; giáo viên có 5 mục là đủ,
      còn chưa vào trường thì không có gì để tìm. */
-  $('#btTim').style.display = (canDangNhap()||q0.laGV) ? 'none' : '';
   /* Chưa đăng nhập thì không hé lộ tên trường hay bất kỳ số liệu nào */
   const chuaVao=canDangNhap();
-  $('#tenTruong').textContent = chuaVao?'THỜI KHÓA BIỂU':S.tenTruong.toUpperCase();
+  /* ⚠️ Trường CHỜ DUYỆT chưa tải được dữ liệu của mình nên `S` đang giữ bộ
+     mẫu — thanh đầu trang vì thế bày tên một trường KHÁC ngay phía trên tấm
+     thẻ ghi tên trường thật trong đơn. Chủ dự án gửi ảnh chụp đúng chỗ ấy.
+     Lúc này lấy tên từ chính hồ sơ người đăng ký, và không bày số liệu nào
+     của bộ mẫu: chuông đếm cảnh báo của trường mẫu là con số vô nghĩa. */
+  const choXet = !chuaVao && !truongDungDuoc();
+  $('#btTim').style.display = (chuaVao||choXet||q0.laGV) ? 'none' : '';
+  $('#tenTruong').textContent = chuaVao ? 'THỜI KHÓA BIỂU'
+    : choXet ? (KHO.nguoiDung?.tenTruong||'ĐƠN ĐĂNG KÝ TRƯỜNG').toUpperCase()
+    : S.tenTruong.toUpperCase();
   $('#diaChi').textContent = chuaVao ? 'Đăng nhập để xem thời khóa biểu'
-    : [S.xa?'Xã '+S.xa:'', S.tinh?'Tỉnh '+S.tinh:''].filter(Boolean).join(' · ');
+    : choXet ? (truongBiTuChoi() ? 'Đơn đăng ký chưa được chấp nhận'
+                                 : 'Đơn đăng ký đang chờ duyệt')
+    : [diaBan('Xã',S.xa), diaBan('Tỉnh',S.tinh)].filter(Boolean).join(' · ');
   /* Giáo viên chỉ thấy vài mục; chưa đăng nhập thì không mục nào.
      Nhóm nào không còn mục nào thì dungMenu() giấu luôn cả nhóm. */
   $$('.mi').forEach(m=>{ m.style.display = thayDuocMuc(m.dataset.t)?'':'none'; });
@@ -6252,7 +6879,7 @@ function capNhatDem(){
   /* Chuông nay báo việc cần xử lý, nên giáo viên CŨNG cần — họ phải biết
      mình vừa được phân dạy thay. Trước đây chuông chỉ có cảnh báo xếp lịch
      nên mới giấu đi. */
-  $('#btChuong').style.display = chuaVao?'none':'';
+  $('#btChuong').style.display = (chuaVao||choXet)?'none':'';
   /* Chưa đăng nhập thì không mục nào hiện — giấu luôn cả khung chứa, không thì
      trên điện thoại còn trơ một dải navy trống ở ngay màn hình đầu tiên. */
   const coMuc = $$('.mi').some(m=>m.style.display!=='none');
@@ -6263,6 +6890,15 @@ function capNhatDem(){
   if($('#btMenu')) $('#btMenu').style.display = coMuc ? '' : 'none';
   if(!coMuc) dongMenu();
   dungMenu();          /* bung nhóm chứa trang đang mở, gắn huy hiệu nhóm */
+}
+
+/* Ghép "Xã" · "Tỉnh" vào tên địa bàn mà KHÔNG lặp chữ. Trường tự khai nên
+   ô Xã hay được gõ sẵn cả chữ "Xã Quảng Châu"; dán thêm tiền tố là thanh đầu
+   trang đọc ra "Xã Xã Quảng Châu". */
+function diaBan(dau, ten){
+  const t=String(ten||'').trim();
+  if(!t) return '';
+  return t.toLowerCase().startsWith(dau.toLowerCase()+' ') ? t : dau+' '+t;
 }
 
 /* ---------- Thanh đầu trang dùng chung ---------- */
@@ -7073,7 +7709,7 @@ function mXep(){
     <div class="the-d"><h2>Lưu và phiên bản</h2><span class="meta">${esc(TEN_NGUON[KHO.nguon])}</span></div>
     ${''/* chỉ ghi lên máy chủ được khi lưới dựng trên chính dữ liệu của máy chủ */}
     <div class="the-t">
-      <div class="hang">Nơi lưu <b class="${luuDuoc?'':'cam'}">${luuDuoc?esc(KHO.nguoiDung.tenTruong||'Máy chủ Supabase')
+      <div class="hang">Nơi lưu <b class="${luuDuoc?'':'cam'}">${luuDuoc?esc(KHO.nguoiDung.tenTruong||'Máy chủ hệ thống')
         :coMayChu()?'Chưa lưu được — đang dùng dữ liệu mẫu':'Chỉ nằm trên máy này'}</b></div>
       <div class="hang">Người đăng nhập <b>${coMayChu()?esc(KHO.nguoiDung.hoTen):'Chưa đăng nhập'}</b></div>
       <div class="hang">Phiên bản trên máy chủ <b>${KHO.version||'—'}</b></div>
@@ -8834,199 +9470,87 @@ function apKhoaXL(ws, cot, dongDau, soDong, danhMuc){
   });
 }
 
-/* ---------- Tải mẫu TRỌN GÓI (23/8/2026) ----------
-   Một tệp, mười trang tính, đủ bảy thứ cần để xếp. Nội dung dựng ở
-   `bangMauTronGoi()` trong vùng XUAT — hàm này chỉ lo phần Excel. */
-async function taiMauTronGoi(){
-  if(!await sanSangExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi bấm lại.',true);
-  const m=bangMauTronGoi();
-  const wb=new ExcelJS.Workbook();
-  wb.creator='Phần mềm Thời khóa biểu';
-  wb.created=new Date();
+/* ---------- Tải mẫu MỘT MỤC (28/8/2026) ----------
+   Nội dung khai ở `MUC_NHAP` (vùng DULIEU); hàm này chỉ lo phần Excel.
+   Một trang dữ liệu + một trang DANH_MUC, không hơn — cả tệp mở ra là thấy
+   ngay phải điền gì, khác hẳn mười tab đánh số của mẫu trọn gói cũ. */
 
-  /* --- 0_BAT_DAU: đọc lúc đang điền, nên nằm ngay tab đầu --- */
-  const b=trangXL(wb,'0_BAT_DAU','ngang');
-  b.columns=[{width:20},{width:12},{width:30},{width:74}];
-  let rb=tieuDeXL(b,1,4,'MẪU NHẬP DỮ LIỆU THỜI KHÓA BIỂU',
-    'Điền các trang tính theo thứ tự 1 → 8, rồi vào app bấm Nhập dữ liệu Excel · Chọn tệp.');
-  const kiem=bangKiemMau(m);
-  rb=dauCotXL(b,rb,kiem[0].map((t,i)=>({ten:t, rong:[20,12,30,74][i]})));
-  rb=thanBangXL(b,rb,kiem.slice(1),['left','center','left','left']);
-  b.getColumn(4).alignment={wrapText:true, vertical:'middle'};
-  rb+=1;
-  [['ĐIỀU QUAN TRỌNG NHẤT',''],
-   ['Ma_GV và Ma_lop là thứ nối các trang tính với nhau.',''],
-   ['Đó là lý do phần mềm không bao giờ nhầm hai cô cùng tên,',''],
-   ['và ba điểm trường cùng có lớp tên "1A" vẫn phân biệt được.',''],
-   ['Đặt mã rồi thì đừng đổi.',''],
-   ['',''],
-   ['Ô có dấu * ở tên cột là ô BẮT BUỘC điền.',''],
-   ['Ô xổ xuống lấy giá trị từ trang DANH_MUC — đừng xoá trang đó.',''],
-   ['Cột So_tiet bỏ trống được: máy lấy tiết chuẩn CT GDPT 2018 theo khối.','']
-  ].forEach(([t],i)=>{
-    const o=b.getCell(rb+i,1); o.value=t;
-    o.font={name:'Times New Roman',size:11,bold:i===0};
-  });
-  rb+=11;
-  b.getCell(rb,1).value='SỐ TIẾT CHUẨN MỖI TUẦN — CT GDPT 2018';
-  b.getCell(rb,1).font={name:'Times New Roman',size:11,bold:true};
-  const chuan=[['Môn','Khối 1','Khối 2','Khối 3','Khối 4','Khối 5'],
-    ...Object.keys(TIET_CHUAN).map(x=>[x,...[1,2,3,4,5].map(k=>TIET_CHUAN[x][k]||'')]),
-    ['Tổng',...[1,2,3,4,5].map(k=>CHUAN_KHOI[k])]];
-  let rc=dauCotXL(b,rb+1,chuan[0].map(t=>({ten:t,rong:14})));
-  thanBangXL(b,rc,chuan.slice(1),['left','center','center','center','center','center']);
-
-  /* --- Tám trang dữ liệu --- */
-  m.trang.forEach(t=>{
-    const ws=trangXL(wb,t.ten, t.cot.length>4?'ngang':'doc');
-    ws.columns=t.cot.map(c=>({width:c.rong||14}));
-    let r=tieuDeXL(ws,1,t.cot.length,t.tieu,t.nhac);
-    const dCot=r;
-    r=dauCotXL(ws,r,t.cot);
-    const dongDau=r;
-    r=thanBangXL(ws,r,t.hang,t.cot.map(c=>c.khoa?.kieu==='so'?'center':'left'));
-    apKhoaXL(ws,t.cot,dongDau,t.hang.length+(t.duThua||0),m.danhMuc);
-    ws.views=[{state:'frozen',ySplit:dCot}];
-    ws.autoFilter={from:{row:dCot,column:1}, to:{row:Math.max(dCot,r-1),column:t.cot.length}};
-  });
-
-  /* --- DANH_MUC: nguồn cho mọi ô xổ xuống, mỗi danh mục MỘT VÙNG ĐẶT TÊN.
-     Dùng tên vùng (defined name) chứ không viết thẳng `=DANH_MUC!$A$2:$A$99`
-     vào từng ô: thêm một điểm trường là chỉ sửa một chỗ, và công thức trong
-     ô đọc ra nghĩa (`=DM_Ma_lop`) thay vì một dải toạ độ. */
-  const dm=wb.addWorksheet('DANH_MUC');
-  Object.entries(m.danhMuc).forEach(([ten,ds],i)=>{
-    const c=i+1;
-    dm.getColumn(c).width=Math.max(14, ten.length+3);
-    const o=dm.getCell(1,c);
-    o.value=ten;
-    o.font={name:'Times New Roman',size:11,bold:true,color:{argb:'FFFFFFFF'}};
-    o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.xanh}};
-    o.border=VIEN_MANH;
-    ds.forEach((v,j)=>{
-      const x=dm.getCell(2+j,c);
-      x.value=v; x.font={name:'Times New Roman',size:11}; x.border=VIEN_MANH;
-    });
-    const cot=dm.getColumn(c).letter;
-    wb.definedNames.add(`DANH_MUC!$${cot}$2:$${cot}$${1+Math.max(1,ds.length)}`, ten);
-  });
-  dm.getCell(1, Object.keys(m.danhMuc).length+2).value =
-    'Trang này là nguồn cho các ô xổ xuống. Đừng xoá, đừng đổi tên cột.';
-  /* Khoá đúng trang này thôi — xoá nhầm nó là dropdown chết cả tệp */
-  dm.protect('', {selectLockedCells:true, selectUnlockedCells:true});
-  dm.state='visible';
-
-  const ten=`Mau-TKB-tron-goi-${khongDau(S.tenTruong)}.xlsx`;
-  await ghiTepXL(wb,ten);
-  bao(m.coThat
-    ? `Đã tải ${ten} — mười trang tính, điền sẵn dữ liệu đang có của trường.`
-    : `Đã tải ${ten} — mười trang tính kèm dòng ví dụ và ô xổ xuống.`);
+/* Chỉ dựng những danh mục trang này THẬT SỰ dùng. Trang Điểm trường không
+   cần danh sách mã giáo viên; kèm vào chỉ tổ làm tệp nặng và rối. */
+function danhMucCuaMuc(ma){
+  const m=MUC_NHAP[ma];
+  const can=new Set(m.cot.map(c=>c.khoa?.nguon).filter(Boolean));
+  const kho={
+    DM_Co_khong:   CO_KHONG,
+    DM_Thu:        THU_XL,
+    DM_Buoi:       BUOI_XL,
+    DM_Diem_truong:S.diemTruong.map(d=>d.ten),
+    DM_Ma_lop:     S.lop.map(l=>l.maLop||l.id),
+    DM_Ma_GV:      S.giaoVien.map(g=>g.maGV||g.id),
+    DM_Mon:        (S.monHoc||dsMonMacDinh()).map(x=>x.ten)
+  };
+  const ra={};
+  can.forEach(k=>{ ra[k]=kho[k]||[]; });
+  return ra;
 }
 
-/* ---------- Tải mẫu Excel về máy để điền ---------- */
-async function taiMauExcel(){
-  if(!await sanSangExcelJS()) return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi bấm lại.',true);
-  const m=bangMauNhap();
+async function taiMauMuc(ma){
+  const m=MUC_NHAP[ma];
+  if(!m) return;
+  if(!await sanSangExcelJS())
+    return bao('Chưa tải được thư viện Excel. Kiểm tra mạng rồi bấm lại.',true);
+
+  const that=m.hang();
+  /* Dòng ví dụ CHỈ khi bảng này đang trống VÀ trường chưa khai gì — ở trường
+     đã khai dở, dòng ví dụ là dòng trỏ vào lớp và giáo viên không tồn tại.
+     Cùng luật đã đặt cho mẫu trọn gói ngày 28/8. */
+  const hang=that.length ? that : (truongTrang() ? (m.viDu||[]) : []);
+  const danhMuc=danhMucCuaMuc(ma);
+
   const wb=new ExcelJS.Workbook();
   wb.creator='Phần mềm Thời khóa biểu';
   wb.created=new Date();
 
-  /* --- Trang 1: hướng dẫn --- */
-  /* Trang hướng dẫn để NGANG: cột Ghi chú là câu dài, khổ dọc thì chữ bị
-     nén lại thành một cột hẹp và tràn ra ngoài ô — anh Chung bắt được lỗi này. */
-  const h=trangXL(wb,'HUONG_DAN','ngang');
-  h.columns=[{width:24},{width:30},{width:24},{width:52}];
-  let d=tieuDeXL(h,1,4,'MẪU NHẬP DỮ LIỆU THỜI KHÓA BIỂU',
-    esc('')+S.tenTruong+' · Năm học '+(S.namHoc||''));
-  d++;
-  const nhan=(dong,chu,mau)=>{
-    h.mergeCells(dong,1,dong,4);
-    const o=h.getCell(dong,1);
-    o.value=chu;
-    o.font={name:'Times New Roman',size:12,bold:true,color:{argb:MAU_XL.navy}};
-    o.alignment={horizontal:'left',vertical:'middle'};
-    o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.camNhat}};
-    o.border=VIEN_MANH; h.getRow(dong).height=24;
-    return dong+1;
-  };
-  d=nhan(d,'  1. BA TRANG TÍNH BẮT BUỘC');
-  d=dauCotXL(h,d,[{ten:'Trang tính',rong:24},{ten:'Cột bắt buộc',rong:30},
-                  {ten:'Cột có thể bỏ trống',rong:24},{ten:'Ghi chú',rong:52}]);
-  d=thanBangXL(h,d,[
-    ['DANH_SACH_GV','Ma_GV · Ho_ten','Chu_nhiem · Dinh_muc',
-     'Ma_GV phải duy nhất. Chu_nhiem ghi MÃ LỚP. Dinh_muc bỏ trống thì lấy '+DINH_MUC+' tiết.'],
-    ['DANH_SACH_LOP','Ma_lop · Ten_lop · Khoi','Diem_truong',
-     'Ma_lop duy nhất trong cả trường. Ten_lop được phép trùng giữa các điểm trường.'],
-    ['PCGD','Ma_GV · Ma_lop · Mon · So_tiet','',
-     'Mỗi dòng là một môn của một giáo viên ở một lớp.']
-  ]);
-  h.getColumn(4).alignment={wrapText:true,vertical:'middle'};
-  d++;
+  const ws=trangXL(wb, m.trang, m.cot.length>4?'ngang':'doc');
+  ws.columns=m.cot.map(c=>({width:c.rong||14}));
+  let r=tieuDeXL(ws,1,m.cot.length, m.ten.toUpperCase(), m.nhac);
+  const dCot=r;
+  r=dauCotXL(ws,r,m.cot);
+  const dongDau=r;
+  r=thanBangXL(ws,r,hang, m.cot.map(c=>c.khoa?.kieu==='so'?'center':'left'));
+  apKhoaXL(ws,m.cot,dongDau,hang.length+(m.duThua||60),danhMuc);
+  ws.views=[{state:'frozen', ySplit:dCot}];
+  ws.autoFilter={from:{row:dCot,column:1}, to:{row:Math.max(dCot,r-1),column:m.cot.length}};
 
-  d=nhan(d,'  2. ĐIỀU QUAN TRỌNG NHẤT');
-  d=thanBangXL(h,d,[
-    ['Ma_GV và Ma_lop là thứ nối ba trang tính với nhau.','','',''],
-    ['Đó là lý do phần mềm không bao giờ nhầm hai giáo viên trùng tên,','','',''],
-    ['và ba điểm trường cùng có lớp tên "1A" vẫn phân biệt được. Đặt mã rồi thì đừng đổi.','','','']
-  ]);
-  d++;
+  /* Trang DANH_MUC chỉ dựng khi trang dữ liệu có ô xổ xuống nào đó */
+  const ten=Object.keys(danhMuc).filter(k=>danhMuc[k].length);
+  if(ten.length){
+    const dm=wb.addWorksheet('DANH_MUC');
+    ten.forEach((t,i)=>{
+      const c=i+1;
+      dm.getColumn(c).width=Math.max(14, t.length+3);
+      const o=dm.getCell(1,c);
+      o.value=t;
+      o.font={name:'Times New Roman',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+      o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.xanh}};
+      o.border=VIEN_MANH;
+      danhMuc[t].forEach((v,j)=>{
+        const x=dm.getCell(2+j,c);
+        x.value=v; x.font={name:'Times New Roman',size:11}; x.border=VIEN_MANH;
+      });
+      const cot=dm.getColumn(c).letter;
+      wb.definedNames.add(`DANH_MUC!$${cot}$2:$${cot}$${1+Math.max(1,danhMuc[t].length)}`, t);
+    });
+    dm.getCell(1, ten.length+2).value=
+      'Trang này là nguồn cho các ô xổ xuống. Đừng xoá, đừng đổi tên cột.';
+    dm.protect('', {selectLockedCells:true, selectUnlockedCells:true});
+  }
 
-  d=nhan(d,'  3. GỢI Ý ĐẶT MÃ LỚP');
-  d=thanBangXL(h,d,[
-    ['Nhiều điểm trường','thêm tiền tố','DL-1A · DD-1A · DT-1A',''],
-    ['Một điểm trường','lấy luôn tên lớp','1A · 1B · 2A','']
-  ]);
-  d++;
-
-  d=nhan(d,'  4. SỐ TIẾT CHUẨN MỖI TUẦN — CT GDPT 2018');
-  const cotK=[{ten:'Môn học',rong:24},{ten:'Khối 1',rong:10},{ten:'Khối 2',rong:10},
-              {ten:'Khối 3',rong:10},{ten:'Khối 4',rong:10},{ten:'Khối 5',rong:10}];
-  const dK=d;
-  d=dauCotXL(h,d,cotK);
-  d=thanBangXL(h,d, Object.keys(TIET_CHUAN).map(m2=>[m2,...[1,2,3,4,5].map(k=>TIET_CHUAN[m2][k]||'')]),
-               ['left','center','center','center','center','center']);
-  /* Dòng tổng: nền lục nhạt, in đậm — cộng ra đúng 27·27·28·30·30 */
-  const rT=h.getRow(d);
-  ['TỔNG CỘNG',...[1,2,3,4,5].map(k=>CHUAN_KHOI[k])].forEach((v,j)=>{
-    const o=rT.getCell(j+1);
-    o.value=v;
-    o.font={name:'Times New Roman',size:11,bold:true,color:{argb:MAU_XL.navy}};
-    o.alignment={horizontal:j?'center':'left',vertical:'middle'};
-    o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.lucNhat}};
-    o.border=VIEN_MANH;
-  });
-  rT.height=22;
-  /* Bảng tiết chuẩn dài, khoá dòng tên cột lại cho dễ dò */
-  h.views=[{state:'frozen',ySplit:dK}];
-
-  /* --- Ba trang dữ liệu --- */
-  const trangDL=(ten,tieu,cot,hang,canh,huong)=>{
-    const ws=trangXL(wb,ten,huong||'doc');
-    ws.columns=cot.map(c=>({width:c.rong||14}));
-    let r=tieuDeXL(ws,1,cot.length,tieu,
-      'Điền từ dòng ngay dưới tên cột. Không đổi tên cột, không chèn thêm cột.');
-    const dCot=r;
-    r=dauCotXL(ws,r,cot);
-    r=thanBangXL(ws,r,hang,canh);
-    ws.views=[{state:'frozen',ySplit:dCot}];
-    ws.autoFilter={from:{row:dCot,column:1}, to:{row:Math.max(dCot,r-1),column:cot.length}};
-    return ws;
-  };
-  trangDL('DANH_SACH_GV','DANH SÁCH GIÁO VIÊN',
-    [{ten:'Ma_GV',rong:20},{ten:'Ho_ten',rong:30},{ten:'Chu_nhiem',rong:16},{ten:'Dinh_muc',rong:12}],
-    m.gv.slice(1), ['left','left','center','center']);
-  trangDL('DANH_SACH_LOP','DANH SÁCH LỚP HỌC',
-    [{ten:'Ma_lop',rong:18},{ten:'Ten_lop',rong:14},{ten:'Khoi',rong:10},{ten:'Diem_truong',rong:30}],
-    m.lop.slice(1), ['left','center','center','left']);
-  trangDL('PCGD','BẢNG PHÂN CÔNG GIẢNG DẠY',
-    [{ten:'Ma_GV',rong:20},{ten:'Ma_lop',rong:18},{ten:'Mon',rong:18},{ten:'So_tiet',rong:12}],
-    m.pc.slice(1), ['left','left','left','center']);
-
-  const ten=`Mau-nhap-TKB-${khongDau(S.tenTruong)}.xlsx`;
-  await ghiTepXL(wb,ten);
-  bao(m.coThat
-    ? `Đã tải ${ten} — mẫu điền sẵn dữ liệu đang có của trường.`
-    : `Đã tải ${ten} — mẫu trắng kèm vài dòng ví dụ.`);
+  const tep=`Mau-${khongDau(m.ten)}-${khongDau(S.tenTruong)}.xlsx`;
+  await ghiTepXL(wb,tep);
+  bao(hang.length
+    ? `Đã tải ${tep} — điền sẵn ${hang.length} dòng đang có. Sửa hoặc gõ thêm rồi chọn lại tệp.`
+    : `Đã tải ${tep} — bảng trống kèm ô xổ xuống chống gõ sai.`);
 }
 
 /* Mẫu MA TRẬN một trang — tên môn xoay dọc cho cột hẹp, dấu x tô đậm,
@@ -9102,8 +9626,9 @@ async function taiMauMaTran(){
 
   const ten=`Mau-ma-tran-TKB-${khongDau(S.tenTruong)}.xlsx`;
   await ghiTepXL(wb,ten);
-  bao(m.coThat
-    ? `Đã tải ${ten} — điền sẵn phân công đang có, sửa trên Excel rồi nhập ngược lại được.`
+  const tt=tomTatMau();
+  bao(tt
+    ? `Đã tải ${ten} — điền sẵn ${tt} đang có, sửa trên Excel rồi nhập ngược lại được.`
     : `Đã tải ${ten} — mẫu trắng kèm bốn dòng ví dụ đủ các kiểu ghi.`);
 }
 
@@ -9120,7 +9645,7 @@ async function xuatExcel(){
   /* Lưới thời khóa biểu: ba cột đầu là giờ, còn lại mỗi cột một lớp hoặc một
      giáo viên. Tô màu ô có tiết để mắt bắt được ngay cột nào còn trống. */
   /* Ô lưới xuống HAI DÒNG: môn trên, người/lớp dưới (24/8/2026).
-     Bản cũ ghi `HDTN — Nguyễn Thị Trinh` một dòng rồi bật wrapText, mà
+     Bản cũ ghi `HDTN — Lê Thị Nguyệt` một dòng rồi bật wrapText, mà
      `thanBangXL()` lại khoá cứng `height=19` — chữ xuống hai dòng trong một ô
      cao một dòng nên TRÀN ĐÈ lên dòng dưới, cả bảng thành một mớ chữ chồng
      nhau. Chủ dự án gửi ảnh chụp mới lộ ra.
@@ -10153,9 +10678,14 @@ function mHuongDan(){
 function mChoDuyet(){
   const n = KHO.nguoiDung || {};
   const bi = truongBiTuChoi();
+  /* ⚠️ Thẻ PHẢI có `.the-t` bọc bên trong. `.the` cố ý không mang padding
+     nào — mọi màn hình khác đều bọc nội dung trong `.the-t`. Đặt thẳng
+     `.hang` làm con của `.the` thì giá trị căn phải dính sát vạch viền và
+     trên điện thoại thì tràn hẳn ra ngoài: chủ dự án gửi ảnh chụp đúng chỗ
+     "chungtrt@nghean.edu.vn" bị cắt cụt. */
   return dauTrang(bi ? 'Đơn đăng ký chưa được chấp nhận' : 'Đơn đăng ký đang chờ duyệt',
     bi ? '' : 'Người quản trị hệ thống sẽ xem và cấp mã trường.', false) + `
-  <div class="the" style="max-width:640px">
+  <div class="the" style="max-width:640px"><div class="the-t">
     <div class="canhbao ${bi?'do':''}"><div class="cb-ic">${bi?'!':'i'}</div><div class="cb-t">
       <b>${bi ? 'Đơn của trường chưa được chấp nhận'
              : 'Đã nhận đơn — chờ duyệt'}</b>
@@ -10166,7 +10696,7 @@ function mChoDuyet(){
     </div></div>
     ${n.ghiChuDuyet?`<div class="gy" style="margin-top:12px"><b>Ghi chú của người duyệt:</b>
        ${esc(n.ghiChuDuyet)}</div>`:''}
-    <div class="hang" style="margin-top:16px">Trường <b>${esc(n.tenTruong||'—')}</b></div>
+    <div class="hang" style="margin-top:8px">Trường <b>${esc(n.tenTruong||'—')}</b></div>
     <div class="hang">Người đăng ký <b>${esc(n.hoTen||'—')}</b></div>
     <div class="hang">Tài khoản <b>${esc(n.email||'—')}</b></div>
     <div class="hang">Trạng thái
@@ -10175,7 +10705,7 @@ function mChoDuyet(){
       <button class="b b-ch" id="btLamMoiDuyet">Kiểm tra lại</button>
       <button class="b b-vien" data-di="huongdan">Đọc hướng dẫn trong lúc chờ</button>
     </div>
-  </div>`;
+  </div></div>`;
 }
 
 const TEN_TT_TRUONG = {cho_duyet:'Chờ duyệt', dang_dung:'Đang dùng', tu_choi:'Đã từ chối'};
@@ -10285,7 +10815,13 @@ const MAU_MON = [
    Chỉ bày nút nhập Excel ở những màn hình mà tệp Excel thực sự chứa dữ liệu:
    lớp, giáo viên, phân công, điểm trường. Bày ở màn hình Môn học hay Phòng học
    là hứa hão — tệp không có hai thứ đó. */
-function thanhKhaiBao(nut, coNhap=true){
+/* `coNhap` nay SUY RA từ màn hình đang mở: có khai trong MUC_NHAP thì nhập
+   được. Trước đây mỗi nơi gọi tự truyền true/false, nên thêm một mục nhập mới
+   là phải nhớ đi sửa từng màn hình — sót một chỗ thì mẫu có mà không ai vào
+   được. Truyền tay vẫn thắng, để Thông tin trường (một dòng, không có tệp
+   Excel nào cả) giấu nút đi. */
+function thanhKhaiBao(nut, coNhap){
+  if(coNhap===undefined) coNhap = !!MUC_NHAP[S.trangHienTai];
   /* Còn thay đổi chưa ghi lên máy chủ thì nói thẳng ra ngay cạnh nút Lưu.
      Người dùng đã khai xong lớp cho hai điểm trường rồi mất sạch vì không
      biết mình chưa lưu — im lặng ở đây là im lặng đắt nhất trong phần mềm. */
@@ -10335,7 +10871,7 @@ function mThongTin(){
         <div class="hang">Dòng phân công <b class="${S.phanCong.length?'xanh':'cam'}">${S.phanCong.length}</b></div>
         <div class="hang">Tổng số tiết mỗi tuần <b>${td.can}</b></div>
         <div class="hang">Nơi lưu dữ liệu
-          <b class="${coMayChu()?'xanh':'cam'}">${coMayChu()?'Máy chủ Supabase':'Chỉ trên máy này'}</b></div>
+          <b class="${coMayChu()?'xanh':'cam'}">${coMayChu()?'Máy chủ hệ thống':'Chỉ trên máy này'}</b></div>
         <div class="hang">Người đang dùng <b>${esc(KHO.nguoiDung?.hoTen||'Chưa đăng nhập')}</b></div>
         <div class="gy" style="margin-top:13px">Trường đã có sẵn bảng phân công trong Excel thì bấm
           <b>Nhập từ Excel</b> ngay trên các màn hình khai báo — nhanh hơn gõ tay nhiều.
@@ -10405,7 +10941,7 @@ function mMonHoc(){
   dieuHuongBuoc('monhoc')+
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btThemMon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Thêm môn</button>
-    <button class="b b-vien" id="btMonMacDinh">Khôi phục danh mục chuẩn</button>`, false)
+    <button class="b b-vien" id="btMonMacDinh">Khôi phục danh mục chuẩn</button>`)
    :nhanChiXem('sửa danh mục môn học')+'<div style="margin-bottom:14px"></div>')+`
   ${laMonNgoai.length?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
       <b>${laMonNgoai.length} môn có trong bảng phân công nhưng chưa có trong danh mục</b>
@@ -10454,7 +10990,7 @@ function mPhongHoc(){
   dieuHuongBuoc('phonghoc')+
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btThemPhong">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Thêm phòng</button>
-    ${!(S.phong||[]).length?'<button class="b b-vien" id="btPhongTuDT">Tạo từ điểm trường có phòng Tin</button>':''}`, false)
+    ${!(S.phong||[]).length?'<button class="b b-vien" id="btPhongTuDT">Tạo từ điểm trường có phòng Tin</button>':''}`)
    :nhanChiXem('khai báo phòng chức năng')+'<div style="margin-bottom:14px"></div>')+`
   ${!(S.phong||[]).length?`<div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
       <b>Chưa khai phòng nào — máy đang dùng ô tích “Có phòng Tin học” ở mục Điểm trường</b>
@@ -10529,32 +11065,68 @@ function mGiaoVien(){
        viên là việc của mục Giáo viên. Nó khác `oLoc` ở chỗ không lọc bảng mà
        trả kết quả bấm được, nhảy thẳng tới lịch dạy của người ấy. */''}
   ${oLoc('bGV',ds.length,'giáo viên','Tìm giáo viên trong bảng…')}
-  <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr><th>Họ và tên</th>
-    <th class="phai">Định mức</th><th>Chủ nhiệm</th><th>Điểm trường</th>
-    <th class="phai">Lớp</th><th class="phai">Tiết/tuần</th><th class="phai">Buổi cần</th><th>Tình trạng</th>
+  <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr>
+    <th class="phai" style="width:38px">TT</th><th>Họ và tên</th>
+    <th>Gmail</th><th>Chủ nhiệm</th><th>Dạy</th><th>Điểm trường</th>
+    <th class="phai">Tiết / định mức</th>
+    <th class="phai">Buổi cần</th><th>Tình trạng</th><th>Ghi chú</th>
     ${duocSuaNguon()?'<th></th>':''}</tr></thead><tbody>
-  ${ds.map(x=>{
+  ${ds.map((x,i)=>{
     const sua=duocSuaNguon();
     const tinh=x.thieu?'Thiếu buổi':x.tong>x.g.dinhMuc?'Vượt định mức':'Bình thường';
+    /* Chỉ gắn nhãn khi có chuyện. "Bình thường" dán lên 32/35 dòng là ba mươi
+       hai lần nói không có gì xảy ra — đúng thứ làm mắt bỏ qua cả ba dòng cần
+       nhìn. Cùng luật "số 0 không tô đỏ" của dải chỉ số Bảng điều hành. */
     const tag=x.thieu?'<span class="tag do">Thiếu buổi</span>'
-      :x.tong>x.g.dinhMuc?'<span class="tag canh">Vượt định mức</span>':'<span class="tag ok">Bình thường</span>';
-    return `<tr data-loctu="${tuLoc(x.g.hoTen,x.g.maGV,tenCN(x.g),
+      :x.tong>x.g.dinhMuc?'<span class="tag canh">Vượt định mức</span>':'';
+    /* Cột Dạy CHỈ ĐỌC — máy ghi từ chính bảng phân công. Bấm vào là sang màn
+       Phân công đã lọc sẵn người này, chứ không sửa tại chỗ: hai nơi cùng sửa
+       một thứ thì sớm muộn lệch hành vi. */
+    const day=dayGiCua(x.g.id);
+    const tenLop=ds2=>ds2.map(id=>lopId(id)?.ten||'').filter(Boolean).sort();
+    const dayHTML=day.length
+      ? day.slice(0,3).map(d=>{
+          const tl=tenLop(d.lop);
+          const nhan=tl.length>3?`${tl.slice(0,3).join(', ')} +${tl.length-3}`:tl.join(', ');
+          return `<div class="gv-day"><b>${esc(nhan)}</b> · ${esc(d.mon)}</div>`;
+        }).join('')+(day.length>3?`<div class="gv-day gv-day-them">…và ${day.length-3} nhóm lớp nữa</div>`:'')
+      : '<span style="color:var(--cam)">chưa phân công</span>';
+    return `<tr data-loctu="${tuLoc(x.g.hoTen,x.g.maGV,x.g.email,tenCN(x.g),
+        day.map(d=>d.mon).join(' '),
         Object.keys(x.tDT).map(d=>dtId(d)?.ten).join(' '),tinh)}">
-      <td>${sua?`<input class="ip" data-gvten="${x.g.id}" value="${esc(x.g.hoTen)}" style="width:190px">`
-               :`<b>${esc(x.g.hoTen)}</b>`}</td>
-      <td class="phai">${sua?`<input class="ip" type="number" min="1" max="40" data-gvdm="${x.g.id}"
-          value="${x.g.dinhMuc||DINH_MUC}" style="width:64px;text-align:right">`:(x.g.dinhMuc||DINH_MUC)}</td>
+      <td class="phai" style="color:var(--chu-mo);font-size:12px">${i+1}</td>
+      <td>${sua?`<input class="ip" data-gvten="${x.g.id}" value="${esc(x.g.hoTen)}" style="width:158px">`
+               :`<b>${esc(x.g.hoTen)}</b>`}
+        <div style="color:var(--chu-mo);font-size:11px">${esc(x.g.maGV||'')}</div></td>
+      <td>${sua?`<input class="ip" type="email" data-gvmail="${x.g.id}" value="${esc(x.g.email||'')}"
+             placeholder="chưa khai" style="width:168px" spellcheck="false">`
+               :esc(x.g.email||'—')}
+        ${x.g.nguoiDungId?'<span class="tag ok" style="margin-left:4px">đã vào</span>':''}</td>
       <td>${esc(tenCN(x.g)||'—')}</td>
+      <td class="gv-day-o">${sua&&day.length
+          ? `<button class="gv-day-nut" data-gvpc="${x.g.id}" title="Mở bảng phân công của ${esc(x.g.hoTen)}">${dayHTML}</button>`
+          : dayHTML}</td>
       <td>${Object.keys(x.tDT).map(d=>`<span class="tag dt d${iDT(d)}">${esc(tenDT(d))}</span>`).join(' ')}</td>
-      <td class="phai">${x.soLop}</td>
-      <td class="phai" style="${x.tong>x.g.dinhMuc?'color:var(--do);font-weight:700':''}">${x.tong}</td>
+      ${''/* Số tiết được phân công và định mức riêng của người ấy đi CẶP với
+             nhau — đọc "24/23" là thấy ngay vượt, mà hai cột rời thì mắt phải
+             tự ghép. Cùng khuôn cột "Buổi cần" bên cạnh. */}
+      <td class="phai" style="white-space:nowrap">
+        <b style="${x.tong>x.g.dinhMuc?'color:var(--do)':''}">${x.tong}</b> /
+        ${sua?`<input class="ip" type="number" min="1" max="40" data-gvdm="${x.g.id}"
+          value="${x.g.dinhMuc||DINH_MUC}" style="width:56px;text-align:right">`:(x.g.dinhMuc||DINH_MUC)}</td>
       <td class="phai">${x.buoiCan}/${x.buoiCo}</td><td>${tag}</td>
+      <td>${sua?`<input class="ip" data-gvghi="${x.g.id}" value="${esc(x.g.ghiChu||'')}"
+             placeholder="—" style="width:124px">`:esc(x.g.ghiChu||'—')}</td>
       ${sua?`<td class="phai"><button class="x-hang" data-xoagv="${x.g.id}" title="Xoá giáo viên">&times;</button></td>`:''}
     </tr>`;}).join('')}
   </tbody></table></div>
   ${locRong('bGV')}
   <div class="gy" style="margin-top:11px">Chủ nhiệm đặt ở mục <b>Lớp học</b> — mỗi lớp chọn một người,
-    máy tự gỡ ràng buộc cũ nên không ai chủ nhiệm hai lớp.</div>`;
+    máy tự gỡ ràng buộc cũ nên không ai chủ nhiệm hai lớp. Cột <b>Dạy</b> máy tự ghi từ
+    bảng phân công, bấm vào là mở đúng phần của người ấy.
+    ${duocSuaNguon()?`Khai <b>Gmail</b> rồi thì thầy cô bấm <b>Đăng nhập bằng Google</b> là vào thẳng —
+      không cần mã mời. ${(()=>{const c=S.giaoVien.filter(g=>!g.email).length;
+        return c?`Còn <b>${c}</b> người chưa có Gmail.`:'Cả trường đã đủ Gmail.';})()}`:''}</div>`;
 }
 function mPhanCong(){
   const ds=lopTrongPV();
@@ -10620,7 +11192,8 @@ function mKhungGio(){
   return dauTrang('Khung giờ học',
     sua?'Mỗi khối một số tiết riêng — khối nhỏ tan sớm hơn. Bỏ chọn buổi toàn trường nghỉ, điền 0 nếu riêng khối đó nghỉ.'
        :'Số tiết mỗi buổi của từng khối.',false)+dieuHuongBuoc('khunggio')+
-  (sua?'':nhanChiXem('đổi khung giờ')+'<div style="margin-bottom:14px"></div>')+`
+  (sua?thanhKhaiBao('')
+      :nhanChiXem('đổi khung giờ')+'<div style="margin-bottom:14px"></div>')+`
   <div class="bang"><table class="dl"><thead><tr>
     <th style="width:120px">Buổi học</th>
     ${[1,2,3,4,5].map(x=>`<th class="giua" style="width:78px">Khối ${x}</th>`).join('')}
@@ -10676,7 +11249,8 @@ function mBuoiBan(){
     sua?'Đánh dấu những buổi thầy cô không thể lên lớp. Máy sẽ không xếp tiết nào vào đó. '
        +'Chào cờ và sinh hoạt lớp được ghim tự động — không phải khai ở đây.'
        :'Những buổi thầy cô đã đăng ký không lên lớp.',true)+dieuHuongBuoc('buoiban')+
-  (sua?'':nhanChiXem('đăng ký buổi bận')+'<div style="margin-bottom:14px"></div>')+`
+  (sua?thanhKhaiBao('')
+      :nhanChiXem('đăng ký buổi bận')+'<div style="margin-bottom:14px"></div>')+`
   <div class="tkb-thanh">
     <span class="tag ${tongBan?'canh':'ok'}">${tongBan} buổi bận đã đăng ký</span>
     <span class="tag">${bb.length} buổi học mỗi tuần</span>
@@ -11048,7 +11622,12 @@ function noiSuKien(){
     S.diemTruong=S.diemTruong.filter(d=>d.id!==x.dataset.xoadt);
     if(S.phamVi===x.dataset.xoadt)S.phamVi='';
     bao('Đã xoá điểm trường'); ve();});
-  if($('#bPC')){ bangPC();
+  if($('#bPC')){
+    /* Sang đây từ cột "Dạy" của bảng Giáo viên thì lọc sẵn đúng người ấy.
+       Dùng MỘT LẦN rồi xoá: để lại thì lần sau mở màn Phân công vẫn bị lọc,
+       mà người dùng không nhớ vì sao. */
+    if(S.pcGV){ const o=$('#fGV'); if(o) o.value=S.pcGV; S.pcGV=null; }
+    bangPC();
     $('#fGV').onchange=bangPC; $('#fLop').onchange=bangPC;
     $('#fTim').oninput=bangPC;
     $('#fTimXoa').onclick=()=>{ $('#fTim').value=''; bangPC(); $('#fTim').focus(); };
@@ -11208,6 +11787,24 @@ function noiSuKien(){
     g.hoTen=t; ve(); });
   $$('[data-gvdm]').forEach(x=>x.onchange=e=>{
     const g=gvId(x.dataset.gvdm); if(g){ g.dinhMuc=Math.max(1,Math.min(40,+e.target.value||DINH_MUC)); ve(); } });
+  /* Gmail: soát tại chỗ và TRẢ Ô VỀ giá trị cũ khi sai, đừng chỉ báo rồi để
+     nguyên chữ hỏng trên màn hình — người dùng tưởng đã lưu. Hai phép soát
+     đúng bằng phép soát của đường nhập Excel, không có lối vào nào lỏng hơn. */
+  $$('[data-gvmail]').forEach(x=>x.onchange=e=>{
+    const g=gvId(x.dataset.gvmail); if(!g) return;
+    const cu=g.email||'';
+    const t=e.target.value.trim().toLowerCase();
+    if(t && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)){
+      e.target.value=cu; return bao(`"${t}" không phải một địa chỉ thư hợp lệ`,true); }
+    const trung=t && S.giaoVien.find(y=>y.id!==g.id && (y.email||'').toLowerCase()===t);
+    if(trung){ e.target.value=cu;
+      return bao(`Địa chỉ này đã khai cho ${trung.hoTen} — mỗi Gmail chỉ được một người`,true); }
+    g.email=t; ve(); });
+  $$('[data-gvghi]').forEach(x=>x.onchange=e=>{
+    const g=gvId(x.dataset.gvghi); if(g){ g.ghiChu=e.target.value.trim(); ve(); } });
+  /* Cột Dạy chỉ đọc — bấm vào là sang màn Phân công đã lọc sẵn người ấy */
+  $$('[data-gvpc]').forEach(x=>x.onclick=()=>{
+    S.pcGV=x.dataset.gvpc; chuyen('phancong'); });
   $$('[data-xoagv]').forEach(x=>x.onclick=()=>hopXoaGV(x.dataset.xoagv));
 
   /* Phân công */
@@ -11514,13 +12111,20 @@ function dungMenu(){
   /* Lần vẽ đầu tiên: chưa ai bấm gì thì mở đúng nhóm Điều hành */
   if(!Object.keys(S.nhomMo).length) S.nhomMo[NHOM_MAC_DINH]=true;
   if(cua) S.nhomMo[cua]=true;
+  /* Nhóm đang mở mà bị vai trò giấu hết mục thì thanh bên chỉ còn mấy nhãn
+     nhóm đóng im — đúng cảnh trường CHỜ DUYỆT gặp: cả menu còn mỗi nhóm
+     HỆ THỐNG, và nó đóng. Không nhóm mở nào còn mục thì bung nhóm đầu tiên
+     còn thấy được. */
+  const conMuc = n => [...n.querySelectorAll('.mi')].some(m=>m.style.display!=='none');
+  const hien = $$('.nh').filter(conMuc);
+  if(hien.length && !hien.some(n=>S.nhomMo[n.dataset.nh]))
+    S.nhomMo[hien[0].dataset.nh]=true;
   $$('.nh').forEach(n=>{
     const ma=n.dataset.nh;
     n.classList.toggle('mo', !!S.nhomMo[ma]);
     n.querySelector('.nhom')?.setAttribute('aria-expanded', S.nhomMo[ma]?'true':'false');
     /* Nhóm nào không còn mục nào hiện thì giấu cả nhóm — giữ nguyên nếp cũ */
-    const co=[...n.querySelectorAll('.mi')].some(m=>m.style.display!=='none');
-    n.style.display = co?'':'none';
+    n.style.display = conMuc(n)?'':'none';
     /* Tổng số việc gấp bên trong, để nhìn thấy khi nhóm đang đóng */
     const tong=[...n.querySelectorAll('.mi .n.do')]
       .reduce((s,x)=>s+(parseInt(x.textContent,10)||0),0);
@@ -11751,7 +12355,7 @@ function hopXoaLop(id){
 function hopThemGV(){
   hop('Thêm giáo viên',
   `<div class="on-l"><label>Họ và tên</label>
-     <input class="ip" id="tgTen" placeholder="Ví dụ: Nguyễn Thị Trinh" style="width:100%">
+     <input class="ip" id="tgTen" placeholder="Ví dụ: Lê Thị Nguyệt" style="width:100%">
      <div class="gy">Ghi đủ họ tên. Trường có nhiều cặp trùng tên gọi — "Cô Dung" thì không biết là ai.</div></div>
    <div class="on-l"><label>Định mức tiết mỗi tuần</label>
      <input class="ip" id="tgDM" type="number" min="1" max="40" value="${DINH_MUC}" style="width:100%">
@@ -12211,7 +12815,7 @@ function hopMayChu(){
      <p style="font-size:13px;margin-bottom:8px">Muốn cả trường dùng chung một dữ liệu thì tạo tệp <b>src/cauhinh.js</b>:</p>
      <div class="ma">export const SUPABASE_URL = 'https://xxxxx.supabase.co';
 export const SUPABASE_ANON = 'eyJhbGciOi...';</div>
-     <div class="gy">Lấy hai giá trị trong Supabase → Settings → API. Khoá anon là khoá công khai,
+     <div class="gy">Lấy hai giá trị trong trang quản trị Hệ thống → Settings → API. Khoá anon là khoá công khai,
        để ở trình duyệt vẫn an toàn vì Row Level Security mới là thứ chặn truy cập dữ liệu.
        Tạo tệp xong thì tải lại trang. Mở tệp bằng đường dẫn file:// sẽ không nạp được cấu hình,
        phải chạy qua máy chủ web — dùng lệnh <b>npm start</b>.</div>`,
@@ -12797,47 +13401,90 @@ $('#btDangNhapTren').onclick=hopMayChu;   /* thanh trên cùng là lối vào du
 /* Nhập Excel. Nút gọi nó nay nằm ngay trên các màn hình khai báo của Bước 1 —
    người dùng đang ở màn hình Lớp học mà muốn nhập lớp thì bấm luôn tại đó,
    không phải đi tìm ở cuối thanh bên. */
-function hopNhapExcel(){ hop('Nhập dữ liệu từ Excel',
-  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:12px">Chưa có tệp thì
-     <b>tải mẫu về điền</b>. Mẫu dựng sẵn đúng cột, có ô xổ xuống chống gõ sai,
-     và điền sẵn dữ liệu đang có của trường (nếu đã khai).</p>
-   <div class="bang"><table class="dl"><thead><tr><th>Mẫu</th><th>Dùng khi nào</th><th></th></tr></thead><tbody>
-     <tr><td><b>Trọn gói</b><br><span style="color:var(--chu-mo)">mười trang tính</span></td>
-       <td>Khai <b>tất cả</b> trong một tệp: trường · điểm trường · khung giờ · lớp ·
-         giáo viên · phân công · phòng · buổi bận. Nhập xong là xếp được ngay,
-         không phải vào app khai thêm chỗ nào.</td>
-       <td><button class="b b-ch" onclick="taiMauTronGoi()">Tải</button></td></tr>
-     <tr><td><b>Ma trận một trang</b><br><span style="color:var(--chu-mo)">trang PHAN_CONG</span></td>
-       <td>Kẻ nhanh đúng tờ phân công vẫn kẻ tay: mỗi dòng một giáo viên,
-         mỗi môn một cột đánh dấu <b>x</b>.</td>
-       <td><button class="b b-vien" onclick="taiMauMaTran()">Tải</button></td></tr>
-     <tr><td><b>Ba trang chi tiết</b><br><span style="color:var(--chu-mo)">DANH_SACH_GV · DANH_SACH_LOP · PCGD</span></td>
-       <td>Đã có sẵn bảng phân công từng dòng từ phần mềm cũ.</td>
-       <td><button class="b b-vien" onclick="taiMauExcel()">Tải</button></td></tr>
-   </tbody></table></div>
-   <div class="gy"><b>Ma_GV</b> và <b>Ma_lop</b> là thứ nối các trang tính với nhau — lý do
-     phần mềm không bao giờ nhầm hai cô cùng tên, và ba điểm trường cùng có lớp "1A"
-     vẫn phân biệt được. Cả ba kiểu tệp đều nhận được ở nút <b>Chọn tệp</b>; máy tự
-     nhận ra kiểu nào.</div>
+function hopNhapExcel(){
+  const ma=S.trangHienTai, m=MUC_NHAP[ma];
+  if(!m) return bao('Màn hình này không nhập từ Excel được.',true);
+
+  /* Chặn NGAY từ đầu nếu chưa khai mục phụ thuộc. Để người dùng điền xong
+     400 dòng phân công rồi mới báo "chưa có lớp nào" là đúng thứ đã làm chủ
+     dự án mất cả buổi. */
+  const thieu=thieuMucTruoc(ma);
+  const that=m.hang().length;
+
+  hop(`Nhập ${m.ten} từ Excel`,
+  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Một tệp, <b>một trang tính
+     ${esc(m.trang)}</b> — đúng mục đang mở, không phải khai cả trường trong một lần.
+     ${that ? `Mẫu tải về <b>điền sẵn ${that} dòng</b> đang có; sửa hoặc gõ thêm rồi nhập lại.`
+            : 'Mẫu tải về có sẵn đúng cột và ô xổ xuống chống gõ sai.'}</p>
+   ${thieu?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
+      <b>Chưa nhập mục này được</b><div class="cb-g">${esc(thieu)}</div></div></div>`
+   :`<div class="bang" style="margin-bottom:13px"><table class="dl">
+      <thead><tr><th>Cột</th><th>Ghi gì vào</th></tr></thead><tbody>
+      ${m.cot.map(c=>`<tr><td><b>${esc(c.ten)}</b>${c.khoa?.batBuoc?' <span class="tag do">bắt buộc</span>':''}</td>
+        <td style="color:var(--chu-mo)">${esc(moTaCotNhap(c))}</td></tr>`).join('')}
+      </tbody></table></div>
+    <div class="gy">${esc(m.nhac)}</div>
+    ${ma==='phancong'?`<div class="gy" style="margin-top:9px">Trường vẫn kẻ tờ phân công kiểu
+       <b>mỗi môn một cột đánh dấu x</b> thì tải
+       <button class="b b-vien b-nho" onclick="taiMauMaTran()">mẫu ma trận</button> —
+       nút <b>Chọn tệp</b> nhận cả hai kiểu.</div>`:''}`}
    <div style="margin-top:13px;padding:11px 14px;background:${coMayChu()&&duocSuaNguon()?'var(--xanh-nen)':'var(--canh-nen)'};border-radius:10px;font-size:12.5px">
      ${coMayChu()&&duocSuaNguon()
-       ? 'Đã nối máy chủ — dữ liệu sẽ ghi thẳng lên Supabase cho cả trường dùng chung.'
+       ? 'Nhập vào là <b>thêm và cập nhật</b> theo mã — không xoá dòng nào đang có. '
+         +'Nhập lại đúng tệp ấy lần nữa cũng không nhân đôi.'
        : 'Chưa nối máy chủ — dữ liệu chỉ nằm trên máy này. Máy sẽ soát lỗi tệp trước khi nhập.'}</div>`,
-  [{ten:'Huỷ',phu:1,lam:dong},
-   {ten:'Chọn tệp',lam:()=>{dong();$('#tep').click();}}]); }
+  thieu ? [{ten:'Đóng',lam:dong}]
+        : [{ten:'Huỷ',phu:1,lam:dong},
+           {ten:'Tải mẫu về điền',phu:1,lam:()=>taiMauMuc(ma)},
+           {ten:'Chọn tệp',lam:()=>{dong();$('#tep').click();}}]);
+}
+
+/* Một dòng người đọc hiểu được cho mỗi cột, suy từ chính `khoa` đã khai —
+   không chép tay, nên mô tả không bao giờ lệch với phép soát thật. */
+function moTaCotNhap(c){
+  const k=c.khoa||{};
+  if(k.kieu==='chon') return 'Chọn từ danh sách xổ xuống ('
+    +({DM_Co_khong:'Có / Không', DM_Thu:'2 · 3 · 4 · 5 · 6', DM_Buoi:'S (sáng) · C (chiều)',
+       DM_Diem_truong:'tên điểm trường đã khai', DM_Ma_lop:'mã lớp đã khai',
+       DM_Ma_GV:'mã giáo viên đã khai', DM_Mon:'môn trong danh mục'}[k.nguon]||'danh mục')+')';
+  if(k.kieu==='so') return `Số từ ${k.tu} đến ${k.den}`
+    + (c.ten==='So_tiet' ? ' — bỏ trống thì máy lấy tiết chuẩn CT GDPT 2018 theo khối' : '');
+  if(c.ten==='Gmail') return 'Địa chỉ Gmail của thầy cô — có rồi thì đăng nhập bằng Google là vào thẳng';
+  return `Chữ, tối đa ${k.toiDa||60} ký tự`;
+}
+
+/* Trang tính này có đúng bộ cột của mục đang mở không. Cần vì mẫu ma trận
+   cũng mang tên trang `PHAN_CONG`: nó có Ma_GV nhưng KHÔNG có Ma_lop, còn
+   mẫu từng dòng thì có cả hai. Dò theo CỘT chứ không theo tên trang. */
+function hopTrangMuc(hang, m){
+  const k=new Set((hang||[]).slice(0,50).flatMap(r=>Object.keys(r)));
+  return m.khoaDong.every(c=>k.has(c));
+}
 
 $('#tep').onchange=async e=>{
   const f=e.target.files[0]; if(!f) return;
   e.target.value='';
   if(!await sanSangXLSX())
     return bao('Chưa tải được thư viện đọc Excel. Kiểm tra mạng rồi chọn tệp lại.',true);
-  let dl, tim;
+  let dl, tim, kqMuc=null;
   try{
     const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
     const doc=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n]):null;
-    /* Bước ① — nhận ra kiểu tệp, và ghi lại TÌM THẤY GÌ để bày cho người dùng.
-       Trọn gói xét trước vì nó cũng có trang 6_PHAN_CONG; xét ma trận trước
-       thì tệp mười trang bị đọc nhầm thành một trang. */
+
+    /* ĐƯỜNG CHÍNH từ 28/8/2026 — một trang của đúng mục đang mở. Xét trước
+       mọi đường khác: người dùng đang ở màn Lớp học và cầm tệp LOP thì không
+       có lý do gì đi hỏi nó có phải tệp mười trang không. */
+    const m=MUC_NHAP[S.trangHienTai];
+    const hMuc = m ? doc(m.trang) : null;
+    if(m && hMuc && hopTrangMuc(hMuc, m)){
+      kqMuc=duLieuTuMuc(S.trangHienTai, hMuc);
+      if(kqMuc.soLoi) return hopLoiNhap(kqMuc, null);
+      return hopXacNhanNhapMuc(kqMuc);
+    }
+
+    /* ĐƯỜNG LUI — tệp điền theo mẫu cũ vẫn phải nhập được. Trường nào đã
+       điền dở mẫu mười trang thì không được bỗng mất công. Trọn gói xét
+       trước vì nó cũng có trang 6_PHAN_CONG. */
     tim=[...['1_TRUONG','2_DIEM_TRUONG','3_KHUNG_GIO','4_LOP','5_GIAO_VIEN',
              '6_PHAN_CONG','7_PHONG','8_BUOI_BAN'].map(t=>({t, h:docTrang(doc,t)}))];
     if(tim.filter(x=>x.h).length>=3 && docTrang(doc,'6_PHAN_CONG')){
@@ -12851,14 +13498,53 @@ $('#tep').onchange=async e=>{
       const gv=doc('DANH_SACH_GV'), lp=doc('DANH_SACH_LOP'), pc=doc('PCGD');
       const thieu=[['DANH_SACH_GV',gv],['DANH_SACH_LOP',lp],['PCGD',pc]]
         .filter(([,x])=>!x).map(([n])=>n);
-      if(thieu.length) return bao('Tệp thiếu trang tính: '+thieu.join(', ')
-        +' — hoặc tải mẫu trọn gói ở hộp Nhập dữ liệu Excel.',true);
+      if(thieu.length) return bao(
+        `Tệp này không có trang tính nào máy đọc được. Đang ở mục ${m?m.ten:'này'}`
+        +(m?` thì tệp cần một trang tên ${m.trang} — bấm Nhập từ Excel · Tải mẫu về điền.`
+            :'.'),true);
       dl=duLieuTuBang(gv,lp,pc);
     }
   }catch(err){ return bao('Không đọc được tệp — kiểm tra lại đúng định dạng .xlsx',true); }
   if(dl.soLoi) return hopLoiNhap(dl, tim);
   hopXacNhanNhap(dl, tim);
 };
+
+/* Xác nhận cho đường nhập TỪNG MỤC. Nói đúng ba con số người dùng cần biết:
+   thêm mấy dòng, sửa mấy dòng, và những gì đang có mà tệp không nhắc tới thì
+   GIỮ NGUYÊN — dòng cuối là thứ phân biệt hẳn với mẫu trọn gói cũ, vốn thay
+   sạch bảng phân công. */
+function hopXacNhanNhapMuc(kq){
+  const lenMayChu = coMayChu() && duocSuaNguon();
+  hop(`Nhập ${kq.ten} — kiểm lại trước khi ghi`,
+    `<div class="hang">Đọc được trong tệp <b>${kq.doc} dòng</b></div>
+     <div class="hang">Thêm mới <b class="${kq.them?'xanh':''}">${kq.them}</b></div>
+     <div class="hang">Cập nhật dòng đã có <b>${kq.capNhat}</b></div>
+     ${kq.soCanh?`<div class="canhbao" style="margin-top:13px"><div class="cb-ic">~</div><div class="cb-t">
+       <b>${kq.soCanh} chỗ đáng rà lại</b>
+       <div class="cb-g">${kq.canh.map(x=>esc(x)).join('<br>')}
+         <br><br>Những chỗ này <b>không cản việc nhập</b>.</div></div></div>`:''}
+     <div class="canhbao ok" style="margin-top:13px"><div class="cb-ic">i</div><div class="cb-t">
+       <b>Chỉ thêm và cập nhật — không xoá gì</b>
+       <div class="cb-g">Dòng đang có mà tệp không nhắc tới thì giữ nguyên. Muốn bỏ một dòng
+         thì xoá ngay trong app. Nhập lại đúng tệp này lần nữa cũng không nhân đôi.</div></div></div>
+     ${lenMayChu?'':`<div class="canhbao" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t">
+       <b>Chỉ nhập vào máy này</b><div class="cb-g">${coMayChu()
+         ?'Thầy cô không có quyền sửa dữ liệu nguồn toàn trường.':'Chưa nối máy chủ.'}
+         Dữ liệu sẽ nằm trên trình duyệt, đóng là mất.</div></div></div>`}`,
+    [{ten:'Huỷ',phu:1,lam:dong},
+     {ten:'Nhập vào',lam:async ev=>{
+       const b=ev.currentTarget; b.disabled=true; b.textContent='Đang nhập…';
+       napMucVaoS(kq);
+       dong();
+       if(lenMayChu){
+         const g=await ghiDuLieuNguon(S);
+         if(g.ok) chotVanTay();
+         bao(g.ok?`Đã nhập ${kq.ten}: thêm ${kq.them}, cập nhật ${kq.capNhat}. ${g.thongBao}`
+                 :g.thongBao, !g.ok);
+       }else bao(`Đã nhập ${kq.ten} vào máy này: thêm ${kq.them}, cập nhật ${kq.capNhat}.`);
+       ve();
+     }}]);
+}
 
 /* Bảng "tìm thấy gì trong tệp" — bước ① của luồng nhập trọn gói. Người dùng
    mở tệp lên là biết ngay máy đọc được mấy trang, mỗi trang mấy dòng. Trang

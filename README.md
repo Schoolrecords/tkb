@@ -97,7 +97,7 @@ data/ketxuat-smartscheduler-*.xlsx
 
 db/cai-dat.sql                BỘ CÀI TRỌN GÓI — dán một lần cho dự án Supabase
                               mới. Sinh tự động, đừng sửa tay (xem dòng dưới)
-db/gop-cai-dat.mjs            sinh lại cai-dat.sql từ bốn tệp nguồn; CI canh khớp
+db/gop-cai-dat.mjs            sinh lại cai-dat.sql từ 13 tệp nguồn; CI canh khớp
 db/schema.sql                 PostgreSQL cho Supabase, đa trường, có RLS
 db/khoi-tao.sql               tạo trường + nối tài khoản đăng nhập, chạy một lần
 db/du-lieu-dien-lien.sql      nạp 25 lớp · 35 GV · 265 dòng lên máy chủ
@@ -107,6 +107,9 @@ db/ma-lop.sql                 thêm cột ma_lop — cho phép ba điểm trư�
 db/cong-bo.sql                mở quy tắc UPDATE để bấm được nút Công bố
 db/sua-thong-tin-truong.sql   mở quy tắc UPDATE để lưu được tên trường, năm học
                               — thiếu nó thì đổi tên đơn vị không bao giờ lưu
+db/siet-quyen.sql             trigger canh theo CỘT: không ai tự phong mình làm
+                              chủ hệ thống, tự nâng vai trò, tự bỏ giới hạn điểm
+                              trường, hay tự duyệt trường của mình
 db/soi-tai-khoan-gv.sql       soi vì sao một thầy cô mở app ra không thấy lịch:
                               chưa công bố · bản cũ · chưa nối · nối nhầm · lạc trường
 db/soat-sql.mjs               soát SQL + đối chiếu quyền ghi (npm run soat)

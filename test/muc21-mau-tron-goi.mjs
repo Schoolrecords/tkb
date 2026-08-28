@@ -10,7 +10,7 @@
    được thì mọi thứ khác đều vô nghĩa.
    ================================================================== */
 
-export default function muc21({ kt, S, bangMauTronGoi, bangKiemMau,
+export default function muc21({ kt, S, bangMauTronGoi,
                                 duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon }) {
   console.log('\n\x1b[1m21. Mẫu Excel trọn gói và đường nhập một cửa\x1b[0m');
 
@@ -68,8 +68,6 @@ export default function muc21({ kt, S, bangMauTronGoi, bangKiemMau,
     kt('So_tiet KHÔNG bắt buộc — trường chỉ có bảng phân công vẫn nhập được',
        cot('6_PHAN_CONG').find(c => c.ten === 'So_tiet').khoa.batBuoc !== true);
 
-    kt('Bảng kiểm ở trang 0_BAT_DAU dựng từ chính bộ khai, đủ tám dòng',
-       bangKiemMau(m).length === 9);
 
     /* Ràng buộc mạnh nhất của cả bộ: MỌI ô nằm dưới một cột xổ xuống phải là
        giá trị CÓ THẬT trong danh mục của nó. Chính phép này bắt được lỗi trang
@@ -136,7 +134,7 @@ export default function muc21({ kt, S, bangMauTronGoi, bangKiemMau,
     hong(m => { trang(m, '4_LOP').hang[0][iCot(m, '4_LOP', 'Diem_truong')] = 'Điểm trường Ma'; },
          'Lớp trỏ tới điểm trường không có trong trang 2 thì BỊ CHẶN', /không có điểm trường/);
     hong(m => { trang(m, '4_LOP').hang[0][iCot(m, '4_LOP', 'Khoi')] = 7; },
-         'Khối ngoài 1–5 thì BỊ CHẶN', /Khoi phải từ 1 đến 5/);
+         'Khối ngoài 1–5 thì BỊ CHẶN', /Khoi phải là số từ 1 đến 5/);
     hong(m => { trang(m, '3_KHUNG_GIO').hang[0][0] = 8; },
          'Thứ 8 trong khung giờ thì BỊ CHẶN', /Thu phải là 2, 3, 4, 5 hoặc 6/);
     hong(m => { trang(m, '3_KHUNG_GIO').hang.forEach(h => { h[3] = 1; }); },

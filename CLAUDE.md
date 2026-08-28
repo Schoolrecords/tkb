@@ -158,11 +158,15 @@ trọng con số riêng ấy — có phép thử canh.
 ### Hai nguyên tắc bắt buộc
 
 **a) Luôn tham chiếu bằng `id`, không bao giờ bằng tên rút gọn.**
-Dữ liệu thật của Trường TH Diễn Liên có 4 cặp trùng tên gọi: hai cô *Dung*,
-hai cô *Linh*, hai cô *Hương*, hai cô *Oanh* — và một cặp chỉ khác dấu là
-*Thùy* / *Thủy*. Phần mềm cũ chắp vá thủ công (`Cô DungB`, `Cô K.Oanh`,
-`Cô Hòa HT`) nên không đọc ngược được. Sau sáp nhập ~100 giáo viên thì số cặp
-trùng tăng theo cấp số nhân.
+Dữ liệu thật của Trường TH Diễn Liên có 4 cặp trùng tên gọi, và một cặp chỉ
+khác nhau ở DẤU. Phần mềm cũ chắp vá thủ công (thêm chữ cái vào sau tên gọi,
+thêm chức danh) nên không đọc ngược được. Sau sáp nhập ~100 giáo viên thì số
+cặp trùng tăng theo cấp số nhân.
+
+Bộ demo giữ **đúng khuôn ấy** bằng tên hư cấu *(28/8/2026)*: bốn cặp trùng
+tên gọi *Nhài · Mận · Sen · Nhã*, cặp chỉ khác dấu *Hạnh / Hanh*, và các tên
+gọi rút gọn có hậu tố phân biệt (`Cô NhàiB`, `Cô K.Sen`). Đổi bộ dữ liệu ấy
+thì phải giữ nguyên khuôn — R09 và `maGVTu()` có phép thử canh.
 
 **Điều này áp dụng cho cả LỚP, không riêng giáo viên** *(sửa 1/8/2026)*. Bảng
 `lop` từng khoá theo `(truong_id, ten)` và phần mềm dò lớp bằng tên — nghĩa là
@@ -396,6 +400,137 @@ phép thử canh không cho địa chỉ thật lọt vào đó.
 NHAU ở hai tầng.** Mã trường đưa một *trường* vào hệ thống; mã mời đưa một
 *giáo viên* vào một trường đã có. Chọn hai dạng khác hẳn nhau chính là để
 nhìn phát biết đang cầm mã gì.
+
+#### Màn hình chờ duyệt — vá bốn chỗ *(28/8/2026)*
+
+Chủ dự án gửi ảnh chụp chính màn hình này. Bốn chỗ hỏng, cả bốn đều có
+phép thử ở mục **17f** của `npm run soi`:
+
+- ⚠️ **`.the` cố ý KHÔNG mang padding** — mọi màn hình khác bọc nội dung
+  trong `.the-t`. `mChoDuyet()` đặt thẳng `.hang` làm con của `.the` nên
+  giá trị căn phải dính sát vạch viền trên máy tính và **tràn hẳn ra ngoài
+  thẻ** trên điện thoại: `chungtrt@nghean.edu.vn` bị cắt cụt. Dựng thẻ mới
+  thì nhớ lớp bọc ấy.
+- **Thanh đầu trang bày tên TRƯỜNG MẪU.** Trường chờ duyệt chưa tải được
+  dữ liệu của mình nên `S` đang giữ bộ mẫu — người dùng thấy *TRƯỜNG TIỂU
+  HỌC MỚI* ngay phía trên tấm thẻ ghi tên trường thật trong đơn của họ.
+  Nay lấy từ `KHO.nguoiDung.tenTruong`, dòng dưới ghi trạng thái đơn.
+- **Chuông và kính lúp im hẳn.** Huy hiệu đỏ *4* là số cảnh báo của bộ dữ
+  liệu mẫu — con số vô nghĩa với trường chưa có dữ liệu nào của mình.
+- **Nhóm menu duy nhất còn hiện phải TỰ BUNG.** `dungMenu()` chỉ mở
+  `NHOM_MAC_DINH` (ĐIỀU HÀNH), mà vai này bị giấu hết mục — thanh bên còn
+  mỗi nhãn *HỆ THỐNG* đóng im, bấm mãi không ra gì. Nay không nhóm mở nào
+  còn mục thì bung nhóm đầu tiên còn thấy được.
+
+**`diaBan('Xã', S.xa)` thay cho `'Xã '+S.xa`.** Trường tự khai nên ô Xã hay
+được gõ sẵn cả chữ *Xã Quảng Châu*; dán thêm tiền tố là thanh đầu trang đọc
+ra *Xã Xã Quảng Châu*.
+
+### Siết quyền theo CỘT — `db/siet-quyen.sql` *(28/8/2026)*
+
+RLS của Postgres cấp quyền theo **dòng**, không theo **cột**. Nên một quy
+tắc đúng lúc viết tự rộng ra mỗi lần bảng ấy mọc thêm một cột quyết định
+quyền — không ai sửa gì mà hàng rào vẫn tụt. `p_nd_sua` cho quản lý ghi
+vào `nguoi_dung` của trường mình từ đầu; nay bảng ấy có **ba** cột quyết
+định quyền, và cả ba đều nằm trong vùng cho ghi:
+
+| Cột | Ai đọc nó để quyết định | Khai thác được gì |
+|---|---|---|
+| `la_chu_he_thong` | `la_chu_he_thong()` | đăng ký một trường → tự phong chủ hệ thống → đọc **mọi trường** và họ tên · email người dùng **mọi trường**, duyệt hoặc chặn trường của người khác |
+| `vai_tro` | `la_quan_ly()` | PHT tự nâng thành hiệu trưởng |
+| `diem_truong_id` | `luu_tkb()` | PHT một điểm trường đặt về `null` → ghi đè lưới **cả ba** điểm trường |
+| `truong.trang_thai_duyet` · `ma_truong` | `truong_duoc_dung()` | trường chờ duyệt tự đặt `dang_dung`, bỏ qua khâu duyệt |
+
+Hai trigger `before` là chỗ **duy nhất** nói được câu "sửa dòng này thì
+được, nhưng đừng đụng cột kia". Chúng **chặn thẳng bằng exception**, không
+lặng lẽ bỏ qua — đúng bài học `suaHang()`.
+
+Hai mức nghiêm khác nhau, cố ý: `la_chu_he_thong` **chỉ chủ hệ thống trao
+được** cho bất kỳ ai (vai ấy đứng ngoài mọi trường nên không cán bộ nhà
+trường nào có tư cách trao); `vai_tro` và `diem_truong_id` thì **không ai
+tự sửa của chính mình** — sửa cho người khác vẫn theo quyền cũ, vì đó là
+việc quản trị bình thường còn tự nâng cho mình thì không bao giờ là.
+
+⚠️ **Cả hai trigger bỏ qua khi `auth.uid()` là null** — SQL Editor, khoá
+`service_role`, lúc khôi phục sao lưu. Nhờ vậy chủ dự án vẫn tự phong mình
+làm chủ hệ thống bằng đúng câu `update` cũ, và Edge Function `tai-khoan`
+(vốn là đường DUY NHẤT app tạo · sửa · xoá tài khoản) không bị chặn. Bản vá
+này chỉ đóng đường PATCH thẳng — đường mà ứng dụng thật chưa bao giờ dùng.
+
+**`npm run soat` nay canh chuyện này thành luật**, không phải bằng danh
+sách chép tay: nó suy cột quyết định quyền từ **chính các hàm quyền** (hàm
+`language sql stable` đọc hồ sơ người đang đăng nhập), rồi đòi mỗi cột ấy
+hoặc có trigger canh — khai `-- CANH-COT: bảng.cột` — hoặc được khai
+`-- KHONG-CANH: bảng.cột — <lý do>`. Thêm cột quyền mới mà quên canh là CI
+đỏ ngay. Đã thử ngược cả hai chiều: bỏ dòng khai thì đỏ, giữ dòng khai mà
+trigger không đụng tới cột cũng đỏ.
+
+⚠️ Đừng nới luật ấy ra cho **mọi** hàm có `auth.uid()`. Bản đầu làm vậy và
+vơ luôn hàm nghiệp vụ plpgsql, nhặt ra những "cột" tên là `false`, `null`,
+`format` và cả biến cục bộ `v_tt` — tám lỗi giả. Bộ soát kêu oan tám lần
+thì lần thứ chín kêu đúng cũng không ai đọc nữa.
+
+### Gmail của giáo viên — vào trường KHÔNG cần mã mời *(28/8/2026 — `db/gmail-giao-vien.sql`, ĐÃ CHẠY trên máy chủ thật cùng ngày)*
+
+Đề xuất của chủ dự án: *"tại nút Giáo viên cần có thêm cột gmail để khỏi phải
+mời nữa"*. Phát quyền cho 35 thầy cô trước đây là **bốn bước mỗi người** —
+tạo mã 6 chữ cái → gửi Zalo → thầy cô đăng nhập Google → gõ mã — và mã thì
+hết hạn. Nay nhà trường khai sẵn Gmail ngay trong bảng Giáo viên; thầy cô bấm
+*Đăng nhập bằng Google* bằng đúng địa chỉ ấy là vào thẳng lịch của mình.
+
+⚠️ **VÌ SAO PHẢI LÀ RPC, KHÔNG PHẢI TẠO SẴN `nguoi_dung`.** `nguoi_dung.id`
+**chính là** `auth.uid()` do GoTrue cấp lúc đăng nhập lần đầu. Một Gmail chưa
+từng đăng nhập thì chưa có uid nào, nên không thể tạo sẵn dòng cho nó. Cách
+duy nhất là để người ấy đăng nhập trước (lúc đó có uid), rồi một hàm
+`security definer` đối chiếu địa chỉ trong **vé đăng nhập** với danh sách nhà
+trường đã khai.
+
+| Hàm | Việc |
+|---|---|
+| `giao_vien.email` · `ghi_chu` | hai cột mới; `email` là địa chỉ nhà trường khai TRƯỚC |
+| `vao_bang_gmail()` | SQL — tự nhận mình bằng Gmail, `security definer`, tự kiểm quyền |
+| `vaoBangGmail()` | app — gọi RPC ấy, có đường lui khi máy chủ chưa nâng cấp |
+| `dayGiCua(idGV)` | vùng LOGIC — gom phân công thành `1A, 1B, 1C +22 · Mỹ thuật` |
+
+Sáu điều bắt buộc, cả sáu đều có phép thử (`npm test` mục 22h, `npm run soi`
+mục 17h · 17i):
+
+- **Địa chỉ lấy từ VÉ ĐĂNG NHẬP (`auth.jwt()`), hàm KHÔNG nhận tham số.**
+  Nhận tham số là ai cũng tự khai mình là người khác.
+- **Chỉ nhận hồ sơ CHƯA nối tài khoản nào** (`nguoi_dung_id is null`), và
+  trường phải đang `dang_dung`. Không cướp được quyền của ai, và người của
+  một trường chờ duyệt không lọt vào trước cả hiệu trưởng của họ.
+- **Một Gmail chỉ trỏ về MỘT hồ sơ trong một trường** — chỉ số unique
+  *partial* trên `(truong_id, lower(email))`. Hai hồ sơ cùng địa chỉ thì lúc
+  đăng nhập máy không biết mở lịch của ai; đúng bài học sự cố 2/8/2026.
+- **Ô Gmail để TRỐNG thì GIỮ NGUYÊN địa chỉ cũ, không xoá.** Bỏ trống một ô
+  là *"tôi không khai"*, không phải *"hãy thu quyền của thầy cô này"* — mà
+  xoá email ở đây chính là thu quyền đăng nhập.
+- **Hai lối vào soát GIỐNG HỆT nhau** — gõ tay trong bảng và nhập từ Excel
+  dùng cùng hai phép soát (đúng dạng thư · không trùng người). Một lối lỏng
+  hơn lối kia là hàng rào coi như không có. Gõ sai thì **trả ô về giá trị
+  cũ**, đừng chỉ báo rồi để chữ hỏng nằm lại — người dùng tưởng đã lưu.
+- **Luôn có đường lui.** Máy chủ chưa chạy `db/gmail-giao-vien.sql` thì
+  `vao_bang_gmail()` trả 404 (im lặng lùi về đường mã mời), và `ghiDuLieuNguon()`
+  bắt lỗi *"Could not find the 'email' column"* rồi ghi lại **không kèm hai
+  cột** — không thì mất luôn cả lần lưu, kể cả họ tên và định mức.
+
+**Bảng Giáo viên nay đủ thông tin chủ dự án nêu**: TT · Họ và tên (kèm mã) ·
+Gmail · Chủ nhiệm · **Dạy** · Điểm trường · Tiết / định mức · Buổi cần · Tình
+trạng · Ghi chú.
+
+⚠️ **Cột *Dạy* CHỈ ĐỌC.** Chủ dự án đề xuất một cột `1A (Toán, Tiếng Việt,
+TNXH…)` và chốt để **máy tự sinh** từ bảng phân công. Không ai gõ vào được
+nên nó không bao giờ lệch với phân công thật; bấm vào là sang màn *Phân công*
+đã lọc sẵn người ấy. Hai nơi cùng sửa một thứ thì sớm muộn lệch hành vi —
+đúng luật đã đặt cho lưới ở Bảng điều hành.
+
+⚠️ Cột ấy **gom các lớp cùng bộ môn**: cô Mỹ thuật dạy 25 lớp mà kể ra 25
+dòng thì cột này dài hơn cả bảng.
+
+⚠️ **Nhãn *Bình thường* đã bỏ.** Dán lên 32/35 dòng là ba mươi hai lần nói
+*không có gì xảy ra* — đúng thứ làm mắt bỏ qua cả ba dòng cần nhìn. Cùng luật
+"số 0 không tô đỏ" của dải chỉ số Bảng điều hành.
 
 ### Phân quyền trên giao diện — đã dựng
 
@@ -1109,143 +1244,100 @@ sinh vài dòng ví dụ. Có trang `HUONG_DAN` kèm bảng số tiết chuẩn 
 hình khai báo đi qua đúng `ghiDuLieuNguon()` mà nút Excel vẫn dùng — một đường
 ghi duy nhất, không có hai lối vào lệch nhau.
 
-#### Mẫu TRỌN GÓI mười trang, và nhập MỘT CỬA *(23/8/2026)*
+#### Nhập TỪNG MỤC — mỗi màn hình một trang tính *(28/8/2026)*
 
-Hai mẫu cũ chỉ bao được **ba trong bảy** thứ cần để xếp: giáo viên · lớp ·
-phân công. Thiếu hẳn *Thông tin trường · Điểm trường · **Khung giờ** · Phòng
-học · Buổi bận* — nên trường không có sẵn kết xuất Excel thì nhập tệp xong
-vẫn phải vào app khai tay bốn chỗ nữa. Mà **khung giờ** mới là thứ quyết định
-có bao nhiêu **ô** để xếp.
+Chủ dự án: *"ta nhập từng mục chứ 10 trang làm cho giáo viên rối quá!"* Ông
+đã thử thật: điền hết mười trang, nhập lên, nhận về **"Tệp còn 199 chỗ chưa
+đúng"** mà *"khó biết sai như thế nào"*.
 
-| Trang | Nội dung | Bắt buộc |
+Mẫu trọn gói sai ở chỗ nó bắt người dùng làm **xong toàn bộ** rồi mới được
+biết mình đúng hay sai. Bảy thứ phụ thuộc nhau qua mã, nên một chỗ sai ở
+trang 4 làm hỏng cả trang 6 — và tất cả cùng đổ ra một lúc.
+
+Nay mỗi màn hình khai báo có mẫu **MỘT TRANG** của đúng mục ấy. Bộ khai nằm ở
+`MUC_NHAP` (vùng DULIEU), tám mục khớp đúng tên màn hình:
+
+| Mục | Trang tính | Phải khai trước |
 |---|---|---|
-| `0_BAT_DAU` | bảng kiểm + số tiết chuẩn CT GDPT 2018 | — |
-| `1_TRUONG` | tên đơn vị · năm học · tỉnh · xã | có |
-| `2_DIEM_TRUONG` | tên · có phòng Tin | có |
-| `3_KHUNG_GIO` | thứ · buổi · **số tiết TỪNG KHỐI** | có |
-| `4_LOP` · `5_GIAO_VIEN` · `6_PHAN_CONG` | như mẫu 3 trang cũ | có |
-| `7_PHONG` · `8_BUOI_BAN` | | tuỳ chọn |
-| `DANH_MUC` | nguồn cho mọi ô xổ xuống, khoá lại | — |
-
-Tên trang **đánh số** để tab Excel tự xếp đúng trình tự làm việc — cùng
-nguyên tắc đã áp cho thanh bên.
+| Điểm trường | `DIEM_TRUONG` | — |
+| Khối và khung giờ | `KHUNG_GIO` | — |
+| Lớp học | `LOP` | Điểm trường |
+| Giáo viên | `GIAO_VIEN` | — |
+| Môn học | `MON_HOC` | — |
+| Phân công chuyên môn | `PHAN_CONG` | Lớp học · Giáo viên |
+| Phòng học | `PHONG` | Điểm trường |
+| Buổi bận | `BUOI_BAN` | Giáo viên |
 
 | Hàm | Việc |
 |---|---|
-| `bangMauTronGoi()` | vùng XUAT — khai mẫu bằng **dữ liệu thuần**, cả bộ khoá |
-| `bangKiemMau(m)` | bảng kiểm ở `0_BAT_DAU`, dựng từ chính bộ khai trên |
-| `apKhoaXL()` | dịch `khoa` sang `dataValidation` của Excel |
-| `taiMauTronGoi()` | dựng workbook + vùng đặt tên `DM_*` |
-| `duLieuTuTronGoi(doc)` | vùng DULIEU — đọc ngược, soát lại đúng bộ khoá ấy |
-| `docTrang(doc, ten)` | đường lui về tên trang tính **cũ** |
-| `bangTimThay(tim)` · `hopSauKhiNhap()` | bước ① và ④ của luồng nhập |
+| `MUC_NHAP` | bộ khai: cột · khoá kiểm tra · dòng điền sẵn · dòng ví dụ · `doc()` |
+| `taiMauMuc(ma)` | dịch xuôi ra một tệp `.xlsx` một trang + `DANH_MUC` |
+| `duLieuTuMuc(ma, hang)` | đọc ngược, soát trên dữ liệu ĐANG CÓ, trả bản sao đã trộn |
+| `napMucVaoS(kq)` | đường DUY NHẤT ghi kết quả vào `S` |
+| `chepKhoNguon()` | bản sao để soát — không đụng `S` trước khi người dùng xác nhận |
+| `thieuMucTruoc(ma)` | chặn ngay từ hộp thoại, kèm việc phải làm trước |
+| `danhMucCuaMuc(ma)` | chỉ dựng danh mục trang ấy thật sự dùng |
 
-**Khoá kiểm tra khai bằng DỮ LIỆU, không phải mã.** Mỗi cột mang một `khoa`
-(`chon` · `so` · `chu`); một đầu dịch sang dataValidation, đầu kia soát lại
-lúc nhập. Một nguồn sự thật, không có cách nào để tệp mẫu và trình soát lệch.
+Bốn điều bắt buộc, cả bốn đều có phép thử (`npm test` mục 22, `npm run soi`
+mục 15e, `npm run soi-mau`):
 
-⚠️ **Khoá trong Excel là để GIÚP NGƯỜI ĐIỀN, không phải hàng rào.** Ba lỗ
-không bịt được: **dán đè (Ctrl+V) đi xuyên qua dataValidation** — hành vi của
-chính Excel, mà chép từ danh sách cũ dán vào lại là thao tác trường làm nhiều
-nhất; Google Sheets và Excel điện thoại không giữ đủ mọi kiểu khoá; xoá trang
-`DANH_MUC` là dropdown chết theo. Hàng rào thật vẫn là trình soát lúc nhập.
-Đừng bao giờ bỏ bớt một phép soát vì *"tệp đã khoá rồi"*.
+- **THÊM và CẬP NHẬT, không bao giờ XOÁ.** Nhập theo khoá tự nhiên (mã lớp ·
+  mã giáo viên · tên điểm trường…). Nhập lại đúng tệp ấy lần thứ hai ra kết
+  quả y hệt — không nhân đôi. Dòng đang có mà tệp không nhắc tới thì giữ
+  nguyên. Đây là khác biệt lớn nhất với mẫu trọn gói, thứ **thay sạch** bảng
+  phân công mỗi lần nhập.
+- **Soi trên dữ liệu ĐANG CÓ, không phải trên trang tính khác trong cùng tệp.**
+  Vì thế mỗi mục khai `can`, và hộp thoại chặn ngay từ đầu — đừng để người
+  dùng điền xong 400 dòng phân công rồi mới báo *"chưa có lớp nào"*.
+- **`duLieuTuMuc()` KHÔNG đụng `S`.** Nó trả một bản sao đã trộn; hỏng nửa
+  chừng mà đã sửa vào `S` thì màn hình sau lưng hộp thoại đã đổi, người dùng
+  không còn đường lui.
+- **Một bộ khai, hai đầu dùng.** Không có cách nào để mẫu và trình soát lệch
+  nhau — cùng bài học đã ghi cho mẫu trọn gói.
 
-⚠️ **Không khoá trang tính bằng mật khẩu**, trừ `DANH_MUC`. Trường cần chèn
-dòng, sắp xếp, dán từ danh sách cũ — khoá là họ bực, mà mật khẩu trang tính
-Excel bẻ trong mười giây. Cũng **không làm `.xlsm` có macro**: máy trường hay
-chặn macro, và Google Sheets không chạy.
+⚠️ **Mẫu ma trận vẫn giữ, và chỉ mời ở màn Phân công.** Nó là tờ phân công
+nhiều trường vẫn kẻ tay (mỗi môn một cột đánh dấu `x`). Trang tính của nó
+cũng tên `PHAN_CONG`, nên `hopTrangMuc()` phân biệt bằng **CỘT** chứ không
+bằng tên trang: mẫu từng dòng có `Ma_lop`, mẫu ma trận thì không.
 
-Năm điều bắt buộc, cả năm đều có phép thử:
+⚠️ **Mẫu trọn gói và mẫu ba trang đã BỎ HẲN** — `taiMauTronGoi()`,
+`bangKiemMau()`, `taiMauExcel()`, `bangMauNhap()` xoá khỏi mã. Nhưng **ba
+trình ĐỌC thì giữ nguyên** (`duLieuTuTronGoi` · `duLieuTuBang` ·
+`duLieuTuMaTran`): trường nào đã điền dở tệp cũ không được bỗng mất công.
+`bangMauTronGoi()` cũng giữ, làm dữ liệu cho phép thử vòng tròn của chính
+trình đọc ấy — bỏ nó đi là đường lui còn đó mà không ai canh nữa.
 
-- **Soát lõi vẫn đi qua `duLieuTuBang()`.** Hàm mới chỉ bung thêm bốn trang
-  rồi giao phần chung — y như `duLieuTuMaTran()`. Ba lối nhập, **một** bộ quy
-  tắc; chép lại phép soát là sớm muộn ba nơi lệch nhau.
-- **Tách LỖI (chặn) khỏi CẢNH BÁO (cho qua).** Bản cũ chặn mọi thứ, kể cả
-  *"3 lớp chưa có chủ nhiệm"* — thứ không đáng chặn ai, và đúng cái cờ `nhe`
-  mà `tienDo()` đã dùng đúng từ đầu. Chặn là khi dữ liệu **không dùng được**.
-- **`So_tiet` bỏ trống được** → lấy tiết chuẩn theo khối. Đây là lý do trường
-  *"chỉ có bảng phân công, không biết số tiết"* vẫn nhập được.
-- **Khoá phải đặt DƯ RA vài trăm dòng** dưới phần đã điền (`duThua`). Việc
-  chính của người dùng là **gõ thêm**; khoá đúng số dòng đang có thì từ dòng
-  26 trở đi hết dropdown — đúng chỗ họ cần nó nhất.
-- **Đường lui cho tên trang tính CŨ** (`docTrang`). Trường đã điền theo mẫu
-  3 trang thì `DANH_SACH_LOP` vẫn phải đọc được.
+#### "199 chỗ chưa đúng" — dòng trống không phải lỗi *(28/8/2026)*
 
-**Nhập là MỘT CỬA, bốn bước:** ① `bangTimThay()` bày đọc được mấy trang, mỗi
-trang mấy dòng → ② soát, tách hai mức → ③ xem trước, nói rõ sẽ thay gì →
-④ **`hopSauKhiNhap()` chạy luôn bộ quy tắc khả thi** rồi mời *Xếp ngay*.
-Bước ④ là chỗ đáng giá nhất: bắt hiệu trưởng tự nhớ vào mục *Kiểm tra khả
-thi* nghĩa là phần lớn sẽ không bao giờ thấy nó.
+Soi lại danh sách chủ dự án gửi thì **phần lớn 199 chỗ ấy không phải lỗi của
+người điền**. Hai gốc rễ:
 
-⚠️ **Hai bẫy đã trả giá, cả hai do phép thử bắt, không phải mắt:**
+- **Dòng chưa điền bị đếm là lỗi.** Mẫu đặt khoá dư ra vài trăm dòng để người
+  dùng gõ thêm; chỉ cần chạm vào một ô rồi xoá là Excel giữ lại một dòng
+  rỗng, và bộ soát cũ bắt luôn **bốn lỗi một dòng** — *thiếu Ma_GV* · *thiếu
+  Ma_lop* · *thiếu tên môn* · *So_tiet phải lớn hơn 0*. Ảnh chụp có đúng dấu
+  vết ấy: `6_PHAN_CONG dòng 2: … môn "" … khối ?`.
+- **Cùng một vấn đề lặp lại N lần.** Năm dòng *thiếu Ten_diem_truong* là năm
+  câu y hệt nhau; mắt phải tự gom lấy mới hiểu ra chuyện gì.
 
-- **Trang tuỳ chọn bày dòng ví dụ cho một trường THẬT.** `7_PHONG` và
-  `8_BUOI_BAN` rơi về ví dụ `Điểm trường chính` / `Binh_TV` — hai cái tên chỉ
-  có trong bộ mẫu của trường trắng. Trường 25 lớp chưa khai phòng tải mẫu về
-  là **tệp mang sẵn một dòng trỏ vào thứ không tồn tại, nhập lại không được**.
-  Nay `coThat` thì để trống hẳn. Phép thử **vòng tròn** (mục 21b: đổ chính
-  hàng của mẫu qua `duLieuTuTronGoi()` phải ra 0 lỗi) bắt ngay lần chạy đầu —
-  đây là phép thử đáng giá nhất của cả bộ.
-- **`formulae:['=DM_Ma_lop']` thừa dấu `=`.** ExcelJS ghi thẳng chuỗi vào
-  `<formula1>`, mà Excel chờ tên vùng trần. Hậu quả không nhìn ra bằng mắt:
-  tệp vẫn mở, vẫn đủ dữ liệu, chỉ là **bấm vào ô không có danh sách nào bung
-  ra**. Chỉ `npm run soi-mau` thấy được.
+| Hàm | Việc |
+|---|---|
+| `locDongDaDien(hang, cotBatBuoc)` | tách dòng đã điền khỏi dòng trống, **giữ nguyên số dòng Excel** (`__dong`) |
+| `dienGiaiLoiNhap(ds)` | gom `{t, d, v}` theo (trang · nội dung) rồi mới dựng câu |
+| `canhDongBo(trang, bo)` | một dòng cảnh báo nói đã bỏ mấy dòng |
 
-**`npm run soi-mau`** *(`test/soi-mau-excel.mjs`)* — bộ duy nhất cần ExcelJS
-thật: sinh tệp, **ghi ra buffer rồi đọc lại**, soi dataValidation · vùng đặt
-tên · khổ giấy, và chạy **vòng tròn qua tệp thật**. Dựng được workbook trong
-bộ nhớ không có nghĩa là `.xlsx` ghi ra hợp lệ. `exceljs` ghim **đúng 4.4.0**,
-khớp bản CDN app nạp — soi bản gần giống thì không kiểm được gì.
+Ba điều bắt buộc:
 
-⚠️ Bẫy thứ ba, cùng khuôn cái đã ghi ở mục 3: phép thử *"bỏ trống `So_tiet`
-thì lấy tiết chuẩn"* ban đầu chỉ đòi `soTiet > 0`, mà số trong mẫu và số
-chuẩn **tình cờ bằng nhau** ở dòng nó chọn — xanh dù hàm có điền đúng hay
-không. Nay ép hai nhánh ra **hai số khác nhau** rồi soi từng nhánh.
+- **Mọi ô bắt buộc đều trống = dòng CHƯA ĐIỀN, bỏ qua.** Đo trên đúng cảnh
+  chủ dự án gặp: **~20 lỗi → 0 lỗi**.
+- **Nhưng phải NÓI RA đã bỏ mấy dòng.** Im lặng là thiếu dữ liệu mà người
+  dùng không hay — tệ hơn hẳn báo thừa.
+- **GOM trước rồi mới CẮT xuống 12 dòng.** Cắt trước khi gom là bày ra 12 câu
+  y hệt nhau, đúng thứ đã làm chủ dự án bó tay.
 
-### Xuất Excel và in — đã dựng
-
-Vùng `/*#region XUAT*/` chỉ dựng **bảng hai chiều thuần dữ liệu**
-(`luoiToanTruong`, `luoiTheoKhoiHoc`, `luoiTheoLop`, `luoiTheoGV`, `bangXuatPC`,
-`bangXuatDT`). Việc ghi `.xlsx` bằng SheetJS và việc in nằm ở mục 4. Tách vậy
-để `npm test` đếm được số ô mà không cần trình duyệt.
-
-**Bốn sản phẩm, đúng bốn thứ nhà trường cần** *(toàn trường và theo khối thêm
-1/8/2026)*:
-
-| Bản | Dùng làm gì | Khổ in |
-|---|---|---|
-| **Từng điểm trường** | bản in hằng ngày, mỗi điểm một bộ tờ | **A4 ngang** |
-| Toàn trường gộp | tờ dán bảng tin ngày khai giảng | A3 ngang |
-| Theo khối | khối trưởng cầm; nhìn ra ngay lớp nào lệch tiết | A4 ngang |
-| Theo lớp | phát cho lớp, cũng là chỗ chỉnh tay | A4 ngang |
-| Theo giáo viên | in cả tập rồi phát | A4 ngang |
-
-**Bản in từng điểm trường là đường in CHÍNH** *(3/8/2026)*: gộp ba điểm
-trường vào một tờ là 60 cột không ai đọc nổi, và đa số trường chỉ có máy in
-A4. `trangInDiemTruong(idDT)` dựng mỗi điểm trường một bộ tờ A4 ngang; điểm
-đông lớp thì `chiaCumKhoi()` tự tách thành nhiều tờ theo **cụm khối liên
-tiếp**, mỗi tờ tối đa `NGUONG_COT_A4 = 12` cột — cắt theo ranh giới khối,
-không cắt giữa khối; khối nào một mình đã vượt ngưỡng thì vẫn đứng nguyên
-một tờ. Tên điểm trường đã mang sẵn chữ "Điểm trường" thì không ghép trùng.
-Trong ô chọn của màn *Xuất và in*, bản này đứng **đầu** danh sách; bản gộp
-A3 vẫn giữ nguyên cho tờ dán bảng tin. Có phép thử canh (mục 14b của
-`npm run soi`): đúng khổ, không tờ nào vượt ngưỡng, cộng mọi tờ đủ từng lớp.
-
-**Khung XEM TRƯỚC bản in** *(3/8/2026)*: ô chọn bản in trước đây "mù" —
-bấm In mới biết tờ giấy ra hình gì. Nay cuối màn *Xuất và in* có khung
-`#xtBoc` bày **đúng HTML bản in** trên nền giấy giả (tờ trắng đổ bóng, thu
-tỷ lệ vừa bề ngang, `.xt-sizer` giữ chiều cao sau transform). Ba điều giữ
-cho nó rẻ và đúng:
-- **Không dựng bản mô phỏng riêng** — cùng chuỗi HTML của `trangIn*()` và
-  cùng `CSS_BAN_IN` nạp qua `napKieuXemTruoc()`; lệch với tờ in ra là
-  không thể.
-- Nguồn xem theo ô chọn **chạm gần nhất** (`S.xtNguon`), đổi ô chọn là
-  `veXemTruoc()` vẽ lại **riêng khung này**, không gọi `ve()` — gọi `ve()`
-  là ô chọn bị dựng lại và mất lựa chọn đang giữ.
-- Bản dài chỉ bày `TOI_DA_TO_XEM = 8` tờ đầu kèm dòng "… và N tờ nữa" —
-  xem trước để biết hình hài, không phải để đọc trọn 86 tờ.
-Phép thử ở mục 14c của `npm run soi`.
+⚠️ Giá trị gõ sai phải nằm **trong** câu lỗi (`Khoi phải là số từ 1 đến 5
+(đang là "7")`), không tách ra ngoài. Nhờ vậy hai dòng sai **khác nhau** thì
+không bị gom nhầm thành một, còn hai dòng sai **giống nhau** thì gom đúng.
 
 #### Ô lưới trong tệp .xlsx xuất ra: HAI DÒNG *(24/8/2026)*
 
@@ -1588,6 +1680,14 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
 - 25 lớp (1A–5E, 5 lớp mỗi khối), 35 giáo viên, 265 dòng phân công, **710 tiết/tuần**
 - TKB gốc **không có một xung đột nào** → dùng để đối chiếu kết quả thuật toán
 
+⚠️ **HỌ TÊN trong tệp này là HƯ CẤU từ 28/8/2026.** Cấu trúc thì thật nguyên
+vẹn — từng lớp, từng dòng phân công, từng con số tiết đều là của trường thật,
+nên tệp vẫn là bộ kiểm thử vàng. Chỉ ba trường `id` · `hoTen` · `tenNgan` được
+thay. Lý do: tệp này cũng là **bản demo phát cho bất kỳ ai đăng nhập** (chế độ
+KHÁCH, nút *Khám phá bản demo*), mà kho mã thì công khai — họ tên kèm lịch dạy
+của 35 thầy cô có thật là dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.
+Đổi tên trong tệp này thì phải chụp lại `docs/anh-giao-dien/`.
+
 ### Những con số đã kiểm chứng, không được đoán lại
 - **Số tiết/tuần:** khối 1–2 = 27 (25 chính khoá + 2 Tiếng Anh tự chọn),
   khối 3 = 28, khối 4–5 = 30. Khớp chính xác CT GDPT 2018.
@@ -1635,6 +1735,12 @@ Trích từ file kết xuất của phần mềm SmartScheduler 7.2 mà trườn
   Viết *"Bản in ghi tên trường, năm học và chỗ ký. Không ghi cơ quan chủ quản."*
   chứ đừng viết *"Sau sáp nhập, cơ cấu quản lý đã đổi nên bản in chỉ ghi…"* —
   người dùng cần biết phần mềm làm gì, không cần nghe giải thích bối cảnh.
+- **Không để tên dịch vụ kỹ thuật lọt ra giao diện** *(28/8/2026)*. Đa số cán
+  bộ giáo viên không biết *Supabase* là gì, nên mọi chuỗi hiển thị nói
+  **"Hệ thống"** — *"dữ liệu sẽ ghi thẳng lên Hệ thống cho cả trường dùng
+  chung"*, *"Máy chủ hệ thống"*. Comment trong mã thì **vẫn giữ tên thật**:
+  người sửa mã cần biết mình đang gọi dịch vụ nào. Phép thử ở mục **17g** của
+  `npm run soi` bỏ hết comment rồi mới soi, nên canh được đúng ranh giới ấy.
 - **Không viết cứng tên trường cụ thể vào giao diện.** Phần mềm dùng cho nhiều
   trường, có trường sáp nhập có trường không. Nút *Mô phỏng sáp nhập 3 điểm
   trường* từng viết cứng ba tên Diễn Liên · Diễn Đồng · Diễn Thái nên chỉ đúng
@@ -1823,13 +1929,58 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
       Nhật ký ngày vào hệ thống (bốn chỗ vấp, đã vá cả bốn) ở
       `docs/lich-su-quyet-dinh.md`. Quy tắc rút ra: **trường đăng ký bằng
       Gmail CỦA NHÀ TRƯỜNG**, không dùng Gmail cá nhân.
+- [ ] **LÀM NGAY PHIÊN SAU — ba việc bảo mật còn lại** *(chốt 28/8/2026;
+      `db/siet-quyen.sql` đã chạy trên máy chủ thật, hai trigger đã gắn,
+      lỗ leo thang quyền đã đóng)*. Ba việc độc lập nhau, làm theo thứ tự
+      này vì việc đầu nặng nhất và cũng đáng nhất:
+
+      **1. Thẻ Content-Security-Policy.** Vé làm mới nằm ở `localStorage`,
+      nên một lỗ XSS là mất phiên đăng nhập của thầy cô — `esc()` đang phủ
+      tốt mọi chỗ đã soi, CSP là lớp thứ hai để một chỗ sót không thành mất
+      tài khoản. GitHub Pages không đặt được HTTP header, nên phải là thẻ
+      `<meta http-equiv>` — và **thẻ meta KHÔNG nhận `frame-ancestors`**,
+      đừng mất thì giờ với nó.
+      · **Bước đầu tiên: gỡ 4 chỗ `onclick="…"` còn viết thẳng trong HTML**
+        (`grep -c 'onclick="' src/index.html`). Còn một chỗ inline handler
+        thì `script-src` buộc phải mang `'unsafe-inline'`, mà cờ ấy vô
+        hiệu hoá luôn mọi hash — coi như không có CSP cho script.
+      · Nguồn ngoài phải cho qua, đúng ba chỗ: `https://cdn.jsdelivr.net`
+        (exceljs 4.4.0 · xlsx 0.18.5, nạp khi cần), `fonts.googleapis.com`
+        (CSS) và `fonts.gstatic.com` (tệp phông). `connect-src` phải khớp
+        `SUPABASE_URL` trong `src/cauhinh.js`.
+      · `style-src` bắt buộc có `'unsafe-inline'`: cả trang dùng
+        `style="…"` khắp nơi, đó là quy ước một-tệp của dự án, không đổi.
+      · Phép thử (`npm run soi`): thẻ meta có mặt, có đủ `default-src` ·
+        `script-src` · `connect-src` · `base-uri` · `object-src`, và
+        `connect-src` **so với** địa chỉ trong `cauhinh.js` chứ không ghi
+        cứng — cùng khuôn phép thử ba-chỗ-khai-màu-chủ-đề ở mục 8.
+
+      **2. Chống đơn đăng ký rác.** ⚠️ Đừng làm lại thứ đã có:
+      `dang_ky_truong()` **đã** chặn "một tài khoản chỉ vào được một
+      trường", và đã chặn trùng tên trường trong cùng một xã. Chỗ hở thật
+      là **một người tạo nhiều Gmail** — mỗi cái một trường rác, và chủ hệ
+      thống phải ngồi dọn tay. Hướng rẻ nhất: đếm theo `dien_thoai` (đã
+      bắt buộc, đã chuẩn hoá về chữ số trong `v_dt`) — quá N đơn
+      `cho_duyet` cùng số thì từ chối, kèm câu nói rõ phải liên hệ người
+      quản trị. Không cần bảng mới.
+
+      **3. `nhat_ky` đang cho mọi người cùng trường ghi tự do.**
+      `p_nk_ghi` chỉ đòi `truong_id = truong_cua_toi()`, nên một tài khoản
+      giáo viên bơm được vô số dòng, hoặc ghi dòng mang tên người khác.
+      Siết thành `with check (truong_id = truong_cua_toi() and
+      nguoi_dung_id = auth.uid())` — `ghiNhatKy()` vốn đã gửi đúng id của
+      chính người đang đăng nhập nên không phá luồng nào. Nhớ chạy
+      `npm run soat` sau khi sửa: bảng `nhat_ky` phải còn quy tắc INSERT,
+      không thì mọi lệnh ghi nhật ký lặng lẽ sửa 0 dòng.
 - [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi
       quảng bá rộng**.
-- [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Nút *Tạo N mã* trong hộp **Mã
-      mời** nay làm cả mẻ trong một cú bấm, kèm nút chép và tải Excel — việc
-      còn lại là gửi Zalo. Hai nhóm bị **cố ý bỏ qua**: người đã có tài khoản,
+- [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Đường CHÍNH từ 28/8/2026 là
+      **cột Gmail**: mục *Giáo viên* → *Nhập từ Excel* → *Tải mẫu về điền*
+      (mẫu ra sẵn đủ 35 người, chỉ gõ thêm một cột) → nhập lại → Lưu. Thầy cô
+      bấm *Đăng nhập bằng Google* là vào, không mã, không hạn dùng.
+      Nút *Tạo N mã* trong hộp **Mã mời** vẫn giữ cho người không dùng Gmail. Hai nhóm bị **cố ý bỏ qua**: người đã có tài khoản,
       và hồ sơ không có dòng phân công nào (thường là hồ sơ thừa của bộ dữ liệu
       thử; phát mã vào đó là cầm chắc một thầy cô đăng nhập xong nhìn màn hình
       trắng — xem sự cố cô Oanh trong `docs/lich-su-quyet-dinh.md`).

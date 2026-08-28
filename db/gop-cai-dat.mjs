@@ -43,6 +43,10 @@ const NGUON = [
   'duyet-truong.sql',    // đăng ký trường phải được CHỦ HỆ THỐNG duyệt, cấp mã
                          //   5 chữ số — phải đứng sau dang-ky-truong.sql (dựng
                          //   lại dang_ky_truong) và schema.sql (dựng lại p_tkb_ghi)
+  'siet-quyen.sql',      // trigger canh theo CỘT: không ai tự phong chủ hệ thống,
+                         //   tự nâng vai trò, tự bỏ giới hạn điểm trường hay tự
+                         //   duyệt trường mình — phải đứng SAU duyet-truong.sql vì
+                         //   cần cột la_chu_he_thong và trang_thai_duyet
 ];
 
 const doc = t => readFileSync(join(thuMuc, t), 'utf8').replace(/\r\n/g, '\n');

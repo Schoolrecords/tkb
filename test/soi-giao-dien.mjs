@@ -350,12 +350,15 @@ kt('Đáy thanh bên chỉ còn thẻ tài khoản, không còn nút nào',
 kt('Chấm báo tình trạng máy chủ nằm ngay trên thẻ tài khoản',
    !!w.document.querySelector('#duoiTB #chamMC'));
 
-/* Nhập Excel: chỉ bày ở màn hình mà tệp Excel thực sự có dữ liệu */
+/* Nhập Excel: từ 28/8/2026 mỗi màn hình khai báo có mẫu MỘT TRANG của chính
+   nó, nên Môn học · Phòng học · Khung giờ nay cũng nhập được. `coNhap` suy ra
+   từ MUC_NHAP chứ không còn truyền tay ở từng nơi gọi. */
 const coNhap = t => { w.chuyen(t); return !!w.document.querySelector('#btNhapExcel'); };
-kt('Nút Nhập từ Excel có mặt ở Lớp học · Giáo viên · Phân công · Điểm trường',
-   ['lop', 'giaovien', 'phancong', 'diemtruong'].every(coNhap));
-kt('Không bày nút đó ở Môn học và Phòng học — tệp Excel không chứa hai thứ này',
-   !coNhap('monhoc') && !coNhap('phonghoc'));
+kt('Mọi màn hình có khai trong MUC_NHAP đều bày nút Nhập từ Excel',
+   ['lop', 'giaovien', 'phancong', 'diemtruong', 'monhoc', 'phonghoc', 'khunggio',
+    'buoiban'].every(coNhap));
+kt('Thông tin trường KHÔNG bày nút đó — một dòng, không có tệp Excel nào cả',
+   !coNhap('thongtin'));
 
 w.chuyen('thongtin');
 kt('Chỉ có ĐÚNG MỘT nút đăng nhập trong cả trang', (() => {
@@ -845,31 +848,55 @@ kt('Tháng không ai nghỉ thì nói "cả trường đủ công", không bày 
 w.eval('S.ncThang = null');
 w.chuyen('daythay');
 w.eval('S.dayThay = []; S.baoNghi = []; S.dtLoc = "moi"; S.bnXem = null');
-console.log('\n15e. Mẫu Excel ma trận và trọn gói');
+console.log('\n15e. Nhập TỪNG MỤC — mỗi màn hình một trang tính');
+/* Chủ dự án: "ta nhập từng mục chứ 10 trang làm cho giáo viên rối quá!". Hộp
+   nhập nay nói về ĐÚNG mục đang mở, không bày ba mẫu cho người dùng tự chọn. */
 w.chuyen('lop');
 w.eval('hopNhapExcel()');
-/* Ba mẫu nay nằm trong THÂN hộp, mỗi mẫu một dòng có nút Tải riêng — chân hộp
-   chỉ còn Huỷ và Chọn tệp. Bản cũ nhét mẫu vào chân hộp, thêm mẫu thứ ba là
-   năm nút chen nhau một hàng và không còn chỗ nói mẫu nào dùng khi nào. */
-kt('Hộp nhập Excel giới thiệu đủ BA kiểu tệp', (() => {
+kt('Hộp nhập nói đúng tên mục đang mở, không phải "chọn một trong ba mẫu"', (() => {
+  const t = w.document.querySelector('#hopT').textContent;
+  return /Nhập Lớp học từ Excel/.test(t);
+})(), w.document.querySelector('#hopT').textContent);
+kt('Nói rõ chỉ MỘT trang tính, và tên trang ấy', (() => {
   const t = w.document.querySelector('#hopN').textContent;
-  return /Trọn gói/.test(t) && /Ma trận một trang/.test(t) && /Ba trang chi tiết/.test(t);
+  return /một trang tính/.test(t) && /LOP/.test(t);
 })());
-kt('Mỗi mẫu có một nút Tải riêng trong thân hộp', (() => {
-  const n = [...w.document.querySelectorAll('#hopN button')];
-  return n.length === 3 && n.every(b => b.textContent === 'Tải') &&
-    n.some(b => /taiMauTronGoi/.test(b.getAttribute('onclick'))) &&
-    n.some(b => /taiMauMaTran/.test(b.getAttribute('onclick'))) &&
-    n.some(b => /taiMauExcel/.test(b.getAttribute('onclick')));
+kt('Bày bảng "cột nào ghi gì" — người điền biết trước phải gõ gì vào đâu', (() => {
+  const t = w.document.querySelector('#hopN').textContent;
+  return /Ma_lop/.test(t) && /Ten_lop/.test(t) && /Khoi/.test(t) && /bắt buộc/.test(t);
 })());
-kt('Chân hộp chỉ còn Huỷ và Chọn tệp — một lối vào cho cả ba kiểu tệp', (() => {
+kt('Không còn nhắc mẫu trọn gói mười trang ở bất kỳ đâu trong hộp',
+   !/Trọn gói|mười trang/.test(w.document.querySelector('#hopN').textContent));
+kt('Chân hộp có ba nút: Huỷ · Tải mẫu về điền · Chọn tệp', (() => {
   const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
-  return nut.length === 2 && nut.includes('Huỷ') && nut.includes('Chọn tệp');
+  return nut.length === 3 && nut.includes('Tải mẫu về điền') && nut.includes('Chọn tệp');
 })());
-kt('Mẫu trọn gói đứng ĐẦU — nó là mẫu khai được tất cả', (() => {
-  const t = w.document.querySelector('#hopN').textContent;
-  return t.indexOf('Trọn gói') < t.indexOf('Ma trận một trang');
-})());
+w.eval('dong()');
+
+/* Mục phụ thuộc: chặn NGAY từ đầu, đừng để điền xong 400 dòng mới báo */
+w.chuyen('phancong');
+w.eval('hopNhapExcel()');
+kt('Màn Phân công vẫn mời mẫu ma trận — tờ phân công nhiều trường vẫn kẻ tay',
+   /ma trận/i.test(w.document.querySelector('#hopN').innerHTML));
+w.eval('dong()');
+{
+  const lopCu = w.eval('JSON.stringify(S.lop)');
+  w.eval('S.lop = []');
+  w.chuyen('phancong');
+  w.eval('hopNhapExcel()');
+  kt('Chưa khai lớp thì hộp Phân công CHẶN ngay, nói rõ phải làm gì trước', (() => {
+    const t = w.document.querySelector('#hopN').textContent;
+    return /Khai xong .*Lớp học.* trước/.test(t);
+  })(), w.document.querySelector('#hopN').textContent.slice(0, 90));
+  kt('Bị chặn thì không bày nút Chọn tệp nào cả', (() => {
+    const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
+    return !nut.includes('Chọn tệp') && !nut.includes('Tải mẫu về điền');
+  })());
+  w.eval('dong()');
+  w.eval(`S.lop = ${lopCu}`);
+  w.chuyen('lop');
+}
+w.eval('hopNhapExcel()');
 w.eval('dong()');
 
 /* --- Bước ③ và ④ của luồng nhập một cửa --- */
@@ -1477,8 +1504,13 @@ kt('Nạp ExcelJS để ghi tệp có màu, có viền, có khổ giấy', (() =
   const ma = w.document.documentElement.innerHTML;
   return /exceljs/.test(ma) && /xlsx@0\.18/.test(ma);
 })(), 'SheetJS đọc tệp · ExcelJS ghi tệp');
-kt('Bảng mẫu nhập vẫn đúng ba trang tính và tên cột',
-   w.bangMauNhap().gv[0].join() === 'Ma_GV,Ho_ten,Chu_nhiem,Dinh_muc');
+/* Mẫu ba trang và mẫu mười trang đã bỏ 28/8/2026 — nay mỗi mục một trang.
+   Canh đúng thứ người dùng đọc: tên cột trên trang Giáo viên. */
+kt('Mẫu Giáo viên đúng bộ cột, có cả Gmail và Ghi_chu', (() => {
+  /* `const MUC_NHAP` không nằm trên window — lấy qua eval trong chính khung trang */
+  const cot = w.eval("MUC_NHAP.giaovien.cot.map(c=>c.ten).join()");
+  return [cot === 'TT,Ma_GV,Ho_ten,Gmail,Chu_nhiem,Dinh_muc,Ghi_chu', cot];
+})()[0], w.eval("MUC_NHAP.giaovien.cot.map(c=>c.ten).join(' · ')"));
 
 console.log('\n16b. Ô tìm kiếm trong danh sách dài');
 /* Gõ vào ô tìm kiếm rồi phát sự kiện input đúng như trình duyệt thật */
@@ -2327,6 +2359,164 @@ console.log('\n17e. db/duyet-truong.sql');
      && /create policy p_tkb_ghi on tkb_phien_ban[\s\S]{0,200}truong_duoc_dung\(\)/.test(sql));
   kt('KHÔNG viết cứng Gmail của chủ dự án vào tệp — kho mã là kho công khai',
      !/@gmail\.com/.test(sql.replace(/dia-chi-gmail-cua-thay@gmail\.com/g, '')));
+}
+
+console.log('\n17h. Bảng Giáo viên: Gmail và cột Dạy (28/8/2026)');
+/* Đề xuất của chủ dự án: *"tại nút Giáo viên cần có thêm cột gmail để khỏi
+   phải mời nữa"*, và bảng cần đủ TT · Họ tên · GVCN · Lớp(môn) · Gmail ·
+   định mức · Ghi chú. */
+{
+  w.eval(`S.giaoVien[0].email='co.mot@gmail.com';
+          S.giaoVien[1].ghiChu='Nghỉ thai sản';`);
+  w.chuyen('giaovien');
+  const dau = [...w.document.querySelectorAll('#bGV thead th')].map(t => t.textContent.trim());
+  kt('Bảng có đủ bảy thứ chủ dự án nêu, theo đúng thứ tự đọc',
+     ['TT', 'Họ và tên', 'Gmail', 'Chủ nhiệm', 'Dạy', 'Tiết / định mức', 'Ghi chú']
+       .every(c => dau.includes(c)), dau.join(' · '));
+
+  /* Bảng sắp theo SỐ TIẾT giảm dần, không theo thứ tự S.giaoVien — dò theo id
+     chứ đừng lấy dòng đầu, không thì phép thử xanh/đỏ theo thứ tự sắp xếp. */
+  const idMot = w.eval('S.giaoVien[0].id');
+  const o = w.document.querySelector(`[data-gvmail="${idMot}"]`);
+  kt('Ô Gmail sửa được ngay trong bảng, không phải mở hộp thoại nào',
+     !!o && o.tagName === 'INPUT' && o.value === 'co.mot@gmail.com', o?.value);
+  kt('Người đã đăng nhập được đánh dấu, để biết còn phải phát quyền cho ai',
+     /chưa khai/.test(w.document.querySelector('#bGV').innerHTML));
+
+  /* Cột Dạy CHỈ ĐỌC — máy tự ghi từ phân công, nên không bao giờ lệch */
+  kt('Cột Dạy không có ô nhập nào — nó là chỗ đọc, không phải chỗ gõ',
+     !w.document.querySelector('.gv-day-o input, .gv-day-o select'));
+  kt('Cột Dạy gom các lớp cùng bộ môn lại, không kể ra 25 dòng',
+     /\+\d+ ·/.test(w.document.querySelector('#bGV').textContent),
+     (w.document.querySelector('.gv-day')?.textContent || '').trim());
+  kt('Bấm vào cột Dạy thì sang màn Phân công đã lọc sẵn người ấy', (() => {
+    const nut = w.document.querySelector('[data-gvpc]');
+    if (!nut) return false;
+    const id = nut.dataset.gvpc;
+    nut.click();
+    const ok = w.eval('S.trangHienTai') === 'phancong' &&
+               w.document.querySelector('#fGV')?.value === id;
+    /* Dùng MỘT LẦN rồi xoá — để lại thì lần sau mở màn Phân công vẫn bị lọc */
+    const con = w.eval('S.pcGV');
+    w.chuyen('giaovien');
+    return ok && !con;
+  })());
+
+  /* Hai phép soát Gmail phải GIỐNG HỆT đường nhập Excel — một lối vào lỏng
+     hơn lối kia là hàng rào coi như không có. */
+  const goMail = (i, chu) => {
+    const ds = [...w.document.querySelectorAll('[data-gvmail]')];
+    ds[i].value = chu;
+    ds[i].dispatchEvent(new w.Event('change', { bubbles: true }));
+  };
+  goMail(1, 'khong-phai-email');
+  kt('Gõ địa chỉ sai thì TRẢ Ô VỀ giá trị cũ, không để chữ hỏng nằm lại',
+     w.eval('S.giaoVien.filter(g=>g.email==="khong-phai-email").length') === 0);
+  goMail(1, 'co.mot@gmail.com');
+  kt('Gõ trùng Gmail của người khác cũng bị chặn — mỗi địa chỉ một người',
+     w.eval('S.giaoVien.filter(g=>g.email==="co.mot@gmail.com").length') === 1);
+  w.chuyen('giaovien');
+  goMail(1, 'Co.Hai@Gmail.COM');
+  kt('Gõ đúng thì lưu về chữ thường, bỏ khoảng trắng thừa',
+     w.eval('S.giaoVien.filter(g=>g.email==="co.hai@gmail.com").length') === 1,
+     w.eval('JSON.stringify(S.giaoVien.map(g=>g.email).filter(Boolean))'));
+  w.eval("S.giaoVien.forEach(g=>{g.email=''; g.ghiChu='';})");
+}
+
+console.log('\n17i. db/gmail-giao-vien.sql');
+{
+  const sql = readFileSync(join(goc, 'db/gmail-giao-vien.sql'), 'utf8');
+  kt('Thêm cột bằng "if not exists" — chạy lại lần nữa vẫn an toàn',
+     /add column if not exists email/.test(sql) &&
+     /add column if not exists ghi_chu/.test(sql));
+  /* Hai hồ sơ cùng Gmail thì lúc đăng nhập máy không biết mở lịch của ai —
+     đúng bài học sự cố 2/8/2026 (mã mời nối nhầm vào hồ sơ trùng tên 0 tiết). */
+  kt('Một Gmail chỉ trỏ về MỘT hồ sơ trong cùng một trường',
+     /create unique index[\s\S]{0,160}giao_vien \(truong_id, lower\(email\)\)/.test(sql));
+  kt('Chỉ số là PARTIAL — hồ sơ chưa khai Gmail vẫn để null thoải mái',
+     /where email is not null/.test(sql));
+  /* ⚠️ Nhận email qua THAM SỐ là ai cũng tự khai mình là người khác. */
+  kt('Địa chỉ lấy từ VÉ ĐĂNG NHẬP, hàm không nhận tham số nào',
+     /create or replace function vao_bang_gmail\(\)/.test(sql) &&
+     /auth\.jwt\(\) ->> 'email'/.test(sql));
+  kt('security definer nhưng TỰ KIỂM QUYỀN — cùng khuôn duyet_truong()',
+     /security definer/.test(sql) && /v_uid\s+uuid := auth\.uid/.test(sql) &&
+     /if v_uid is null/.test(sql));
+  kt('Chỉ nhận hồ sơ CHƯA nối tài khoản nào — không cướp được quyền của ai',
+     /g\.nguoi_dung_id is null/.test(sql));
+  kt('Trường chưa được duyệt thì không ai vào bằng Gmail được',
+     /trang_thai_duyet, 'dang_dung'\) = 'dang_dung'/.test(sql));
+  kt('Chỉ tài khoản đã đăng nhập gọi được hàm này',
+     /revoke all on function vao_bang_gmail\(\) from public/.test(sql) &&
+     /grant execute on function vao_bang_gmail\(\) to authenticated/.test(sql));
+}
+
+/* App phải THỬ Gmail trước khi kết luận "chưa thuộc trường nào", và có
+   ĐƯỜNG LUI khi máy chủ chưa chạy tệp SQL ấy. */
+{
+  const src = readFileSync(duong, 'utf8');
+  kt('napHoSo() thử nhận mình bằng Gmail trước khi đẩy người dùng thành KHÁCH',
+     /if\(thuGmail && \(await vaoBangGmail\(\)\)\.ok\) return napHoSo\(false\);/.test(src));
+  kt('Chỉ thử MỘT LẦN — hai hàm không gọi vòng nhau',
+     /async function napHoSo\(thuGmail=true\)/.test(src));
+  kt('Máy chủ chưa chạy tệp SQL thì im lặng lùi về đường mã mời',
+     /return \{ok:false, thongBao:''\};/.test(src));
+  kt('Ghi giáo viên có đường lui khi máy chủ chưa có hai cột mới',
+     /Could not find the '\(email\|ghi_chu\)' column/.test(src) &&
+     /KHO\.coCotGV=false/.test(src));
+}
+
+console.log('\n17f. Màn hình trường CHỜ DUYỆT (28/8/2026)');
+/* Chủ dự án gửi ảnh chụp màn hình này: giá trị căn phải dính sát vạch viền
+   rồi tràn hẳn ra ngoài thẻ, và thanh đầu trang bày tên TRƯỜNG MẪU ngay phía
+   trên tấm thẻ ghi tên trường thật trong đơn. */
+{
+  const cu = w.eval('JSON.stringify(KHO.nguoiDung||null)');
+  w.eval(`KHO.nguoiDung = {hoTen:'Người Đăng Ký', email:'truong@nghean.edu.vn',
+    tenTruong:'Trường tiểu học Đang Chờ', vaiTro:'quan_tri',
+    trangThaiTruong:'cho_duyet'}`);
+  w.chuyen('choduyet');
+  const noi = w.document.querySelector('#noiDung').innerHTML;
+
+  /* `.the` cố ý KHÔNG mang padding — mọi màn hình khác bọc nội dung trong
+     `.the-t`. Thiếu lớp bọc ấy là chữ dính vạch viền, trên điện thoại thì tràn. */
+  kt('Thẻ chờ duyệt bọc nội dung trong .the-t nên chữ không dính vạch viền',
+     /class="the"[^>]*>\s*<div class="the-t">/.test(noi));
+  kt('Vẫn bày đủ bốn dòng thông tin đơn',
+     (noi.match(/class="hang"/g) || []).length === 4);
+
+  kt('Thanh đầu trang lấy tên trường TRONG ĐƠN, không phải tên bộ dữ liệu mẫu',
+     w.document.querySelector('#tenTruong').textContent === 'TRƯỜNG TIỂU HỌC ĐANG CHỜ',
+     w.document.querySelector('#tenTruong').textContent);
+  kt('Thanh đầu trang nói rõ đang chờ duyệt, không bày địa bàn của trường mẫu',
+     /chờ duyệt/i.test(w.document.querySelector('#diaChi').textContent));
+  /* Chuông đang đếm cảnh báo của bộ dữ liệu MẪU — con số vô nghĩa với trường
+     chưa có dữ liệu nào của mình. */
+  kt('Chuông và kính lúp im hẳn khi trường chưa được duyệt',
+     w.document.querySelector('#btChuong').style.display === 'none' &&
+     w.document.querySelector('#btTim').style.display === 'none');
+  /* Thanh bên lúc này chỉ còn nhóm HỆ THỐNG, mà nhóm mặc định (ĐIỀU HÀNH) đã
+     bị giấu — không tự bung thì thanh bên là mấy dòng chữ không bấm được. */
+  kt('Nhóm menu duy nhất còn hiện thì TỰ BUNG, không để thanh bên trống trơn',
+     [...w.document.querySelectorAll('.nh')]
+       .some(n => n.style.display !== 'none' && n.classList.contains('mo')));
+
+  w.eval(`KHO.nguoiDung = ${cu}`);
+  w.chuyen('dieuhanh');
+}
+
+console.log('\n17g. Không còn chữ "Supabase" trên giao diện (28/8/2026)');
+/* Đa số cán bộ giáo viên không biết Supabase là gì. Tên ấy chỉ còn được phép
+   nằm trong COMMENT của mã — chỗ người sửa mã cần biết mình gọi dịch vụ nào. */
+{
+  const src = readFileSync(duong, 'utf8');
+  const khongComment = src.replace(/\/\*[\s\S]*?\*\//g, '')
+                          .replace(/^\s*\/\/.*$/gm, '');
+  const con = (khongComment.match(/Supabase/g) || []).length;
+  kt('Không một chuỗi hiển thị nào còn chữ "Supabase"', con === 0,
+     con ? `còn ${con} chỗ` : 'sạch');
+  kt('Ghi chú kỹ thuật trong mã thì VẪN giữ tên thật của dịch vụ',
+     /Supabase/.test(src));
 }
 
 console.log('\n17c. Ký tự xuống dòng');

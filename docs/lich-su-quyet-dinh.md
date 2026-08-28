@@ -1199,3 +1199,154 @@ dùng thật, Châu Đình vừa vào — 0 lớp, chờ khai báo).
 **Việc mở ra từ hôm nay:** kèm Châu Đình khai báo dữ liệu qua Zalo;
 thông báo hai chiều cho khâu duyệt (đơn mới → báo chủ hệ thống, duyệt
 xong → báo trường) phải làm trước khi quảng bá rộng.
+
+---
+
+## 28/8/2026 — bộ demo đổi sang HỌ TÊN HƯ CẤU
+
+Chủ dự án hỏi *"nếu một tài khoản Gmail khác đăng nhập sẽ là trường nào?"*.
+Trả lời: tài khoản gắn với dòng nào trong `nguoi_dung` thì thấy đúng trường
+ấy, và tài khoản chưa thuộc trường nào thì thành **KHÁCH** — ba lối: xem bản
+demo, nhập mã mời, đăng ký trường mới.
+
+Chính lối thứ nhất là chỗ hở: bản demo chạy bằng `data/truong-dien-lien.json`,
+tức **họ tên đầy đủ của 35 thầy cô có thật** cùng lớp chủ nhiệm và toàn bộ
+lịch dạy của từng người — phát cho bất kỳ ai đăng nhập bằng Gmail bất kỳ, ở
+một kho mã công khai. Họ tên giáo viên là dữ liệu cá nhân theo Nghị định
+13/2023/NĐ-CP, và không ai trong 35 người ấy đồng ý cho việc này.
+
+Nay cả 35 hồ sơ mang tên hư cấu. **Chỉ ba trường đổi**: `id` · `hoTen` ·
+`tenNgan`. Mọi thứ khác giữ nguyên tuyệt đối — 25 lớp, 265 dòng phân công,
+710 tiết/tuần, chủ nhiệm, định mức. Bộ mốc vàng vì thế không nhúc nhích:
+`npm run kiemdinh` vẫn 710/710 · 88% Toán-TV vào tiết 1–3 sáng · 1698/1698
+ở quy mô 60 lớp · 0 vi phạm.
+
+**Bốn khuôn phải giữ khi đặt tên hư cấu**, vì bộ dữ liệu này là *bộ kiểm thử
+vàng* chứ không phải danh sách trang trí:
+
+| Khuôn của bản thật | Bản hư cấu |
+|---|---|
+| 4 cặp trùng tên gọi (Dung · Linh · Hương · Oanh) | Nhài · Mận · Sen · Nhã — R09 vẫn nổ đúng 4 lần |
+| 1 cặp chỉ khác DẤU (Thùy / Thủy) | Hạnh / Hanh — `maGVTu()` phải ra hai mã khác nhau |
+| Tên gọi rút gọn có hậu tố phân biệt (`Cô DungB`) | `Cô NhàiB` · `Cô MậnA` · `Cô Đ.Nhã` · `Cô K.Sen` |
+| 3 thầy giáo, 32 cô giáo | giữ nguyên từng vị trí — script tự soát `Thầy`/`Cô` |
+
+Script đổi tên tự dừng nếu bất kỳ bất biến nào lệch: số cặp trùng tên gọi,
+tổng tiết, số dòng phân công, trùng id, trùng họ tên, lệch chủ nhiệm, lệch
+định mức, lệch giới tính.
+
+⚠️ **Bẫy đã lộ ra ngay lần chạy đầu:** phép thử *"Bản xuất ghi họ tên đầy
+đủ, không dùng tên gọi rút gọn"* ghi cứng `'Bùi Thị Dung'` · `'Đặng Thị
+Dung'` · `'DungB'`. Đổi bộ dữ liệu là nó đỏ — may, vì nếu tên mới **tình cờ**
+còn chứa chuỗi cũ thì nó xanh mà chẳng kiểm được gì (đúng khuôn bẫy "phép
+thử so hai thứ tình cờ bằng nhau" đã ghi ở mục 3). Nay phép thử **suy cặp
+trùng tên gọi từ chính dữ liệu** và đòi **mọi** ô có người dạy đều kết thúc
+bằng họ tên đầy đủ của một giáo viên có thật trong danh sách.
+
+Hai chỗ khác cũng gỡ tên người thật, cùng lý do:
+
+- **32 ảnh chụp giao diện** `docs/anh-giao-dien/` — chụp lại bằng
+  `node docs/anh-giao-dien/chup.mjs`. Ảnh cũ bày nguyên lịch dạy của từng cô.
+- **Chú thích sự cố 2/8/2026** trong `src/index.html` nêu đích danh một cô
+  giáo có thật cùng chuyện hồ sơ trùng của cô — nay ẩn danh, nội dung kỹ
+  thuật giữ nguyên từng chữ.
+
+⚠️ **`db/du-lieu-dien-lien.sql` CỐ Ý chưa đụng tới** — nó vẫn còn đủ 34 họ
+tên thật. Đây là tệp nạp dữ liệu **thật** lên máy chủ Diễn Liên, không phải
+bộ demo; đổi tên trong đó rồi ai chạy lại là **chèn thêm một lứa 35 hồ sơ
+hư cấu** vào trường đang chạy thật — đúng vết xe đổ ngày 2/8/2026 (105 hồ
+sơ, mỗi người ba bản). Việc còn lại, chủ dự án quyết: tệp ấy chỉ dùng cho
+lần nạp đầu tiên đã xong từ lâu, nên hướng gọn nhất là **xoá khỏi kho mã**
+chứ không phải sửa tên trong đó.
+
+**Số đo:** `npm test` 406 · `npm run soi` 380 · `npm run soi-mau` 33 ·
+`npm run soat` 0 lỗi · `npm run kiemdinh` 22 — tất cả xanh.
+
+---
+
+## 28/8/2026 — rà soát bảo mật, và một lỗ LEO THANG QUYỀN
+
+Chủ dự án hỏi: *"đối thủ cạnh tranh nhiều, app của ta đã đủ bảo mật để ngăn
+xâm nhập, phá cấu trúc hoặc lấy dữ liệu từ bên ngoài chưa?"*
+
+**Ba tầng rà được đánh giá là chắc, giữ nguyên:**
+
+- Cô lập dữ liệu nằm ở **cơ sở dữ liệu**, không ở giao diện — 12 bảng bật
+  RLS, 44 chính sách, mọi truy vấn lọc qua `truong_cua_toi()`. Sửa
+  `truongId` trong bộ nhớ trình duyệt cũng không lấy được dòng nào của
+  trường khác.
+- Khoá bí mật **không bao giờ rời máy chủ**: `src/cauhinh.js` chỉ có khoá
+  `sb_publishable_…`; `service_role` chỉ sống trong Edge Function, và hàm
+  ấy xác thực vé người gọi → tra vai trò → chốt `cungTruong()` ở mọi thao
+  tác.
+- RPC nhạy cảm đã `revoke` khỏi `anon`. Mã mời 6 ký tự sinh bằng
+  `crypto.getRandomValues` (887 triệu tổ hợp, hạn 30 ngày, dùng một lần).
+
+**Nhưng RLS cấp quyền theo DÒNG, không theo CỘT** — và đó là chỗ thủng.
+`p_nd_sua` cho quản lý ghi vào `nguoi_dung` của trường mình, đúng từ ngày
+viết. Ngày 24/8/2026 cột `la_chu_he_thong` được thêm vào **chính bảng ấy**,
+nên quy tắc cũ lặng lẽ rộng ra: **bất kỳ ai đăng ký một trường mới cũng tự
+phong mình làm chủ hệ thống được bằng một lệnh PATCH**, rồi đọc danh sách
+mọi trường cùng họ tên · email người dùng của mọi trường, duyệt hoặc chặn
+trường của người khác. Cửa đăng ký cố ý để mở nên ai cũng đi được đường này.
+
+Cùng một gốc, hai lỗ nữa: PHT tự nâng `vai_tro`, hoặc đặt
+`diem_truong_id` về `null` để thoát giới hạn điểm trường và ghi đè lưới cả
+ba điểm; và trường chờ duyệt tự đặt `trang_thai_duyet = 'dang_dung'`.
+
+**Vá bằng `db/siet-quyen.sql`** — hai trigger `before`, vì trigger là chỗ
+duy nhất nói được câu "sửa dòng này thì được, đừng đụng cột kia". Chặn
+thẳng bằng exception 42501, không lặng lẽ bỏ qua — đúng bài học
+`suaHang()`. Bỏ qua khi `auth.uid()` là null nên SQL Editor, khoá
+`service_role` và bước khôi phục sao lưu vẫn đi lọt; `src/index.html` chỉ
+ĐỌC bảng `nguoi_dung` (mọi việc tài khoản đi qua Edge Function) nên bản vá
+**không phá luồng nào đang chạy** — nó đóng đúng cái đường mà chỉ kẻ tấn
+công mới cần.
+
+**Luật mới trong `npm run soat`, mục 2b** — phần đáng giá hơn cả bản vá,
+vì nó chặn lớp lỗi này tái diễn: bộ soát suy danh sách **cột quyết định
+quyền** từ chính các hàm quyền (`language sql stable` đọc hồ sơ người đang
+đăng nhập), rồi đòi mỗi cột hoặc có trigger canh — khai
+`-- CANH-COT: bảng.cột` ngay trong SQL — hoặc được khai
+`-- KHONG-CANH: bảng.cột — <lý do>`. Nguồn sự thật nằm trong tệp SQL, bộ
+soát không chép tay danh sách nào.
+
+Đã **thử ngược cả hai chiều** trước khi tin nó: bỏ dòng khai của
+`la_chu_he_thong` → đỏ; giữ dòng khai mà sửa trigger cho không đụng tới
+`vai_tro` → cũng đỏ. Bộ soát in luôn **danh sách cột tìm được**, để phân
+biệt "soi kỹ và sạch" với "không tìm thấy gì để soi".
+
+⚠️ **Bẫy khi viết chính luật ấy:** bản đầu soi mọi hàm có `auth.uid()`, nên
+vơ luôn hàm nghiệp vụ plpgsql (`duyet_truong`, `luu_tkb`) và nhặt ra
+những "cột" tên là `false`, `null`, `format`, cả biến cục bộ `v_tt` — tám
+lỗi giả. Bản thứ hai thu về đúng khuôn hàm quyền nhưng lại **bỏ sót đúng
+hai cột quan trọng nhất**, vì cách trích tên cột quá thô:
+`select coalesce((select la_chu_he_thong from …` cắt tới chữ `from` đầu
+tiên nên nhặt được chữ *coalesce*, còn
+`select t.trang_thai_duyet = 'dang_dung' from truong t` thì phần trước
+`from` là cả một phép so sánh. Cách chữa: dựng bảng tra `<bảng> → <cột>`
+từ chính `create table`, rồi chỉ nhận định danh **có thật** trong bảng ấy.
+Một bộ soát báo xanh vì nó mù thì tệ hơn không có bộ soát nào.
+
+**ĐÃ CHẠY TRÊN MÁY CHỦ THẬT ngay trong ngày.** Soi lại ra đúng hai
+trigger `tg_chan_tu_nang_quyen` (nguoi_dung) và `tg_chan_tu_duyet_truong`
+(truong) — lỗ đóng.
+
+Câu soi cố ý gộp luôn **danh sách chủ hệ thống hiện có**, và đó là phần
+đáng giá: nó bày ra **hai** tài khoản chứ không phải một. Cả hai đều của
+chủ dự án (một tài khoản phụ), nên không phải sự cố — nhưng nếu lỗ đã bị
+dùng trước khi vá thì đây đúng là chỗ duy nhất nhìn ra. **Vá xong thì phải
+soi luôn xem lỗ ấy đã bị dùng chưa**, không chỉ soi xem bản vá đã gắn chưa;
+hai câu hỏi khác nhau, và câu thứ hai mới là câu không quay lại được.
+
+Giữ hai tài khoản chủ hệ thống là có lý: một chủ hệ thống duy nhất là điểm
+đơn lỗi — mất quyền vào tài khoản ấy thì **không ai duyệt được trường nào
+nữa**. Đổi lại, mỗi tài khoản giữ vai này đều đọc được họ tên · email người
+dùng của mọi trường, nên đừng để con số ấy lớn hơn nhu cầu dự phòng. Ba việc nhỏ hơn ghi ở mục
+9 của `CLAUDE.md`: thẻ Content-Security-Policy, giới hạn số trường một tài
+khoản đăng ký được, và `nhat_ky` hiện cho mọi người cùng trường ghi tự do.
+
+**Số đo:** `npm test` 406 · `npm run soi` 380 · `npm run soi-mau` 33 ·
+`npm run soat` 0 lỗi 0 cảnh báo (370 câu lệnh) · `npm run kiemdinh` 22.
+`db/cai-dat.sql` sinh lại từ **13** tệp nguồn, đã có bản vá trong đó nên
+trường mới cài trọn gói là có sẵn.

@@ -48,11 +48,11 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [],
 let TEP = null;
 const NGUON = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}
 ${catHam('trangXL')}${catHam('tieuDeXL')}${catHam('dauCotXL')}${catHam('thanBangXL')}
-${catHam('apKhoaXL')}${catHam('taiMauTronGoi')}${catHam('xuatExcel')}
+${catHam('apKhoaXL')}${catHam('danhMucCuaMuc')}${catHam('taiMauMuc')}${catHam('xuatExcel')}
 async function ghiTepXL(wb, ten){ ghiRa(wb, ten); }
 async function sanSangExcelJS(){ return true; }
 function bao(){}
-; return { taiMauTronGoi, bangMauTronGoi, duLieuTuTronGoi, xuatExcel,
+; return { taiMauMuc, danhMucCuaMuc, MUC_NHAP, duLieuTuMuc, duLieuTuTronGoi, xuatExcel,
            S, napVaoS, NGUON, maGVTu, xepTuDong, tenTepXuat };`;
 
 const app = new Function('document', 'window', 'fetch', 'ExcelJS',
@@ -69,73 +69,90 @@ const kt = (ten, dk, ghi = '') => {
   else { hong++; console.log(`  \x1b[31m✗\x1b[0m ${ten}${ghi ? ' — ' + ghi : ''}`); }
 };
 
-console.log('\n\x1b[1mSoi tệp mẫu Excel trọn gói\x1b[0m');
+console.log('\n\x1b[1mSoi tệp mẫu Excel TỪNG MỤC\x1b[0m');
 
 /* ⚠️ PHẢI đi qua napVaoS() y như app thật. Bản đầu của tệp này dùng thẳng `S`
    ở mức vùng mã — bộ mẫu nhúng tại đó CHƯA có cột `maGV`, nên mẫu rơi về
-   `g.id` và bày ra `gv_nguyen_thi_trinh` (19 ký tự) thay vì `Trinh_NT` (8).
+   `g.id` và bày ra `gv_le_thi_nguyet` (16 ký tự) thay vì `Nguyệt_LT` (9).
    Tệp sinh ra để chủ dự án xem vì thế KHÔNG phải thứ app thật sinh ra, và
    ông nhận ra ngay khi mở: "mã giáo viên quá dài". Bài học: phép soi mà bỏ
    qua một bước của đường thật thì nó soi một sản phẩm không tồn tại. */
 app.napVaoS(JSON.parse(JSON.stringify(app.NGUON)));
+/* Hai mục tuỳ chọn trường Diễn Liên chưa khai — gieo một dòng để mẫu của
+   chúng cũng có ruột mà soi, dựng từ dữ liệu THẬT chứ không phải dòng ví dụ */
+app.S.phong = [{ id: 'ph1', ten: 'Phòng máy 1', mon: 'Tin học', dtId: app.S.diemTruong[0].id }];
+app.S.gvNghi = { [app.S.giaoVien[0].id]: ['5-C'] };
 
-await app.taiMauTronGoi();
-kt('taiMauTronGoi() chạy trọn, không ném lỗi', !!TEP, TEP?.ten);
+const MUC = Object.keys(app.MUC_NHAP);
+const TEP_MUC = {};                     /* mã mục -> workbook đã đọc lại */
 
-/* Ghi ra buffer rồi ĐỌC LẠI bằng ExcelJS — tệp hỏng thì đọc lại là vỡ ngay.
-   Đây mới là phép thử thật: dựng được workbook trong bộ nhớ không có nghĩa
-   là tệp .xlsx ghi ra hợp lệ. */
-const buf = await TEP.wb.xlsx.writeBuffer();
-kt('Ghi ra được tệp .xlsx', buf.byteLength > 0, `${(buf.byteLength / 1024).toFixed(0)} KB`);
-kt('Tệp đủ nhẹ để gửi Zalo', buf.byteLength < 2 * 1024 * 1024,
-   `${(buf.byteLength / 1024).toFixed(0)} KB`);
+for (const ma of MUC) {
+  const m = app.MUC_NHAP[ma];
+  TEP = null;
+  await app.taiMauMuc(ma);
+  kt(`taiMauMuc('${ma}') chạy trọn, không ném lỗi`, !!TEP, TEP?.ten);
+  /* Ghi ra buffer rồi ĐỌC LẠI — dựng được workbook trong bộ nhớ không có
+     nghĩa là tệp .xlsx ghi ra hợp lệ. Đây mới là phép thử thật. */
+  const buf = await TEP.wb.xlsx.writeBuffer();
+  const lai = new ExcelJS.Workbook();
+  await lai.xlsx.load(buf);
+  TEP_MUC[ma] = { lai, ten: TEP.ten, buf };
+  const ten = lai.worksheets.map(w => w.name);
+  kt(`${m.trang}: đúng MỘT trang dữ liệu (+ DANH_MUC), không phải mười tab`,
+     ten[0] === m.trang && ten.length <= 2 &&
+     ten.slice(1).every(x => x === 'DANH_MUC'), ten.join(' · '));
+  kt(`${m.trang}: đặt sẵn khổ A4, canh vừa bề ngang — in ra dùng được ngay`,
+     lai.worksheets.filter(w => w.name !== 'DANH_MUC')
+        .every(w => w.pageSetup?.paperSize === 9 && w.pageSetup?.fitToPage));
+}
 
-const lai = new ExcelJS.Workbook();
-await lai.xlsx.load(buf);
-const ten = lai.worksheets.map(w => w.name);
-kt('Đọc lại được tệp vừa ghi', ten.length > 0, ten.join(' · '));
-kt('Đủ mười trang tính', ten.length === 10, `${ten.length} trang`);
-kt('Trang 0_BAT_DAU đứng đầu — đọc lúc đang điền', ten[0] === '0_BAT_DAU');
-kt('Tám trang dữ liệu đánh số đúng thứ tự',
-   ['1_TRUONG', '2_DIEM_TRUONG', '3_KHUNG_GIO', '4_LOP', '5_GIAO_VIEN',
-    '6_PHAN_CONG', '7_PHONG', '8_BUOI_BAN'].every((t, i) => ten[i + 1] === t));
+/* --- Tên tệp nói rõ mục nào, để thư mục Tải về không thành một đống giống nhau --- */
+kt('Mỗi mục một tên tệp riêng, đọc ra được mục nào',
+   new Set(MUC.map(ma => TEP_MUC[ma].ten)).size === MUC.length &&
+   /Mau-Lop-hoc/.test(TEP_MUC.lop.ten),
+   TEP_MUC.lop.ten);
 
-/* --- Ô xổ xuống có thật trong tệp không --- */
-const pc = lai.getWorksheet('6_PHAN_CONG');
-const dvMaLop = pc.getCell('B4').dataValidation;
-kt('Ô Ma_lop ở trang Phân công có dataValidation kiểu list',
-   dvMaLop?.type === 'list', JSON.stringify(dvMaLop?.formulae));
-kt('Ô xổ xuống trỏ vào VÙNG ĐẶT TÊN, không có dấu = thừa',
-   dvMaLop?.formulae?.[0] === 'DM_Ma_lop', String(dvMaLop?.formulae?.[0]));
+/* --- Ô xổ xuống có THẬT trong tệp không ---------------------------------
+   `formulae:['=DM_Ma_lop']` thừa dấu `=` là lỗi không nhìn ra bằng mắt: tệp
+   vẫn mở, vẫn đủ dữ liệu, chỉ là bấm vào ô không có danh sách nào bung ra. */
+{
+  const pc = TEP_MUC.phancong.lai.getWorksheet('PHAN_CONG');
+  const dv = pc.getCell('B4').dataValidation;
+  kt('Ô Ma_lop ở trang Phân công có dataValidation kiểu list', dv?.type === 'list',
+     JSON.stringify(dv?.formulae));
+  kt('Ô xổ xuống trỏ vào VÙNG ĐẶT TÊN, không có dấu = thừa',
+     dv?.formulae?.[0] === 'DM_Ma_lop', String(dv?.formulae?.[0]));
 
-const lop = lai.getWorksheet('4_LOP');
-const dvKhoi = lop.getCell('C4').dataValidation;
-kt('Ô Khoi khoá số nguyên 1–5',
-   dvKhoi?.type === 'whole' && dvKhoi.operator === 'between' &&
-   String(dvKhoi.formulae?.[0]) === '1' && String(dvKhoi.formulae?.[1]) === '5',
-   `${dvKhoi?.type} ${dvKhoi?.formulae}`);
+  const lop = TEP_MUC.lop.lai.getWorksheet('LOP');
+  const dvK = lop.getCell('C4').dataValidation;
+  kt('Ô Khoi khoá số nguyên 1–5',
+     dvK?.type === 'whole' && dvK.operator === 'between' &&
+     String(dvK.formulae?.[0]) === '1' && String(dvK.formulae?.[1]) === '5',
+     `${dvK?.type} ${dvK?.formulae}`);
 
-/* Khoá phải phủ RA NGOÀI phần đã điền — việc chính của người dùng là gõ thêm */
-const cuoi = 4 + app.S.lop.length + 40;
-kt('Khoá còn hiệu lực ở những dòng người dùng sẽ gõ thêm',
-   lop.getCell(`C${cuoi}`).dataValidation?.type === 'whole', `tới dòng ${cuoi}`);
+  /* Khoá phải phủ RA NGOÀI phần đã điền — việc chính của người dùng là gõ thêm */
+  const cuoi = 4 + app.S.lop.length + 40;
+  kt('Khoá còn hiệu lực ở những dòng người dùng sẽ gõ thêm',
+     lop.getCell(`C${cuoi}`).dataValidation?.type === 'whole', `tới dòng ${cuoi}`);
+}
 
-/* --- Vùng đặt tên --- */
-const vungTen = lai.definedNames?.model?.map(x => x.name) || [];
-kt('Có đủ vùng đặt tên cho mọi danh mục',
-   ['DM_Ma_lop', 'DM_Ma_GV', 'DM_Mon', 'DM_Diem_truong', 'DM_Thu', 'DM_Buoi', 'DM_Co_khong']
-     .every(n => vungTen.includes(n)), vungTen.join(' · '));
-
-const dm = lai.getWorksheet('DANH_MUC');
-kt('Trang DANH_MUC có dữ liệu nguồn', dm && dm.rowCount > 1, `${dm?.rowCount} dòng`);
+/* --- Chỉ mang danh mục trang ấy THẬT SỰ dùng --------------------------- */
+{
+  const vung = ma => TEP_MUC[ma].lai.definedNames?.model?.map(x => x.name) || [];
+  kt('Trang Phân công mang đủ ba danh mục nó dùng',
+     ['DM_Ma_GV', 'DM_Ma_lop', 'DM_Mon'].every(n => vung('phancong').includes(n)),
+     vung('phancong').join(' · '));
+  kt('Trang Điểm trường KHÔNG kèm danh sách mã giáo viên — nó không dùng tới',
+     !vung('diemtruong').includes('DM_Ma_GV'), vung('diemtruong').join(' · '));
+  kt('Trang nào có ô xổ xuống thì có trang DANH_MUC, không thì thôi',
+     !!TEP_MUC.lop.lai.getWorksheet('DANH_MUC') &&
+     !TEP_MUC.monhoc.lai.getWorksheet('DANH_MUC') === false);
+}
 
 /* --- Mã trong tệp phải là mã NGƯỜI đọc được ---------------------------
-   Chốt chặn dựng sau khi chủ dự án mở tệp và nói "mã giáo viên quá dài".
-   Mã là thứ ông đọc suốt trong Excel và là khoá nối các trang tính; để lọt
-   một mã máy vào đây là cả tệp thành khó đọc. Canh cả hai chiều: không mang
-   hình dạng máy đặt, và không dài quá mức. */
-const cotMa = (trang, cot) => {
-  const ws = lai.getWorksheet(trang);
+   Chốt chặn dựng sau khi chủ dự án mở tệp và nói "mã giáo viên quá dài". */
+const cotMa = (ma, cot) => {
+  const ws = TEP_MUC[ma].lai.getWorksheet(app.MUC_NHAP[ma].trang);
   const j = ws.getRow(3).values.slice(1)
     .findIndex(v => String(v || '').replace(/ \*$/, '') === cot) + 1;
   const r = [];
@@ -147,7 +164,7 @@ const cotMa = (trang, cot) => {
 };
 const maMay = m => /^(gv|lop|dt|ph)_/i.test(m) || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(m);
 
-const maGV = cotMa('5_GIAO_VIEN', 'Ma_GV');
+const maGV = cotMa('giaovien', 'Ma_GV');
 kt('Không một mã giáo viên nào mang hình dạng mã máy',
    maGV.length > 0 && !maGV.some(maMay),
    maGV.filter(maMay).slice(0, 3).join(', ') || `${maGV.length} mã, ví dụ ${maGV[0]}`);
@@ -157,10 +174,11 @@ kt('Mã giáo viên đủ gọn để đọc lướt trong Excel — không quá
    (maGV.reduce((s, m) => s + m.length, 0) / maGV.length).toFixed(1));
 kt('Mã giáo viên đọc ra được TÊN GỌI — dạng <tên>_<viết tắt họ đệm>',
    maGV.every(m => /_/.test(m)) &&
-   maGV.filter((m, i) => m.split('_')[0] === app.maGVTu(cotMa('5_GIAO_VIEN', 'Ho_ten')[i]).split('_')[0]).length === maGV.length,
+   maGV.filter((m, i) => m.split('_')[0] ===
+     app.maGVTu(cotMa('giaovien', 'Ho_ten')[i]).split('_')[0]).length === maGV.length,
    maGV.slice(0, 4).join(' · '));
 
-const maLop = cotMa('4_LOP', 'Ma_lop');
+const maLop = cotMa('lop', 'Ma_lop');
 kt('Không một mã lớp nào mang hình dạng mã máy',
    maLop.length > 0 && !maLop.some(maMay),
    maLop.filter(maMay).slice(0, 3).join(', ') || maLop.slice(0, 4).join(' · '));
@@ -168,28 +186,33 @@ kt('Mã lớp đủ gọn — không quá 10 ký tự',
    Math.max(...maLop.map(m => m.length)) <= 10,
    `dài nhất ${Math.max(...maLop.map(m => m.length))}`);
 
-/* Mã ở trang Phân công phải KHỚP danh mục — nối sai là cả bảng vô dụng */
-const dsGV = new Set(maGV), dsLop = new Set(maLop);
-const pcGV = cotMa('6_PHAN_CONG', 'Ma_GV'), pcLop = cotMa('6_PHAN_CONG', 'Ma_lop');
-kt('Mọi Ma_GV ở trang Phân công đều có trong trang Giáo viên',
-   pcGV.every(m => dsGV.has(m)), pcGV.filter(m => !dsGV.has(m)).slice(0, 3).join(', '));
-kt('Mọi Ma_lop ở trang Phân công đều có trong trang Lớp',
-   pcLop.every(m => dsLop.has(m)), pcLop.filter(m => !dsLop.has(m)).slice(0, 3).join(', '));
+/* Mã ở trang Phân công phải KHỚP hai trang kia — nối sai là cả bảng vô dụng */
+{
+  const dsGV = new Set(maGV), dsLop = new Set(maLop);
+  const pcGV = cotMa('phancong', 'Ma_GV'), pcLop = cotMa('phancong', 'Ma_lop');
+  kt('Mọi Ma_GV ở trang Phân công đều có trong trang Giáo viên',
+     pcGV.length > 0 && pcGV.every(m => dsGV.has(m)),
+     pcGV.filter(m => !dsGV.has(m)).slice(0, 3).join(', '));
+  kt('Mọi Ma_lop ở trang Phân công đều có trong trang Lớp',
+     pcLop.length > 0 && pcLop.every(m => dsLop.has(m)),
+     pcLop.filter(m => !dsLop.has(m)).slice(0, 3).join(', '));
+}
 
 /* --- Đầu cột đánh dấu * cho ô bắt buộc --- */
-kt('Cột bắt buộc mang dấu * ở tên cột',
-   String(lop.getCell('A3').value).endsWith(' *') &&
-   !String(lop.getCell('D3').value).endsWith(' *'),
-   `${lop.getCell('A3').value} | ${lop.getCell('D3').value}`);
+{
+  const lop = TEP_MUC.lop.lai.getWorksheet('LOP');
+  kt('Cột bắt buộc mang dấu * ở tên cột',
+     String(lop.getCell('A3').value).endsWith(' *') &&
+     !String(lop.getCell('D3').value).endsWith(' *'),
+     `${lop.getCell('A3').value} | ${lop.getCell('D3').value}`);
+}
 
-/* --- Khổ giấy đặt sẵn --- */
-kt('Mọi trang dữ liệu đặt sẵn khổ A4, canh vừa bề ngang',
-   lai.worksheets.filter(w => w.name !== 'DANH_MUC')
-      .every(w => w.pageSetup?.paperSize === 9 && w.pageSetup?.fitToPage));
-
-/* --- VÒNG TRÒN QUA TỆP THẬT: đọc lại các trang rồi nhập ngược --- */
-const doc = n => {
-  const ws = lai.getWorksheet(n); if (!ws) return null;
+/* --- VÒNG TRÒN QUA TỆP THẬT ------------------------------------------
+   Đọc lại từng tệp .xlsx vừa ghi rồi đổ ngược qua đúng trình soát người dùng
+   chạy. Đây là phép thử đáng giá nhất của cả bộ: nó bắt được mọi thứ lệch
+   giữa hai đầu — tên cột, kiểu ô, dòng ví dụ trỏ vào chỗ không tồn tại. */
+const docTepMuc = ma => {
+  const ws = TEP_MUC[ma].lai.getWorksheet(app.MUC_NHAP[ma].trang);
   const dauCot = ws.getRow(3).values.slice(1).map(v => String(v || '').replace(/ \*$/, ''));
   const hang = [];
   for (let r = 4; r <= ws.rowCount; r++) {
@@ -201,19 +224,31 @@ const doc = n => {
   }
   return hang;
 };
-const dl = app.duLieuTuTronGoi(doc);
-kt('TỆP THẬT đọc ngược lại được, không một lỗi nào',
-   dl.soLoi === 0, dl.soLoi ? dl.loi.join(' | ') : `${dl.lop.length} lớp · ${dl.giaoVien.length} GV`);
-kt('Vòng qua tệp thật giữ đúng tổng số tiết',
-   dl.tongTiet === app.S.phanCong.reduce((s, p) => s + p.soTiet, 0), `${dl.tongTiet} tiết`);
-kt('Vòng qua tệp thật giữ đúng khung giờ',
-   dl.khungGio.filter(k => k.bat !== false).length === 8);
+for (const ma of MUC) {
+  const hang = docTepMuc(ma);
+  const r = app.duLieuTuMuc(ma, hang);
+  kt(`TỆP THẬT ${app.MUC_NHAP[ma].trang} đọc ngược lại được, không một lỗi nào`,
+     hang.length > 0 && r.soLoi === 0,
+     r.soLoi ? r.loi.join(' | ') : `${hang.length} dòng`);
+  kt(`TỆP THẬT ${app.MUC_NHAP[ma].trang} nhập lại KHÔNG nhân đôi dòng nào`,
+     r.them === 0 && r.capNhat === hang.length,
+     `thêm ${r.them} · cập nhật ${r.capNhat}/${hang.length}`);
+}
+kt('Vòng qua tệp thật giữ đúng tổng số tiết', (() => {
+  const r = app.duLieuTuMuc('phancong', docTepMuc('phancong'));
+  const tong = r.kho.phanCong.reduce((s, p) => s + p.soTiet, 0);
+  return [tong === app.S.phanCong.reduce((s, p) => s + p.soTiet, 0), `${tong} tiết`];
+})()[0], '710 tiết');
+kt('Vòng qua tệp thật giữ đúng khung giờ', (() => {
+  const r = app.duLieuTuMuc('khunggio', docTepMuc('khunggio'));
+  return r.kho.khungGio.filter(k => k.bat !== false).length === 8;
+})());
 
 /* ==================================================================
    PHẦN 2 — TỆP XUẤT RA (TOAN_TRUONG · KHOI_* · TKB_LOP · TKB_GV)
    ------------------------------------------------------------------
    Dựng 24/8/2026 sau khi chủ dự án gửi ảnh chụp: ô lưới ghi
-   `HDTN — Nguyễn Thị Trinh` một dòng, bật wrapText, mà `thanBangXL()`
+   `HDTN — Lê Thị Nguyệt` một dòng, bật wrapText, mà `thanBangXL()`
    khoá cứng `height=19` — chữ xuống hai dòng trong ô cao một dòng nên
    TRÀN ĐÈ lên dòng dưới. Cả bảng thành mớ chữ chồng nhau.
 
@@ -226,6 +261,7 @@ app.xepTuDong(0);                       /* cần có lưới thì mới có ô �
 TEP = null;
 await app.xuatExcel();
 kt('xuatExcel() chạy trọn, không ném lỗi', !!TEP, TEP?.ten);
+const tenXuat = TEP.ten;               /* nhớ lại: TEP còn bị dùng tiếp ở dưới */
 
 const bufX = await TEP.wb.xlsx.writeBuffer();
 const wbX = new ExcelJS.Workbook();
@@ -307,6 +343,58 @@ kt('Mọi trang lưới đều khoá ba cột giờ và dòng tiêu đề khi cu
      return v?.state === 'frozen' && v.xSplit === 3 && v.ySplit >= 3;
    }));
 
+console.log('\n\x1b[1mTrường mới khai DỞ — mẫu phải mang theo phần đã gõ tay\x1b[0m');
+/* Chủ dự án khai 25 lớp, gõ tay được 2 giáo viên, chưa có dòng phân công nào,
+   rồi tải mẫu về — bản cũ trả một tệp toàn tên người không có thật. Đây là
+   phép soi trên TỆP THẬT của đúng cảnh ấy: mẫu Giáo viên phải mang đúng hai
+   cái tên đã gõ, mẫu Phân công phải ghi ra được dù BẢNG RỖNG. */
+{
+  const hai = app.S.giaoVien.slice(0, 2).map(g => g.hoTen);
+  app.S.giaoVien = app.S.giaoVien.slice(0, 2);
+  app.S.phanCong = [];
+  app.S.giaoVien.forEach(g => { g.cn = null; });
+
+  TEP = null;
+  await app.taiMauMuc('giaovien');
+  const bufG = await TEP.wb.xlsx.writeBuffer();
+  const wG = new ExcelJS.Workbook(); await wG.xlsx.load(bufG);
+  const gv = wG.getWorksheet('GIAO_VIEN');
+  const iTen = gv.getRow(3).values.slice(1)
+    .findIndex(v => String(v || '').replace(/ \*$/, '') === 'Ho_ten') + 1;
+  const ten2 = [gv.getRow(4).getCell(iTen).value, gv.getRow(5).getCell(iTen).value];
+  kt('Hai giáo viên vừa gõ tay nằm đúng trong mẫu Giáo viên',
+     ten2[0] === hai[0] && ten2[1] === hai[1], ten2.join(' · '));
+  kt('Không một cái tên ví dụ nào lọt vào tệp của trường thật',
+     ![...Array(6)].some((_, i) => /Nguyễn Thị An|Trần Văn Bình|Lê Thị Chi/
+       .test(String(gv.getRow(4 + i).getCell(iTen).value || ''))));
+
+  TEP = null;
+  await app.taiMauMuc('lop');
+  const bufL = await TEP.wb.xlsx.writeBuffer();
+  const wL = new ExcelJS.Workbook(); await wL.xlsx.load(bufL);
+  const lop2 = wL.getWorksheet('LOP');
+  kt('25 lớp đã khai vẫn còn nguyên trong mẫu Lớp học',
+     String(lop2.getCell('B28').value || '') !== '' &&
+     String(lop2.getCell('B29').value || '') === '',
+     `dòng cuối: ${lop2.getCell('B28').value}`);
+
+  /* Bảng rỗng là chỗ dễ vỡ nhất: thanBangXL với 0 dòng, autoFilter thu về
+     một dòng, danh mục Ma_GV chỉ còn hai mã. */
+  TEP = null;
+  await app.taiMauMuc('phancong');
+  const bufP = await TEP.wb.xlsx.writeBuffer();
+  kt('Bảng phân công RỖNG vẫn ghi ra được tệp .xlsx hợp lệ', bufP.byteLength > 0,
+     `${(bufP.byteLength / 1024).toFixed(0)} KB`);
+  const wP = new ExcelJS.Workbook(); await wP.xlsx.load(bufP);
+  const pc2 = wP.getWorksheet('PHAN_CONG');
+  kt('Trang phân công để TRỐNG, không chèn dòng trỏ vào lớp không tồn tại',
+     String(pc2.getCell('A4').value || '') === '');
+  kt('Ô xổ xuống Ma_GV vẫn sống, lấy đúng hai mã thật',
+     pc2.getCell('A4').dataValidation?.formulae?.[0] === 'DM_Ma_GV' &&
+     String(wP.getWorksheet('DANH_MUC').getCell('A2').value || '') !== '',
+     String(wP.getWorksheet('DANH_MUC').getCell('A2').value));
+}
+
 /* ⚠️ Dòng tổng kết phải nằm SAU cả hai phần. Bản đầu để nó ở cuối phần 1
    nên nó báo "25 đạt" trong khi phần 2 còn tám phép nữa chưa chạy — con số
    đúng nhưng nói dối về phạm vi. Mã thoát thì vẫn đúng vì `hong` đọc ở dòng
@@ -319,10 +407,11 @@ const iGhi = process.argv.indexOf('--ghi');
 if (iGhi > 0) {
   const { writeFileSync } = await import('node:fs');
   const thuMuc = process.argv[iGhi + 1] || process.cwd();
-  writeFileSync(join(thuMuc, TEP.ten), Buffer.from(bufX));      /* tệp XUẤT RA */
-  console.log('Đã ghi ' + join(thuMuc, TEP.ten));
-  const tenMau = 'Mau-TKB-tron-goi.xlsx';
-  writeFileSync(join(thuMuc, tenMau), Buffer.from(buf));        /* tệp MẪU NHẬP */
-  console.log('Đã ghi ' + join(thuMuc, tenMau));
+  writeFileSync(join(thuMuc, tenXuat), Buffer.from(bufX));      /* tệp XUẤT RA */
+  console.log('Đã ghi ' + join(thuMuc, tenXuat));
+  Object.keys(TEP_MUC).forEach(ma => {                           /* tám tệp MẪU NHẬP */
+    writeFileSync(join(thuMuc, TEP_MUC[ma].ten), Buffer.from(TEP_MUC[ma].buf));
+    console.log('Đã ghi ' + join(thuMuc, TEP_MUC[ma].ten));
+  });
 }
 process.exit(hong ? 1 : 0);

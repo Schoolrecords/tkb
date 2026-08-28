@@ -57,9 +57,11 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
   taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
   maGVTu, maGVXau, datLaiMaGV, chuanMaGV, maXauChuoi,
-  xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
+  xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien,
   duLieuTuMaTran, bangMauMaTran,
-  bangMauTronGoi, bangKiemMau, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
+  bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
+  MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
+  locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
@@ -86,9 +88,11 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
         taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
         maGVTu, maGVXau, datLaiMaGV, maXauChuoi,
-        xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien, bangMauNhap,
+        xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien,
   duLieuTuMaTran, bangMauMaTran,
-  bangMauTronGoi, bangKiemMau, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
+  bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
+        MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
+        locDongDaDien, dienGiaiLoiNhap, truongTrang,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
@@ -808,14 +812,23 @@ kt('Bảng theo giáo viên: cùng số tiết, không mất mát khi xoay bản
    `${oCoChu(aGV, 3)}/${rX.daXep} tiết`);
 
 /* Trường có bốn cặp trùng tên gọi — bản xuất phải ghi họ tên đầy đủ,
-   in ra mà chỉ ghi "Cô Dung" thì hai cô Dung không phân biệt được. */
+   in ra mà chỉ ghi tên gọi thì hai người cùng tên không phân biệt được.
+   Cặp đem ra soi SUY TỪ dữ liệu, không ghi cứng: đổi bộ dữ liệu mẫu mà phép
+   thử vẫn xanh nhờ tên cũ tình cờ còn đó thì nó không kiểm được gì. */
 const oCoTen = aLop.slice(4).flatMap(h => h.slice(3)).filter(x => String(x).includes(' — '));
+const goiCua = g => g.hoTen.trim().split(/\s+/).pop().toLowerCase();
+const nhomGoi = {};
+S.giaoVien.forEach(g => (nhomGoi[goiCua(g)] = nhomGoi[goiCua(g)] || []).push(g));
+const capTrung = Object.values(nhomGoi).filter(d => d.length > 1)
+  .find(d => d.every(g => oCoTen.some(x => x.includes(g.hoTen)))) || [];
+/* Mọi ô đều phải kết thúc bằng HỌ TÊN ĐẦY ĐỦ của một giáo viên có thật —
+   tên gọi rút gọn ("Cô Nhài", "Cô NhàiB") không được lọt ra bản xuất. */
 kt('Bản xuất ghi họ tên đầy đủ, không dùng tên gọi rút gọn',
-   oCoTen.length > 0 &&
-   oCoTen.some(x => x.includes('Bùi Thị Dung')) &&
-   oCoTen.some(x => x.includes('Đặng Thị Dung')) &&
-   !oCoTen.some(x => x.includes('DungB')),
-   'hai cô Dung ghi rõ họ tên');
+   oCoTen.length > 0 && capTrung.length > 1 &&
+   oCoTen.every(x => S.giaoVien.some(g => String(x).endsWith(' — ' + g.hoTen))),
+   capTrung.length > 1
+     ? `${capTrung.length} giáo viên cùng tên gọi ghi rõ họ tên: ${capTrung.map(g => g.hoTen).join(' · ')}`
+     : 'không tìm được cặp trùng tên gọi nào trong lưới');
 
 const aPC = bangXuatPC(S.lop);
 const dongTong = aPC[aPC.length - 1];
@@ -1022,7 +1035,7 @@ const co = t => xau.loi.some(x => x.includes(t));
 kt('Bắt được mã giáo viên lặp — thứ khiến không dò ngược được', co('Ma_GV "GV01"'));
 kt('Bắt được tên lớp lặp trong CÙNG một điểm trường', co('Ten_lop "1A"'));
 kt('Bắt được khối ngoài 1–5, thiếu mã, thiếu môn, số tiết bằng 0',
-   co('Khoi phải từ 1 đến 5') && co('thiếu Ma_GV') && co('thiếu tên môn') && co('So_tiet'));
+   co('Khoi phải là số từ 1 đến 5') && co('thiếu Ma_GV') && co('thiếu tên môn') && co('So_tiet'));
 kt('Bắt được chủ nhiệm trỏ tới lớp không có thật', co('chủ nhiệm lớp "9Z"'));
 kt('Bắt được phân công trỏ tới giáo viên và lớp không có thật',
    co('giáo viên mã "GVXX"') && co('lớp mã "L9"'));
@@ -1858,28 +1871,82 @@ kt('Tiết đã ghim tay vẫn đứng yên qua lần xếp kỹ', (() => {
 
 console.log('\n17. Mẫu Excel tải về và mẫu bản in');
 
-const mau = bangMauNhap();
-kt('Mẫu có đủ ba trang tính bắt buộc, tên cột viết đúng',
-   mau.gv[0].join() === 'Ma_GV,Ho_ten,Chu_nhiem,Dinh_muc' &&
-   mau.lop[0].join() === 'Ma_lop,Ten_lop,Khoi,Diem_truong' &&
-   mau.pc[0].join() === 'Ma_GV,Ma_lop,Mon,So_tiet');
-kt('Trường đã có dữ liệu thì mẫu điền sẵn, không bắt gõ lại từ đầu',
-   mau.coThat && mau.lop.length - 1 === S.lop.length && mau.pc.length - 1 === S.phanCong.length,
-   `${mau.lop.length - 1} lớp · ${mau.pc.length - 1} dòng phân công`);
-kt('Chu_nhiem trong mẫu ghi MÃ LỚP, không phải tên lớp', (() => {
-  const maLop = new Set(S.lop.map(l => l.maLop || l.id));
-  return mau.gv.slice(1).filter(h => h[2]).every(h => maLop.has(h[2]));
-})());
-kt('Trang HUONG_DAN có bảng số tiết chuẩn cộng đúng từng khối', (() => {
-  const d = mau.huong.find(h => h[0] === 'Tổng');
-  return d && d.slice(1).join() === '27,27,28,30,30';
-})());
-kt('Trường trắng thì mẫu vẫn có dòng ví dụ để hiểu cách ghi', (() => {
+/* ⚠️ Khối phép thử của MẪU BA TRANG (`bangMauNhap`) đã bỏ cùng với chính hàm
+   ấy ngày 28/8/2026 — chủ dự án chốt chỉ còn nhập TỪNG MỤC. Trình ĐỌC định
+   dạng ba trang (`duLieuTuBang`) thì vẫn phải sống, vì trường nào đã điền dở
+   tệp cũ không được bỗng mất công; nó có phép thử riêng ở mục 16 và mục 22. */
+
+/* ---------- 17b. Mẫu điền sẵn theo TỪNG BẢNG (28/8/2026) ----------
+   Cả ba mẫu trước đây hỏi đúng một câu "trường đã khai ĐỦ chưa?" rồi hoặc đổ
+   hết dữ liệu thật, hoặc đổ hết dòng ví dụ bịa. Trường mới gõ tay được hai
+   giáo viên, hay đã khai 25 lớp mà chưa có dòng phân công nào, tải mẫu về
+   nhận một tệp toàn tên người không có thật — đúng phần việc vừa làm xong
+   thì mất. Nay mỗi bảng tự quyết. */
+console.log('\n17b. Mẫu Excel điền sẵn theo từng bảng');
+
+/* Dựng một bản ứng dụng ở đúng trạng thái trường mới khai dở */
+const truongKhaiDo = (soLop, soGV) => {
   const u = taoUngDung(documentGia);
-  u.S.lop = []; u.S.giaoVien = []; u.S.phanCong = [];
-  const m = u.bangMauNhap();
-  return !m.coThat && m.gv.length > 1 && m.lop.length > 1 && m.pc.length > 1;
-})());
+  u.S.diemTruong = [{ id: 'dt1', ten: 'Điểm trường Trung tâm' }];
+  u.S.lop = Array.from({ length: soLop }, (_, i) =>
+    ({ id: 'L' + i, maLop: (i + 1) + 'A', ten: (i + 1) + 'A', khoi: (i % 5) + 1 }));
+  u.S.lopDT = Object.fromEntries(u.S.lop.map(l => [l.id, 'dt1']));
+  u.S.giaoVien = Array.from({ length: soGV }, (_, i) =>
+    ({ id: 'G' + i, maGV: 'GV' + i, hoTen: 'Cô Giáo Số ' + i, cn: null }));
+  u.S.phanCong = []; u.S.gvNghi = {}; u.S.phong = [];
+  return u;
+};
+
+/* Kịch bản đúng ảnh chụp chủ dự án gửi: 25 lớp đã khai, mới gõ tay 2 giáo viên,
+   chưa có dòng phân công nào. */
+{
+  const u = truongKhaiDo(25, 2);
+  const tg = u.bangMauTronGoi();
+  const hang = t => tg.trang.find(x => x.ten === t).hang;
+  kt('Trọn gói: 25 lớp và 2 giáo viên đã gõ tay đều có mặt trong mẫu',
+     hang('4_LOP').length === 25 && hang('5_GIAO_VIEN').length === 2,
+     `${hang('4_LOP').length} lớp · ${hang('5_GIAO_VIEN').length} giáo viên`);
+  kt('Trọn gói: bảng phân công CHƯA khai thì để TRỐNG, không chèn dòng bịa',
+     hang('6_PHAN_CONG').length === 0);
+  kt('Trọn gói: không một cái tên ví dụ nào lọt vào tệp của trường thật',
+     !JSON.stringify(tg.trang).includes('Nguyễn Thị An') &&
+     !JSON.stringify(tg.trang).includes('Điểm trường chính'));
+  kt('Trọn gói: ô xổ xuống Ma_lop lấy đúng 25 mã lớp thật',
+     tg.danhMuc.DM_Ma_lop.length === 25 && tg.danhMuc.DM_Ma_lop[0] === '1A');
+  kt('Trọn gói: chưa có giáo viên nào thì danh mục Ma_GV không bịa ba cái tên',
+     truongKhaiDo(25, 0).bangMauTronGoi().danhMuc.DM_Ma_GV.length === 0);
+
+
+  /* Đây là chỗ hỏng nặng nhất của bản cũ: mẫu ma trận đòi CẢ BA bảng, nên
+     chưa có phân công là 25 lớp và 2 giáo viên biến mất sạch. */
+  const mt = u.bangMauMaTran();
+  kt('Ma trận: chưa có phân công vẫn liệt kê đủ 2 giáo viên để đánh dấu x',
+     mt.mt.length - 1 === 2 && mt.mt[1][2] === 'Cô Giáo Số 0',
+     `${mt.mt.length - 1} dòng · ${mt.mt[1] && mt.mt[1][2]}`);
+  kt('Ma trận: trang lớp cũng mang đúng 25 lớp thật, không phải 3 lớp ví dụ',
+     mt.lop.length - 1 === 25);
+}
+
+/* Mới gõ tay vài giáo viên, chưa khai lớp nào — chiều ngược lại của cùng lỗi */
+{
+  const u = truongKhaiDo(0, 3);
+  const tg = u.bangMauTronGoi();
+  const hang = t => tg.trang.find(x => x.ten === t).hang;
+  kt('Mới khai giáo viên, chưa có lớp: ba giáo viên ấy vẫn vào mẫu',
+     hang('5_GIAO_VIEN').length === 3 && hang('4_LOP').length === 0);
+}
+
+/* Trường TRẮNG thì vẫn phải có ví dụ — đó là lúc dòng ví dụ có ích, và các
+   tên trong ví dụ có thật ở chính những trang khác của tệp. */
+{
+  const u = taoUngDung(documentGia);
+  u.S.lop = []; u.S.giaoVien = []; u.S.phanCong = []; u.S.phong = []; u.S.gvNghi = {};
+  const tg = u.bangMauTronGoi();
+  const hang = t => tg.trang.find(x => x.ten === t).hang;
+  kt('Trường trắng: cả ba mẫu vẫn kèm dòng ví dụ để thấy cách ghi',
+     !tg.coThat && hang('4_LOP').length > 0 && hang('5_GIAO_VIEN').length > 0 &&
+     hang('6_PHAN_CONG').length > 0 && u.bangMauMaTran().mt.length > 1);
+}
 
 /* ==================================================================
    18. BÁO NGHỈ VÀ PHƯƠNG ÁN DẠY THAY
@@ -2357,9 +2424,9 @@ console.log('\n19. Mã giáo viên đọc được');
     const v = taoUngDung(documentGia);
     v.S.giaoVien[0].maGV = '1cc77cb6-df3d-469e-ac36-e4bc2171590f';
     v.datLaiMaGV(true);
-    const mau = v.bangMauNhap();
-    const uuid = mau.gv.slice(1).filter(h => /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(h[1])));
-    return [uuid.length === 0, `${mau.gv.length - 1} dòng, 0 mã UUID`];
+    const hang = v.MUC_NHAP.giaovien.hang();          /* cột 1 là Ma_GV */
+    const uuid = hang.filter(h => /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(h[1])));
+    return [uuid.length === 0, `${hang.length} dòng, 0 mã UUID`];
   })()));
 }
 
@@ -2759,7 +2826,12 @@ console.log('\n19. Mã giáo viên đọc được');
 /* ---------- 21. Mẫu Excel trọn gói (tách tệp riêng cho gọn) ---------- */
 {
   const muc21 = (await import('./muc21-mau-tron-goi.mjs')).default;
-  muc21({ kt, S, bangMauTronGoi, bangKiemMau, duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon });
+  muc21({ kt, S, bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon });
+
+console.log('\n22. Nhập TỪNG MỤC — mỗi màn hình một trang tính');
+const { default: muc22 } = await import('./muc22-nhap-tung-muc.mjs');
+muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
+        locDongDaDien, dienGiaiLoiNhap, taoUngDung, documentGia });
 }
 
 /* ---------- Tổng kết ---------- */
