@@ -85,7 +85,7 @@ await chup('14-thong-tin-truong', { cao: 1000, lam: di('thongtin') });
 await chup('15-diem-truong',      { lam: di('diemtruong') });
 await chup('16-tao-du-lieu-thu',  { cao: 1000, lam: async p => {
   await di('diemtruong')(p); await p.click('#btTaoThu');
-  await p.fill('#ttTenDiem', 'Điểm trường Diễn Đồng');
+  await p.fill('#ttTenDiem', 'Phân hiệu Diễn Đồng');
   await p.fill('#ttTien', 'DD');
 } });
 

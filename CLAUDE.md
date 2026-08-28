@@ -1,4 +1,4 @@
-# Hệ thống Thời khóa biểu — trường tiểu học nhiều điểm trường
+# Hệ thống Thời khóa biểu — trường tiểu học nhiều phân hiệu
 
 Luôn trả lời và viết comment bằng **tiếng Việt**.
 
@@ -8,11 +8,11 @@ Luôn trả lời và viết comment bằng **tiếng Việt**.
 
 Các trường tiểu học đang sáp nhập theo **Công văn 777/TTg-TCCV ngày 10/7/2026**
 của Thủ tướng Chính phủ, hạn hoàn thành **trước 30/8/2026**. Sau sáp nhập,
-một trường có nhiều **điểm trường** cách nhau vài cây số. Việc xếp thời khóa
+một trường có nhiều **phân hiệu** cách nhau vài cây số. Việc xếp thời khóa
 biểu vì thế đổi hẳn về bản chất: xuất hiện chiều thứ ba là **không gian**.
 
 Người dùng: cán bộ quản lý nhà trường (hiệu trưởng, phó hiệu trưởng phụ trách
-điểm trường, người xếp TKB) và toàn thể giáo viên. Đa số ở tuổi 35–55, quen
+phân hiệu, người xếp TKB) và toàn thể giáo viên. Đa số ở tuổi 35–55, quen
 Excel, không quen phần mềm phức tạp.
 
 **Chủ dự án:** Phó Hiệu trưởng Trường Tiểu học Diễn Liên, xã Quảng Châu,
@@ -21,10 +21,10 @@ tỉnh Nghệ An. Vừa là người dùng thật, vừa là người phát tri�
 ### Sáp nhập ba trường — trạng thái hiện tại
 
 Theo kế hoạch, **Tiểu học Diễn Liên + Diễn Đồng + Diễn Thái** nhập thành một
-đơn vị, thành ba điểm trường.
+đơn vị, thành ba phân hiệu.
 
 ⚠️ **Tên đơn vị mới CHƯA có quyết định.** Phần mềm ghi `Trường Tiểu học mới`,
-kể cả trong bộ dữ liệu mẫu — *Diễn Liên* nay chỉ còn là tên một **điểm trường**,
+kể cả trong bộ dữ liệu mẫu — *Diễn Liên* nay chỉ còn là tên một **phân hiệu**,
 không phải tên đơn vị. Đừng bịa tên chính thức; có quyết định thì sửa ở mục
 *Bước 1 · Thông tin trường*.
 
@@ -32,7 +32,7 @@ không phải tên đơn vị. Đừng bịa tên chính thức; có quyết đ�
 là bản của năm học trước, dùng làm ví dụ. 25 lớp và 35 giáo viên trong bộ mẫu
 đều là của Diễn Liên.
 
-Để chạy thử ở đúng quy mô, dùng nút **Tạo dữ liệu thử** ở mục *Điểm trường*:
+Để chạy thử ở đúng quy mô, dùng nút **Tạo dữ liệu thử** ở mục *Phân hiệu*:
 `taoDuLieuThu(tên, tiền tố, số lớp, có phòng Tin)` dựng đủ lớp · chủ nhiệm ·
 giáo viên bộ môn · bảng phân công **khớp số tiết chuẩn CT GDPT 2018**. Kịch bản
 đã kiểm: Diễn Liên 25 + **Diễn Đồng 17** + **Diễn Thái 18** = **60 lớp · 86
@@ -173,7 +173,7 @@ thì phải giữ nguyên khuôn — R09 và `maGVTu()` có phép thử canh.
 ba trường sáp nhập, cả ba đều có lớp *1A*, thì không nhập nổi. Nay khoá tự
 nhiên là **`ma_lop`** (đúng cách đã làm với `ma_gv`), `giaoVien.cn` giữ **mã
 lớp** chứ không phải tên lớp, và tên lớp chỉ còn là nhãn hiển thị — trùng nhau
-thì `tenLopDay()` tự ghi kèm điểm trường. Ba hàm phải đi qua: `cnCuaLop(idLop)`,
+thì `tenLopDay()` tự ghi kèm phân hiệu. Ba hàm phải đi qua: `cnCuaLop(idLop)`,
 `lopCN(gv)`, `tenCN(gv)`. Cơ sở dữ liệu cũ nâng cấp bằng `db/ma-lop.sql`.
 
 **b) Lưu kết quả TKB dạng JSON blob một dòng + số phiên bản**, không tách
@@ -438,7 +438,7 @@ vào `nguoi_dung` của trường mình từ đầu; nay bảng ấy có **ba** 
 |---|---|---|
 | `la_chu_he_thong` | `la_chu_he_thong()` | đăng ký một trường → tự phong chủ hệ thống → đọc **mọi trường** và họ tên · email người dùng **mọi trường**, duyệt hoặc chặn trường của người khác |
 | `vai_tro` | `la_quan_ly()` | PHT tự nâng thành hiệu trưởng |
-| `diem_truong_id` | `luu_tkb()` | PHT một điểm trường đặt về `null` → ghi đè lưới **cả ba** điểm trường |
+| `diem_truong_id` | `luu_tkb()` | PHT một phân hiệu đặt về `null` → ghi đè lưới **cả ba** phân hiệu |
 | `truong.trang_thai_duyet` · `ma_truong` | `truong_duoc_dung()` | trường chờ duyệt tự đặt `dang_dung`, bỏ qua khâu duyệt |
 
 Hai trigger `before` là chỗ **duy nhất** nói được câu "sửa dòng này thì
@@ -469,6 +469,31 @@ trigger không đụng tới cột cũng đỏ.
 vơ luôn hàm nghiệp vụ plpgsql, nhặt ra những "cột" tên là `false`, `null`,
 `format` và cả biến cục bộ `v_tt` — tám lỗi giả. Bộ soát kêu oan tám lần
 thì lần thứ chín kêu đúng cũng không ai đọc nữa.
+
+### "Phân hiệu" thay cho "điểm trường" *(28/8/2026)*
+
+Chủ dự án: *"em đổi tên phân hiệu thành **Phân hiệu** đúng với quy định của
+Sở GD&ĐT"*. Đổi **CHỮ**, không đổi mô hình — tầng "trong phân hiệu có thêm
+các điểm trường" để làm sau, và nó đụng ràng buộc lõi nên phải bàn riêng.
+
+**Tên biến · tên hàm · tên bảng · tên cột GIỮ NGUYÊN** (`diemTruong`, `dtId`,
+`lopDT`, `diem_truong`, `diem_truong_id`). Đúng bài học đổi bảng màu ngày
+24/8: tên nói **vai trò**, đổi tên là sửa hàng trăm chỗ mà chẳng được thêm
+gì. Chúng viết tiếng Việt không dấu nên phép thay 300 chỗ không chạm tới.
+
+Ba chỗ phải vá tay vì chúng ĐỌC dữ liệu cũ:
+
+- **`tenDiemNgan()` và `tienToDT()` nhận CẢ HAI tiền tố.** Trường đang chạy
+  có sẵn tên *"Điểm trường Diễn Liên"* trên máy chủ; chỉ nhận tiền tố mới là
+  cắt hụt, dải nút lại dài ngắn lệch nhau đúng như lỗi đã vá ngày 2/8.
+- **`chuanTenCot()` đổi tên cột Excel cũ về mới ngay đầu đường đọc** —
+  `Diem_truong` → `Phan_hieu`, `Ten_diem_truong` → `Ten_phan_hieu`. Trường
+  nào đã tải mẫu về điền dở không được bỗng mất công. Một chỗ duy nhất biết
+  chuyện này, không rải `r.A || r.B` khắp nơi rồi sót một chỗ.
+- **Tên trang tính** `DIEM_TRUONG` → `PHAN_HIEU`, đọc lùi qua `trangCu`.
+
+⚠️ Vài phép thử ở `npm test` **cố ý giữ tên cột cũ** — chúng chính là phép
+thử cho đường lui ấy. Đừng "dọn" cho nhất quán.
 
 ### Gmail của giáo viên — vào trường KHÔNG cần mã mời *(28/8/2026 — `db/gmail-giao-vien.sql`, ĐÃ CHẠY trên máy chủ thật cùng ngày)*
 
@@ -516,7 +541,7 @@ mục 17h · 17i):
   cột** — không thì mất luôn cả lần lưu, kể cả họ tên và định mức.
 
 **Bảng Giáo viên nay đủ thông tin chủ dự án nêu**: TT · Họ và tên (kèm mã) ·
-Gmail · Chủ nhiệm · **Dạy** · Điểm trường · Tiết / định mức · Buổi cần · Tình
+Gmail · Chủ nhiệm · **Dạy** · Phân hiệu · Tiết / định mức · Buổi cần · Tình
 trạng · Ghi chú.
 
 ⚠️ **Cột *Dạy* CHỈ ĐỌC.** Chủ dự án đề xuất một cột `1A (Toán, Tiếng Việt,
@@ -532,6 +557,43 @@ dòng thì cột này dài hơn cả bảng.
 *không có gì xảy ra* — đúng thứ làm mắt bỏ qua cả ba dòng cần nhìn. Cùng luật
 "số 0 không tô đỏ" của dải chỉ số Bảng điều hành.
 
+### Hồ sơ giáo viên đủ ô, và phân công NHIỀU MÔN một lần *(28/8/2026)*
+
+Ba việc chủ dự án nêu cùng lúc, cả ba đều có phép thử (`npm run soi` mục 8 · 17h):
+
+- **Hộp Thêm giáo viên thiếu ô.** Chỉ hỏi họ tên · định mức · chủ nhiệm, nên
+  khai xong vẫn phải mở bảng sửa tiếp. Nay đủ bảy ô, thêm **Gmail · Điện
+  thoại · Phân hiệu · Ghi chú**. `oKhaiGV()` và `docKhaiGV()` dùng chung cho
+  **cả Thêm lẫn Sửa** — viết hai bản thì sớm muộn một bên thiếu ô, đúng
+  chuyện vừa xảy ra. Hai cột mới ở `db/them-cot-giao-vien.sql`.
+- **Dấu `×` đỏ trần → cụm nút Sửa / Xoá.** Dấu × là lối DUY NHẤT nên muốn đổi
+  một chữ cũng phải sửa ngay trên bảng, mà bảng không chứa nổi bảy ô. ⚠️ Nút
+  Xoá **không tô đỏ sẵn**, chỉ đỏ khi rê chuột — hai nút cạnh nhau mà một cái
+  đỏ rực thì mắt bị kéo về đúng cái nguy hiểm hơn.
+- ⚠️ **Phân công: một lớp, NHIỀU môn.** *"chỉ có 1 lựa chọn dạy môn Tiếng
+  việt hoặc môn học khác (phải có đủ môn để tích vào)"*. Ô xổ xuống cũ chọn
+  đúng một môn, mà chủ nhiệm tiểu học dạy năm sáu môn của chính lớp mình —
+  khai một lớp là mở hộp năm lần, 25 lớp là 125 lần. Nay tích bao nhiêu môn
+  cũng được, mỗi môn một dòng, số tiết lấy sẵn chuẩn CT GDPT 2018 theo khối.
+
+`hopThemPC()` và `hopPCTheoGV()` **bù nhau, cố ý không gộp**:
+
+| Hộp | Một giáo viên · … |
+|---|---|
+| Thêm phân công | **một lớp** · nhiều môn — dành cho chủ nhiệm |
+| Phân công nhanh | một môn · **nhiều lớp** — dành cho bộ môn |
+
+⚠️ **Bảng Giáo viên trần ở MƯỜI cột.** Thêm cụm Sửa/Xoá làm nó tràn khỏi màn
+hình 1500px, người dùng phải cuộn ngang mới bấm được. Hai cột bị gộp vào chỗ
+chúng vốn thuộc về — phân hiệu xuống dưới cột *Dạy* (nó chính là nơi những
+lớp ấy nằm), số buổi cần xuống dưới *Tình trạng*. Không mất thông tin nào.
+Có phép thử đếm số cột.
+
+⚠️ `giao_vien.diem_truong_id` là **nhãn**, không phải thứ thuật toán đọc.
+Ràng buộc lõi *"một giáo viên, một buổi, một phân hiệu"* vẫn suy từ phân công
+→ lớp → phân hiệu của lớp, tức là từ nơi thầy cô THẬT SỰ có tiết. Nhét cột
+này vào thuật toán là tạo hai nguồn sự thật cho cùng một câu hỏi.
+
 ### Phân quyền trên giao diện — đã dựng
 
 Vùng `/*#region QUYEN*/`, ngay sau vùng DULIEU. Hàng rào thật là RLS trong
@@ -539,25 +601,25 @@ Vùng `/*#region QUYEN*/`, ngay sau vùng DULIEU. Hàng rào thật là RLS tron
 
 **Hai loại phó hiệu trưởng phân biệt bằng `nguoi_dung.diem_truong_id`** —
 bỏ trống là phụ trách chuyên môn toàn trường, có giá trị là phụ trách riêng
-điểm trường đó. Đây là điểm dễ hiểu sai nhất khi sửa vùng này.
+phân hiệu đó. Đây là điểm dễ hiểu sai nhất khi sửa vùng này.
 
-| | toàn trường | PHT một điểm trường | giáo viên |
+| | toàn trường | PHT một phân hiệu | giáo viên |
 |---|---|---|---|
 | Đổi phạm vi xem | có | **khoá cứng vào điểm của mình** | — |
 | Xếp tự động, xoá kết quả | có | **không** | không |
-| Sửa điểm trường · phân công · khung giờ | có | **không** | không |
+| Sửa phân hiệu · phân công · khung giờ | có | **không** | không |
 | Kéo thả chỉnh tiết | mọi lớp | **chỉ lớp trong điểm của mình** | không |
 | Lưu lên máy chủ | có | có | không |
 
-Lý do PHT một điểm trường **không** được xếp tự động: mỗi lần xếp là dựng lại
-lưới của cả trường, sẽ đè lên phần của các điểm trường khác. Họ chỉnh tay
+Lý do PHT một phân hiệu **không** được xếp tự động: mỗi lần xếp là dựng lại
+lưới của cả trường, sẽ đè lên phần của các phân hiệu khác. Họ chỉnh tay
 phần mình rồi lưu.
 
 #### Ba phó hiệu trưởng cùng lưu — GỘP theo phạm vi *(23/8/2026)*
 
 Câu cũ ở đây là *"khóa lạc quan lo phần đụng độ"*. **Sai**, và sai theo hướng
 mất dữ liệu: khoá lạc quan chỉ biết **từ chối** người đến sau, nó không biết
-**gộp**. Ba điểm trường là ba PHT cùng sửa một buổi tối — không phải trường
+**gộp**. Ba phân hiệu là ba PHT cùng sửa một buổi tối — không phải trường
 hợp hiếm mà là mặc định sau sáp nhập — nên trong ba người thì hai người phải
 tải lại, và tải lại là mất sạch việc vừa làm.
 
@@ -585,7 +647,7 @@ tự nhiên của `jsonb` — không phải đổi cách lưu.
 | Hàm | Việc |
 |---|---|
 | `phamViLuu()` | lớp người này được ghi đè; `null` = toàn trường, lưu nguyên khối |
-| `diem_truong_cua_toi()` | SQL — điểm trường tài khoản đang phụ trách |
+| `diem_truong_cua_toi()` | SQL — phân hiệu tài khoản đang phụ trách |
 | `hopXungDotLuu(kq)` | hai đường ra khi bị từ chối, không có đường thứ ba |
 
 Năm điều bắt buộc, cả năm đều có phép thử:
@@ -617,7 +679,7 @@ Hai hàm phải nhớ gọi:
 - `apDungQuyen()` — gọi ở đầu `ve()`, ép `S.phamVi` về đúng quyền.
 - `duocSuaLop(id)` — chốt chặn cuối trong `kiemTraChuyen()`.
 
-Điểm trường phụ trách bị xoá thì `quyen()` **mở khoá** thay vì kẹt người dùng
+Phân hiệu phụ trách bị xoá thì `quyen()` **mở khoá** thay vì kẹt người dùng
 vào chỗ trống.
 
 ### Quy trình ba bước — đã dựng *(1/8/2026)*
@@ -632,7 +694,7 @@ nhà trường đang dùng: phần mềm đó bắt đi tuần tự chín bướ
 
 ```
 TỔNG QUAN     Bảng điều hành          ← thanh tiến trình ba bước ở đây
-BƯỚC 1        1 Thông tin trường  2 Điểm trường  3 Khối và khung giờ
+BƯỚC 1        1 Thông tin trường  2 Phân hiệu  3 Khối và khung giờ
               4 Lớp học  5 Giáo viên  6 Môn học  7 Phòng học
               8 Phân công  9 Buổi bận
 BƯỚC 2        Kiểm tra khả thi → Xếp thời khóa biểu
@@ -655,7 +717,7 @@ bên dài gấp đôi màn hình điện thoại và mắt không có mốc nào
                         · Thông báo ● · Báo nghỉ
 TRA CỨU THỜI KHÓA BIỂU  Toàn trường · Theo khối · Theo lớp · Theo giáo viên
                         · Thời khóa biểu của tôi
-DỮ LIỆU NHÀ TRƯỜNG      Thông tin trường · Điểm trường · Khối và khung giờ
+DỮ LIỆU NHÀ TRƯỜNG      Thông tin trường · Phân hiệu · Khối và khung giờ
                         · Lớp học · Giáo viên · Môn học · Phân công chuyên môn
                         · Phòng học · Buổi bận
 QUẢN LÝ VÀ KẾT QUẢ      Kiểm tra khả thi · Các phương án đã lưu
@@ -813,12 +875,12 @@ hơn ranh giới giữa hai **TIẾT** — nhầm cột là đọc nhầm cả l
 thì đã có cột Tiết dính bên trái đỡ. Hết buổi và hết ngày mới kẻ liền đậm dần
 (1.5px → 2.5px), đó là hai mốc thật sự cần thấy.
 
-#### Lưới trên MÀN HÌNH bày từng điểm trường, bản gộp để IN *(2/8/2026)*
+#### Lưới trên MÀN HÌNH bày từng phân hiệu, bản gộp để IN *(2/8/2026)*
 
-Ba điểm trường gộp một bảng là **60 cột** — chủ dự án nhận xét *"quá dày và
-rối"*, và đúng: người phụ trách một điểm trường chỉ quan tâm điểm của mình.
+Ba phân hiệu gộp một bảng là **60 cột** — chủ dự án nhận xét *"quá dày và
+rối"*, và đúng: người phụ trách một phân hiệu chỉ quan tâm điểm của mình.
 Nay `lopChoLuoi()` lọc theo `S.dtLuoi`, `daiDiemLuoi()` dựng dải nút chuyển
-(chỉ hiện khi có nhiều hơn một điểm trường, kèm số lớp mỗi nơi). Bảng điều
+(chỉ hiện khi có nhiều hơn một phân hiệu, kèm số lớp mỗi nơi). Bảng điều
 hành và màn *Toàn trường* đều dùng nó.
 
 Bản **gộp cả trường vẫn còn nguyên** nhưng chỉ ở đường **Xuất và in** — nơi
@@ -827,13 +889,13 @@ phải luôn đủ cột cho mọi lớp, không bị dải nút cắt bớt).
 
 #### Không bao giờ để mất việc chưa lưu *(2/8/2026)*
 
-Chủ dự án khai xong lớp cho hai điểm trường mới, chưa bấm Lưu, trang tải lại
+Chủ dự án khai xong lớp cho hai phân hiệu mới, chưa bấm Lưu, trang tải lại
 — **mất sạch**. Dữ liệu nguồn nằm trong bộ nhớ trình duyệt cho tới khi ghi
 lên máy chủ, mà trang thì tải lại vì đủ thứ lý do.
 
 Cách làm: **không gắn cờ ở từng chỗ sửa** (hàng chục chỗ, sót một chỗ là hỏng
 cả cơ chế). Thay vào đó lấy **vân tay** dữ liệu nguồn — `vanTayNguon()` gộp
-lớp · giáo viên · phân công · điểm trường · môn · phòng · buổi bận thành một
+lớp · giáo viên · phân công · phân hiệu · môn · phòng · buổi bận thành một
 chuỗi. `chotVanTay()` chụp lúc tải xong và lúc ghi xong; `coThayDoiChuaLuu()`
 so lại. Khác nhau nghĩa là có sửa chưa lưu, bất kể sửa ở đâu. Hai lối báo:
 dải đỏ *"● Có thay đổi chưa lưu"* cạnh nút Lưu (nút đổi sang đỏ, chữ
@@ -845,7 +907,7 @@ Cơ sở dữ liệu dựng trước khi có cột `ma_lop` để trống ô đ�
 bày ra mã UUID 36 ký tự của máy chủ — mà mã lớp chính là thứ người dùng phải
 gõ vào tệp Excel. Nút **Đặt lại mã lớp** (chỉ hiện khi có mã xấu).
 
-Dạng mã do chủ dự án chốt: **`<tên lớp>_<viết tắt điểm trường>`** — `1A_DL`,
+Dạng mã do chủ dự án chốt: **`<tên lớp>_<viết tắt phân hiệu>`** — `1A_DL`,
 `1A_DĐ`, `1A_DT`. Tên lớp đứng trước vì đó là thứ người dùng tìm, và sắp theo
 mã cũng ra đúng thứ tự lớp. Viết tắt **giữ nguyên dấu tiếng Việt**: bỏ dấu
 thì *Diễn Đồng* và *Diễn Đông* đều thành `DD`, lẫn nhau ngay từ mã lớp.
@@ -900,7 +962,7 @@ nhau, mà **băng rôn mang tên trường** — thứ neo cả trang — lại 
 ```
 1. dải đỏ việc gấp  CHỈ hiện khi có giáo viên báo nghỉ chưa xử lý
 2. THỜI KHÓA BIỂU   bốn thẻ chuyển + nút Xuất và in cùng hàng, rồi lưới (72vh)
-3. ba cột dưới      [tiến độ + chỉ số dọc + việc cần xử lý] · cảnh báo · điểm trường
+3. ba cột dưới      [tiến độ + chỉ số dọc + việc cần xử lý] · cảnh báo · phân hiệu
 ```
 
 **Mọi con số dồn vào MỘT cột dọc trong thẻ Tiến độ xếp** *(3/8/2026)*. Trước
@@ -939,7 +1001,7 @@ sau khi khối *Việc cần xử lý* lùi xuống dưới lưới. Không có 
 diện: gỡ là hiệu trưởng mở app lên không còn chỗ nào báo cô A đang nghỉ.
 
 **Màu nút trên nền trắng: cùng một hệ navy, khác nhau độ đậm** *(3/8/2026)*.
-Thẻ chuyển và nút điểm trường trước đây nền trắng viền mảnh — chủ dự án:
+Thẻ chuyển và nút phân hiệu trước đây nền trắng viền mảnh — chủ dự án:
 *"nhìn màu trắng không rõ"*. Nay chưa chọn là `--nav-nhat` nổi khối, đang
 chọn là `--nav` đậm hơn. Hai tín hiệu (màu đậm nhạt + đổ bóng), không chỉ một.
 
@@ -1094,7 +1156,7 @@ khỏi danh sách, không phải xuống cuối — xếp cuối thì vẫn có 
 Bảy trường hợp bị loại, mỗi cái một dòng `return` riêng để sửa một điều kiện
 không đụng vào sáu điều kiện kia: chính người đang nghỉ · cũng đang báo nghỉ ·
 đang có tiết cùng giờ · đã đăng ký buổi bận · đã nhận dạy thay lớp khác cùng
-tiết · đang ở điểm trường khác trong buổi ấy · đã kín `GIOI_HAN_TIET_BUOI`.
+tiết · đang ở phân hiệu khác trong buổi ấy · đã kín `GIOI_HAN_TIET_BUOI`.
 
 **`boQua` là tham số bắt buộc phải nhớ.** Khi người quản lý ĐỔI phương án đã
 chọn, tiết cũ đang được dời đi nên không được tính là "người này đã bận" —
@@ -1125,7 +1187,7 @@ Có xung đột thì **không dòng nào được lưu** và hộp thoại nói 
 vì sao.
 
 **Ba phương án, KHÔNG bày điểm số.** Người dùng là hiệu trưởng — họ cần biết
-"vì sao người này" (*trống cả buổi · cùng điểm trường · đã từng dạy lớp này ·
+"vì sao người này" (*trống cả buổi · cùng phân hiệu · đã từng dạy lớp này ·
 chuyên môn phù hợp · chỉ có 2 tiết trong ngày*), không cần biết 137 hơn 129.
 Mỗi phương án ưu tiên để **một người dạy trọn cả buổi** vì đó là cách nhà
 trường vẫn làm; không ai trống trọn buổi thì tự chuyển sang ghép nhiều người
@@ -1201,8 +1263,8 @@ làm ba dòng.
 
 **Trường mới không có tệp Excel vẫn khai báo được**, đây mới là điểm cốt lõi:
 - *Tạo lớp hàng loạt* — khai "khối 1 có 5 lớp" ra 1A–1E, mã lớp tự mang tiền
-  tố điểm trường (`DL-1A`). Tên lớp trùng nhau giữa các điểm trường thì vẫn
-  tạo được; trùng trong **cùng** một điểm trường thì bỏ qua, vì đó là nhầm lẫn.
+  tố phân hiệu (`DL-1A`). Tên lớp trùng nhau giữa các phân hiệu thì vẫn
+  tạo được; trùng trong **cùng** một phân hiệu thì bỏ qua, vì đó là nhầm lẫn.
 - *Phân công nhanh cho một giáo viên* — chọn người, chọn môn, tích các lớp.
   "Cô Hương dạy Mỹ thuật cả 25 lớp" là một thao tác chứ không phải 25, và số
   tiết lấy đúng chuẩn của từng khối.
@@ -1259,13 +1321,13 @@ Nay mỗi màn hình khai báo có mẫu **MỘT TRANG** của đúng mục ấy
 
 | Mục | Trang tính | Phải khai trước |
 |---|---|---|
-| Điểm trường | `DIEM_TRUONG` | — |
+| Phân hiệu | `DIEM_TRUONG` | — |
 | Khối và khung giờ | `KHUNG_GIO` | — |
-| Lớp học | `LOP` | Điểm trường |
+| Lớp học | `LOP` | Phân hiệu |
 | Giáo viên | `GIAO_VIEN` | — |
 | Môn học | `MON_HOC` | — |
 | Phân công chuyên môn | `PHAN_CONG` | Lớp học · Giáo viên |
-| Phòng học | `PHONG` | Điểm trường |
+| Phòng học | `PHONG` | Phân hiệu |
 | Buổi bận | `BUOI_BAN` | Giáo viên |
 
 | Hàm | Việc |
@@ -1282,7 +1344,7 @@ Bốn điều bắt buộc, cả bốn đều có phép thử (`npm test` mục 
 mục 15e, `npm run soi-mau`):
 
 - **THÊM và CẬP NHẬT, không bao giờ XOÁ.** Nhập theo khoá tự nhiên (mã lớp ·
-  mã giáo viên · tên điểm trường…). Nhập lại đúng tệp ấy lần thứ hai ra kết
+  mã giáo viên · tên phân hiệu…). Nhập lại đúng tệp ấy lần thứ hai ra kết
   quả y hệt — không nhân đôi. Dòng đang có mà tệp không nhắc tới thì giữ
   nguyên. Đây là khác biệt lớn nhất với mẫu trọn gói, thứ **thay sạch** bảng
   phân công mỗi lần nhập.
@@ -1419,10 +1481,10 @@ giữ nguyên dấu tiếng Việt, và **nhà trường sửa lại được** 
 ### Cứng — vi phạm là TKB sai, phải chặn
 1. Một giáo viên không dạy hai lớp trùng khung giờ thực.
 2. Một lớp không học hai môn cùng lúc.
-3. **Một giáo viên, một buổi, một điểm trường.** ← ràng buộc lõi của bài toán
+3. **Một giáo viên, một buổi, một phân hiệu.** ← ràng buộc lõi của bài toán
    sau sáp nhập. Thay cho việc tính thời gian di chuyển từng tiết; đơn giản
    hơn nhiều về thuật toán và cũng đúng thực tế quản lý hơn.
-4. Phòng chức năng: một lớp/tiết, và phải cùng điểm trường với lớp.
+4. Phòng chức năng: một lớp/tiết, và phải cùng phân hiệu với lớp.
    **Ràng buộc thật từ 1/8/2026** — trước đó chỉ có cảnh báo R10, lưới vẫn xếp
    hai lớp cùng học Tin học một tiết trong cùng một phòng máy mà không báo gì.
 5. Đủ số tiết mỗi môn mỗi tuần theo phân công.
@@ -1435,7 +1497,7 @@ giữ nguyên dấu tiếng Việt, và **nhà trường sửa lại được** 
 - Thể dục không xếp tiết cuối sáng hoặc tiết 1 chiều.
 - Không quá 2 tiết cùng môn liên tiếp.
 - Rải đều số tiết giữa các ngày.
-- **Tối thiểu hoá số lần giáo viên đổi điểm trường trong tuần** (trọng số cao nhất).
+- **Tối thiểu hoá số lần giáo viên đổi phân hiệu trong tuần** (trọng số cao nhất).
 
 ### Tiết ghim sẵn
 - Chào cờ: thứ Hai, sáng, tiết 1 — HDTN của giáo viên chủ nhiệm.
@@ -1454,7 +1516,7 @@ cấp phần mềm không được làm một trường đang xếp tốt bỗng
 thì nhà trường tự khai ở mục *Bước 1 · Phòng học*.
 
 Ba chỗ phải đi qua, cả ba đều có phép thử:
-- `chiSo()` đếm sẵn `phongBan[điểm trường|loại][ô] = số lớp đang chiếm`.
+- `chiSo()` đếm sẵn `phongBan[phân hiệu|loại][ô] = số lớp đang chiếm`.
 - `datDuoc()` — bước xếp tự động. Nhận thêm tham số `mon` để biết môn đó cần
   phòng loại gì.
 - `doiChoDuoc()` và `kiemTraChuyen()` — bước hoán đổi và chỉnh tay. Cả hai
@@ -1479,7 +1541,7 @@ tải bản lưu về. Ngăn xếp `LUI` nhớ 20 bước gần nhất (kéo th�
 ghim, xếp lại, xoá kết quả) — nút *Hoàn tác* và `Ctrl+Z`.
 
 ### Chỉnh tay trên điện thoại — đã dựng *(1/8/2026)*
-Kéo thả HTML5 **không chạy trên cảm ứng**, mà PHT phụ trách điểm trường gần như
+Kéo thả HTML5 **không chạy trên cảm ứng**, mà PHT phụ trách phân hiệu gần như
 chỉ dùng điện thoại — việc duy nhất họ được phép làm lại là việc họ không làm
 được. Nay lối chính là **chạm chọn → chạm đặt** (`S.oChon`, hàm `chamO`), có
 soi trước: ô đặt được sáng xanh (`.o-hop`), ô vướng ràng buộc mờ (`.o-cam`).
@@ -1494,7 +1556,7 @@ Nguyên tắc **"xếp ngược"**: xếp cái khó trước.
 ```
 1. Ghim tiết cố định (chào cờ, sinh hoạt lớp)
 2. Sắp thứ tự đơn vị phân công theo độ khó giảm dần:
-      độ khó = (không phải GVCN ? 1000 : 0) + số điểm trường × 200 + tổng tiết
+      độ khó = (không phải GVCN ? 1000 : 0) + số phân hiệu × 200 + tổng tiết
 3. Với mỗi tiết: duyệt toàn bộ ô khả dụng, loại ô vi phạm ràng buộc cứng,
    chọn ô có điểm mềm thấp nhất (MRV + greedy)
 4. Ô nào không còn chỗ hợp lệ → ghi vào danh sách "chưa xếp", báo rõ lý do
@@ -1514,7 +1576,7 @@ hội tụ hẳn. Hai chỗ đó là:
    L và hai giáo viên liên quan, nên chỉ tính `diemLop(L) + diemGV(×2)`.
    Rẻ hơn khoảng 20 lần.
 
-Kết quả trên kịch bản 3 điểm trường: đổi điểm trường 29 → 24 lần, tiết trống
+Kết quả trên kịch bản 3 phân hiệu: đổi phân hiệu 29 → 24 lần, tiết trống
 kẹp giữa buổi 45 → 11, Toán và Tiếng Việt bị đẩy xuống chiều 113 → 14 tiết.
 
 Hai tiết ghim (chào cờ, sinh hoạt lớp) bị `laGhim()` loại khỏi danh sách hoán
@@ -1537,9 +1599,9 @@ số đã thử và thất bại hai lần trước khi chẩn đoán ra gốc r
    phạt (+40) khi lấn vào tiết 1–3 sáng của lớp mà chỗ vàng còn lại không đủ
    cho số Toán/TV chưa xếp. ⚠️ Đã thử "kiêng đồng loạt +10" — phản tác dụng:
    bộ môn bị rải ra chiều, trống kẹp 12 → 22 mà chỉ nhích 1%.
-4. **Miễn thuế cho giáo viên LIÊN điểm trường** (`cs.gvDiDong`): ràng buộc
+4. **Miễn thuế cho giáo viên LIÊN phân hiệu** (`cs.gvDiDong`): ràng buộc
    một-buổi-một-điểm đã bó họ rất hẹp, bắt kiêng thêm là hết chỗ — kịch bản
-   3 điểm trường từng tụt 696 → 672 tiết vì thiếu đúng khoản miễn này.
+   3 phân hiệu từng tụt 696 → 672 tiết vì thiếu đúng khoản miễn này.
    Kèm **thuế kẹt–lấn** trong `diemLop`: mỗi cặp (nặng kẹt ngoài · thường
    lấn vàng) cùng lớp +7, cho vòng xoay đủ lời để chấp nhận xáo trộn nhỏ.
 
@@ -1576,12 +1638,12 @@ Một giây chỉ đủ dò một nhánh. Cho nó vài phút thì tìm được 
 hẳn, và quan trọng hơn: cho ra **vài phương án khác nhau** để người xếp tự chọn.
 
 Điều làm việc này rẻ hẳn đi là một nhận xét về chính bài toán nhà trường:
-**học sinh chỉ học tại điểm trường của mình, và giáo viên về cơ bản dạy một
-điểm trường** — chỉ vài giáo viên bộ môn ít tiết mới dạy liên điểm. Vậy nên
+**học sinh chỉ học tại phân hiệu của mình, và giáo viên về cơ bản dạy một
+phân hiệu** — chỉ vài giáo viên bộ môn ít tiết mới dạy liên điểm. Vậy nên
 thời khóa biểu toàn trường gần như là **mấy bài toán nhỏ rời nhau**.
 
 `nhomDocLap()` tách bằng union-find: hai lớp cùng nhóm khi có chung ít nhất một
-giáo viên. Ba điểm trường thật tách đúng thành **25 · 18 · 17 lớp**. Giải riêng
+giáo viên. Ba phân hiệu thật tách đúng thành **25 · 18 · 17 lớp**. Giải riêng
 từng nhóm thì mỗi phần nhỏ hơn hẳn, và **số phương án nhân lên theo cấp số
 nhân** — ba nhóm mỗi nhóm 60 lần thử là 60×60×60 tổ hợp toàn trường, không phải 60.
 
@@ -1611,7 +1673,7 @@ ba phút mà không nhả thì trình duyệt báo *"trang không phản hồi"*
 lại** lúc nào cũng được, phương án tốt nhất tới lúc đó vẫn giữ.
 
 Đo trên dữ liệu thật: điểm phạt **2249 → 2152** (giảm 4%) sau 20 giây, 25 lớp.
-Ba điểm trường 60 lớp: **5296 → 5079** sau 45 giây, vẫn đủ 1698/1698 tiết.
+Ba phân hiệu 60 lớp: **5296 → 5079** sau 45 giây, vẫn đủ 1698/1698 tiết.
 
 **Không bao giờ quảng bá "xếp tự động 100%".** Định vị đúng và an toàn hơn:
 *"Phát hiện vướng mắc trước khi xếp — xếp xong trong một phút — chỉ rõ chỗ
@@ -1620,16 +1682,16 @@ cần điều chỉnh."*
 ### Kết quả kiểm thử trên dữ liệu thật (bắt buộc giữ được)
 | Kịch bản | Kết quả mong đợi |
 |---|---|
-| 1 điểm trường | **710/710 tiết**, < 1 giây, 0 xung đột |
-| 3 điểm trường | ~696/710 tiết, 0 xung đột, phần thiếu rơi vào Tiếng Anh khối 5 |
+| 1 phân hiệu | **710/710 tiết**, < 1 giây, 0 xung đột |
+| 3 phân hiệu | ~696/710 tiết, 0 xung đột, phần thiếu rơi vào Tiếng Anh khối 5 |
 
 Khi sửa thuật toán, chạy lại `npm test` để đảm bảo không tụt so với mốc trên,
 và **`npm run kiemdinh`** *(3/8/2026)* — trình soát ĐỘC LẬP viết lại toàn bộ
 phép kiểm ràng buộc cứng từ dữ liệu thô, không dùng lại hàm nào của thuật
 toán chính (thuật toán tự chấm bài mình thì lỗi chung lọt lưới). Bảy kịch
 bản: trường thật · tất định · 60 lớp · sáu hạt GRASP · xếp kỹ · bận dày đặc
-· giáo viên liên điểm trường. Kịch bản cuối là bắt buộc phải giữ: bộ dữ liệu
-thử cắt giáo viên gọn theo điểm trường nên ràng buộc lõi "một buổi một điểm
+· giáo viên liên phân hiệu. Kịch bản cuối là bắt buộc phải giữ: bộ dữ liệu
+thử cắt giáo viên gọn theo phân hiệu nên ràng buộc lõi "một buổi một điểm
 trường" được thoả một cách TẦM THƯỜNG nếu không ép tồn tại người dạy hai nơi.
 
 ---
@@ -1642,15 +1704,15 @@ hiệu trưởng biết vấn đề nhân sự từ tháng 8, lúc còn kịp x�
 | Mã | Nội dung | Mức |
 |---|---|---|
 | R01 | Giáo viên vượt định mức 23 tiết | canh (≤2) / do (>2) |
-| R02 | Không đủ buổi để có mặt ở các điểm trường | **do** |
+| R02 | Không đủ buổi để có mặt ở các phân hiệu | **do** |
 | R03 | Kín ≥ 85% số buổi, không còn dự phòng | canh |
 | R04 | Lớp lệch số tiết chuẩn CT GDPT 2018 | canh |
 | R05 | Lớp vượt sức chứa khung giờ | do |
 | R06 | Lớp chưa có chủ nhiệm | canh |
-| R07 | Chủ nhiệm bị phân công ở điểm trường khác | do |
+| R07 | Chủ nhiệm bị phân công ở phân hiệu khác | do |
 | R08 | Toàn trường thiếu năng lực giảng dạy | do |
 | R09 | Trùng tên gọi giữa các giáo viên | goi |
-| R10 | Xếp Tin học ở điểm trường chưa có phòng máy | do |
+| R10 | Xếp Tin học ở phân hiệu chưa có phòng máy | do |
 | R11 | Chủ nhiệm báo bận đúng buổi có tiết cố định | canh |
 | R12 | Có phòng chức năng nhưng **không đủ chỗ** cho số tiết cần | do |
 | R13 | Vùng vàng (tiết 1–3 sáng) không đủ chỗ cho Toán, Tiếng Việt | goi |
@@ -1771,7 +1833,7 @@ dòng có ghi chú nó là gì. Ba nhóm **cố ý không đổi**, và có phé
 - **Màu ngữ nghĩa** — `--xanh #15803D` (báo *đạt*), `--do`, `--canh`. Đây là
   chỗ dễ quét nhầm nhất: đổi bảng màu giao diện mà kéo luôn màu báo trạng
   thái đi theo thì người dùng mất hẳn tín hiệu "việc này xong / việc này hỏng".
-- **Màu môn học và màu điểm trường** — sáu sắc phân biệt nhau, không phải màu
+- **Màu môn học và màu phân hiệu** — sáu sắc phân biệt nhau, không phải màu
   giao diện. Trong đó có `.m-ta` · `.m-gdtc` · `.m-kh` xanh lá và `--luc`.
 - **Cây cối trong tranh** đầu trang. Mẫu vẫn có cây xanh, chỉ **dịu hẳn** so
   với bản cũ (đo trên mẫu: `#74A990`, bản cũ là `#8CC65E` xanh nõn chuối).
@@ -1779,7 +1841,7 @@ dòng có ghi chú nó là gì. Ba nhóm **cố ý không đổi**, và có phé
   ăn theo hệ xanh lá nên là xanh xám, mà thân cây xanh dương thì vô lý.
 
 ⚠️ **Hai chỗ phải sửa RIÊNG vì dùng chung mã với thứ khác.** Thanh tiến độ
-dùng `#2E9E63` — mà đó cũng là `--luc`, màu điểm trường thứ hai; và `#5FAE87`
+dùng `#2E9E63` — mà đó cũng là `--luc`, màu phân hiệu thứ hai; và `#5FAE87`
 — cũng là chấm báo *đã nối máy chủ*. Thay theo mã là hỏng cả hai thứ kia.
 Phải thay nguyên cụm `linear-gradient` trước, rồi mới quét theo mã.
 
@@ -1861,7 +1923,7 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
   màu theo vai trò: xanh đậm = tiến độ, xanh lá = xong, đỏ = có việc gấp,
   vàng = cảnh báo.
 - Mỗi môn học một màu riêng (nền pastel + viền trái đậm, suy từ `--mc` bằng
-  `color-mix`), mỗi điểm trường một màu riêng.
+  `color-mix`), mỗi phân hiệu một màu riêng.
 - **MỖI MÔN MỘT BIỂU TƯỢNG** *(23/8/2026 — `IC_MON` · `icMon()`)*. Đảo lại
   quyết định "chốt bỏ icon" cũ: ảnh mẫu chủ dự án gửi có icon ở mọi ô, và khi
   hỏi lại thì chốt là thêm. Ba điều của bộ này:
@@ -1976,6 +2038,9 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi
       quảng bá rộng**.
+- [ ] **Chạy `db/them-cot-giao-vien.sql`** — hai cột `dien_thoai` và
+      `diem_truong_id` cho hồ sơ giáo viên. Chưa chạy thì app vẫn tốt (đường
+      lui chung với bốn cột kia), chỉ là hai ô ấy khai xong không lưu lên được.
 - [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Đường CHÍNH từ 28/8/2026 là
       **cột Gmail**: mục *Giáo viên* → *Nhập từ Excel* → *Tải mẫu về điền*
       (mẫu ra sẵn đủ 35 người, chỉ gõ thêm một cột) → nhập lại → Lưu. Thầy cô
@@ -2055,7 +2120,7 @@ Câu này là của chủ dự án, và nó là ràng buộc thiết kế chứ 
   Edge Function dùng `generateLink({type:'signup'})` và **trả liên kết xác minh
   về cho quản trị** — gửi qua Zalo cũng được, nên không phụ thuộc việc dự án đã
   cấu hình máy chủ gửi thư hay chưa.
-- PHT phụ trách điểm trường bị bó phạm vi, xem mục phân quyền ở trên.
+- PHT phụ trách phân hiệu bị bó phạm vi, xem mục phân quyền ở trên.
 
 ### Quản trị — người cài đặt ban đầu
 

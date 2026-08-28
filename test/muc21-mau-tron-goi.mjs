@@ -71,8 +71,8 @@ export default function muc21({ kt, S, bangMauTronGoi,
 
     /* Ràng buộc mạnh nhất của cả bộ: MỌI ô nằm dưới một cột xổ xuống phải là
        giá trị CÓ THẬT trong danh mục của nó. Chính phép này bắt được lỗi trang
-       7_PHONG bày dòng ví dụ "Điểm trường chính" cho một trường thật không hề
-       có điểm trường tên ấy — tệp mẫu tải về là nhập lại không được. */
+       7_PHONG bày dòng ví dụ "Phân hiệu chính" cho một trường thật không hề
+       có phân hiệu tên ấy — tệp mẫu tải về là nhập lại không được. */
     const lac = [];
     m.trang.forEach(t => t.cot.forEach((c, i) => {
       if (c.khoa?.kieu !== 'chon') return;
@@ -131,8 +131,8 @@ export default function muc21({ kt, S, bangMauTronGoi,
     const trang = (m, t) => m.trang.find(x => x.ten === t);
     const iCot = (m, t, c) => trang(m, t).cot.findIndex(x => x.ten === c);
 
-    hong(m => { trang(m, '4_LOP').hang[0][iCot(m, '4_LOP', 'Diem_truong')] = 'Điểm trường Ma'; },
-         'Lớp trỏ tới điểm trường không có trong trang 2 thì BỊ CHẶN', /không có điểm trường/);
+    hong(m => { trang(m, '4_LOP').hang[0][iCot(m, '4_LOP', 'Phan_hieu')] = 'Phân hiệu Ma'; },
+         'Lớp trỏ tới phân hiệu không có trong trang 2 thì BỊ CHẶN', /không có phân hiệu/);
     hong(m => { trang(m, '4_LOP').hang[0][iCot(m, '4_LOP', 'Khoi')] = 7; },
          'Khối ngoài 1–5 thì BỊ CHẶN', /Khoi phải là số từ 1 đến 5/);
     hong(m => { trang(m, '3_KHUNG_GIO').hang[0][0] = 8; },
@@ -142,9 +142,9 @@ export default function muc21({ kt, S, bangMauTronGoi,
     hong(m => { trang(m, '8_BUOI_BAN').hang = [['KHONG_CO_AI', 5, 'C']]; },
          'Buổi bận của một mã giáo viên không tồn tại thì BỊ CHẶN', /không có giáo viên mã/);
     hong(m => { trang(m, '7_PHONG').hang = [['Phòng máy', 'Tin học', 'Nơi lạ']]; },
-         'Phòng đặt ở điểm trường không có thì BỊ CHẶN', /không có điểm trường/);
+         'Phòng đặt ở phân hiệu không có thì BỊ CHẶN', /không có phân hiệu/);
     hong(m => { const t = trang(m, '2_DIEM_TRUONG'); t.hang = [...t.hang, [...t.hang[0]]]; },
-         'Điểm trường trùng tên thì BỊ CHẶN', /xuất hiện 2 lần/);
+         'Phân hiệu trùng tên thì BỊ CHẶN', /xuất hiện 2 lần/);
   }
 
   /* ---------- e) Cảnh báo thì CHO QUA ----------
@@ -263,19 +263,19 @@ export default function muc21({ kt, S, bangMauTronGoi,
        dl.loi[0]);
   }
 
-  /* ---------- i) Một điểm trường: cột Diem_truong bỏ trống được ---------- */
+  /* ---------- i) Một phân hiệu: cột Phan_hieu bỏ trống được ---------- */
   {
     const m = bangMauTronGoi();
     const tD = m.trang.find(x => x.ten === '2_DIEM_TRUONG');
-    tD.hang = [['Điểm trường chính', 'Có']];
+    tD.hang = [['Phân hiệu chính', 'Có']];
     const tL = m.trang.find(x => x.ten === '4_LOP');
-    const iDT = tL.cot.findIndex(c => c.ten === 'Diem_truong');
+    const iDT = tL.cot.findIndex(c => c.ten === 'Phan_hieu');
     tL.hang.forEach(h => { h[iDT] = ''; });
     const dl = duLieuTuTronGoi(nhuXLSX(m));
-    kt('Trường một điểm bỏ trống cột Diem_truong thì máy tự điền tên duy nhất',
+    kt('Trường một điểm bỏ trống cột Phan_hieu thì máy tự điền tên duy nhất',
        dl.soLoi === 0 && dl.diemTruong.length === 1 &&
        Object.keys(dl.lopDT).length === dl.lop.length,
-       `${dl.diemTruong.length} điểm trường`);
+       `${dl.diemTruong.length} phân hiệu`);
   }
 
   /* ---------- k) Cờ phòng Tin của trang 2 đi vào dữ liệu ---------- */
@@ -284,7 +284,7 @@ export default function muc21({ kt, S, bangMauTronGoi,
     const tD = m.trang.find(x => x.ten === '2_DIEM_TRUONG');
     tD.hang = tD.hang.map(h => [h[0], 'Không']);
     const dl = duLieuTuTronGoi(nhuXLSX(m));
-    kt('Co_phong_tin = Không đi đúng vào điểm trường, không bị nuốt mất',
+    kt('Co_phong_tin = Không đi đúng vào phân hiệu, không bị nuốt mất',
        dl.soLoi === 0 && dl.diemTruong.every(d => d.phongTin === false));
   }
 }

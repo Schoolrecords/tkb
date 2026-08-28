@@ -9,9 +9,9 @@
      nên og-anh.png là ngoại lệ có chủ đích thứ ba của quy ước một tệp.
      Zalo giữ bản đệm theo link: đổi ảnh rồi thì dán thử link kèm ?v=2 mới
      thấy bản mới. -->
-<meta name="description" content="Xếp và tra cứu thời khóa biểu trường tiểu học nhiều điểm trường. Thầy cô đăng nhập là thấy ngay lịch dạy của mình.">
+<meta name="description" content="Xếp và tra cứu thời khóa biểu trường tiểu học nhiều phân hiệu. Thầy cô đăng nhập là thấy ngay lịch dạy của mình.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Thời khóa biểu — trường tiểu học nhiều điểm trường">
+<meta property="og:title" content="Thời khóa biểu — trường tiểu học nhiều phân hiệu">
 <meta property="og:description" content="Xếp thời khóa biểu trong một phút, phát hiện vướng mắc nhân sự từ tháng 8. Thầy cô mở link là thấy ngay lịch dạy của mình.">
 <meta property="og:url" content="https://tkb.quantrisotruonghoc.com/">
 <meta property="og:image" content="https://tkb.quantrisotruonghoc.com/og-anh.png">
@@ -69,7 +69,7 @@
   --bong:0 1px 3px rgba(0,83,145,.05), 0 6px 20px rgba(0,83,145,.06);
   --bong2:0 8px 30px rgba(0,83,145,.15);
 }
-/* màu điểm trường */
+/* màu phân hiệu */
 .d0{--dt:#3B82F6}.d1{--dt:#2E9E63}.d2{--dt:#D97A29}.d3{--dt:#7C4DDC}.d4{--dt:#0E9AA7}.d5{--dt:#DB2777}
 /* Màu môn học — tông PASTEL NGẢ XÁM, không phải màu nguyên pha trắng
    (làm lại 23/8/2026 sau khi soi ảnh mẫu bằng mắt thường).
@@ -386,14 +386,31 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 /* Cột "Dạy" của bảng Giáo viên — mỗi nhóm lớp một dòng, chữ nhỏ để 35 dòng
    vẫn đọc lướt được. Nút bọc ngoài phải TRONG SUỐT: nó là chỗ bấm, không
    phải một khối tranh chỗ với chính nội dung nó chứa. */
+/* Lưới tích môn trong hộp Thêm phân công. Bày HẾT ra thành lưới chứ không
+   bắt mở danh sách: 13 môn vẫn gọn hơn một ô xổ xuống, và mắt thấy ngay còn
+   thiếu môn nào — cùng lý do năm nút lý do báo nghỉ không dùng ô chọn. */
+.pc-mon{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+  gap:6px;max-height:38vh;overflow:auto;padding:4px 2px}
+.pc-m{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--ke);
+  border-radius:9px;cursor:pointer;font-size:13px;background:var(--the)}
+.pc-m:hover{background:var(--nav-nhat)}
+.pc-m:has(input:checked){background:var(--nav-nhat);border-color:var(--nav);font-weight:600}
+.pc-m input{width:16px;height:16px;flex:0 0 16px;cursor:pointer}
+.pc-m-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ⚠️ `margin-left:auto` chứ đừng trông vào `flex:1` của ô tên: tên môn ngắn
+   thì hộp co lại và số tiết dính ngay sau chữ — "Tiếng Việt12 tiết". */
+.pc-m-s{margin-left:auto;padding-left:8px;font-size:11.5px;color:var(--nav);white-space:nowrap}
+.pc-m-s.mo{color:var(--chu-mo);font-weight:400}
 .gv-day{font-size:12px;line-height:1.45;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* ⚠️ `nowrap` mà thiếu `overflow:hidden` thì chữ dài không bị cắt — nó TRÀN
-   sang ô bên cạnh và nằm đè lên tag điểm trường. `max-width` trên ô `<td>`
+   sang ô bên cạnh và nằm đè lên tag phân hiệu. `max-width` trên ô `<td>`
    không tự cắt được cho con bên trong. */
 .gv-day b{font-weight:600}
 .gv-day-them{color:var(--chu-mo)}
-.gv-day-o{max-width:228px}
+.gv-day-o{max-width:214px}
+.gv-ph{margin-top:3px}
+.gv-buoi{font-size:11px;color:var(--chu-mo);margin-top:2px;white-space:nowrap}
 .gv-day-nut{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;
   text-align:left;cursor:pointer;border-radius:6px;display:block;max-width:100%;overflow:hidden}
 .gv-day-nut:hover{background:var(--nav-nhat)}
@@ -710,6 +727,23 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 .dl td .ip{padding:6px 9px;font-size:12.5px}
 .x-hang{background:none;border:none;color:var(--do);font-size:17px;line-height:1;cursor:pointer;padding:2px 6px}
 .x-hang:hover{filter:brightness(.8)}
+/* Cụm SỬA / XOÁ cuối mỗi dòng (28/8/2026). Chủ dự án: dấu × đỏ trần "đổi
+   thành nút sửa/xoá cho đẹp, chuyên nghiệp".
+
+   Dấu × một mình có hai cái sai: nó là lối DUY NHẤT nên muốn đổi một chữ
+   trong hồ sơ cũng phải sửa ngay trên bảng, mà bảng thì không chứa nổi bảy
+   ô; và một dấu × đỏ trần không nói mình sẽ xoá cái gì.
+
+   ⚠️ Xoá KHÔNG tô đỏ sẵn. Nó chỉ đỏ khi rê chuột vào — hai nút cạnh nhau mà
+   một cái đỏ rực thì mắt bị kéo về đúng cái nguy hiểm hơn. */
+.hang-nut{display:flex;gap:5px;justify-content:flex-end;white-space:nowrap}
+.hang-nut button{background:var(--the);border:1px solid var(--ke);border-radius:8px;
+  padding:5px 9px;font:inherit;font-size:12px;color:var(--chu);cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px}
+.hang-nut button:hover{background:var(--nav-nhat);border-color:var(--nav-vien)}
+.hang-nut button:active{transform:translateY(-2px)}
+.hang-nut .n-xoa:hover{background:var(--do-nen,#FDECEC);border-color:var(--do);color:var(--do)}
+.hang-nut svg{width:14px;height:14px;stroke-width:2;fill:none;stroke:currentColor}
 /* ---------- Lưới toàn trường: cuộn ngang trong khung, thân trang không cuộn ---------- */
 .tt-boc{overflow:auto;max-height:74vh;border:1px solid var(--ke);border-radius:var(--r);background:var(--the)}
 table.tt{border-collapse:separate;border-spacing:0;font-size:11.5px;width:max-content;min-width:100%}
@@ -757,9 +791,9 @@ table.tt.co-khoi thead tr:nth-child(2) th{top:26px}
 table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#AFCBE0;letter-spacing:.04em;
   background:repeating-linear-gradient(135deg,#F2F8FD,#F2F8FD 5px,#ECF5FC 5px,#ECF5FC 10px)}
 
-/* Dải nút chuyển điểm trường trên các màn hình lưới rộng */
+/* Dải nút chuyển phân hiệu trên các màn hình lưới rộng */
 .dai-dt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
-/* Cùng hệ màu với .xem-nut — xem giải thích ở đó. Dải điểm trường và dải
+/* Cùng hệ màu với .xem-nut — xem giải thích ở đó. Dải phân hiệu và dải
    thẻ chuyển nằm chồng nhau trên màn hình, hai kiểu khác nhau là rối mắt. */
 /* Nút nền SÁNG chữ xanh (16/8/2026, theo mẫu) — đảo chiều so với bản navy
    ngày 3/8. Vẫn giữ đúng nguyên tắc đã chốt hôm ấy: hai tín hiệu, không
@@ -965,7 +999,7 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .xem-xuat{flex:0 0 auto;margin-left:4px;display:flex;align-items:center;gap:8px;
   background:var(--nav);color:#fff;border-color:var(--nav);box-shadow:0 3px 10px rgba(0,83,145,.24)}
 .xem-xuat svg{width:16px;height:16px;stroke-width:1.9}
-/* Hàng phụ: dải chọn (điểm trường / khối / lớp / giáo viên) + nhãn số liệu */
+/* Hàng phụ: dải chọn (phân hiệu / khối / lớp / giáo viên) + nhãn số liệu */
 .dai-phu{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:34px}
 .dai-phu .meta{margin-left:auto;font-size:12px;color:var(--chu-mo);white-space:nowrap}
 .dai-phu .dai-dt{margin:0}
@@ -1241,7 +1275,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <button class="nhom" data-monh="dl" aria-expanded="false">DỮ LIỆU NHÀ TRƯỜNG<span class="nhom-n"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 10l4 4 4-4"/></svg></button>
     <div class="nhom-ds">
       <button class="mi" data-t="thongtin" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V8l7-4.5L19 8v13"/><path d="M9.5 21v-5h5v5M9.5 11h5"/></svg>Thông tin trường</button>
-      <button class="mi" data-t="diemtruong" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Điểm trường <span class="n" id="nDT">0</span></button>
+      <button class="mi" data-t="diemtruong" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Phân hiệu <span class="n" id="nDT">0</span></button>
       <button class="mi" data-t="khunggio" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Khối và khung giờ</button>
       <button class="mi" data-t="lop" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2M9 13h6M9 17h4"/></svg>Lớp học <span class="n" id="nLopDS">0</span></button>
       <button class="mi" data-t="giaovien" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5h13a2 2 0 012 2V19H5a2 2 0 01-2-2V6.5z"/><path d="M18 8.5h3V19h-3"/><path d="M7 10h7M7 14h5"/></svg>Giáo viên <span class="n" id="nGVDS">0</span></button>
@@ -1397,7 +1431,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <div class="thanh-ten"><div class="thanh-t" id="tenTruong">THỜI KHÓA BIỂU</div><div class="thanh-p" id="diaChi">Đang tải…</div></div>
     <div class="thanh-phai">
       <button class="b b-vang" id="btDangNhapTren" title="Đăng nhập để xem thời khóa biểu của trường"><svg id="icDangNhap" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span class="av-tren" id="avTren" style="display:none"></span><span id="chuDangNhap">Đăng nhập</span></button>
-      <button class="chuong" id="btTim" title="Tìm giáo viên, lớp, môn học hoặc điểm trường"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
+      <button class="chuong" id="btTim" title="Tìm giáo viên, lớp, môn học hoặc phân hiệu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
       <button class="chuong" id="btChuong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8.5a6 6 0 10-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="sl" id="slChuong"></span></button>
     </div>
     <!-- Hộp tìm kiếm chung thả xuống — dựng tĩnh một lần, không vẽ lại theo ve() -->
@@ -1406,7 +1440,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
         <div class="loc-o">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
           <input class="ip" type="search" id="timChung" autocomplete="off" spellcheck="false"
-            placeholder="Tìm giáo viên, lớp, môn học hoặc điểm trường…">
+            placeholder="Tìm giáo viên, lớp, môn học hoặc phân hiệu…">
         </div>
         <div class="tim-kq" id="timKQ"></div>
       </div>
@@ -1427,7 +1461,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
 <script>
 /* ==================================================================
    HỆ THỐNG THỜI KHÓA BIỂU — Năm học 2026–2027
-   Dành cho trường tiểu học nhiều điểm trường
+   Dành cho trường tiểu học nhiều phân hiệu
    ------------------------------------------------------------------
    · Cán bộ quản lý: xếp tự động, chỉnh tay bằng kéo thả
    · Giáo viên: đăng nhập là thấy ngay thời khóa biểu của mình
@@ -1514,16 +1548,16 @@ let S = {
   giaoVien:NGUON.giaoVien.map(g=>({...g})),
   lop:NGUON.lop.map(l=>({...l})),
   phanCong:NGUON.phanCong.map(p=>({...p})),
-  diemTruong:[{id:'dt1',ten:'Điểm trường Diễn Liên',phongTin:true}],
+  diemTruong:[{id:'dt1',ten:'Phân hiệu Diễn Liên',phongTin:true}],
   monHoc:dsMonMacDinh(),
-  phong:[],             /* rỗng = chưa khai phòng riêng, chỉ dùng cờ phongTin của điểm trường */
+  phong:[],             /* rỗng = chưa khai phòng riêng, chỉ dùng cờ phongTin của phân hiệu */
   lopDT:{}, khungGio:[], tkb:{}, gvNghi:{},
   dayThay:[],           /* phân công dạy thay theo ngày — bảng day_thay trên máy chủ */
   baoNghi:[],           /* giáo viên báo nghỉ theo ngày — bảng bao_nghi trên máy chủ */
   giaoVienQL:[],        /* hồ sơ giáo viên của cán bộ quản lý — chỉ vào phương án dự phòng */
   nguoiDung:{vaiTro:'qt', gvId:null, diemTruongId:null},
   phamVi:'', trangHienTai:'dieuhanh', lopXem:null, gvXem:null, khoiXem:null,
-  dtLuoi:'',            /* điểm trường đang xem trên lưới rộng — xem lopChoLuoi() */
+  dtLuoi:'',            /* phân hiệu đang xem trên lưới rộng — xem lopChoLuoi() */
   oChon:null,           /* ô đang chọn trong lưới lớp — lối chỉnh tay trên điện thoại */
   bnXem:null,           /* thông báo nghỉ đang mở phương án dạy thay */
   paChon:0,             /* phương án dạy thay đang chọn: 0 · 1 · 2 */
@@ -1593,7 +1627,7 @@ function dsMonDung(){
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const tenTat=h=>{const p=String(h).trim().split(/\s+/);return (p.length>1?p[p.length-2][0]+'.':'')+p[p.length-1];};
 /* ---------- Chủ nhiệm: `giaoVien.cn` là MÃ LỚP, không phải tên lớp ----------
-   Sau sáp nhập, ba điểm trường đều có lớp mang tên "1A". Dò chủ nhiệm bằng tên
+   Sau sáp nhập, ba phân hiệu đều có lớp mang tên "1A". Dò chủ nhiệm bằng tên
    là nhầm người ngay — đúng bài học của bốn cặp giáo viên trùng tên gọi, chỉ
    khác là lần này trùng ở phía lớp. Ba hàm dưới đây là đường đi duy nhất. */
 const cnCuaLop = id => S.giaoVien.find(g=>g.cn===id) || null;
@@ -1601,7 +1635,7 @@ const lopCN    = g  => (g && g.cn) ? lopId(g.cn) : null;
 const tenCN    = g  => lopCN(g)?.ten || '';
 /* Đưa `cn` về mã lớp. Dữ liệu cũ (tệp mẫu, bản kết xuất SmartScheduler) ghi
    TÊN lớp — đổi khi tên đó chỉ trỏ tới đúng một lớp; tên trùng nhiều lớp thì
-   bỏ trống, còn hơn gán bừa cho lớp ở điểm trường khác. Gọi sau mỗi lần nạp. */
+   bỏ trống, còn hơn gán bừa cho lớp ở phân hiệu khác. Gọi sau mỗi lần nạp. */
 function chuanCN(){
   const theoTen={}, coMa=new Set(S.lop.map(l=>l.id));
   S.lop.forEach(l=>{ (theoTen[l.ten]=theoTen[l.ten]||[]).push(l.id); });
@@ -1612,16 +1646,16 @@ function chuanCN(){
   });
   return S.giaoVien;
 }
-/* Tên lớp để hiển thị. Trùng tên với lớp ở điểm trường khác thì ghi kèm nơi
+/* Tên lớp để hiển thị. Trùng tên với lớp ở phân hiệu khác thì ghi kèm nơi
    học, còn không thì để trơn cho gọn. */
-/* Tên điểm trường rút gọn cho mọi chỗ hiển thị: bỏ tiền tố "Điểm trường".
+/* Tên phân hiệu rút gọn cho mọi chỗ hiển thị: bỏ tiền tố "Phân hiệu".
    Trường đặt tên không thống nhất — "Diễn Liên", "Diễn Thái", nhưng
-   "Điểm trường Diễn Đồng" — nên dải nút và các thẻ dài ngắn lệch nhau, trên
+   "Phân hiệu Diễn Đồng" — nên dải nút và các thẻ dài ngắn lệch nhau, trên
    điện thoại thì tràn hàng.
 
    ⚠️ PHẢI chuẩn hoá NFC trước khi cắt. Chữ "Điểm" gõ trên máy khác hoặc dán
    từ Excel có thể ở dạng tổ hợp (ể = e + dấu rời), nhìn y hệt nhau nhưng
-   không khớp chuỗi — đúng lý do bản trước cắt hụt đúng một điểm trường
+   không khớp chuỗi — đúng lý do bản trước cắt hụt đúng một phân hiệu
    (2/8/2026). Một hàm dùng chung, đừng viết .replace rải rác nữa. */
 function tenDiemNgan(ten){
   const s = String(ten||'').normalize('NFC').trim();
@@ -1634,11 +1668,15 @@ function tenDiemNgan(ten){
                    .replace(/[đð]/gi,'d').toLowerCase();
   const tu = s.split(/\s+/);
   let i = 0;
-  if(bo(tu[0]||'') === 'diem') i++;
-  if(bo(tu[i]||'') === 'truong') i++;
+  /* ⚠️ Nhận CẢ HAI cách gọi. "Phân hiệu" là tên đúng theo quy định Sở GD&ĐT
+     (đổi 28/8/2026); "Điểm trường" là cách gọi cũ, mà trường đang chạy thì có
+     sẵn những cái tên ấy trên máy chủ — chỉ nhận tiền tố mới là cắt hụt, dải
+     nút lại dài ngắn lệch nhau đúng như lỗi đã vá ngày 2/8. */
+  if(bo(tu[0]||'') === 'diem' || bo(tu[0]||'') === 'phan') i++;
+  if(bo(tu[i]||'') === 'truong' || bo(tu[i]||'') === 'hieu') i++;
   const con = tu.slice(i).join(' ');
-  /* Chỉ cắt khi có ĐỦ hai từ "điểm trường" và còn lại thứ gì đó để hiển thị —
-     điểm trường đặt tên trống trơn thì thà giữ nguyên còn hơn hiện ô rỗng. */
+  /* Chỉ cắt khi có ĐỦ hai từ "phân hiệu" và còn lại thứ gì đó để hiển thị —
+     phân hiệu đặt tên trống trơn thì thà giữ nguyên còn hơn hiện ô rỗng. */
   return (i === 2 && con) ? con : s;
 }
 const tenDT = id => tenDiemNgan(dtId(id)?.ten);
@@ -1702,7 +1740,7 @@ const lopTrongPV=()=>S.phamVi?S.lop.filter(l=>S.lopDT[l.id]===S.phamVi):S.lop;
    1. BỘ MÁY XẾP THỜI KHÓA BIỂU
    ================================================================== */
 
-/* Bảng tra: giáo viên nào đang bận ô nào, và đang ở điểm trường nào trong buổi nào */
+/* Bảng tra: giáo viên nào đang bận ô nào, và đang ở phân hiệu nào trong buổi nào */
 function chiSo(){
   const gvBan={}, gvBuoiDT={}, phongBan={};
   /* Tra loại phòng bằng bảng dựng sẵn cho đúng một lần gọi. `chiSo()` chạy
@@ -1718,7 +1756,7 @@ function chiSo(){
       (gvBan[t.gvId]=gvBan[t.gvId]||{})[khoa]=lp;
       const kB=khoa.split('-').slice(0,2).join('-');
       (gvBuoiDT[t.gvId]=gvBuoiDT[t.gvId]||{})[kB]=S.lopDT[lp];
-      /* Bao nhiêu lớp đang chiếm phòng loại này, tại điểm trường này, ô này */
+      /* Bao nhiêu lớp đang chiếm phòng loại này, tại phân hiệu này, ô này */
       if(!xetPhong) return;
       const loai=loaiCua[t.mon];
       if(loai){
@@ -1753,7 +1791,7 @@ function themChiSo(cs, lp, khoa, gvId, mon){
    cảnh báo R10 như trước. Nâng cấp phần mềm không được làm trường đang chạy
    tốt bỗng xếp hỏng; muốn siết thì nhà trường tự khai ở mục Phòng học. */
 const coBangPhong = () => (S.phong||[]).length > 0;
-/* Số phòng loại này tại một điểm trường */
+/* Số phòng loại này tại một phân hiệu */
 const soPhong = (dt,loai) => (S.phong||[]).filter(p=>p.dtId===dt && p.mon===loai).length;
 /* Đếm lớp đang chiếm phòng loại này ở ô đó, bỏ qua chính lớp đang xét.
    Dùng cho bước hoán đổi, nơi không có sẵn bảng tra của chiSo(). */
@@ -1776,11 +1814,11 @@ function datDuoc(o,lp,gv,cs,mon){
   if(dtDang && dtDang!==S.lopDT[lp])
     return `Giáo viên đang dạy ở ${dtId(dtDang).ten} trong buổi này`;
   /* Phòng chức năng: một phòng một tiết một lớp, và phòng phải ở đúng điểm
-     trường của lớp — đi bộ sang điểm trường khác học Tin là chuyện không có. */
+     trường của lớp — đi bộ sang phân hiệu khác học Tin là chuyện không có. */
   const loai = mon!=null ? monCanPhong(mon) : '';
   if(loai && coBangPhong()){
     const dt=S.lopDT[lp], tong=soPhong(dt,loai);
-    if(!tong) return `${dtId(dt)?.ten||'Điểm trường của lớp'} không có phòng ${loai}`;
+    if(!tong) return `${dtId(dt)?.ten||'Phân hiệu của lớp'} không có phòng ${loai}`;
     if((cs.phongBan[dt+'|'+loai]?.[o.khoa]||0) >= tong)
       return `Phòng ${loai} đã kín tiết này`;
   }
@@ -1817,7 +1855,7 @@ function diemO(o,lp,mon,gv,cs){
     const vangCon=(cs.cungVang[lp]||0)-vangDung;
     if(canCon>=vangCon) d+=40;
   }
-  /* gom tiết cho giáo viên bộ môn: ưu tiên buổi họ đã có mặt cùng điểm trường */
+  /* gom tiết cho giáo viên bộ môn: ưu tiên buổi họ đã có mặt cùng phân hiệu */
   if(cs.gvBuoiDT[gv]?.[o.kB]===S.lopDT[lp]) d-=20;
   return d;
 }
@@ -1911,9 +1949,9 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
     cs.cungVang[l.id]=buoiBat().filter(k=>k.buoi==='S')
       .reduce((s,k)=>s+Math.min(3,soTietBuoi(k,l.khoi)),0);
   });
-  /* Giáo viên LIÊN điểm trường được MIỄN thuế đặt chỗ: ràng buộc "một buổi
-     một điểm trường" đã bó cửa sổ khả dụng của họ rất hẹp, bắt kiêng thêm
-     vùng vàng là hết chỗ đặt — kịch bản 3 điểm trường từng tụt 696 → 672
+  /* Giáo viên LIÊN phân hiệu được MIỄN thuế đặt chỗ: ràng buộc "một buổi
+     một phân hiệu" đã bó cửa sổ khả dụng của họ rất hẹp, bắt kiêng thêm
+     vùng vàng là hết chỗ đặt — kịch bản 3 phân hiệu từng tụt 696 → 672
      tiết vì đúng khoản này. Người đã khó thì được tự do chọn chỗ. */
   const dtGV={};
   S.phanCong.forEach(p=>{ (dtGV[p.gvId] ||= new Set()).add(S.lopDT[p.lopId]); });
@@ -1979,7 +2017,7 @@ function lichTraGV(){
   return r;
 }
 
-/* Điểm phạt của MỘT giáo viên. Nặng nhất là số lần phải đổi điểm trường
+/* Điểm phạt của MỘT giáo viên. Nặng nhất là số lần phải đổi phân hiệu
    trong tuần — đúng thứ tự ưu tiên ghi trong bản giao việc. */
 function diemGV(o){
   if(!o) return 0;
@@ -2073,7 +2111,7 @@ function doiChoDuoc(lp, a, b, lich){
     if(oGV[den] && oGV[den]!==lp) return false;   /* giờ đó đang dạy lớp khác */
     const kB=den.slice(0,den.lastIndexOf('-'));
     if((S.gvNghi[gv]||[]).includes(kB)) return false;
-    for(const k in oGV)                            /* buổi đó có đang ở điểm trường khác? */
+    for(const k in oGV)                            /* buổi đó có đang ở phân hiệu khác? */
       if(k.startsWith(kB+'-') && S.lopDT[oGV[k]]!==S.lopDT[lp]) return false;
     return true;
   };
@@ -2108,7 +2146,7 @@ function xoayBaDuoc(lp, a, b, c, lich){
     if(oGV[den] && oGV[den]!==lp) return false;     /* giờ đó đang dạy lớp khác */
     const kB=den.slice(0,den.lastIndexOf('-'));
     if((S.gvNghi[t.gvId]||[]).includes(kB)) return false;
-    for(const k in oGV)                              /* một buổi một điểm trường */
+    for(const k in oGV)                              /* một buổi một phân hiệu */
       if(k.startsWith(kB+'-') && S.lopDT[oGV[k]]!==S.lopDT[lp]) return false;
     return true;
   };
@@ -2132,7 +2170,7 @@ function xoayO(lp, a, b, c, lich){
 function chumHopLe(moves, lich){
   const nha=new Set(moves.map(m=>m.lp+'|'+m.tu));
   /* Hai tiết cùng người trong chùm không được đáp xuống cùng ô giờ,
-     và đáp cùng buổi thì phải cùng điểm trường */
+     và đáp cùng buổi thì phải cùng phân hiệu */
   for(let i=0;i<moves.length;i++) for(let j=i+1;j<moves.length;j++){
     const a=moves[i], b=moves[j];
     if(a.t.gvId!==b.t.gvId) continue;
@@ -2159,7 +2197,7 @@ function chumHopLe(moves, lich){
     if(chiem===m.lp && !nha.has(m.lp+'|'+m.den)) return false;
     const kB=m.den.slice(0,m.den.lastIndexOf('-'));
     if((S.gvNghi[t.gvId]||[]).includes(kB)) return false;
-    for(const k in oGV){                             /* một buổi một điểm trường */
+    for(const k in oGV){                             /* một buổi một phân hiệu */
       if(!k.startsWith(kB+'-')) continue;
       if(nha.has(oGV[k]+'|'+k)) continue;
       if(S.lopDT[oGV[k]]!==S.lopDT[m.lp]) return false;
@@ -2329,8 +2367,8 @@ function kiemTra(){
   });
   gv.filter(x=>x.thieu>0).sort((a,b)=>b.thieu-a.thieu).forEach(x=>{
     V('R02','do',`${x.g.hoTen} thiếu ${x.thieu} buổi`,
-      `Cần có mặt ${x.buoiCan} buổi ở ${x.soDT} điểm trường, tuần chỉ còn ${x.buoiCo} buổi. Một giáo viên không thể ở hai điểm trường trong cùng một buổi.`,
-      'Bổ sung giáo viên cho môn này, hoặc dồn các lớp cùng môn về ít điểm trường hơn.');
+      `Cần có mặt ${x.buoiCan} buổi ở ${x.soDT} phân hiệu, tuần chỉ còn ${x.buoiCo} buổi. Một giáo viên không thể ở hai phân hiệu trong cùng một buổi.`,
+      'Bổ sung giáo viên cho môn này, hoặc dồn các lớp cùng môn về ít phân hiệu hơn.');
   });
   gv.filter(x=>!x.thieu&&x.buoiCo&&x.buoiCan/x.buoiCo>=.85).sort((a,b)=>b.buoiCan-a.buoiCan).forEach(x=>{
     V('R03','canh',`${x.g.hoTen} kín ${x.buoiCan}/${x.buoiCo} buổi`,
@@ -2366,9 +2404,9 @@ function kiemTra(){
     const l=lopCN(g); if(!l) return;
     const c=S.lopDT[l.id];
     const k=[...new Set(S.phanCong.filter(p=>p.gvId===g.id).map(p=>S.lopDT[p.lopId]).filter(x=>x&&x!==c))];
-    if(k.length) V('R07','do',`Chủ nhiệm lớp ${tenLopDay(l.id)} bị phân công ở điểm trường khác`,
+    if(k.length) V('R07','do',`Chủ nhiệm lớp ${tenLopDay(l.id)} bị phân công ở phân hiệu khác`,
       `${g.hoTen} chủ nhiệm tại ${dtId(c)?.ten}, nhưng còn dạy ở ${k.map(x=>dtId(x)?.ten).join(', ')}.`,
-      'Giáo viên chủ nhiệm tiểu học nên dạy trọn trong điểm trường của lớp mình.');
+      'Giáo viên chủ nhiệm tiểu học nên dạy trọn trong phân hiệu của lớp mình.');
   });
 
   const can=S.phanCong.reduce((s,p)=>s+p.soTiet,0);
@@ -2400,9 +2438,9 @@ function kiemTra(){
       'Bỏ đánh dấu buổi đó ở mục Buổi bận, hoặc cắt cử giáo viên khác đứng lớp tiết ấy.');
   });
 
-  /* R10 — môn cần phòng chức năng mà điểm trường không có phòng loại đó.
+  /* R10 — môn cần phòng chức năng mà phân hiệu không có phòng loại đó.
      Trường chưa khai bảng phòng thì vẫn xét bằng cờ "có phòng Tin học" của
-     điểm trường như trước, nên dữ liệu cũ không phải khai lại mới chạy được. */
+     phân hiệu như trước, nên dữ liệu cũ không phải khai lại mới chạy được. */
   S.diemTruong.forEach(d=>{
     const can={};
     S.phanCong.forEach(p=>{
@@ -2414,7 +2452,7 @@ function kiemTra(){
       if(!coPhong(d.id,loai))
         return V('R10','do',`${d.ten} chưa có phòng ${loai}`,
           `Đang có ${n} tiết ${loai} phân công cho các lớp tại đây.`,
-          `Khai thêm một phòng ${loai} tại điểm trường này ở mục Phòng học, hoặc chuyển các lớp này về nơi đã có phòng.`);
+          `Khai thêm một phòng ${loai} tại phân hiệu này ở mục Phòng học, hoặc chuyển các lớp này về nơi đã có phòng.`);
       /* R12 — có phòng nhưng KHÔNG ĐỦ CHỖ. Đây là thứ chỉ lộ ra sau sáp nhập:
          ba trường gộp lại mà vẫn một phòng máy thì số tiết Tin học vượt hẳn
          sức chứa. Phải nói trước tháng 8, lúc còn kịp xin thêm phòng. */
@@ -2427,7 +2465,7 @@ function kiemTra(){
       const sucChua=soP*oCo.size;
       if(n>sucChua) V('R12','do',`${d.ten} không đủ chỗ trong phòng ${loai}`,
         `Cần ${n} tiết ${loai} mỗi tuần, mà ${soP} phòng × ${oCo.size} ô giờ chỉ chứa được ${sucChua} tiết.`,
-        `Thiếu ${n-sucChua} chỗ. Cần thêm ${Math.ceil((n-sucChua)/oCo.size)} phòng ${loai}, hoặc giảm số tiết, hoặc chuyển bớt lớp sang điểm trường khác.`);
+        `Thiếu ${n-sucChua} chỗ. Cần thêm ${Math.ceil((n-sucChua)/oCo.size)} phòng ${loai}, hoặc giảm số tiết, hoặc chuyển bớt lớp sang phân hiệu khác.`);
     });
   });
 
@@ -2497,8 +2535,8 @@ function kiemTra(){
    để người xếp tự chọn.
 
    Điều làm việc này rẻ hẳn đi là một nhận xét về chính bài toán nhà trường:
-   **học sinh chỉ học tại điểm trường của mình, và giáo viên về cơ bản dạy một
-   điểm trường** — chỉ vài giáo viên bộ môn ít tiết mới dạy liên điểm. Vậy nên
+   **học sinh chỉ học tại phân hiệu của mình, và giáo viên về cơ bản dạy một
+   phân hiệu** — chỉ vài giáo viên bộ môn ít tiết mới dạy liên điểm. Vậy nên
    thời khóa biểu toàn trường gần như là mấy bài toán nhỏ rời nhau. Tách ra
    giải riêng thì mỗi phần nhỏ hơn hẳn, chạy nhanh hơn, và số phương án nhân
    lên theo cấp số nhân: ba nhóm mỗi nhóm 60 lần thử là 60×60×60 tổ hợp toàn
@@ -2582,7 +2620,7 @@ function chiSoPhuongAn(){
       for(let i=0;i<k.tiet;i++) if(o[`${kB}-${i}`]){ if(dau<0) dau=i; cuoi=i; co++; }
       if(co>1) trong += (cuoi-dau+1-co);
     }
-    /* Số lượt phải đổi điểm trường giữa hai buổi liền nhau trong tuần */
+    /* Số lượt phải đổi phân hiệu giữa hai buổi liền nhau trong tuần */
     let truoc=null;
     for(const k of bb){
       const kB=`${k.thu}-${k.buoi}`;
@@ -2701,8 +2739,8 @@ function xepDai(tuyChon={}){
    1b9. DẠY THAY — gợi ý người dạy thế cho một ngày cụ thể
    ------------------------------------------------------------------
    Lọc cứng đúng các ràng buộc của thời khóa biểu: đang trống ô giờ đó,
-   KHÔNG có tiết ở điểm trường khác trong cùng buổi (ràng buộc lõi một
-   giáo viên · một buổi · một điểm trường), và không đăng ký bận buổi đó.
+   KHÔNG có tiết ở phân hiệu khác trong cùng buổi (ràng buộc lõi một
+   giáo viên · một buổi · một phân hiệu), và không đăng ký bận buổi đó.
    Chấm điểm mềm để xếp hạng, trả kèm lý do — máy gợi ý, người quyết.
    ================================================================== */
 
@@ -2724,14 +2762,14 @@ function tietVangCua(gvVangId, thu, dsBuoi){
    Ba nhóm hàm thuần, không đụng DOM — `npm test` kiểm được thẳng.
    ================================================================== */
 
-/* Điểm trường này có phòng loại đó không. Bảng phòng còn rỗng thì lùi về cờ
-   `phongTin` của điểm trường — đường lui cho trường chưa kịp khai phòng. */
+/* Phân hiệu này có phòng loại đó không. Bảng phòng còn rỗng thì lùi về cờ
+   `phongTin` của phân hiệu — đường lui cho trường chưa kịp khai phòng. */
 function coPhong(dt, loai){
   if(!loai) return true;
   if((S.phong||[]).length) return S.phong.some(p=>p.dtId===dt && p.mon===loai);
   return loai==='Tin học' ? !!dtId(dt)?.phongTin : true;
 }
-/* Cờ `phongTin` của điểm trường suy ra từ bảng phòng, để chỉ có một nguồn sự
+/* Cờ `phongTin` của phân hiệu suy ra từ bảng phòng, để chỉ có một nguồn sự
    thật. Gọi sau mỗi lần sửa bảng phòng. */
 function dongBoPhongTin(){
   if(!(S.phong||[]).length) return S.diemTruong;
@@ -2740,7 +2778,7 @@ function dongBoPhongTin(){
 }
 
 /* Sinh lớp hàng loạt: khai "khối 1 có 5 lớp" là ra 1A…1E.
-   Mã lớp mang tiền tố điểm trường nên ba điểm trường cùng có lớp "1A" vẫn
+   Mã lớp mang tiền tố phân hiệu nên ba phân hiệu cùng có lớp "1A" vẫn
    phân biệt được — đúng nguyên tắc tham chiếu bằng mã, không bằng tên. */
 const CHU_LOP='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 /* Mã lớp trông có xấu không — dùng để mời người dùng đặt lại.
@@ -2756,14 +2794,16 @@ const maXauChuoi = (m, toiDa=14) => {
   return !s || s.length>toiDa || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s);
 };
 const maXauXi = l => !l.maLop || maXauChuoi(l.maLop);
-/* Viết tắt điểm trường: chữ đầu mỗi từ, GIỮ NGUYÊN dấu tiếng Việt —
-   "Điểm trường Diễn Đồng" → DĐ, phân biệt hẳn với "Diễn Liên" → DL.
+/* Viết tắt phân hiệu: chữ đầu mỗi từ, GIỮ NGUYÊN dấu tiếng Việt —
+   "Phân hiệu Diễn Đồng" → DĐ, phân biệt hẳn với "Diễn Liên" → DL.
    Bỏ dấu thì Diễn Đồng và Diễn Đông đều thành DD, lẫn nhau ngay. */
 function tienToDT(ten){
-  const chu=String(ten||'').replace(/^\s*Điểm\s+trường\s*/i,'').trim().split(/\s+/).filter(Boolean);
-  return chu.map(x=>x[0]).join('').toUpperCase().slice(0,3) || 'DT';
+  /* Cắt cả hai tiền tố — xem ghi chú ở tenDiemNgan() */
+  const chu=String(ten||'').replace(/^\s*(Phân\s+hiệu|Điểm\s+trường)\s*/i,'')
+              .trim().split(/\s+/).filter(Boolean);
+  return chu.map(x=>x[0]).join('').toUpperCase().slice(0,3) || 'PH';
 }
-/* Mã lớp: TÊN LỚP trước, viết tắt điểm trường sau — `1A_DL`, `1A_DĐ`.
+/* Mã lớp: TÊN LỚP trước, viết tắt phân hiệu sau — `1A_DL`, `1A_DĐ`.
    Tên lớp đứng trước vì đó là thứ người dùng tìm; sắp theo mã cũng ra
    đúng thứ tự lớp. Chọn dấu `_` để không lẫn với gạch nối trong tên. */
 const maLopTu = (ten, dtTen) => String(ten||'').replace(/\s+/g,'')+'_'+tienToDT(dtTen);
@@ -2776,7 +2816,7 @@ const chuanMaLop = () => datLaiMaLop();
 /* Đặt lại mã lớp. Mặc định chỉ chữa các mã XẤU (chạy tự động lúc nạp);
    truyền `tatCa` để đưa TOÀN BỘ về dạng chuẩn `1A_DL` — dùng cho nút bấm
    tay, vì máy chủ cũ có thể đang giữ mã cũ kiểu "1A" trông không xấu nhưng
-   không nói được lớp đó ở điểm trường nào.
+   không nói được lớp đó ở phân hiệu nào.
    Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id` nên không xê dịch gì. */
 function datLaiMaLop(tatCa){
   const can = l => tatCa ? maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten)!==l.maLop : maXauXi(l);
@@ -2851,7 +2891,7 @@ function sinhLop(khoi, so, tienTo, dt){
   const r=[], n=Math.max(0,Math.min(26,+so||0));
   for(let i=0;i<n;i++){
     const ten=khoi+CHU_LOP[i];
-    /* Tên lớp trước, viết tắt điểm trường sau: 1A_DL — xem maLopTu() */
+    /* Tên lớp trước, viết tắt phân hiệu sau: 1A_DL — xem maLopTu() */
     const ma=ten+(tienTo?'_'+tienTo.trim():'');
     r.push({id:'lop_'+khongDau(ma).replace(/-+/g,'_'), maLop:ma, ten, khoi:+khoi, dtId:dt});
   }
@@ -2859,11 +2899,11 @@ function sinhLop(khoi, so, tienTo, dt){
 }
 
 /* ==================================================================
-   1d. SINH DỮ LIỆU THỬ CHO MỘT ĐIỂM TRƯỜNG
+   1d. SINH DỮ LIỆU THỬ CHO MỘT PHÂN HIỆU
    ------------------------------------------------------------------
    Trường đang trong quá trình sáp nhập thì danh sách cán bộ giáo viên chưa
    chốt, mà không có giáo viên thì không xếp thử được gì. Hàm này dựng một
-   điểm trường đủ chạy: lớp, chủ nhiệm, giáo viên bộ môn và bảng phân công
+   phân hiệu đủ chạy: lớp, chủ nhiệm, giáo viên bộ môn và bảng phân công
    khớp đúng số tiết chuẩn CT GDPT 2018 của từng khối.
 
    Sinh theo chỉ số, KHÔNG dùng Math.random — chạy hai lần ra kết quả y hệt,
@@ -2966,7 +3006,7 @@ function tienDo(kt){
   const can=S.phanCong.reduce((s,p)=>s+p.soTiet,0);
   const xep=Object.values(S.tkb).reduce((s,o)=>s+Object.keys(o).length,0);
 
-  if(!S.diemTruong.length) t1.push({t:'Chưa khai báo điểm trường nào', di:'diemtruong'});
+  if(!S.diemTruong.length) t1.push({t:'Chưa khai báo phân hiệu nào', di:'diemtruong'});
   if(!buoiBat().length)    t1.push({t:'Chưa bật buổi học nào trong tuần', di:'khunggio'});
   if(!S.lop.length)        t1.push({t:'Chưa có lớp học nào', di:'lop'});
   if(!S.giaoVien.length)   t1.push({t:'Chưa có giáo viên nào', di:'giaovien'});
@@ -3075,7 +3115,7 @@ function ungVienThay(o, gvVangId, ngay, lichSan, boQua){
   /* Ai đã được phân dạy thay ở tiết ấy rồi — kể cả lớp khác.
      Đây là chốt chặn cho điều tuyệt đối của §14: một giáo viên không bao
      giờ được phân dạy hai lớp trong cùng một tiết. */
-  const daNhanThay = {};      /* gvId → [điểm trường của lớp đã nhận] */
+  const daNhanThay = {};      /* gvId → [phân hiệu của lớp đã nhận] */
   (S.dayThay||[]).forEach(x=>{
     if(x.ngay!==ngay || x.buoi!==o.buoi || !x.gvThayId) return;
     if(bo.has(x.id) || bo.has(khoaTiet(x.ngay,x.buoi,x.tiet,x.lopId))) return;
@@ -3096,7 +3136,7 @@ function ungVienThay(o, gvVangId, ngay, lichSan, boQua){
     /* (5) đã được phân dạy thay đúng tiết ấy ở lớp khác */
     const daNhan = daNhanThay[g.id]||[];
     if(daNhan.some(x=>x.tiet===o.i)) return;
-    /* (6) đang đứng lớp ở điểm trường KHÁC trong cùng buổi — ràng buộc lõi
+    /* (6) đang đứng lớp ở phân hiệu KHÁC trong cùng buổi — ràng buộc lõi
            của bài toán sau sáp nhập, không đủ thời gian di chuyển */
     const dtBuoi = new Set(Object.keys(oGV)
       .filter(k=>k.startsWith(kB+'-')).map(k=>S.lopDT[oGV[k]]));
@@ -3108,7 +3148,7 @@ function ungVienThay(o, gvVangId, ngay, lichSan, boQua){
 
     /* ----- Còn lại mới chấm điểm, theo đúng thứ tự ưu tiên §13 ----- */
     let diem=0; const lyDo=[];
-    if(dtBuoi.has(dtLop)){ diem+=50; lyDo.push('đang ở cùng điểm trường'); }
+    if(dtBuoi.has(dtLop)){ diem+=50; lyDo.push('đang ở cùng phân hiệu'); }
     else lyDo.push('trống cả buổi');
     if(cn && cn.id===g.id){ diem+=40; lyDo.push('chủ nhiệm chính lớp này'); }
     if(S.phanCong.some(p=>p.gvId===g.id && p.lopId===o.lopId)){
@@ -3279,7 +3319,7 @@ function xungDotDayThay(ds, boQua){
     if(cu) loi.push({gv:ten, noi,
       vi:`đã được phân dạy thay lớp ${tenLopDay(cu.lopId)} cùng tiết này`});
 
-    /* f) Đang ở điểm trường khác trong cùng buổi */
+    /* f) Đang ở phân hiệu khác trong cùng buổi */
     const dtLop = S.lopDT[d.lopId];
     const dtBuoi = new Set(Object.keys(lich[d.gvThayId]||{})
       .filter(x=>x.startsWith(kB+'-')).map(x=>S.lopDT[(lich[d.gvThayId]||{})[x]]));
@@ -3586,7 +3626,7 @@ async function dangNhap(email, matKhau, nho){
   }
 }
 
-/* Dò hồ sơ trong trường: vai trò, trường nào, phụ trách điểm trường nào.
+/* Dò hồ sơ trong trường: vai trò, trường nào, phụ trách phân hiệu nào.
    Tách riêng để cả đăng nhập bằng mật khẩu lẫn vào lại bằng vé đã nhớ
    đều đi chung một đường. */
 /* Tự nhận mình bằng Gmail nhà trường đã khai sẵn — KHÔNG cần mã mời
@@ -3652,7 +3692,7 @@ async function napHoSo(thuGmail=true){
     trangThaiTruong: u.truong?.trang_thai_duyet || 'dang_dung',
     maTruong: u.truong?.ma_truong || ''
   };
-  /* diem_truong_id là thứ quyết định PHT thấy toàn trường hay chỉ một điểm trường */
+  /* diem_truong_id là thứ quyết định PHT thấy toàn trường hay chỉ một phân hiệu */
   S.nguoiDung = {vaiTro:VAI_TRO_XEM[u.vai_tro]||'qt', gvId:gv?.id||null,
                  diemTruongId:u.diem_truong_id||null};
   return {ok:true, nguoiDung:KHO.nguoiDung};
@@ -3918,7 +3958,7 @@ function dangXuat(){
    lop.gvcn_id, không bao giờ dò theo tên gọi — trường có bốn cặp trùng tên. */
 function tuMayChu(hang){
   const lop = (hang.lop||[]).map(l=>({id:l.id, ten:l.ten, khoi:+l.khoi, maLop:l.ma_lop||''}));
-  /* Chủ nhiệm nối bằng MÃ LỚP: ba điểm trường có thể cùng có lớp tên "1A" */
+  /* Chủ nhiệm nối bằng MÃ LỚP: ba phân hiệu có thể cùng có lớp tên "1A" */
   const cnCuaGV = {};
   (hang.lop||[]).forEach(l=>{ if(l.gvcn_id) cnCuaGV[l.gvcn_id] = l.id; });
 
@@ -3928,7 +3968,12 @@ function tuMayChu(hang){
     nguoiDungId:g.nguoi_dung_id||null,
     /* Gmail nhà trường khai TRƯỚC cho thầy cô — đừng nhầm với
        nguoi_dung.email, thứ GoTrue ghi SAU khi người ấy đăng nhập */
-    email:g.email||'', ghiChu:g.ghi_chu||''
+    email:g.email||'', ghiChu:g.ghi_chu||'',
+    dienThoai:g.dien_thoai||'',
+    /* Phân hiệu CHÍNH — chỉ là nhãn để lọc và để biết người mới khai thuộc
+       nơi nào khi chưa có tiết nào. Thuật toán KHÔNG đọc cột này: nó suy nơi
+       thầy cô có mặt từ phân công → lớp → phân hiệu của lớp. */
+    dtChinh:g.diem_truong_id||''
   }));
 
   const diemTruong = (hang.diem_truong||[])
@@ -4001,7 +4046,7 @@ function napVaoS(dl){
   S.lop       = (dl.lop||[]).map(l=>({...l}));
   S.phanCong  = (dl.phanCong||[]).map(p=>({...p}));
   S.diemTruong = dl.diemTruong?.length ? dl.diemTruong.map(d=>({...d}))
-    : [{id:'dt1', ten:'Điểm trường chính', phongTin:true}];
+    : [{id:'dt1', ten:'Phân hiệu chính', phongTin:true}];
   S.khungGio  = dl.khungGio?.length ? dl.khungGio.map(k=>({...k})) : khungGioMacDinh();
   chuanKhungGio();
   S.gvNghi    = dl.gvNghi ? {...dl.gvNghi} : {};
@@ -4013,7 +4058,7 @@ function napVaoS(dl){
   S.baoNghi   = (dl.baoNghi||[]).map(b=>({...b}));
   S.giaoVienQL = [...(dl.giaoVienQL||[])];
 
-  /* Lớp chưa gán điểm trường thì về điểm đầu tiên, để không có lớp nào lạc chỗ */
+  /* Lớp chưa gán phân hiệu thì về điểm đầu tiên, để không có lớp nào lạc chỗ */
   const macDinh = S.diemTruong[0].id;
   S.lopDT = {}; S.tkb = {};
   S.lop.forEach(l=>{
@@ -4099,7 +4144,7 @@ function mauSangDuLieu(j){
     tenTruong:'Trường Tiểu học mới',
     namHoc:'2026-2027', xa:'Quảng Châu', tinh:'Nghệ An',
     giaoVien:j.giaoVien, lop:j.lop, phanCong:j.phanCong,
-    diemTruong:[{id:'dt1', ten:'Điểm trường Diễn Liên', phongTin:true}],
+    diemTruong:[{id:'dt1', ten:'Phân hiệu Diễn Liên', phongTin:true}],
     khungGio:khungGioMacDinh(), lopDT:{}, gvNghi:{}
   };
 }
@@ -4297,7 +4342,7 @@ async function taiChoQuanLy(t, bang){
      Trước 25/8/2026 chỗ này ném lỗi, taiDuLieu() bắt được rồi rơi về DỮ LIỆU
      MẪU: Tiểu học Châu Đình vừa được duyệt, mở app lên thấy nguyên thời khóa
      biểu 25 lớp của bộ mẫu — tưởng bị đưa nhầm dữ liệu trường khác. Nay nạp
-     đúng phần trường đã có (thông tin trường, điểm trường, khung giờ mặc
+     đúng phần trường đã có (thông tin trường, phân hiệu, khung giờ mặc
      định dựng lúc đăng ký) và để Bảng điều hành dẫn đi ba bước khai báo. */
   napVaoS(tuMayChu({truong:truong?.[0], diem_truong, khung_gio, giao_vien, lop,
                     phan_cong, gv_nghi, mon_hoc, phong, day_thay, bao_nghi, nguoi_dung}));
@@ -4331,7 +4376,7 @@ async function taiChoQuanLy(t, bang){
 /* Tham số thứ tư `phamVi` là danh sách mã lớp người này được ghi đè.
    null = lưu nguyên khối như cũ (xếp tự động dựng lại lưới cả trường).
    Có danh sách thì máy chủ GỘP phần ấy vào bản mới nhất thay vì nuốt
-   nguyên khối — ba phó hiệu trưởng ba điểm trường lưu cùng lúc không
+   nguyên khối — ba phó hiệu trưởng ba phân hiệu lưu cùng lúc không
    giẫm lên nhau. Xem db/luu-pham-vi.sql. */
 async function luuTKB(tkb, version, ghiChu, phamVi){
   if(!coMayChu()) return {ok:false, version:KHO.version,
@@ -4460,6 +4505,21 @@ async function taiPhienBan(version){
 
 const oTrongXL = x => String(x ?? '').trim() === '';
 
+/* ---------- Tên cột cũ vẫn phải đọc được (28/8/2026) ----------
+   Đổi cách gọi "Điểm trường" → "Phân hiệu" cho đúng quy định Sở GD&ĐT kéo
+   theo tên CỘT trong tệp Excel. Nhưng trường nào đã tải mẫu về điền dở thì
+   không được bỗng mất công — nên mọi dòng đọc từ tệp đi qua đây trước, đổi
+   tên cột cũ về tên mới MỘT LẦN. Nhờ vậy phần soát bên dưới chỉ cần biết
+   một bộ tên, không rải `r.A || r.B` khắp nơi rồi sót một chỗ. */
+const COT_CU = {Ten_diem_truong:'Ten_phan_hieu', Diem_truong:'Phan_hieu', Ten:'Ten_phan_hieu'};
+function chuanTenCot(hang){
+  return (hang||[]).map(r=>{
+    let doi=null;
+    for(const cu in COT_CU) if(cu in r && !(COT_CU[cu] in r)) (doi=doi||{...r})[COT_CU[cu]]=r[cu];
+    return doi||r;
+  });
+}
+
 /* Giữ NGUYÊN số dòng như Excel hiển thị (`__dong`) sau khi lọc — người nhập
    cầm tệp trong tay, báo sai số dòng còn tệ hơn không báo. */
 function locDongDaDien(hang, cotBatBuoc){
@@ -4510,9 +4570,9 @@ function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
   const T={gv:'DANH_SACH_GV', lop:'DANH_SACH_LOP', pc:'PCGD', ...(tenTrang||{})};
 
   /* Dòng chưa điền thì BỎ QUA, không đếm là lỗi — xem ghi chú ở mục 5.0 */
-  const lGV =locDongDaDien(hangGV, ['Ma_GV','Ho_ten']);
-  const lLop=locDongDaDien(hangLop,['Ma_lop','Ten_lop']);
-  const lPC =locDongDaDien(hangPC, ['Ma_GV','Ma_lop','Mon']);
+  const lGV =locDongDaDien(chuanTenCot(hangGV), ['Ma_GV','Ho_ten']);
+  const lLop=locDongDaDien(chuanTenCot(hangLop),['Ma_lop','Ten_lop']);
+  const lPC =locDongDaDien(chuanTenCot(hangPC), ['Ma_GV','Ma_lop','Mon']);
   [[T.gv,lGV],[T.lop,lLop],[T.pc,lPC]].forEach(([t,x])=>{
     const c=canhDongBo(t,x.bo); if(c) canh.push(c);
   });
@@ -4533,7 +4593,7 @@ function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
     const k=+r.Khoi;
     if(!(k>=1&&k<=5)) loi.push({t:T.lop, d:r.__dong,
       v:`Khoi phải là số từ 1 đến 5 (đang là "${chu(r.Khoi)}")`});
-    return {id:ma, ten, khoi:k>=1&&k<=5?k:1, dt:chu(r.Diem_truong)||'Điểm trường chính'};
+    return {id:ma, ten, khoi:k>=1&&k<=5?k:1, dt:chu(r.Phan_hieu)||'Phân hiệu chính'};
   });
 
   const tenDiem=[...new Set(lopTho.map(l=>l.dt))];
@@ -4560,13 +4620,13 @@ function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
   };
   lap(giaoVien, g=>g.id, T.gv, 'Ma_GV');
   lap(lopTho, l=>l.id, T.lop, 'Ma_lop');
-  /* Tên lớp chỉ cần duy nhất TRONG MỘT ĐIỂM TRƯỜNG. Sau sáp nhập, cả ba nơi
+  /* Tên lớp chỉ cần duy nhất TRONG MỘT PHÂN HIỆU. Sau sáp nhập, cả ba nơi
      đều có lớp "1A" — bắt đặt tên khác nhau là bắt nhà trường đổi thói quen
      chỉ vì phần mềm. Mã lớp mới là thứ phải duy nhất. */
   const trungTrongDiem={};
   lopTho.forEach(l=>{ const k=l.dt+'|'+l.ten; (trungTrongDiem[k]=trungTrongDiem[k]||[]).push(l); });
   Object.entries(trungTrongDiem).filter(([,a])=>a.length>1).forEach(([k,a])=>
-    loi.push(`${T.lop}: Ten_lop "${a[0].ten}" xuất hiện ${a.length} lần trong ${k.split('|')[0]}, phải là duy nhất trong một điểm trường`));
+    loi.push(`${T.lop}: Ten_lop "${a[0].ten}" xuất hiện ${a.length} lần trong ${k.split('|')[0]}, phải là duy nhất trong một phân hiệu`));
 
   /* Chủ nhiệm: nhận Ma_lop (chắc chắn) hoặc Ten_lop (nếu tên đó chỉ có một lớp) */
   const theoMa=new Set(lopTho.map(l=>l.id));
@@ -4578,7 +4638,7 @@ function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
     const ds=theoTen[g.cn]||[];
     if(ds.length===1){ g.cn=ds[0]; return; }           /* tên chỉ trỏ một lớp */
     if(ds.length>1) loi.push({t:T.gv, d:g.dongCN,
-      v:`có ${ds.length} lớp cùng tên "${g.cn}" ở các điểm trường khác nhau — ghi Ma_lop vào cột Chu_nhiem để rõ là lớp nào`});
+      v:`có ${ds.length} lớp cùng tên "${g.cn}" ở các phân hiệu khác nhau — ghi Ma_lop vào cột Chu_nhiem để rõ là lớp nào`});
     else loi.push({t:T.gv, d:g.dongCN,
       v:`ghi chủ nhiệm lớp "${g.cn}" nhưng trang ${T.lop} không có lớp đó`});
     g.cn='';
@@ -4613,6 +4673,7 @@ function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
    Bung xong thành ba bảng chuẩn thì mọi soát lỗi còn lại đi chung một
    đường duLieuTuBang() — không có lối nhập thứ hai lệch quy tắc. */
 function duLieuTuMaTran(hangMT, hangLop){
+  hangLop = chuanTenCot(hangLop);
   const loi=[];
   const chu=x=>String(x??'').trim();
   const CO_DINH=['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban'];
@@ -4646,12 +4707,12 @@ function duLieuTuMaTran(hangMT, hangLop){
   const nhanLop=(t,noi)=>{
     const x=chu(t);
     if(coLop.has(x)) return coLop.get(x);
-    if(tenNhieu.has(x)){ loi.push(`${noi}: có nhiều lớp cùng tên "${x}" ở các điểm trường khác nhau — ghi Ma_lop cho rõ`); return null; }
+    if(tenNhieu.has(x)){ loi.push(`${noi}: có nhiều lớp cùng tên "${x}" ở các phân hiệu khác nhau — ghi Ma_lop cho rõ`); return null; }
     if(tuSinh){
       const k=(x.match(/[1-5]/)||[])[0];
       if(!k){ loi.push(`${noi}: không đoán được khối của lớp "${x}" — tên lớp cần chứa số khối (1A, DL-3B…), hoặc kèm trang DANH_SACH_LOP`); return null; }
       coLop.set(x,x);
-      lopRow.push({Ma_lop:x, Ten_lop:x, Khoi:+k, Diem_truong:''});
+      lopRow.push({Ma_lop:x, Ten_lop:x, Khoi:+k, Phan_hieu:''});
       return x;
     }
     loi.push(`${noi}: không có lớp "${x}" trong DANH_SACH_LOP`);
@@ -4776,7 +4837,7 @@ function duLieuTuTronGoi(doc){
   const laCo=v=>{ const s=khongDau(chu(v)).toLowerCase();
                   return s===''||s==='co'||s==='x'||s==='1'||s==='true'; };
 
-  const lay=t=>docTrang(doc,t)||[];
+  const lay=t=>chuanTenCot(docTrang(doc,t)||[]);
   const hTruong=lay('1_TRUONG'), hDiem=lay('2_DIEM_TRUONG'), hKhung=lay('3_KHUNG_GIO');
   const hLop   =lay('4_LOP'),    hGV  =lay('5_GIAO_VIEN'),   hPC   =lay('6_PHAN_CONG');
   const hPhong =lay('7_PHONG'),  hBan =lay('8_BUOI_BAN');
@@ -4795,13 +4856,13 @@ function duLieuTuTronGoi(doc){
   if(hTruong.length>1) canh.push(`1_TRUONG: có ${hTruong.length} dòng, máy chỉ lấy dòng đầu`);
 
   /* --- 2_DIEM_TRUONG: danh sách CHÍNH THỨC, kèm cờ phòng Tin.
-     Bản 3 trang suy điểm trường từ cột Diem_truong của bảng lớp nên gõ sai
-     một chữ là đẻ ra một điểm trường ma. Nay có danh sách gốc để đối chiếu. */
-  const lDiem=locDongDaDien(hDiem,['Ten_diem_truong','Ten']);
+     Bản 3 trang suy phân hiệu từ cột Phan_hieu của bảng lớp nên gõ sai
+     một chữ là đẻ ra một phân hiệu ma. Nay có danh sách gốc để đối chiếu. */
+  const lDiem=locDongDaDien(hDiem,['Ten_phan_hieu']);
   {const c=canhDongBo('2_DIEM_TRUONG',lDiem.bo); if(c) canh.push(c);}
   const diemTho=lDiem.co.map(r=>{
-    const ten=chu(r.Ten_diem_truong)||chu(r.Ten);
-    if(!ten) loi.push({t:'2_DIEM_TRUONG', d:r.__dong, v:'thiếu Ten_diem_truong'});
+    const ten=chu(r.Ten_phan_hieu);
+    if(!ten) loi.push({t:'2_DIEM_TRUONG', d:r.__dong, v:'thiếu Ten_phan_hieu'});
     return {ten, phongTin:laCo(r.Co_phong_tin)};
   }).filter(d=>d.ten);
   const demDiem={}; diemTho.forEach(d=>demDiem[d.ten]=(demDiem[d.ten]||0)+1);
@@ -4809,17 +4870,17 @@ function duLieuTuTronGoi(doc){
     loi.push(`2_DIEM_TRUONG: "${t}" xuất hiện ${n} lần, phải là duy nhất`));
   const tenDiemCo=new Set(diemTho.map(d=>d.ten));
 
-  /* --- 4_LOP: kiểm cột Diem_truong TRỎ ĐÚNG trang 2 --- */
+  /* --- 4_LOP: kiểm cột Phan_hieu TRỎ ĐÚNG trang 2 --- */
   const lLop=locDongDaDien(hLop,['Ma_lop','Ten_lop']);
   lLop.co.forEach(r=>{
-    const d=chu(r.Diem_truong);
+    const d=chu(r.Phan_hieu);
     if(d && tenDiemCo.size && !tenDiemCo.has(d))
       loi.push({t:'4_LOP', d:r.__dong,
-        v:`không có điểm trường "${d}" ở trang 2_DIEM_TRUONG`});
+        v:`không có phân hiệu "${d}" ở trang 2_DIEM_TRUONG`});
   });
-  /* Một điểm trường thì cột Diem_truong bỏ trống được — điền hộ tên duy nhất */
+  /* Một phân hiệu thì cột Phan_hieu bỏ trống được — điền hộ tên duy nhất */
   const diemMacDinh = diemTho.length===1 ? diemTho[0].ten : '';
-  const lopRow=lLop.co.map(r=>({...r, Diem_truong:chu(r.Diem_truong)||diemMacDinh}));
+  const lopRow=lLop.co.map(r=>({...r, Phan_hieu:chu(r.Phan_hieu)||diemMacDinh}));
 
   /* --- 6_PHAN_CONG: So_tiet bỏ trống thì lấy tiết chuẩn theo khối của lớp --- */
   const khoiTheoMa={}; lLop.co.forEach(r=>{ khoiTheoMa[chu(r.Ma_lop)]=+r.Khoi; });
@@ -4841,7 +4902,7 @@ function duLieuTuTronGoi(doc){
   const dl=duLieuTuBang(lGV.co, lopRow, pcRow,
     {gv:'5_GIAO_VIEN', lop:'4_LOP', pc:'6_PHAN_CONG'});
 
-  /* Ghép cờ phòng Tin của trang 2 vào danh sách điểm trường vừa dựng */
+  /* Ghép cờ phòng Tin của trang 2 vào danh sách phân hiệu vừa dựng */
   const diemTruong=dl.diemTruong.map(d=>{
     const g=diemTho.find(x=>x.ten===d.ten);
     return g ? {...d, phongTin:g.phongTin} : d;
@@ -4897,11 +4958,11 @@ function duLieuTuTronGoi(doc){
   const lPhong=locDongDaDien(hPhong,['Ten_phong']);
   {const c=canhDongBo('7_PHONG',lPhong.bo); if(c) canh.push(c);}
   const phong=lPhong.co.map((r,i)=>{
-    const ten=chu(r.Ten_phong), d=chu(r.Diem_truong)||diemMacDinh;
+    const ten=chu(r.Ten_phong), d=chu(r.Phan_hieu)||diemMacDinh;
     if(!ten){ loi.push({t:'7_PHONG', d:r.__dong, v:'thiếu Ten_phong'}); return null; }
     if(d && !idDiem(d)){
       loi.push({t:'7_PHONG', d:r.__dong,
-        v:`không có điểm trường "${d}" ở trang 2_DIEM_TRUONG`}); return null; }
+        v:`không có phân hiệu "${d}" ở trang 2_DIEM_TRUONG`}); return null; }
     return {id:'ph'+(i+1), ten, mon:chu(r.Mon), dtId:idDiem(d)};
   }).filter(Boolean);
 
@@ -4966,7 +5027,7 @@ function duLieuTuTronGoi(doc){
    Ba nguyên tắc, cả ba đều có phép thử:
 
    · **THÊM và CẬP NHẬT, không bao giờ XOÁ.** Nhập theo khoá tự nhiên
-     (mã lớp · mã giáo viên · tên điểm trường…). Nhập lại đúng tệp ấy lần
+     (mã lớp · mã giáo viên · tên phân hiệu…). Nhập lại đúng tệp ấy lần
      thứ hai thì kết quả y hệt — không nhân đôi. Muốn bỏ một dòng thì xoá
      trong app; tệp Excel không phải là bản tuyên bố "chỉ có bấy nhiêu".
      Đây là khác biệt lớn nhất với mẫu trọn gói, thứ thay sạch bảng cũ.
@@ -4981,7 +5042,7 @@ function duLieuTuTronGoi(doc){
    ================================================================== */
 
 /* Đọc một ô Có/Không của Excel. Bỏ trống hiểu là CÓ — cột này luôn là thứ
-   bật sẵn (điểm trường có phòng Tin, buổi có dạy học). */
+   bật sẵn (phân hiệu có phòng Tin, buổi có dạy học). */
 const laCoXL = v => {
   const t = khongDau(String(v ?? '').trim()).toLowerCase();
   return t === '' || t === 'co' || t === 'x' || t === '1' || t === 'true';
@@ -4990,18 +5051,19 @@ const laCoXL = v => {
 const MUC_NHAP = {
 
   diemtruong:{
-    ten:'Điểm trường', trang:'DIEM_TRUONG', khoaDong:['Ten_diem_truong'],
+    ten:'Phân hiệu', trang:'PHAN_HIEU', trangCu:['DIEM_TRUONG','2_DIEM_TRUONG'],
+    khoaDong:['Ten_phan_hieu'],
     nhac:'Mỗi nơi dạy học một dòng. Trường một điểm thì để nguyên một dòng.',
     duThua:12,
-    cot:[{ten:'Ten_diem_truong', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
-         {ten:'Co_phong_tin',    rong:16, khoa:{kieu:'chon', nguon:'DM_Co_khong'}}],
+    cot:[{ten:'Ten_phan_hieu', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
+         {ten:'Co_phong_tin',   rong:16, khoa:{kieu:'chon', nguon:'DM_Co_khong'}}],
     hang:()=>S.diemTruong.map(d=>[d.ten, d.phongTin===false?'Không':'Có']),
-    viDu:[['Điểm trường chính','Có'],['Điểm trường lẻ','Không']],
+    viDu:[['Phân hiệu chính','Có'],['Phân hiệu lẻ','Không']],
     doc(co, kho, loi){
       let them=0, capNhat=0;
       co.forEach(r=>{
-        const ten=String(r.Ten_diem_truong??'').trim();
-        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_diem_truong'});
+        const ten=String(r.Ten_phan_hieu??'').trim();
+        if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_phan_hieu'});
         const cu=kho.diemTruong.find(d=>d.ten===ten);
         if(cu){ cu.phongTin=laCoXL(r.Co_phong_tin); capNhat++; }
         else { kho.diemTruong.push({id:'dt'+(Date.now()%1e6)+'_'+kho.diemTruong.length,
@@ -5067,18 +5129,18 @@ const MUC_NHAP = {
 
   lop:{
     ten:'Lớp học', trang:'LOP', khoaDong:['Ma_lop','Ten_lop'],
-    nhac:'Ma_lop phải duy nhất trong CẢ TRƯỜNG. Ten_lop được phép trùng giữa các điểm trường.',
+    nhac:'Ma_lop phải duy nhất trong CẢ TRƯỜNG. Ten_lop được phép trùng giữa các phân hiệu.',
     duThua:80, can:['diemtruong'],
     cot:[{ten:'Ma_lop',      rong:18, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
          {ten:'Ten_lop',     rong:14, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
          {ten:'Khoi',        rong:9,  khoa:{kieu:'so', tu:1, den:5, batBuoc:true}},
-         {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}},
+         {ten:'Phan_hieu', rong:34, khoa:{kieu:'chon', nguon:'DM_Phan_hieu'}},
          {ten:'Chu_nhiem',   rong:20, khoa:{kieu:'chon', nguon:'DM_Ma_GV'}}],
     hang:()=>S.lop.map(l=>[l.maLop||l.id, l.ten, l.khoi,
       dtId(S.lopDT[l.id])?.ten||'', (cnCuaLop(l.id)?.maGV)||'']),
-    viDu:[['1A','1A',1,'Điểm trường chính',''],
-          ['1B','1B',1,'Điểm trường chính',''],
-          ['2A','2A',2,'Điểm trường chính','']],
+    viDu:[['1A','1A',1,'Phân hiệu chính',''],
+          ['1B','1B',1,'Phân hiệu chính',''],
+          ['2A','2A',2,'Phân hiệu chính','']],
     doc(co, kho, loi){
       let them=0, capNhat=0;
       const dtMacDinh=kho.diemTruong.length===1?kho.diemTruong[0]:null;
@@ -5089,12 +5151,12 @@ const MUC_NHAP = {
         const k=+r.Khoi;
         if(!(k>=1&&k<=5)) return void loi.push({t:this.trang, d:r.__dong,
           v:`Khoi phải là số từ 1 đến 5 (đang là "${String(r.Khoi??'').trim()}")`});
-        const tenDT=String(r.Diem_truong??'').trim();
+        const tenDT=String(r.Phan_hieu??'').trim();
         const dt = tenDT ? kho.diemTruong.find(d=>d.ten===tenDT) : dtMacDinh;
         if(tenDT && !dt) return void loi.push({t:this.trang, d:r.__dong,
-          v:`chưa khai điểm trường "${tenDT}" — vào mục Điểm trường thêm nơi này trước`});
+          v:`chưa khai phân hiệu "${tenDT}" — vào mục Phân hiệu thêm nơi này trước`});
         if(!dt) return void loi.push({t:this.trang, d:r.__dong,
-          v:'trường có nhiều điểm trường nên cột Diem_truong không được bỏ trống'});
+          v:'trường có nhiều phân hiệu nên cột Phan_hieu không được bỏ trống'});
         const maCN=String(r.Chu_nhiem??'').trim();
         let gvCN=null;
         if(maCN){
@@ -5127,14 +5189,17 @@ const MUC_NHAP = {
          {ten:'Ma_GV',     rong:20, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
          {ten:'Ho_ten',    rong:30, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
          {ten:'Gmail',     rong:30, khoa:{kieu:'chu', toiDa:120}},
+         {ten:'Dien_thoai',rong:16, khoa:{kieu:'chu', toiDa:20}},
+         {ten:'Phan_hieu', rong:30, khoa:{kieu:'chon', nguon:'DM_Phan_hieu'}},
          {ten:'Chu_nhiem', rong:16, khoa:{kieu:'chon', nguon:'DM_Ma_lop'}},
          {ten:'Dinh_muc',  rong:11, khoa:{kieu:'so', tu:1, den:30}},
          {ten:'Ghi_chu',   rong:34, khoa:{kieu:'chu', toiDa:200}}],
     hang:()=>S.giaoVien.map((g,i)=>[i+1, g.maGV||g.id, g.hoTen, g.email||'',
+      g.dienThoai||'', dtId(g.dtChinh)?.ten||'',
       g.cn?(lopId(g.cn)?.maLop||g.cn):'', g.dinhMuc||DINH_MUC, g.ghiChu||'']),
-    viDu:[[1,'An_NT','Nguyễn Thị An','','',DINH_MUC,''],
-          [2,'Binh_TV','Trần Văn Bình','','',DINH_MUC,''],
-          [3,'Chi_LT','Lê Thị Chi','','',DINH_MUC,'']],
+    viDu:[[1,'An_NT','Nguyễn Thị An','','','','',DINH_MUC,''],
+          [2,'Binh_TV','Trần Văn Bình','','','','',DINH_MUC,''],
+          [3,'Chi_LT','Lê Thị Chi','','','','',DINH_MUC,'']],
     doc(co, kho, loi, canh){
       let them=0, capNhat=0;
       co.forEach(r=>{
@@ -5155,6 +5220,14 @@ const MUC_NHAP = {
            thầy cô này" — mà xoá email ở đây chính là thu quyền đăng nhập. */
         if(mail) g.email=mail;
         if(String(r.Ghi_chu??'').trim()) g.ghiChu=String(r.Ghi_chu).trim();
+        if(String(r.Dien_thoai??'').trim()) g.dienThoai=String(r.Dien_thoai).trim();
+        const tenPH=String(r.Phan_hieu??'').trim();
+        if(tenPH){
+          const d=kho.diemTruong.find(x=>x.ten===tenPH);
+          if(!d) loi.push({t:this.trang, d:r.__dong,
+            v:`chưa khai phân hiệu "${tenPH}" — vào mục Phân hiệu thêm nơi này trước`});
+          else g.dtChinh=d.id;
+        }
         const maCN=String(r.Chu_nhiem??'').trim();
         if(maCN){
           const l=kho.lop.find(x=>(x.maLop||x.id)===maCN);
@@ -5261,19 +5334,19 @@ const MUC_NHAP = {
     duThua:24, can:['diemtruong'],
     cot:[{ten:'Ten_phong',   rong:26, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
          {ten:'Mon',         rong:20, khoa:{kieu:'chon', nguon:'DM_Mon'}},
-         {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}],
+         {ten:'Phan_hieu', rong:34, khoa:{kieu:'chon', nguon:'DM_Phan_hieu'}}],
     hang:()=>(S.phong||[]).map(p=>[p.ten, p.mon||'', dtId(p.dtId)?.ten||'']),
-    viDu:[['Phòng máy 1','Tin học','Điểm trường chính']],
+    viDu:[['Phòng máy 1','Tin học','Phân hiệu chính']],
     doc(co, kho, loi){
       let them=0, capNhat=0;
       const dtMacDinh=kho.diemTruong.length===1?kho.diemTruong[0]:null;
       co.forEach(r=>{
         const ten=String(r.Ten_phong??'').trim();
         if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_phong'});
-        const tenDT=String(r.Diem_truong??'').trim();
+        const tenDT=String(r.Phan_hieu??'').trim();
         const dt = tenDT ? kho.diemTruong.find(d=>d.ten===tenDT) : dtMacDinh;
         if(tenDT && !dt) return void loi.push({t:this.trang, d:r.__dong,
-          v:`chưa khai điểm trường "${tenDT}" — vào mục Điểm trường thêm nơi này trước`});
+          v:`chưa khai phân hiệu "${tenDT}" — vào mục Phân hiệu thêm nơi này trước`});
         const cu=kho.phong.find(p=>p.ten===ten);
         if(cu){ cu.mon=String(r.Mon??'').trim(); cu.dtId=dt?.id||null; capNhat++; }
         else { kho.phong.push({id:'ph_'+kho.phong.length+'_'+ten, ten,
@@ -5350,7 +5423,7 @@ function duLieuTuMuc(ma, hangTho, nguon){
   if(!m) return {soLoi:1, loi:[`Không có mục nhập tên "${ma}"`], canh:[], soCanh:0};
   const kho=chepKhoNguon(nguon);
   const loi=[], canh=[];
-  const {co, bo}=locDongDaDien(hangTho, m.khoaDong);
+  const {co, bo}=locDongDaDien(chuanTenCot(hangTho), m.khoaDong);
   const c=canhDongBo(m.trang, bo); if(c) canh.push(c);
   const dem = co.length ? m.doc(co, kho, loi, canh) : {them:0, capNhat:0};
   if(!co.length) loi.push(`Trang ${m.trang} không có dòng nào đã điền`);
@@ -5383,7 +5456,7 @@ async function ghiDuLieuNguon(dl){
     {method:'POST', body:JSON.stringify(hang),
      headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});
   try{
-    /* 1. Điểm trường — bảng này không có ràng buộc duy nhất nên tự dò theo tên */
+    /* 1. Phân hiệu — bảng này không có ràng buộc duy nhất nên tự dò theo tên */
     const dtCu=await goiAPI(`/rest/v1/diem_truong?truong_id=eq.${t}&select=id,ten`);
     const maDT={}; (dtCu||[]).forEach(d=>maDT[d.ten]=d.id);
     const dtThem=dl.diemTruong.filter(d=>!maDT[d.ten]);
@@ -5422,19 +5495,21 @@ async function ghiDuLieuNguon(dl){
     const maCuaGV=g=>g.maGV||g.id;
     const hangGV=g=>({truong_id:t, ma_gv:maCuaGV(g), ho_ten:g.hoTen,
                       dinh_muc:g.dinhMuc||DINH_MUC,
-                      ...(KHO.coCotGV===false?{}:{email:g.email||null, ghi_chu:g.ghiChu||null})});
+                      ...(KHO.coCotGV===false?{}:{email:g.email||null, ghi_chu:g.ghiChu||null,
+                          dien_thoai:g.dienThoai||null, diem_truong_id:g.dtChinh||null})});
     /* ⚠️ ĐƯỜNG LUI cho hai cột thêm ngày 28/8/2026 (db/gmail-giao-vien.sql).
        Máy chủ chưa chạy tệp ấy thì PostgREST từ chối CẢ lệnh chứ không bỏ qua
        cột thiếu — nghĩa là mất luôn cả lần lưu, kể cả họ tên và định mức. Nên
        bắt đúng lỗi ấy, ghi lại KHÔNG kèm hai cột, và nhớ để lần sau khỏi thử.
        Nâng cấp phần mềm không được làm một trường đang chạy tốt mất nút Lưu. */
-    const thieuCot=e=>/Could not find the '(email|ghi_chu)' column/i.test(String(e?.message||''));
+    const thieuCot=e=>/Could not find the '(email|ghi_chu|dien_thoai|diem_truong_id)' column/i
+                        .test(String(e?.message||''));
     const gopGV=async (hang, khoa)=>{
       try{ return await gop('giao_vien', hang, khoa); }
       catch(e){
         if(!thieuCot(e)) throw e;
         KHO.coCotGV=false;
-        const gon=hang.map(({email, ghi_chu, ...r})=>r);
+        const gon=hang.map(({email, ghi_chu, dien_thoai, diem_truong_id, ...r})=>r);
         return gop('giao_vien', gon, khoa);
       }
     };
@@ -5453,8 +5528,8 @@ async function ghiDuLieuNguon(dl){
       idSv[g.id]=svTheoMa[maCuaGV(g)] || (laUUID(g.id)?g.id:undefined);
     });
 
-    /* 4. Lớp, kèm chủ nhiệm và điểm trường.
-       Khoá tự nhiên là MÃ LỚP chứ không phải tên: sau sáp nhập, ba điểm trường
+    /* 4. Lớp, kèm chủ nhiệm và phân hiệu.
+       Khoá tự nhiên là MÃ LỚP chứ không phải tên: sau sáp nhập, ba phân hiệu
        đều có lớp mang tên "1A" và chúng là ba lớp khác nhau. */
     const cnCua={}; dl.giaoVien.forEach(g=>{ if(g.cn) cnCua[g.cn]=g.id; });
     const tenDiemCua=id=>dl.diemTruong.find(d=>d.id===dl.lopDT[id])?.ten;
@@ -5552,12 +5627,12 @@ async function ghiDuLieuNguon(dl){
     const lopThua=(lopSv||[]).filter(l=>!maTepLop.has(l.ma_lop)).map(l=>l.ten);
     const gvThua=(gvSv||[]).filter(g=>!maTrongTep.has(g.ma_gv)).map(g=>g.ma_gv);
 
-    /* ---------- ĐIỂM TRƯỜNG ĐÃ XOÁ THÌ XOÁ THẬT (28/8/2026) ----------
-       Chủ dự án xoá một điểm trường thừa, bấm Lưu, mở lại vẫn thấy đủ bốn.
+    /* ---------- PHÂN HIỆU ĐÃ XOÁ THÌ XOÁ THẬT (28/8/2026) ----------
+       Chủ dự án xoá một phân hiệu thừa, bấm Lưu, mở lại vẫn thấy đủ bốn.
        Gốc: bước 1 chỉ biết THÊM cái chưa có, không bao giờ bỏ cái không còn —
        nên xoá trong app chỉ là xoá khỏi bộ nhớ trình duyệt.
 
-       Điểm trường KHÁC lớp và giáo viên ở chỗ nó không mang dữ liệu nào của
+       Phân hiệu KHÁC lớp và giáo viên ở chỗ nó không mang dữ liệu nào của
        riêng mình: xoá một lớp là mất cả phân công và làm hỏng phiên bản TKB
        đã lưu, nên hai bảng kia cố ý chỉ báo `lopThua`/`gvThua`. Còn điểm
        trường thì nút Xoá trong app đã dời hết lớp sang nơi khác trước rồi —
@@ -5566,7 +5641,7 @@ async function ghiDuLieuNguon(dl){
        ⚠️ Xoá SAU bước 4. `lop.diem_truong_id` khai `on delete restrict`, nên
        xoá trước khi lớp kịp trỏ sang nơi mới là máy chủ chặn thẳng.
        ⚠️ Và chỉ xoá nơi KHÔNG CÒN LỚP NÀO trỏ tới — lớp thừa trên máy chủ
-       (`lopThua`) vẫn giữ điểm trường của nó sống. Bọc riêng try/catch: xoá
+       (`lopThua`) vẫn giữ phân hiệu của nó sống. Bọc riêng try/catch: xoá
        không được thì báo, tuyệt đối không làm hỏng cả lần lưu. */
     let dtChuaXoa=[];
     const tenGiu=new Set(dl.diemTruong.map(d=>d.ten));
@@ -5831,7 +5906,7 @@ function ghiNhatKy(hanhDong, duLieuCu){
 }
 
 /* ---------- Chống mất dữ liệu chưa lưu ----------
-   ĐÃ MẤT THẬT (2/8/2026): chủ dự án khai xong lớp cho hai điểm trường mới,
+   ĐÃ MẤT THẬT (2/8/2026): chủ dự án khai xong lớp cho hai phân hiệu mới,
    chưa bấm Lưu, trang tải lại — mất sạch. Dữ liệu nguồn nằm trong bộ nhớ
    trình duyệt cho tới khi ghi lên máy chủ, mà trang thì tải lại vì đủ thứ
    lý do: bản mới, Ctrl+F5, hết pin, chuyển tab quá lâu.
@@ -5875,13 +5950,13 @@ function dinhDangLuc(x){
 
    ⚠️ Ranh giới PHT-MỘT-ĐIỂM-TRƯỜNG không nằm ở RLS: hàm la_quan_ly() gộp
    chung cả ba vai quản lý, nên xét theo quy tắc bảng thì một PHT phụ
-   trách điểm trường vẫn ghi được vào tkb_phien_ban. Thời khóa biểu lưu
+   trách phân hiệu vẫn ghi được vào tkb_phien_ban. Thời khóa biểu lưu
    dạng một khối JSON của cả trường nên RLS không có cách nào cắt theo
-   điểm trường — quy tắc bảng chỉ xét được cả dòng.
+   phân hiệu — quy tắc bảng chỉ xét được cả dòng.
 
    Từ 23/8/2026 chỗ ấy được vá ở TRONG hàm luu_tkb() thay vì ở quy tắc
    bảng: hàm tự đọc nguoi_dung.diem_truong_id rồi ÉP phạm vi ghi về đúng
-   lớp của điểm trường ấy, gửi lên gì cũng vậy (db/luu-pham-vi.sql). Nên
+   lớp của phân hiệu ấy, gửi lên gì cũng vậy (db/luu-pham-vi.sql). Nên
    với đường LƯU thì máy chủ có chặn hộ thật.
 
    Nhưng mọi ranh giới còn lại trong vùng này — kéo thả, nút xếp tự động,
@@ -5890,16 +5965,16 @@ function dinhDangLuc(x){
 
    Ba mức:
      quản trị · hiệu trưởng · PHT chuyên môn   → toàn trường
-     PHT phụ trách một điểm trường             → bó gọn trong điểm đó
+     PHT phụ trách một phân hiệu             → bó gọn trong điểm đó
      giáo viên                                 → chỉ lịch của mình
 
    Hai loại phó hiệu trưởng phân biệt nhau đúng bằng cột
    nguoi_dung.diem_truong_id: bỏ trống là phụ trách chuyên môn toàn
-   trường, có giá trị là phụ trách riêng điểm trường đó.
+   trường, có giá trị là phụ trách riêng phân hiệu đó.
    ================================================================== */
 function quyen(){
   const n = S.nguoiDung || {};
-  /* Điểm trường đã bị xoá thì coi như không bó — không khoá nhầm người vào chỗ trống */
+  /* Phân hiệu đã bị xoá thì coi như không bó — không khoá nhầm người vào chỗ trống */
   const dt = S.diemTruong.some(d=>d.id===n.diemTruongId) ? n.diemTruongId : '';
   const laGV = n.vaiTro==='gv';
   const boHep = n.vaiTro==='pht' && !!dt;
@@ -5912,11 +5987,11 @@ function quyen(){
   };
 }
 
-/* Phạm vi bị khoá cứng — PHT phụ trách điểm trường không tự đổi được */
+/* Phạm vi bị khoá cứng — PHT phụ trách phân hiệu không tự đổi được */
 const phamViKhoa = () => quyen().diemTruongId;
-/* Một lần xếp tự động dựng lại lưới của cả trường, kể cả các điểm trường khác */
+/* Một lần xếp tự động dựng lại lưới của cả trường, kể cả các phân hiệu khác */
 const duocXep = () => quyen().toanTruong;
-/* Điểm trường, phân công, khung giờ đều là quyết định toàn trường */
+/* Phân hiệu, phân công, khung giờ đều là quyết định toàn trường */
 const duocSuaNguon = () => quyen().toanTruong;
 /* Chỉnh tay một lớp: phải là quản lý, và lớp phải nằm trong phạm vi của mình */
 function duocSuaLop(id){
@@ -5928,7 +6003,7 @@ const duocLuu = () => quyen().laQuanLy;
    nguyên khối như cũ; có danh sách thì máy chủ chỉ thay đúng chỗ ấy trong
    bản mới nhất, phần của đồng nghiệp giữ nguyên.
 
-   Đây là chỗ tình huống "ba điểm trường, ba phó hiệu trưởng cùng xếp một
+   Đây là chỗ tình huống "ba phân hiệu, ba phó hiệu trưởng cùng xếp một
    buổi tối" được giải: ba tập lớp rời nhau nên ba người lưu song song mà
    không ai phải tải lại, không ai mất việc.
 
@@ -5952,7 +6027,7 @@ const thieuHoSoGV = () => { const q=quyen(); return q.laGV && !q.gvId; };
 const MUC_GIAO_VIEN = ['cuatoi','tkblop','baonghi','thongbao','huongdan'];
 
 /* Mục dành riêng cho QUẢN TRỊ và hiệu trưởng — phó hiệu trưởng phụ trách
-   một điểm trường không cấp tài khoản, không sao lưu cả cơ sở dữ liệu.
+   một phân hiệu không cấp tài khoản, không sao lưu cả cơ sở dữ liệu.
    §18: "Quản lý theo quyền được cấp". */
 const MUC_TOAN_TRUONG = ['nguoidung','saoluu','phienban'];
 
@@ -6026,7 +6101,7 @@ function apDungQuyen(){
   return q;
 }
 
-/* Điểm trường và giáo viên nằm trong phạm vi đang xem */
+/* Phân hiệu và giáo viên nằm trong phạm vi đang xem */
 const dtTrongPV = () => S.phamVi ? S.diemTruong.filter(d=>d.id===S.phamVi) : S.diemTruong;
 function gvTrongPV(){
   if(!S.phamVi) return S.giaoVien;
@@ -6044,7 +6119,7 @@ function nhanChiXem(viec){
   const d = dtId(phamViKhoa());
   return `<div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
     <b>Chỉ xem — ${esc(viec)} là việc của người phụ trách toàn trường</b>
-    <div class="cb-g">Thầy cô phụ trách ${esc(d?.ten||'điểm trường của mình')}, chỉnh được thời khóa biểu
+    <div class="cb-g">Thầy cô phụ trách ${esc(d?.ten||'phân hiệu của mình')}, chỉnh được thời khóa biểu
       các lớp tại đây ở mục <b>Theo lớp</b>.</div></div></div>`;
 }
 /*#endregion QUYEN*/
@@ -6087,7 +6162,7 @@ const dauBang = (tieu) =>
 /* Lưới theo lớp: mỗi cột một lớp */
 function luoiTheoLop(ds){
   const a=dauBang('THỜI KHÓA BIỂU THEO LỚP');
-  /* Tên lớp ghi kèm điểm trường khi có lớp trùng tên — bản xuất phải đọc
+  /* Tên lớp ghi kèm phân hiệu khi có lớp trùng tên — bản xuất phải đọc
      ngược ra đúng lớp nào, đúng tinh thần đã làm với họ tên giáo viên. */
   a.push(['Thứ','Buổi','Tiết', ...ds.map(l=>tenLopDay(l.id))]);
   dongGio().forEach(o=>{
@@ -6101,7 +6176,7 @@ function luoiTheoLop(ds){
   return a;
 }
 
-/* Lưới theo giáo viên: mỗi cột một người. Ghi kèm điểm trường khi trường
+/* Lưới theo giáo viên: mỗi cột một người. Ghi kèm phân hiệu khi trường
    có nhiều điểm — đó là thứ giáo viên cần biết nhất để đi dạy cho đúng chỗ. */
 function luoiTheoGV(ds){
   const lich=lichGV(), nhieuDiem=S.diemTruong.length>1;
@@ -6121,7 +6196,7 @@ function luoiTheoGV(ds){
 /* Bảng phân công giảng dạy */
 function bangXuatPC(ds){
   const a=dauBang('BẢNG PHÂN CÔNG GIẢNG DẠY');
-  a.push(['TT','Giáo viên','Mã giáo viên','Lớp','Điểm trường','Môn','Số tiết']);
+  a.push(['TT','Giáo viên','Mã giáo viên','Lớp','Phân hiệu','Môn','Số tiết']);
   const d=S.phanCong.filter(p=>ds.some(l=>l.id===p.lopId))
     .map(p=>({p, gv:gvId(p.gvId), lp:lopId(p.lopId)}))
     .sort((x,y)=>(x.gv?.hoTen||'').localeCompare(y.gv?.hoTen||'','vi')
@@ -6133,10 +6208,10 @@ function bangXuatPC(ds){
   return a;
 }
 
-/* Tổng hợp theo điểm trường */
+/* Tổng hợp theo phân hiệu */
 function bangXuatDT(){
-  const a=dauBang('TỔNG HỢP THEO ĐIỂM TRƯỜNG');
-  a.push(['Điểm trường','Số lớp','Số giáo viên','Tiết/tuần','Đã xếp','Tỷ lệ','Phòng Tin học']);
+  const a=dauBang('TỔNG HỢP THEO PHÂN HIỆU');
+  a.push(['Phân hiệu','Số lớp','Số giáo viên','Tiết/tuần','Đã xếp','Tỷ lệ','Phòng Tin học']);
   dtTrongPV().forEach(d=>{
     const lp=S.lop.filter(l=>S.lopDT[l.id]===d.id);
     const pc=S.phanCong.filter(p=>S.lopDT[p.lopId]===d.id);
@@ -6238,7 +6313,7 @@ function bangMauMaTran(){
   const nhieuDiem = S.diemTruong.length>1;
   const dsMon = (S.monHoc||[]).map(m=>m.ten);
   const mt=[['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban',...dsMon]];
-  const lop=[['Ma_lop','Ten_lop','Khoi','Diem_truong']];
+  const lop=[['Ma_lop','Ten_lop','Khoi','Phan_hieu']];
 
   /* Chưa có dòng phân công nào thì vẫn dựng đủ danh sách giáo viên, các cột
      môn để trống — đúng tờ phân công nhà trường đang kẻ dở, chỉ việc đánh
@@ -6277,9 +6352,9 @@ function bangMauMaTran(){
        {'Tiếng Việt':'x','Toán':'x','GDTC':'x','HDTN':'x','TNXH':'x'});
     vd(3,'GV03','Lê Thị Chi','','1A, 1B, 2A','',{'Mỹ thuật':'x','Âm nhạc':'x'});
     vd(4,'GV04','Phạm Văn Dũng','','1A, 1B','T2-S',{'Tiếng Anh':'x','Đạo Đức':'2A'});
-    lop.push(['1A','1A',1,'Điểm trường chính'],
-             ['1B','1B',1,'Điểm trường chính'],
-             ['2A','2A',2,'Điểm trường chính']);
+    lop.push(['1A','1A',1,'Phân hiệu chính'],
+             ['1B','1B',1,'Phân hiệu chính'],
+             ['2A','2A',2,'Phân hiệu chính']);
   }
   return {mt, lop, dsMon, coThat, nhieuDiem};
 }
@@ -6484,7 +6559,7 @@ function tenTepXuat(duoi){
 
 /* ---------- Mẫu TRỌN GÓI — một tệp, mười trang tính (23/8/2026) ----------
    Hai mẫu cũ (3 trang · ma trận) chỉ bao được Giáo viên · Lớp · Phân công —
-   ba trong bảy thứ cần để xếp. Thiếu hẳn Thông tin trường, Điểm trường,
+   ba trong bảy thứ cần để xếp. Thiếu hẳn Thông tin trường, Phân hiệu,
    KHUNG GIỜ (thứ quyết định có bao nhiêu ô để xếp), Phòng học, Buổi bận.
    Trường nào không có sẵn kết xuất Excel thì nhập tệp xong vẫn phải vào app
    khai tay bốn chỗ nữa mới xếp được.
@@ -6535,8 +6610,8 @@ function bangMauTronGoi(){
      dropdown không bao giờ rỗng — ô xổ xuống trống trơn làm người điền
      tưởng tệp hỏng. */
   const danhMuc = {
-    DM_Diem_truong: S.diemTruong.length ? S.diemTruong.map(d=>d.ten)
-                                        : ['Điểm trường chính'],
+    DM_Phan_hieu: S.diemTruong.length ? S.diemTruong.map(d=>d.ten)
+                                        : ['Phân hiệu chính'],
     DM_Ma_lop:      S.lop.length      ? S.lop.map(l=>l.maLop||l.id)
                     : trang ? ['1A','1B','2A'] : [],
     DM_Ma_GV:       S.giaoVien.length ? S.giaoVien.map(g=>g.maGV||g.id)
@@ -6562,16 +6637,16 @@ function bangMauTronGoi(){
   };
 
   const tDiem = {
-    ten:'2_DIEM_TRUONG', tieu:'DANH SÁCH ĐIỂM TRƯỜNG',
+    ten:'2_DIEM_TRUONG', tieu:'DANH SÁCH PHÂN HIỆU',
     nhac:'Trường một điểm: để nguyên một dòng. Sáp nhập: mỗi nơi một dòng.',
     batBuoc:true, duThua:12,
     cot:[
-      {ten:'Ten_diem_truong', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
+      {ten:'Ten_phan_hieu', rong:36, khoa:{kieu:'chu', toiDa:80, batBuoc:true}},
       {ten:'Co_phong_tin',    rong:16, khoa:{kieu:'chon', nguon:'DM_Co_khong'}}
     ],
     hang: S.diemTruong.length
       ? S.diemTruong.map(d=>[d.ten, d.phongTin===false?'Không':'Có'])
-      : [['Điểm trường chính','Có']]
+      : [['Phân hiệu chính','Có']]
   };
 
   /* Cột riêng cho TỪNG KHỐI vì khối nhỏ tan sớm hơn — thực tế nhà trường,
@@ -6594,19 +6669,19 @@ function bangMauTronGoi(){
 
   const tLop = {
     ten:'4_LOP', tieu:'DANH SÁCH LỚP HỌC',
-    nhac:'Ma_lop phải duy nhất trong CẢ TRƯỜNG. Ten_lop được phép trùng giữa các điểm trường.',
+    nhac:'Ma_lop phải duy nhất trong CẢ TRƯỜNG. Ten_lop được phép trùng giữa các phân hiệu.',
     batBuoc:true, duThua:80,
     cot:[
       {ten:'Ma_lop',      rong:18, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
       {ten:'Ten_lop',     rong:14, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
       {ten:'Khoi',        rong:9,  khoa:{kieu:'so', tu:1, den:5, batBuoc:true}},
-      {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}
+      {ten:'Phan_hieu', rong:34, khoa:{kieu:'chon', nguon:'DM_Phan_hieu'}}
     ],
     hang: S.lop.length
       ? S.lop.map(l=>[l.maLop||l.id, l.ten, l.khoi, dtId(S.lopDT[l.id])?.ten||''])
-      : trang ? [['1A','1A',1,'Điểm trường chính'],
-                 ['1B','1B',1,'Điểm trường chính'],
-                 ['2A','2A',2,'Điểm trường chính']] : []
+      : trang ? [['1A','1A',1,'Phân hiệu chính'],
+                 ['1B','1B',1,'Phân hiệu chính'],
+                 ['2A','2A',2,'Phân hiệu chính']] : []
   };
 
   const tGV = {
@@ -6658,18 +6733,18 @@ function bangMauTronGoi(){
     cot:[
       {ten:'Ten_phong',   rong:26, khoa:{kieu:'chu', toiDa:60}},
       {ten:'Mon',         rong:20, khoa:{kieu:'chon', nguon:'DM_Mon'}},
-      {ten:'Diem_truong', rong:34, khoa:{kieu:'chon', nguon:'DM_Diem_truong'}}
+      {ten:'Phan_hieu', rong:34, khoa:{kieu:'chon', nguon:'DM_Phan_hieu'}}
     ],
     /* ⚠️ Trang TUỲ CHỌN mà trường chưa khai thì để TRỐNG HẲN, đừng bày dòng
-       ví dụ. Dòng ví dụ trỏ tới "Điểm trường chính" và "Binh_TV" — hai cái
+       ví dụ. Dòng ví dụ trỏ tới "Phân hiệu chính" và "Binh_TV" — hai cái
        tên chỉ có trong bộ mẫu của trường trắng. Trường thật tải mẫu về, chưa
-       khai phòng, là tệp mang sẵn một dòng trỏ vào điểm trường không tồn tại
+       khai phòng, là tệp mang sẵn một dòng trỏ vào phân hiệu không tồn tại
        và nhập lại KHÔNG ĐƯỢC. Phép thử vòng tròn ở mục 21b bắt được đúng
        chuyện này ngay lần chạy đầu. Trường trắng thì vẫn cho ví dụ, vì lúc
        ấy hai cái tên kia có thật ở trang 2 và trang 5. */
     hang: (S.phong||[]).length
       ? S.phong.map(p=>[p.ten, p.mon||'', dtId(p.dtId)?.ten||''])
-      : trang ? [['Phòng máy 1','Tin học','Điểm trường chính']] : []
+      : trang ? [['Phòng máy 1','Tin học','Phân hiệu chính']] : []
   };
 
   /* Đây là `gv_nghi` — buổi LẶP LẠI hằng tuần, dữ liệu nguồn để XẾP lịch.
@@ -6904,7 +6979,7 @@ function diaBan(dau, ten){
 /* ---------- Thanh đầu trang dùng chung ---------- */
 function dauTrang(tieu,phu,pv){
   const q=quyen();
-  /* Bó hẹp thì hiện nhãn cố định thay cho ô chọn — không mở đường sang điểm trường khác */
+  /* Bó hẹp thì hiện nhãn cố định thay cho ô chọn — không mở đường sang phân hiệu khác */
   const chon = !pv ? ''
     : q.boHep ? `<div class="pham-vi"><label>PHỤ TRÁCH</label>
         <b style="font-size:14px;font-weight:700;color:var(--dt,var(--chu))">${esc(dtId(q.diemTruongId)?.ten||'')}</b></div>`
@@ -7067,7 +7142,7 @@ function thanhBuoc(hienTai){
    tiếp, để người dùng làm lần lượt chứ không phải tự mò. */
 const CHUOI_BUOC = [
   {t:'thongtin',   ten:'Thông tin trường',     b:1},
-  {t:'diemtruong', ten:'Điểm trường',          b:1},
+  {t:'diemtruong', ten:'Phân hiệu',          b:1},
   {t:'khunggio',   ten:'Khối và khung giờ',    b:1},
   {t:'lop',        ten:'Lớp học',              b:1},
   {t:'giaovien',   ten:'Giáo viên',            b:1},
@@ -7123,7 +7198,7 @@ function mChao(){
   <div class="the-so" style="max-width:940px;margin:0 auto">
     <div class="ts lam" style="cursor:pointer" id="btChaoDemo">
       <div class="ts-so" style="font-size:17px">Khám phá bản demo</div>
-      <div class="ts-n" style="line-height:1.6">Trường mẫu 25 lớp · 3 điểm trường. Xếp thử, kéo thả,
+      <div class="ts-n" style="line-height:1.6">Trường mẫu 25 lớp · 3 phân hiệu. Xếp thử, kéo thả,
         kiểm tra khả thi — đầy đủ tính năng, không cần nhập gì.</div></div>
     <div class="ts luc" style="cursor:pointer" id="btChaoMaMoi">
       <div class="ts-so" style="font-size:17px">Nhập mã mời của trường</div>
@@ -7220,7 +7295,7 @@ function mDieuHanh(){
        2. tiêu đề + phạm vi + ô tìm kiếm
        3. THỜI KHÓA BIỂU  sản phẩm, thứ người dùng mở phần mềm để xem
        4. việc cần xử lý + thao tác nhanh
-       5. số liệu, tiến độ, cảnh báo, điểm trường
+       5. số liệu, tiến độ, cảnh báo, phân hiệu
 
      Việc cần xử lý lùi xuống sau lưới vì phần lớn thời gian nó là một hộp
      xanh "không có ai báo nghỉ" — chiếm chỗ đẹp nhất để nói rằng không có
@@ -7272,7 +7347,7 @@ function mDieuHanh(){
     </div>
 
   <div class="the">
-    <div class="the-d"><h2>Điểm trường</h2><span class="meta">${dtTrongPV().length} nơi</span></div>
+    <div class="the-d"><h2>Phân hiệu</h2><span class="meta">${dtTrongPV().length} nơi</span></div>
     <div class="the-t"><div class="dt-luoi">${dtTrongPV().map(d=>{
       const lp=S.lop.filter(l=>S.lopDT[l.id]===d.id);
       const xp=lp.reduce((s,l)=>s+Object.keys(S.tkb[l.id]||{}).length,0);
@@ -7402,7 +7477,7 @@ function kheSoLieu(soLop, pt, daXep, tongCan, soGV, vc){
     ['xep',      pt+'%',     `đã xếp · ${daXep}/${tongCan} tiết`, pt>=100?'ok':'canh'],
     ['lop',      soLop,      'lớp học',       ''],
     ['giaovien', soGV,       'giáo viên',     ''],
-    ['diemtruong', dtTrongPV().length, 'điểm trường', ''],
+    ['diemtruong', dtTrongPV().length, 'phân hiệu', ''],
   ];
   return `<div class="cot-so">${o.map(([di,v,t,m])=>
     `<button class="cs-d ${m}" data-di="${di}"><b>${v}</b><span>${t}</span></button>`).join('')}</div>`;
@@ -7470,7 +7545,7 @@ function cotLopHTML(ds, idChon, id){
    điểm ít lớp thì lưới toàn trường vẫn vừa màn hình, giữ nguyên như cũ.
 
    Chỉ là MẶC ĐỊNH: bấm sang thẻ khác là `S.dhXem` giữ lựa chọn ấy. Phó
-   hiệu trưởng phụ trách một điểm trường thì `lopTrongPV()` đã lọc sẵn, nên
+   hiệu trưởng phụ trách một phân hiệu thì `lopTrongPV()` đã lọc sẵn, nên
    lớp bày ra là lớp trong điểm của mình. */
 const NGUONG_LOP_TOAN_TRUONG = 12;
 const xemMacDinh = ds => ds.length>NGUONG_LOP_TOAN_TRUONG ? 'tkblop' : 'toantruong';
@@ -7665,7 +7740,7 @@ function mXep(){
   const loi=KT.vm.filter(v=>v.muc==='do');
   /* Ghi lên máy chủ chỉ có nghĩa khi lưới dựng trên chính dữ liệu của máy chủ */
   const luuDuoc=coMayChu() && KHO.nguon==='may-chu';
-  return dauTrang('Xếp thời khóa biểu','Máy xếp trước, cán bộ chỉnh sau. Nguyên tắc: một giáo viên chỉ ở một điểm trường trong một buổi.',false)
+  return dauTrang('Xếp thời khóa biểu','Máy xếp trước, cán bộ chỉnh sau. Nguyên tắc: một giáo viên chỉ ở một phân hiệu trong một buổi.',false)
   +dieuHuongBuoc('xep')+kheThaoTacNhanh(soTietDaXep()>0)+`
   <div class="dh"><div class="dh-duoi">
     <div class="the">
@@ -7680,7 +7755,7 @@ function mXep(){
           const v=[...new Set(Object.values(KT.slotKhoi))].sort((a,b)=>a-b);
           return v.length>1?`${v[0]}–${v[v.length-1]} tiết tuỳ khối`:`${v[0]||0} tiết`;
         })()}</b></div>
-        <div class="hang">Điểm trường <b>${S.diemTruong.length}</b></div>
+        <div class="hang">Phân hiệu <b>${S.diemTruong.length}</b></div>
         ${duocXep()?`<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="b b-vang" id="btXep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>Xếp nhanh</button>
           <button class="b b-ch" id="btXepKy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Xếp kỹ — tìm nhiều phương án</button>
@@ -7691,9 +7766,9 @@ function mXep(){
           Cả hai đều ghim sẵn chào cờ sáng thứ Hai và sinh hoạt lớp cuối sáng thứ Sáu.</div>`
         :`<div style="margin-top:16px"><div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
           <b>Xếp tự động là việc của người phụ trách toàn trường</b>
-          <div class="cb-g">Mỗi lần xếp là dựng lại lưới của cả ${S.lop.length} lớp, kể cả các điểm trường khác —
+          <div class="cb-g">Mỗi lần xếp là dựng lại lưới của cả ${S.lop.length} lớp, kể cả các phân hiệu khác —
             nên chỉ người xếp chính bấm được. Thầy cô chỉnh tay các lớp tại
-            ${esc(dtId(phamViKhoa())?.ten||'điểm trường mình')} ở mục <b>Theo lớp</b>, xong bấm <b>Lưu lên máy chủ</b>.</div></div></div>
+            ${esc(dtId(phamViKhoa())?.ten||'phân hiệu mình')} ở mục <b>Theo lớp</b>, xong bấm <b>Lưu lên máy chủ</b>.</div></div></div>
           <button class="b b-ch" data-di="tkblop" style="margin-top:13px">Mở thời khóa biểu theo lớp</button></div>`}
       </div>
     </div>
@@ -7753,7 +7828,7 @@ function ketQuaXep(){
     </div></div>
   ${k.toiUu?.doi?`<div class="gy" style="margin-top:10px">Xếp đủ tiết xong, máy còn đổi chỗ ${k.toiUu.doi} lần
     (${k.toiUu.vong} lượt rà) để bớt tiết trống kẹp giữa buổi, kéo Toán và Tiếng Việt về buổi sáng,
-    và giảm số lần thầy cô phải chạy sang điểm trường khác. Số tiết không đổi.</div>`:''}
+    và giảm số lần thầy cô phải chạy sang phân hiệu khác. Số tiết không đổi.</div>`:''}
   ${k.chuaXep.length?`<div style="margin-top:16px">
     ${k.chuaXep.slice(0,5).map(c=>`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
       <b>${esc(gvId(c.gvId)?.hoTen)} · ${esc(c.mon)} · lớp ${esc(tenLopDay(c.lopId))}</b>
@@ -7761,7 +7836,7 @@ function ketQuaXep(){
     ${k.chuaXep.length>5?`<div class="gy">…và ${k.chuaXep.length-5} trường hợp khác.</div>`:''}
     </div>`
   :`<div class="canhbao ok" style="margin-top:16px"><div class="cb-ic">✓</div><div class="cb-t">
-      <b>Xếp trọn vẹn toàn bộ tiết</b><div class="cb-g">Không có xung đột giáo viên, lớp hay điểm trường.</div></div></div>`}
+      <b>Xếp trọn vẹn toàn bộ tiết</b><div class="cb-g">Không có xung đột giáo viên, lớp hay phân hiệu.</div></div></div>`}
   <div style="margin-top:14px"><button class="b b-ch" data-di="tkblop">Xem thời khóa biểu</button></div>`;
 }
 
@@ -7939,7 +8014,7 @@ function mCuaToi(){
     <div class="gv-so">
       <div><b>${tong}</b><span>tiết/tuần</span></div>
       <div><b>${soBuoi}</b><span>buổi có mặt</span></div>
-      <div><b>${dts.length}</b><span>điểm trường</span></div>
+      <div><b>${dts.length}</b><span>phân hiệu</span></div>
     </div>
   </div>
   ${(()=>{  /* Hai lối vào nhanh của giáo viên: báo nghỉ và thông báo (§19).
@@ -8084,7 +8159,7 @@ function lyDoTrongLich(idGV, laToi=true){
 
 /* ---------- 3.5b Dạy thay, dạy bù ----------
    Việc lặp lại hằng tuần trong năm học: cô A ốm sáng mai, ai dạy thế tiết
-   nào. Máy lọc đúng ràng buộc (trống tiết · không vướng điểm trường ·
+   nào. Máy lọc đúng ràng buộc (trống tiết · không vướng phân hiệu ·
    không bận) rồi gợi ý; người quản lý quyết và lưu; thầy cô dạy thay
    thấy ngay trên màn hình Của tôi.
 
@@ -8405,7 +8480,7 @@ function khuVucPhuongAn(bn){
 
       <div class="bang">
         <table class="dl"><thead><tr><th>Tiết</th><th>Lớp</th><th>Môn</th>
-          <th>Điểm trường</th>${S.paRieng?'<th>Giáo viên dạy thay</th>':''}</tr></thead><tbody>
+          <th>Phân hiệu</th>${S.paRieng?'<th>Giáo viên dạy thay</th>':''}</tr></thead><tbody>
         ${tiet.map(o=>`<tr>
           <td style="white-space:nowrap">${o.buoi==='S'?'Sáng':'Chiều'} · ${o.i+1}</td>
           <td><b>${esc(tenLopDay(o.lopId))}</b></td>
@@ -8479,7 +8554,7 @@ function khuVucLichDaPhanCong(hn){
     : S.dtLoc==='het'    ? true
     :                      x.ngay>=hn;
   let ds=(S.dayThay||[]).filter(trongLoc);
-  /* Bộ lọc phụ — điểm trường, người vắng, người dạy thay */
+  /* Bộ lọc phụ — phân hiệu, người vắng, người dạy thay */
   if(S.dtLocDT) ds=ds.filter(x=>S.lopDT[x.lopId]===S.dtLocDT);
   if(S.dtLocVang) ds=ds.filter(x=>x.gvVangId===S.dtLocVang);
   if(S.dtLocThay) ds=ds.filter(x=>x.gvThayId===S.dtLocThay);
@@ -8499,7 +8574,7 @@ function khuVucLichDaPhanCong(hn){
         <div class="dai-dt">${LOC_LICH.map(([v,t])=>
           `<button class="dt-nut${S.dtLoc===v?' on':''}" data-dtloc="${v}">${t}</button>`).join('')}</div>
         ${S.dtLoc==='ngay'?`<input type="date" class="ip" id="dtLocNgay" value="${esc(S.dtLocNgay)}">`:''}
-        ${S.diemTruong.length>1?`<select class="ip" id="dtLocDT"><option value="">Mọi điểm trường</option>
+        ${S.diemTruong.length>1?`<select class="ip" id="dtLocDT"><option value="">Mọi phân hiệu</option>
           ${S.diemTruong.map(d=>`<option value="${d.id}" ${S.dtLocDT===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}
         </select>`:''}
         ${dsVang.length>1?`<select class="ip" id="dtLocVang"><option value="">Mọi người vắng</option>
@@ -8742,7 +8817,7 @@ function mNgayCong(){
 
 /* ---------- Các phương án đã lưu ----------
    §6: so sánh phương án theo số tiết đã xếp · chưa xếp · xung đột ·
-   tiết trống giữa buổi · lượt di chuyển điểm trường. PA_TIM là kết quả
+   tiết trống giữa buổi · lượt di chuyển phân hiệu. PA_TIM là kết quả
    lần "Xếp kỹ" gần nhất; chưa chạy lần nào thì nói rõ phải làm gì. */
 function mPhuongAn(){
   const co = PA_TIM && PA_TIM.phuongAn?.length;
@@ -8774,7 +8849,7 @@ function bangSoSanhPA(){
   const tot=Math.min(...ds.map(p=>p.diem));
   return `<div class="bang"><table class="dl"><thead><tr>
     <th>Phương án</th><th>Tiết đã xếp</th><th>Chưa xếp</th><th>Xung đột</th>
-    <th>Tiết trống giữa buổi</th><th>Lượt đổi điểm trường</th><th></th></tr></thead><tbody>
+    <th>Tiết trống giữa buổi</th><th>Lượt đổi phân hiệu</th><th></th></tr></thead><tbody>
     ${ds.map((p,i)=>`<tr${p.diem===tot?' class="pa-tot"':''}>
       <td><b>Phương án ${i+1}</b>${p.diem===tot?' <span class="tag ok">tốt nhất</span>':''}</td>
       <td>${p.daXep ?? '—'}</td>
@@ -8786,7 +8861,7 @@ function bangSoSanhPA(){
     </tr>`).join('')}
   </tbody></table></div>
   <div class="gy" style="margin-top:10px">Ít <b>tiết trống giữa buổi</b> nghĩa là thầy cô
-    không phải chờ suông giữa hai tiết. Ít <b>lượt đổi điểm trường</b> nghĩa là ít phải đi lại.</div>`;
+    không phải chờ suông giữa hai tiết. Ít <b>lượt đổi phân hiệu</b> nghĩa là ít phải đi lại.</div>`;
 }
 
 /* ---------- Phiên bản và công bố ----------
@@ -8864,7 +8939,7 @@ function mNguoiDung(){
   <div class="the" style="margin-top:15px">
     <div class="the-d"><h2>Ai thấy được gì</h2></div>
     <div class="the-t"><div class="bang"><table class="dl"><thead><tr>
-      <th>Việc</th><th>Hiệu trưởng · PHT chuyên môn</th><th>PHT một điểm trường</th><th>Giáo viên</th>
+      <th>Việc</th><th>Hiệu trưởng · PHT chuyên môn</th><th>PHT một phân hiệu</th><th>Giáo viên</th>
     </tr></thead><tbody>
       ${[['Xem thời khóa biểu toàn trường','có','chỉ điểm của mình','lịch của mình'],
          ['Xếp tự động, xoá kết quả','có','không','không'],
@@ -8877,8 +8952,8 @@ function mNguoiDung(){
           `<td class="${c==='không'?'mo-c':''}">${esc(c)}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div>
     <div class="gy" style="margin-top:10px">Hai loại phó hiệu trưởng phân biệt bằng ô
-      <b>điểm trường phụ trách</b>: bỏ trống là phụ trách chuyên môn toàn trường,
-      có giá trị là phụ trách riêng điểm trường đó.</div>
+      <b>phân hiệu phụ trách</b>: bỏ trống là phụ trách chuyên môn toàn trường,
+      có giá trị là phụ trách riêng phân hiệu đó.</div>
     </div>
   </div>`;
 }
@@ -8897,7 +8972,7 @@ function mSaoLuu(){
     <div class="the-d"><h2>Tải bản sao lưu</h2></div>
     <div class="the-t">
       <div class="sl-so">
-        ${[['Lớp',n.lop],['Giáo viên',n.gv],['Dòng phân công',n.pc],['Điểm trường',n.dt],
+        ${[['Lớp',n.lop],['Giáo viên',n.gv],['Dòng phân công',n.pc],['Phân hiệu',n.dt],
            ['Môn học',n.mon],['Phòng học',n.phong],['Tiết đã xếp',n.tiet]].map(([t,v])=>
           `<div><b>${v}</b><span>${t}</span></div>`).join('')}
       </div>
@@ -8937,10 +9012,10 @@ function mSaoLuu(){
    giờ cuộn ngang, đúng nguyên tắc mobile-first.
    ================================================================== */
 
-/* ---------- Lưới rộng xem TỪNG ĐIỂM TRƯỜNG ----------
-   Ba điểm trường gộp một bảng là 60 cột: quá dày, đọc không nổi, và thực tế
-   cũng không ai cần — người phụ trách một điểm trường chỉ quan tâm điểm của
-   mình. Nên MÀN HÌNH mặc định bày một điểm trường, có dải nút chuyển qua
+/* ---------- Lưới rộng xem TỪNG PHÂN HIỆU ----------
+   Ba phân hiệu gộp một bảng là 60 cột: quá dày, đọc không nổi, và thực tế
+   cũng không ai cần — người phụ trách một phân hiệu chỉ quan tâm điểm của
+   mình. Nên MÀN HÌNH mặc định bày một phân hiệu, có dải nút chuyển qua
    lại. Bản gộp cả trường vẫn còn nguyên, nhưng chỉ ở đường XUẤT VÀ IN —
    nơi nó đúng vai: tờ A3 dán bảng tin. */
 function dsDiemChoLuoi(){
@@ -8953,7 +9028,7 @@ const lopChoLuoi = () => {
   dsDiemChoLuoi();
   return S.dtLuoi ? ds.filter(l=>S.lopDT[l.id]===S.dtLuoi) : ds;
 };
-/* Dải nút chuyển điểm trường — chỉ hiện khi trường có nhiều hơn một điểm */
+/* Dải nút chuyển phân hiệu — chỉ hiện khi trường có nhiều hơn một điểm */
 function daiDiemLuoi(){
   const ds=dsDiemChoLuoi();
   if(ds.length<2) return '';
@@ -9031,7 +9106,7 @@ function mToanTruong(){
   const can=S.phanCong.filter(p=>ds.some(l=>l.id===p.lopId)).reduce((s,p)=>s+p.soTiet,0);
   const xep=ds.reduce((s,l)=>s+Object.keys(S.tkb[l.id]||{}).length,0);
   return dauTrang('Thời khóa biểu toàn trường',
-    nhieuDiem?'Xem theo từng điểm trường cho dễ đọc. Bản gộp cả trường nằm ở mục Xuất và in.'
+    nhieuDiem?'Xem theo từng phân hiệu cho dễ đọc. Bản gộp cả trường nằm ở mục Xuất và in.'
              :'Tất cả các lớp trên một bảng — tờ để dán bảng tin. Cuộn ngang trong khung để xem hết.',true)+
   dieuHuongBuoc('toantruong')+
   daiDiemLuoi()+`
@@ -9117,14 +9192,14 @@ function mXuatIn(){
       <div class="the-t">
         <div class="on-l"><label>Chọn bản in</label>
           <select class="ip" id="inChonRong" style="width:100%">
-            ${(()=>{ /* Bản A4 theo điểm trường đứng ĐẦU — đó là bản in hằng ngày;
-                 bản gộp A3 chỉ dành cho tờ dán bảng tin. Điểm trường đông lớp
+            ${(()=>{ /* Bản A4 theo phân hiệu đứng ĐẦU — đó là bản in hằng ngày;
+                 bản gộp A3 chỉ dành cho tờ dán bảng tin. Phân hiệu đông lớp
                  tự chia thành nhiều tờ, mỗi tờ tối đa NGUONG_COT_A4 cột. */
               const dsDT=S.diemTruong.filter(d=>ds.some(l=>S.lopDT[l.id]===d.id));
               return dsDT.length>1
-                ? `<option value="dt">Từng điểm trường — mỗi điểm một bộ tờ A4 ngang</option>`
+                ? `<option value="dt">Từng phân hiệu — mỗi điểm một bộ tờ A4 ngang</option>`
                   + dsDT.map(d=>{const n=ds.filter(l=>S.lopDT[l.id]===d.id).length;
-                    return `<option value="dt:${d.id}">Riêng điểm trường ${esc(d.ten)} — ${n} lớp, A4 ngang</option>`;}).join('')
+                    return `<option value="dt:${d.id}">Riêng phân hiệu ${esc(d.ten)} — ${n} lớp, A4 ngang</option>`;}).join('')
                 : `<option value="dt">Chia trang A4 ngang — tối đa ${NGUONG_COT_A4} lớp mỗi tờ</option>`;
             })()}
             <option value="tt">Toàn trường gộp một tờ A3 — ${ds.length} lớp, dán bảng tin</option>
@@ -9133,8 +9208,8 @@ function mXuatIn(){
           </select></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-ch" id="btInRong" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>In / lưu PDF</button><button class="b b-vien" id="btWordRong" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12l1.2 5 1.3-3.6 1.3 3.6 1.2-5"/></svg>Tải Word</button></div>
-        <div class="gy" style="margin-top:13px">Bản <b>từng điểm trường</b> in khổ A4 ngang —
-          điểm trường đông lớp tự chia thành nhiều tờ theo khối, tờ nào cũng đọc được.
+        <div class="gy" style="margin-top:13px">Bản <b>từng phân hiệu</b> in khổ A4 ngang —
+          phân hiệu đông lớp tự chia thành nhiều tờ theo khối, tờ nào cũng đọc được.
           Bản <b>toàn trường gộp</b> là tờ A3 dán bảng tin ngày khai giảng; máy in chỉ có A4
           thì trong hộp in chọn <b>Tỷ lệ → Vừa khổ giấy</b>.</div>
       </div>
@@ -9153,7 +9228,7 @@ function mXuatIn(){
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-ch" id="btInLopMoi" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>In / lưu PDF</button><button class="b b-vien" id="btWordLop" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12l1.2 5 1.3-3.6 1.3 3.6 1.2-5"/></svg>Tải Word</button></div>
         <div class="gy" style="margin-top:13px">Khổ A4 ngang, mỗi lớp một trang, có tên trường,
-          giáo viên chủ nhiệm, điểm trường và chỗ ký. Trong hộp in chọn
+          giáo viên chủ nhiệm, phân hiệu và chỗ ký. Trong hộp in chọn
           <b>Đích đến → Lưu dưới dạng PDF</b> là ra tệp PDF.</div>
       </div>
     </div>
@@ -9170,7 +9245,7 @@ function mXuatIn(){
           </select></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-ch" id="btInGV" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V3h10v5"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>In / lưu PDF</button><button class="b b-vien" id="btWordGV" ${chuaXep?'disabled style="opacity:.5;cursor:not-allowed"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12l1.2 5 1.3-3.6 1.3 3.6 1.2-5"/></svg>Tải Word</button></div>
-        <div class="gy" style="margin-top:13px">Mỗi thầy cô một trang riêng, ghi rõ lớp và điểm trường
+        <div class="gy" style="margin-top:13px">Mỗi thầy cô một trang riêng, ghi rõ lớp và phân hiệu
           từng tiết. In cả tập rồi phát là xong, không phải cắt dán.</div>
       </div>
     </div>
@@ -9215,9 +9290,9 @@ function banInDangChon(){
   }
   const v=$('#inChonRong')?.value ?? 'dt';
   if(v==='tt') return {html:trangInToanTruong(), moTa:'toàn trường gộp'};
-  if(v==='dt') return {html:trangInDiemTruong(), moTa:'từng điểm trường'};
+  if(v==='dt') return {html:trangInDiemTruong(), moTa:'từng phân hiệu'};
   if(v.startsWith('dt:')) return {html:trangInDiemTruong(v.slice(3)),
-    moTa:'điểm trường '+(dtId(v.slice(3))?.ten||'')};
+    moTa:'phân hiệu '+(dtId(v.slice(3))?.ten||'')};
   return {html:trangInKhoi(v?+v:null), moTa:v?`khối ${v}`:'các khối'};
 }
 
@@ -9475,7 +9550,7 @@ function apKhoaXL(ws, cot, dongDau, soDong, danhMuc){
    Một trang dữ liệu + một trang DANH_MUC, không hơn — cả tệp mở ra là thấy
    ngay phải điền gì, khác hẳn mười tab đánh số của mẫu trọn gói cũ. */
 
-/* Chỉ dựng những danh mục trang này THẬT SỰ dùng. Trang Điểm trường không
+/* Chỉ dựng những danh mục trang này THẬT SỰ dùng. Trang Phân hiệu không
    cần danh sách mã giáo viên; kèm vào chỉ tổ làm tệp nặng và rối. */
 function danhMucCuaMuc(ma){
   const m=MUC_NHAP[ma];
@@ -9484,7 +9559,7 @@ function danhMucCuaMuc(ma){
     DM_Co_khong:   CO_KHONG,
     DM_Thu:        THU_XL,
     DM_Buoi:       BUOI_XL,
-    DM_Diem_truong:S.diemTruong.map(d=>d.ten),
+    DM_Phan_hieu:S.diemTruong.map(d=>d.ten),
     DM_Ma_lop:     S.lop.map(l=>l.maLop||l.id),
     DM_Ma_GV:      S.giaoVien.map(g=>g.maGV||g.id),
     DM_Mon:        (S.monHoc||dsMonMacDinh()).map(x=>x.ten)
@@ -9598,13 +9673,13 @@ async function taiMauMaTran(){
   }
   ws.views=[{state:'frozen',xSplit:3,ySplit:dCot}];  /* khoá tới cột Họ tên + dòng tên cột */
 
-  /* --- Trang DANH_SACH_LOP: bắt buộc khi nhiều điểm trường, còn lại tùy chọn --- */
+  /* --- Trang DANH_SACH_LOP: bắt buộc khi nhiều phân hiệu, còn lại tùy chọn --- */
   const wl=trangXL(wb,'DANH_SACH_LOP','doc');
   let rl=tieuDeXL(wl,1,4,'DANH SÁCH LỚP HỌC',
-    m.nhieuDiem?'Trường nhiều điểm trường — trang này BẮT BUỘC để biết lớp nào ở đâu.'
-               :'Trường một điểm trường có thể xoá trang này — máy tự dựng lớp từ tên trong bảng.');
+    m.nhieuDiem?'Trường nhiều phân hiệu — trang này BẮT BUỘC để biết lớp nào ở đâu.'
+               :'Trường một phân hiệu có thể xoá trang này — máy tự dựng lớp từ tên trong bảng.');
   const dl2=rl;
-  rl=dauCotXL(wl,rl,[{ten:'Ma_lop',rong:18},{ten:'Ten_lop',rong:14},{ten:'Khoi',rong:10},{ten:'Diem_truong',rong:30}]);
+  rl=dauCotXL(wl,rl,[{ten:'Ma_lop',rong:18},{ten:'Ten_lop',rong:14},{ten:'Khoi',rong:10},{ten:'Phan_hieu',rong:30}]);
   rl=thanBangXL(wl,rl,m.lop.slice(1),['left','center','center','left']);
   wl.views=[{state:'frozen',ySplit:dl2}];
 
@@ -9621,7 +9696,7 @@ async function taiMauMaTran(){
     ['Cột Buoi_ban','Các buổi giáo viên KHÔNG dạy được, ghi kiểu T2-S (thứ Hai sáng), T5-C (thứ Năm chiều), cách nhau dấu phẩy.'],
     ['Cột Ma_GV','Được phép bỏ trống — máy tự đặt GV01, GV02… Họ tên trùng nhau thì PHẢI ghi mã.'],
     ['Một người nhiều dòng','Được. Dùng khi một người dạy các môn ở những bộ lớp khác nhau — mỗi dòng một Lop_day, ghi CÙNG Ma_GV.'],
-    ['Trang DANH_SACH_LOP','Một điểm trường: xoá cũng được. Nhiều điểm trường: bắt buộc, và Ma_lop nên có tiền tố (DL-1A, DD-1A…).']
+    ['Trang DANH_SACH_LOP','Một phân hiệu: xoá cũng được. Nhiều phân hiệu: bắt buộc, và Ma_lop nên có tiền tố (DL-1A, DD-1A…).']
   ],['left','left']);
 
   const ten=`Mau-ma-tran-TKB-${khongDau(S.tenTruong)}.xlsx`;
@@ -9751,10 +9826,10 @@ async function xuatExcel(){
   };
   trangBang('PCGD','BẢNG PHÂN CÔNG GIẢNG DẠY', bangXuatPC(ds),
     [{ten:'TT',rong:6},{ten:'Giáo viên',rong:28},{ten:'Mã giáo viên',rong:22},{ten:'Lớp',rong:10},
-     {ten:'Điểm trường',rong:26},{ten:'Môn',rong:16},{ten:'Số tiết',rong:10}],
+     {ten:'Phân hiệu',rong:26},{ten:'Môn',rong:16},{ten:'Số tiết',rong:10}],
     ['center','left','left','center','left','left','center']);
-  trangBang('DIEM_TRUONG','TỔNG HỢP THEO ĐIỂM TRƯỜNG', bangXuatDT(),
-    [{ten:'Điểm trường',rong:28},{ten:'Số lớp',rong:10},{ten:'Số giáo viên',rong:14},
+  trangBang('DIEM_TRUONG','TỔNG HỢP THEO PHÂN HIỆU', bangXuatDT(),
+    [{ten:'Phân hiệu',rong:28},{ten:'Số lớp',rong:10},{ten:'Số giáo viên',rong:14},
      {ten:'Tiết/tuần',rong:12},{ten:'Đã xếp',rong:10},{ten:'Tỷ lệ',rong:10},{ten:'Phòng Tin học',rong:16}],
     ['left','center','center','center','center','center','center']);
 
@@ -9949,10 +10024,10 @@ function trangInToanTruong(){
     bangInRong(ds), 'rong');
 }
 
-/* ---------- Bản in theo TỪNG ĐIỂM TRƯỜNG — khổ A4 ngang ----------
-   Ba điểm trường gộp một tờ là 60 cột — quá dày, không ai đọc nổi, và đa số
-   trường chỉ có máy in A4. Bản này là đường in CHÍNH: mỗi điểm trường một bộ
-   tờ riêng, khổ A4 ngang. Điểm trường đông lớp thì tự chia thành nhiều tờ
+/* ---------- Bản in theo TỪNG PHÂN HIỆU — khổ A4 ngang ----------
+   Ba phân hiệu gộp một tờ là 60 cột — quá dày, không ai đọc nổi, và đa số
+   trường chỉ có máy in A4. Bản này là đường in CHÍNH: mỗi phân hiệu một bộ
+   tờ riêng, khổ A4 ngang. Phân hiệu đông lớp thì tự chia thành nhiều tờ
    theo cụm khối liên tiếp — mỗi tờ tối đa NGUONG_COT_A4 cột để tên môn và
    tên giáo viên còn đọc được. Bản gộp A3 vẫn giữ nguyên cho tờ dán bảng tin. */
 const NGUONG_COT_A4 = 12;
@@ -9975,8 +10050,8 @@ function chiaCumKhoi(ds, nguong=NGUONG_COT_A4){
 function trangInDiemTruong(idDT){
   const trongPV=xepTheoKhoi(lopTrongPV());
   if(!trongPV.length) return '';
-  /* Gom lớp theo điểm trường, giữ thứ tự khai báo của bảng điểm trường.
-     Lớp chưa gán điểm trường vào nhóm riêng — không được rơi mất khỏi bản in. */
+  /* Gom lớp theo phân hiệu, giữ thứ tự khai báo của bảng phân hiệu.
+     Lớp chưa gán phân hiệu vào nhóm riêng — không được rơi mất khỏi bản in. */
   const nhom=new Map();
   S.diemTruong.forEach(d=>nhom.set(d.id,[]));
   nhom.set('',[]);
@@ -9987,10 +10062,10 @@ function trangInDiemTruong(idDT){
   const trang=[];
   nhom.forEach((ds,d)=>{
     if(!ds.length || (idDT && d!==idDT)) return;
-    const ten = d ? (dtId(d)?.ten||'') : (S.diemTruong.length?'Chưa gán điểm trường':'');
-    /* Tên do trường khai có khi đã mang sẵn chữ "Điểm trường" — đừng ghép
-       thành "Điểm trường Điểm trường Diễn Đồng". */
-    const nhan = !ten ? '' : /^điểm trường/i.test(ten) ? ten : `Điểm trường ${ten}`;
+    const ten = d ? (dtId(d)?.ten||'') : (S.diemTruong.length?'Chưa gán phân hiệu':'');
+    /* Tên do trường khai có khi đã mang sẵn chữ "Phân hiệu" — đừng ghép
+       thành "Phân hiệu Phân hiệu Diễn Đồng". */
+    const nhan = !ten ? '' : /^phân hiệu/i.test(ten) ? ten : `Phân hiệu ${ten}`;
     const cum=chiaCumKhoi(ds);
     cum.forEach((c,i)=>{
       const khoi=khoiDangCo(c);
@@ -10302,7 +10377,7 @@ function batToanManHinh(bat){
 /* ==================================================================
    3.6e Ô TÌM KIẾM CHUNG (§20)
    ------------------------------------------------------------------
-   Một ô, bốn loại kết quả: giáo viên · lớp · môn · điểm trường. Gõ tên
+   Một ô, bốn loại kết quả: giáo viên · lớp · môn · phân hiệu. Gõ tên
    cô Hương là ra ngay lịch của cô, không phải nhớ mục nào tra được gì.
 
    Từ 3/8/2026 ô này nằm TĨNH trên thanh đầu trang (nút kính lúp #btTim
@@ -10316,7 +10391,7 @@ function batToanManHinh(bat){
 
 /* Kết quả tìm — thuần dữ liệu, không đụng DOM, để kiểm thử gọi thẳng được */
 /* Số kết quả tối đa của MỖI loại. Cắt theo từng loại chứ không cắt trên
-   danh sách gộp: gõ "Diễn" ra 24 lớp là đã đầy chỗ, và điểm trường tên
+   danh sách gộp: gõ "Diễn" ra 24 lớp là đã đầy chỗ, và phân hiệu tên
    Diễn Liên — thứ người dùng đang tìm — bị đẩy văng ra ngoài. */
 const TIM_MOI_LOAI = 6;
 function ketQuaTim(tu){
@@ -10357,7 +10432,7 @@ function ketQuaTim(tu){
     if(!khopLoc(tuLoc(d.ten), tu)) return;
     const lp=S.lop.filter(l=>S.lopDT[l.id]===d.id).length;
     const gv=new Set(S.phanCong.filter(p=>S.lopDT[p.lopId]===d.id).map(p=>p.gvId)).size;
-    kq.push({loai:'Điểm trường', id:d.id, ten:d.ten, di:'toantruong',
+    kq.push({loai:'Phân hiệu', id:d.id, ten:d.ten, di:'toantruong',
       phu:`${lp} lớp · ${gv} giáo viên`});
   });
   /* Cắt theo từng loại, giữ nguyên thứ tự loại đã dựng */
@@ -10429,7 +10504,7 @@ const HD_ND = {
           <tr><td><b>2_DIEM_TRUONG</b></td><td>Mỗi nơi dạy học một dòng. Trường một điểm thì để nguyên dòng có sẵn.</td></tr>
           <tr><td><b>3_KHUNG_GIO</b></td><td><b>Đã điền sẵn</b> khung chuẩn 8 buổi. Trường dạy khác thì sửa số tiết
             từng khối — khối nhỏ tan sớm hơn nên năm cột <i>K1…K5</i> được phép khác nhau.</td></tr>
-          <tr><td><b>4_LOP</b></td><td>Mã lớp, tên lớp, khối, thuộc điểm trường nào.</td></tr>
+          <tr><td><b>4_LOP</b></td><td>Mã lớp, tên lớp, khối, thuộc phân hiệu nào.</td></tr>
           <tr><td><b>5_GIAO_VIEN</b></td><td>Mã, <b>đủ họ tên</b>, chủ nhiệm lớp nào, định mức tiết.</td></tr>
           <tr><td><b>6_PHAN_CONG</b></td><td>Ai dạy môn gì ở lớp nào. <b>Cột So_tiet bỏ trống được</b> —
             máy lấy số tiết chuẩn CT GDPT 2018 theo khối.</td></tr>
@@ -10439,7 +10514,7 @@ const HD_ND = {
         </tbody></table></div>
 
         <p style="margin-top:11px"><b>Tệp mẫu tự chống gõ sai:</b> ô có <b>*</b> ở tên cột là ô bắt buộc.
-          Các ô mã lớp, mã giáo viên, môn, điểm trường đều <b>xổ xuống cho chọn</b> — không gõ tay,
+          Các ô mã lớp, mã giáo viên, môn, phân hiệu đều <b>xổ xuống cho chọn</b> — không gõ tay,
           không gõ sai. Ô số chỉ nhận đúng khoảng của nó (khối 1–5, định mức 1–30).</p>
         <p><b>Nhưng đừng tin hẳn vào khoá của Excel.</b> Chép từ danh sách cũ rồi <b>dán đè</b> thì
           Excel không kiểm được — đó là cách Excel vốn vậy, không sửa được. Nên phần mềm
@@ -10457,7 +10532,7 @@ const HD_ND = {
           mỗi màn hình có nút <i>tiếp theo ›</i> để đi sang việc kế — không phải tự mò.</p>
         <div class="hd-buoc">
           <div class="hd-b"><b>1 · Thông tin trường</b><span>Tên đơn vị, năm học, xã, tỉnh. Ba thứ này in ở đầu mọi bản thời khóa biểu.</span></div>
-          <div class="hd-b"><b>2 · Điểm trường</b><span>Nhà trường có mấy nơi dạy học, rồi phân bổ từng lớp về đúng nơi.</span></div>
+          <div class="hd-b"><b>2 · Phân hiệu</b><span>Nhà trường có mấy nơi dạy học, rồi phân bổ từng lớp về đúng nơi.</span></div>
           <div class="hd-b"><b>3 · Khối và khung giờ</b><span>Số tiết mỗi buổi của từng khối. Dòng tổng dưới bảng phải xanh cả năm ô mới đúng chuẩn.</span></div>
           <div class="hd-b"><b>4 · Lớp học</b><span>Bấm <i>Tạo lớp hàng loạt</i>: khai mỗi khối có mấy lớp là máy sinh 1A–1E và tự đặt mã. Rồi chọn chủ nhiệm cho từng lớp.</span></div>
           <div class="hd-b"><b>5 · Giáo viên</b><span>Thêm từng người, ghi đủ họ tên và định mức tiết mỗi tuần.</span></div>
@@ -10471,7 +10546,7 @@ const HD_ND = {
         <p><b>Tìm nhanh trong danh sách dài:</b> trường sáp nhập có tới sáu chục lớp và
           gần trăm thầy cô. Mỗi bảng dài đều có <b>ô tìm kiếm</b> ở phía trên — gõ vài chữ
           là danh sách rút gọn ngay, <b>không cần gõ dấu</b>. Gõ <i>huong</i> ra
-          <i>Nguyễn Thị Hương</i>; gõ <i>1a dien dong</i> ra đúng lớp 1A của điểm trường
+          <i>Nguyễn Thị Hương</i>; gõ <i>1a dien dong</i> ra đúng lớp 1A của phân hiệu
           Diễn Đồng. Bấm dấu <b>×</b> trong ô là trở lại danh sách đủ.</p>
         <p><b>Nhanh hơn — và đây mới là đường chính:</b> đừng khai tay chín màn hình.
           Bấm <b>Nhập dữ liệu Excel</b> ngay trên thanh công cụ của màn hình đang mở, tải
@@ -10480,7 +10555,7 @@ const HD_ND = {
           <b>sửa lặt vặt về sau</b>, không phải chỗ nhập lần đầu.
           Gộp nhiều trường vào một đơn vị thì mỗi lớp phải có <b>Ma_lop</b> riêng
           (ví dụ <i>DL-1A</i>, <i>DD-1A</i>, <i>DT-1A</i>). <b>Tên lớp thì được phép trùng nhau</b> giữa các
-          điểm trường — màn hình tự ghi kèm nơi học để khỏi lẫn.</p>
+          phân hiệu — màn hình tự ghi kèm nơi học để khỏi lẫn.</p>
         <p><b>Thanh tiến trình</b> ở đầu <i>Bảng điều hành</i> luôn nói rõ còn thiếu gì;
           bấm thẳng vào dòng thiếu là tới đúng chỗ phải làm.</p>`},
       {t:'Kiểm tra khả thi trước khi xếp', n:`
@@ -10495,8 +10570,8 @@ const HD_ND = {
       {t:'Xếp thời khóa biểu', n:`
         <p>Vào <b>Xếp thời khóa biểu</b>, bấm <b>Bắt đầu xếp</b>. Máy làm hai bước liền nhau:</p>
         <ol>
-          <li>Xếp cái khó trước — giáo viên bộ môn dạy nhiều điểm trường xếp trước, giáo viên chủ nhiệm xếp sau vì họ linh hoạt hơn.</li>
-          <li>Tinh chỉnh: đổi chỗ hàng trăm lần để kéo Toán và Tiếng Việt về buổi sáng, bớt tiết trống kẹp giữa buổi, giảm số lần thầy cô phải chạy sang điểm trường khác.</li>
+          <li>Xếp cái khó trước — giáo viên bộ môn dạy nhiều phân hiệu xếp trước, giáo viên chủ nhiệm xếp sau vì họ linh hoạt hơn.</li>
+          <li>Tinh chỉnh: đổi chỗ hàng trăm lần để kéo Toán và Tiếng Việt về buổi sáng, bớt tiết trống kẹp giữa buổi, giảm số lần thầy cô phải chạy sang phân hiệu khác.</li>
         </ol>
         <p>Máy tự ghim sẵn <b>chào cờ</b> sáng thứ Hai tiết 1 và <b>sinh hoạt lớp</b> tiết cuối sáng thứ Sáu
           của từng khối. Tiết nào không xếp được sẽ liệt kê rõ thiếu ở đâu.</p>`},
@@ -10507,7 +10582,7 @@ const HD_ND = {
           <div class="hd-b"><b>Kéo thả — trên máy tính</b><span>Kéo tiết thả sang ô khác như cũ.</span></div>
         </div>
         <p style="margin-top:11px">Máy chặn ngay và nói rõ lý do nếu phạm ràng buộc: trùng giờ giáo viên,
-          thầy cô đang dạy ở điểm trường khác trong cùng buổi, hoặc đã báo bận buổi đó.
+          thầy cô đang dạy ở phân hiệu khác trong cùng buổi, hoặc đã báo bận buổi đó.
           <b>Không bao giờ xếp được một thời khóa biểu sai.</b></p>`},
       {t:'Ghim tiết và hoàn tác', n:`
         <p>Tiết nào chỉnh tay là máy <b>ghim 📌</b> lại. Lần bấm <b>Bắt đầu xếp</b> sau đó, tiết ghim
@@ -10540,8 +10615,8 @@ const HD_ND = {
       {t:'Dạy thay, dạy bù trong năm học', n:`
         <p>Giáo viên ốm hay đi công tác đột xuất: vào mục <b>Dạy thay</b>, chọn ngày, chọn người vắng,
           bấm <b>Tìm người dạy thay</b>. Máy liệt kê từng tiết bị trống và gợi ý người dạy thế —
-          chỉ gợi ý người <b>trống tiết</b>, <b>đang không ở điểm trường khác</b> trong buổi đó và
-          <b>không đăng ký bận</b>; ưu tiên người đang có mặt sẵn tại điểm trường và quen lớp.</p>
+          chỉ gợi ý người <b>trống tiết</b>, <b>đang không ở phân hiệu khác</b> trong buổi đó và
+          <b>không đăng ký bận</b>; ưu tiên người đang có mặt sẵn tại phân hiệu và quen lớp.</p>
         <p>Bấm <b>Lưu phân công</b> là xong: thầy cô dạy thay mở lịch cá nhân lên thấy ngay tiết được giao.
           Thời khóa biểu tuần <b>không đổi</b> — dạy thay chỉ áp cho đúng ngày đó.</p>`},
       {t:'Bốn sản phẩm và cách in', n:`
@@ -10549,8 +10624,8 @@ const HD_ND = {
         <div class="hd-buoc">
           <div class="hd-b"><b>Toàn trường</b><span>Tất cả các lớp trên một bảng, xếp theo khối. Đây là tờ dán bảng tin ngày khai giảng — in khổ A3 ngang.</span></div>
           <div class="hd-b"><b>Theo khối</b><span>Các lớp cùng khối đặt cạnh nhau, nhìn ra ngay lớp nào lệch tiết so với lớp bên. Mỗi khối một tờ cho khối trưởng.</span></div>
-          <div class="hd-b"><b>Theo lớp</b><span>Mỗi lớp một trang A4 ngang, có chủ nhiệm, điểm trường và chỗ ký. Đây cũng là chỗ chỉnh tay.</span></div>
-          <div class="hd-b"><b>Theo giáo viên</b><span>Mỗi thầy cô một trang, in cả tập rồi phát. Ghi rõ lớp và điểm trường từng tiết.</span></div>
+          <div class="hd-b"><b>Theo lớp</b><span>Mỗi lớp một trang A4 ngang, có chủ nhiệm, phân hiệu và chỗ ký. Đây cũng là chỗ chỉnh tay.</span></div>
+          <div class="hd-b"><b>Theo giáo viên</b><span>Mỗi thầy cô một trang, in cả tập rồi phát. Ghi rõ lớp và phân hiệu từng tiết.</span></div>
         </div>
         <p style="margin-top:11px">Mục <b>Xuất và in</b> gom hết vào một chỗ, kèm <b>tệp Excel</b> nhiều trang tính:
           <i>TOAN_TRUONG</i>, <i>KHOI_1…KHOI_5</i>, <i>TKB_LOP</i>, <i>TKB_GV</i>, <i>PCGD</i>, <i>DIEM_TRUONG</i>.</p>
@@ -10558,29 +10633,29 @@ const HD_ND = {
           Bản toàn trường in bằng máy A4 thì chọn thêm <b>Tỷ lệ → Vừa khổ giấy</b>.</p>`}
     ]},
   pht:{
-    ten:'Phó hiệu trưởng phụ trách điểm trường',
-    mo:'Người phụ trách riêng một điểm trường. Chỉ thấy và chỉ chỉnh được phần của mình.',
+    ten:'Phó hiệu trưởng phụ trách phân hiệu',
+    mo:'Người phụ trách riêng một phân hiệu. Chỉ thấy và chỉ chỉnh được phần của mình.',
     muc:[
       {t:'Phạm vi của thầy cô', n:`
-        <p>Sau khi đăng nhập, mọi màn hình đều đã lọc sẵn về điểm trường thầy cô phụ trách.
-          Ô <b>Phụ trách</b> góc trên bên phải hiện tên điểm trường và <b>không đổi được</b> — đó là chủ ý,
+        <p>Sau khi đăng nhập, mọi màn hình đều đã lọc sẵn về phân hiệu thầy cô phụ trách.
+          Ô <b>Phụ trách</b> góc trên bên phải hiện tên phân hiệu và <b>không đổi được</b> — đó là chủ ý,
           để không ai vô tình chỉnh sang phần của người khác.</p>
-        <p>Số trên các thẻ và badge ở thanh bên cũng chỉ tính riêng điểm trường của thầy cô.</p>`},
+        <p>Số trên các thẻ và badge ở thanh bên cũng chỉ tính riêng phân hiệu của thầy cô.</p>`},
       {t:'Làm được gì, không làm được gì', n:`
         <ul>
-          <li>✅ Xem toàn bộ thời khóa biểu các lớp tại điểm trường mình</li>
+          <li>✅ Xem toàn bộ thời khóa biểu các lớp tại phân hiệu mình</li>
           <li>✅ Chỉnh tiết cho các lớp đó — chạm chọn rồi chạm ô đích, làm được ngay trên điện thoại</li>
           <li>✅ Ghim tiết đã chỉnh, và hoàn tác bằng <span class="hd-phim">Ctrl</span> + <span class="hd-phim">Z</span></li>
           <li>✅ Lưu lên máy chủ, xuất Excel, in ra giấy</li>
-          <li>🚫 Không bấm được <b>Xếp tự động</b> — mỗi lần xếp là dựng lại lưới của cả trường, sẽ đè lên phần các điểm trường khác</li>
-          <li>🚫 Không sửa được điểm trường, bảng phân công, khung giờ — đó là quyết định toàn trường</li>
+          <li>🚫 Không bấm được <b>Xếp tự động</b> — mỗi lần xếp là dựng lại lưới của cả trường, sẽ đè lên phần các phân hiệu khác</li>
+          <li>🚫 Không sửa được phân hiệu, bảng phân công, khung giờ — đó là quyết định toàn trường</li>
         </ul>`},
       {t:'Cách làm việc thường ngày', n:`
         <ol>
           <li>Người xếp chính xếp toàn trường và lưu một phiên bản.</li>
           <li>Thầy cô đăng nhập, vào <b>Theo lớp</b>, rà lại các lớp của mình.</li>
           <li>Chỗ nào chưa hợp lý thì chạm chọn rồi chạm sang ô muốn chuyển tới. Tiết đã chỉnh được ghim 📌 nên lần xếp sau không bị đè.</li>
-          <li>Bấm <b>Lưu lên máy chủ</b> — thành một phiên bản mới, phần của các điểm trường khác giữ nguyên.</li>
+          <li>Bấm <b>Lưu lên máy chủ</b> — thành một phiên bản mới, phần của các phân hiệu khác giữ nguyên.</li>
         </ol>
         <p>Nếu máy chủ báo <i>"Đã có người lưu phiên bản mới hơn"</i> thì tải lại rồi chỉnh tiếp — không ai ghi đè ai.</p>`}
     ]},
@@ -10600,9 +10675,9 @@ const HD_ND = {
         <p>Nên bật <b>xác minh 2 bước</b> cho Gmail và đăng xuất khi dùng máy tính chung.</p>`},
       {t:'Xem lịch dạy', n:`
         <p>Màn hình <b>Thời khóa biểu của tôi</b> bày cả tuần theo ngày. Ngày hôm nay được tô viền xanh.</p>
-        <p>Mỗi tiết ghi rõ <b>buổi, số tiết, môn, lớp</b> và <b>điểm trường</b> — thầy cô nhìn là biết
+        <p>Mỗi tiết ghi rõ <b>buổi, số tiết, môn, lớp</b> và <b>phân hiệu</b> — thầy cô nhìn là biết
           sáng mai phải đến đâu.</p>
-        <p>Phía trên có ba con số: tổng số tiết trong tuần, số buổi phải có mặt, số điểm trường phải đi.</p>
+        <p>Phía trên có ba con số: tổng số tiết trong tuần, số buổi phải có mặt, số phân hiệu phải đi.</p>
         <p>Được phân <b>dạy thay</b> tiết nào thì ngay đầu màn hình có dải báo ghi rõ ngày, tiết, lớp, môn —
           không cần chờ ai nhắn.</p>`},
       {t:'In lịch của mình', n:`
@@ -10618,7 +10693,7 @@ const HD_ND = {
         <p>Khi nhà trường công bố thời khóa biểu mới, xoá lịch cũ trong máy rồi tải lại tệp mới.</p>`},
       {t:'Không sửa được thời khóa biểu', n:`
         <p>Thầy cô chỉ xem. Muốn đổi tiết thì báo người xếp thời khóa biểu hoặc phó hiệu trưởng
-          phụ trách điểm trường — họ chỉnh rồi lưu, thầy cô tải lại là thấy bản mới.</p>`}
+          phụ trách phân hiệu — họ chỉnh rồi lưu, thầy cô tải lại là thấy bản mới.</p>`}
     ]}
 };
 
@@ -10789,7 +10864,7 @@ function mChuHeThong(){
    3.8 BƯỚC 1 — KHAI BÁO DỮ LIỆU
    ------------------------------------------------------------------
    Chín màn hình đi theo đúng trình tự người xếp thời khóa biểu vẫn làm:
-   thông tin trường → điểm trường → khối và khung giờ → lớp → giáo viên
+   thông tin trường → phân hiệu → khối và khung giờ → lớp → giáo viên
    → môn học → phòng học → phân công → buổi bận.
 
    Trước đây nhóm này nằm cuối thanh bên và chỉ có bốn màn hình, nên trường
@@ -10813,7 +10888,7 @@ const MAU_MON = [
    lối vào được đặt ở nơi người dùng đang đứng.
 
    Chỉ bày nút nhập Excel ở những màn hình mà tệp Excel thực sự chứa dữ liệu:
-   lớp, giáo viên, phân công, điểm trường. Bày ở màn hình Môn học hay Phòng học
+   lớp, giáo viên, phân công, phân hiệu. Bày ở màn hình Môn học hay Phòng học
    là hứa hão — tệp không có hai thứ đó. */
 /* `coNhap` nay SUY RA từ màn hình đang mở: có khai trong MUC_NHAP thì nhập
    được. Trước đây mỗi nơi gọi tự truyền true/false, nên thêm một mục nhập mới
@@ -10823,7 +10898,7 @@ const MAU_MON = [
 function thanhKhaiBao(nut, coNhap){
   if(coNhap===undefined) coNhap = !!MUC_NHAP[S.trangHienTai];
   /* Còn thay đổi chưa ghi lên máy chủ thì nói thẳng ra ngay cạnh nút Lưu.
-     Người dùng đã khai xong lớp cho hai điểm trường rồi mất sạch vì không
+     Người dùng đã khai xong lớp cho hai phân hiệu rồi mất sạch vì không
      biết mình chưa lưu — im lặng ở đây là im lặng đắt nhất trong phần mềm. */
   const treo = coThayDoiChuaLuu();
   return `<div class="kb-thanh">${nut}
@@ -10862,7 +10937,7 @@ function mThongTin(){
     <div class="the">
       <div class="the-d"><h2>Đã khai báo</h2><span class="meta">Dữ liệu nhà trường</span></div>
       <div class="the-t">
-        <div class="hang">Điểm trường <b>${S.diemTruong.length}</b></div>
+        <div class="hang">Phân hiệu <b>${S.diemTruong.length}</b></div>
         <div class="hang">Buổi học trong tuần <b>${buoiBat().length}</b></div>
         <div class="hang">Lớp học <b class="${S.lop.length?'xanh':'cam'}">${S.lop.length}</b></div>
         <div class="hang">Giáo viên <b class="${S.giaoVien.length?'xanh':'cam'}">${S.giaoVien.length}</b></div>
@@ -10887,7 +10962,7 @@ function mLopHoc(){
   const theoKhoi={}; ds.forEach(l=>{ (theoKhoi[l.khoi]=theoKhoi[l.khoi]||[]).push(l); });
   const dsGV=[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
   return dauTrang('Lớp học',
-    sua?'Mỗi lớp một mã riêng. Tên lớp được phép trùng nhau giữa các điểm trường — máy phân biệt bằng mã.'
+    sua?'Mỗi lớp một mã riêng. Tên lớp được phép trùng nhau giữa các phân hiệu — máy phân biệt bằng mã.'
        :'Danh sách lớp trong phạm vi đang xem.',true)+
   dieuHuongBuoc('lop')+
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btSinhLop">
@@ -10899,10 +10974,10 @@ function mLopHoc(){
   ${!ds.length?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
       <b>Chưa có lớp nào</b>
       <div class="cb-g">Bấm <b>Tạo lớp hàng loạt</b>: khai mỗi khối có mấy lớp là máy tự sinh 1A–1E,
-        2A–2E… và tự đặt mã theo điểm trường.</div></div></div>`:''}
-  ${oLoc('bLop',ds.length,'lớp','Tìm mã lớp, tên lớp, điểm trường, chủ nhiệm…')}
+        2A–2E… và tự đặt mã theo phân hiệu.</div></div></div>`:''}
+  ${oLoc('bLop',ds.length,'lớp','Tìm mã lớp, tên lớp, phân hiệu, chủ nhiệm…')}
   <div class="bang" style="max-height:66vh"><table class="dl" id="bLop"><thead><tr>
-    <th>Mã lớp</th><th>Tên lớp</th><th class="phai">Khối</th><th>Điểm trường</th>
+    <th>Mã lớp</th><th>Tên lớp</th><th class="phai">Khối</th><th>Phân hiệu</th>
     <th>Giáo viên chủ nhiệm</th><th class="phai">Tiết/tuần</th>${sua?'<th></th>':''}</tr></thead><tbody>
   ${[1,2,3,4,5].flatMap(k=>(theoKhoi[k]||[])).concat(ds.filter(l=>!(l.khoi>=1&&l.khoi<=5))).map(l=>{
     const cn=cnCuaLop(l.id);
@@ -10975,14 +11050,14 @@ function mMonHoc(){
   ${locRong('bMon')}
   <div class="gy" style="margin-top:11px"><b>Ưu tiên sáng sớm</b> — Toán, Tiếng Việt: máy đẩy về tiết 1–3 buổi sáng.
     <b>Tránh đầu cuối buổi</b> — GDTC, Mỹ thuật, Âm nhạc: không xếp tiết cuối sáng hay tiết 1 chiều.
-    <b>Phòng cần</b> — ghi tên loại phòng (ví dụ <i>Tin học</i>) thì máy cảnh báo khi điểm trường chưa có phòng ấy.</div>`;
+    <b>Phòng cần</b> — ghi tên loại phòng (ví dụ <i>Tin học</i>) thì máy cảnh báo khi phân hiệu chưa có phòng ấy.</div>`;
 }
 
 /* ---------- 3.8d Phòng học chức năng ---------- */
 function mPhongHoc(){
   const sua=duocSuaNguon();
   const ds=(S.phong||[]).filter(p=>!S.phamVi||p.dtId===S.phamVi);
-  /* Môn nào đang cần phòng, và mỗi điểm trường đang thiếu phòng gì */
+  /* Môn nào đang cần phòng, và mỗi phân hiệu đang thiếu phòng gì */
   const canPhong=[...new Set(dsMonDung().map(monCanPhong).filter(Boolean))];
   return dauTrang('Phòng học chức năng',
     sua?'Chỉ khai các phòng dùng chung: phòng máy, phòng nghệ thuật, nhà đa năng. Lớp học thường không cần khai.'
@@ -10990,15 +11065,15 @@ function mPhongHoc(){
   dieuHuongBuoc('phonghoc')+
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btThemPhong">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Thêm phòng</button>
-    ${!(S.phong||[]).length?'<button class="b b-vien" id="btPhongTuDT">Tạo từ điểm trường có phòng Tin</button>':''}`)
+    ${!(S.phong||[]).length?'<button class="b b-vien" id="btPhongTuDT">Tạo từ phân hiệu có phòng Tin</button>':''}`)
    :nhanChiXem('khai báo phòng chức năng')+'<div style="margin-bottom:14px"></div>')+`
   ${!(S.phong||[]).length?`<div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
-      <b>Chưa khai phòng nào — máy đang dùng ô tích “Có phòng Tin học” ở mục Điểm trường</b>
-      <div class="cb-g">Khai bảng phòng thì cảnh báo chính xác hơn: biết được điểm trường nào thiếu
+      <b>Chưa khai phòng nào — máy đang dùng ô tích “Có phòng Tin học” ở mục Phân hiệu</b>
+      <div class="cb-g">Khai bảng phòng thì cảnh báo chính xác hơn: biết được phân hiệu nào thiếu
         phòng gì, chứ không chỉ riêng phòng Tin.</div></div></div>`:''}
-  ${oLoc('bPhong',ds.length,'phòng','Tìm tên phòng, điểm trường hay môn…')}
+  ${oLoc('bPhong',ds.length,'phòng','Tìm tên phòng, phân hiệu hay môn…')}
   <div class="bang"><table class="dl" id="bPhong"><thead><tr>
-    <th>Tên phòng</th><th>Điểm trường</th><th>Dùng cho môn</th><th class="phai">Tiết/tuần cần</th>${sua?'<th></th>':''}
+    <th>Tên phòng</th><th>Phân hiệu</th><th>Dùng cho môn</th><th class="phai">Tiết/tuần cần</th>${sua?'<th></th>':''}
   </tr></thead><tbody>
   ${ds.length?ds.map(p=>{
     const i=S.phong.indexOf(p);
@@ -11019,21 +11094,21 @@ function mPhongHoc(){
   ${locRong('bPhong')}
   <datalist id="dsCanPhong">${canPhong.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
   <div class="gy" style="margin-top:11px">Máy đối chiếu cột <b>Dùng cho môn</b> với ô <b>Phòng cần</b>
-    trong mục Môn học. Điểm trường có tiết Tin học mà không có phòng Tin học thì quy tắc
+    trong mục Môn học. Phân hiệu có tiết Tin học mà không có phòng Tin học thì quy tắc
     <b>R10</b> báo ngay ở mục Kiểm tra khả thi.</div>`;
 }
 
-/* ---------- 3.8e Điểm trường ---------- */
+/* ---------- 3.8e Phân hiệu ---------- */
 function mDiemTruong(){
   const sua=duocSuaNguon();
-  return dauTrang('Điểm trường',
+  return dauTrang('Phân hiệu',
     sua?'Nhà trường có mấy nơi dạy học, và lớp nào học ở đâu.'
-       :'Điểm trường thầy cô phụ trách.',false)+
+       :'Phân hiệu thầy cô phụ trách.',false)+
   dieuHuongBuoc('diemtruong')+
-  (sua?thanhKhaiBao(`<button class="b b-ch" id="btThemDT">Thêm điểm trường</button>
+  (sua?thanhKhaiBao(`<button class="b b-ch" id="btThemDT">Thêm phân hiệu</button>
     <button class="b b-vien" id="btGanLop">Phân bổ lớp</button>
     <button class="b b-vien" id="btTaoThu">Tạo dữ liệu thử</button>`)
-   :nhanChiXem('thêm điểm trường và phân bổ lớp')+'<div style="margin-bottom:14px"></div>')+`
+   :nhanChiXem('thêm phân hiệu và phân bổ lớp')+'<div style="margin-bottom:14px"></div>')+`
   <div class="dt-luoi">${dtTrongPV().map(d=>{
     const lp=S.lop.filter(l=>S.lopDT[l.id]===d.id);
     const gv=new Set(S.phanCong.filter(p=>S.lopDT[p.lopId]===d.id).map(p=>p.gvId));
@@ -11066,11 +11141,14 @@ function mGiaoVien(){
        trả kết quả bấm được, nhảy thẳng tới lịch dạy của người ấy. */''}
   ${oLoc('bGV',ds.length,'giáo viên','Tìm giáo viên trong bảng…')}
   <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr>
+    ${''/* Mười cột là trần của bảng này. Thêm cụm Sửa/Xoá ngày 28/8 làm nó
+          tràn khỏi màn hình, nên hai cột bị GỘP vào chỗ chúng thuộc về:
+          phân hiệu xuống dưới cột Dạy (nó chính là nơi các lớp ấy nằm), và
+          buổi cần xuống dưới Tình trạng. Không mất thông tin nào. */}
     <th class="phai" style="width:38px">TT</th><th>Họ và tên</th>
-    <th>Gmail</th><th>Chủ nhiệm</th><th>Dạy</th><th>Điểm trường</th>
-    <th class="phai">Tiết / định mức</th>
-    <th class="phai">Buổi cần</th><th>Tình trạng</th><th>Ghi chú</th>
-    ${duocSuaNguon()?'<th></th>':''}</tr></thead><tbody>
+    <th>Gmail</th><th>Chủ nhiệm</th><th>Dạy</th>
+    <th class="phai">Tiết / ĐM</th><th>Tình trạng</th><th>Ghi chú</th>
+    ${duocSuaNguon()?'<th class="phai">Sửa</th>':''}</tr></thead><tbody>
   ${ds.map((x,i)=>{
     const sua=duocSuaNguon();
     const tinh=x.thieu?'Thiếu buổi':x.tong>x.g.dinhMuc?'Vượt định mức':'Bình thường';
@@ -11095,18 +11173,24 @@ function mGiaoVien(){
         day.map(d=>d.mon).join(' '),
         Object.keys(x.tDT).map(d=>dtId(d)?.ten).join(' '),tinh)}">
       <td class="phai" style="color:var(--chu-mo);font-size:12px">${i+1}</td>
-      <td>${sua?`<input class="ip" data-gvten="${x.g.id}" value="${esc(x.g.hoTen)}" style="width:158px">`
+      <td>${sua?`<input class="ip" data-gvten="${x.g.id}" value="${esc(x.g.hoTen)}" style="width:148px">`
                :`<b>${esc(x.g.hoTen)}</b>`}
         <div style="color:var(--chu-mo);font-size:11px">${esc(x.g.maGV||'')}</div></td>
       <td>${sua?`<input class="ip" type="email" data-gvmail="${x.g.id}" value="${esc(x.g.email||'')}"
-             placeholder="chưa khai" style="width:168px" spellcheck="false">`
+             placeholder="chưa khai" style="width:138px" spellcheck="false">`
                :esc(x.g.email||'—')}
         ${x.g.nguoiDungId?'<span class="tag ok" style="margin-left:4px">đã vào</span>':''}</td>
       <td>${esc(tenCN(x.g)||'—')}</td>
       <td class="gv-day-o">${sua&&day.length
           ? `<button class="gv-day-nut" data-gvpc="${x.g.id}" title="Mở bảng phân công của ${esc(x.g.hoTen)}">${dayHTML}</button>`
-          : dayHTML}</td>
-      <td>${Object.keys(x.tDT).map(d=>`<span class="tag dt d${iDT(d)}">${esc(tenDT(d))}</span>`).join(' ')}</td>
+          : dayHTML}
+        ${''/* Phân hiệu suy từ chính những lớp ở trên, nên nó thuộc về ô này.
+              Người chưa có tiết nào thì lấy phân hiệu đã khai trong hồ sơ. */}
+        <div class="gv-ph">${
+          Object.keys(x.tDT).length
+            ? Object.keys(x.tDT).map(d=>`<span class="tag dt d${iDT(d)}">${esc(tenDT(d))}</span>`).join(' ')
+            : (x.g.dtChinh?`<span class="tag dt d${iDT(x.g.dtChinh)}">${esc(tenDT(x.g.dtChinh))}</span>`:'')
+        }</div></td>
       ${''/* Số tiết được phân công và định mức riêng của người ấy đi CẶP với
              nhau — đọc "24/23" là thấy ngay vượt, mà hai cột rời thì mắt phải
              tự ghép. Cùng khuôn cột "Buổi cần" bên cạnh. */}
@@ -11114,10 +11198,15 @@ function mGiaoVien(){
         <b style="${x.tong>x.g.dinhMuc?'color:var(--do)':''}">${x.tong}</b> /
         ${sua?`<input class="ip" type="number" min="1" max="40" data-gvdm="${x.g.id}"
           value="${x.g.dinhMuc||DINH_MUC}" style="width:56px;text-align:right">`:(x.g.dinhMuc||DINH_MUC)}</td>
-      <td class="phai">${x.buoiCan}/${x.buoiCo}</td><td>${tag}</td>
+      <td>${tag}<div class="gv-buoi">${x.buoiCan}/${x.buoiCo} buổi</div></td>
       <td>${sua?`<input class="ip" data-gvghi="${x.g.id}" value="${esc(x.g.ghiChu||'')}"
-             placeholder="—" style="width:124px">`:esc(x.g.ghiChu||'—')}</td>
-      ${sua?`<td class="phai"><button class="x-hang" data-xoagv="${x.g.id}" title="Xoá giáo viên">&times;</button></td>`:''}
+             placeholder="—" style="width:92px">`:esc(x.g.ghiChu||'—')}</td>
+      ${sua?`<td><div class="hang-nut">
+        <button data-suagv="${x.g.id}" title="Sửa hồ sơ ${esc(x.g.hoTen)}">
+          <svg viewBox="0 0 24 24"><path d="M4 20h4L20 8l-4-4L4 16v4z"/></svg>Sửa</button>
+        <button class="n-xoa" data-xoagv="${x.g.id}" title="Xoá ${esc(x.g.hoTen)}">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Xoá</button>
+      </div></td>`:''}
     </tr>`;}).join('')}
   </tbody></table></div>
   ${locRong('bGV')}
@@ -11170,7 +11259,7 @@ function bangPC(){
     rong.classList.toggle('hien', !ds.length && S.phanCong.length>0);
     rong.textContent='Không có dòng phân công nào khớp bộ lọc đang đặt.';
   }
-  $('#bPC').innerHTML=`<thead><tr><th>Giáo viên</th><th>Lớp</th><th>Điểm trường</th><th>Môn</th>
+  $('#bPC').innerHTML=`<thead><tr><th>Giáo viên</th><th>Lớp</th><th>Phân hiệu</th><th>Môn</th>
     <th class="phai">Tiết/tuần</th><th class="phai">Chuẩn</th>${sua?'<th></th>':''}</tr></thead><tbody>
   ${ds.map(({p,i})=>{
     const ch=chuanMon(p.mon, lopId(p.lopId)?.khoi);
@@ -11281,7 +11370,7 @@ function mBuoiBan(){
   ${ds.some(nhieu)?`<div class="canhbao" style="margin-top:14px"><div class="cb-ic">~</div><div class="cb-t">
     <b>${ds.filter(nhieu).length} thầy cô bận từ nửa số buổi trở lên</b>
     <div class="cb-g">${esc(ds.filter(nhieu).map(g=>`${g.hoTen} (${soBan(g)}/${bb.length})`).join(' · '))}.
-      Mục <b>Kiểm tra khả thi</b> sẽ nói rõ ai không còn đủ buổi để có mặt ở các điểm trường.</div></div></div>`:''}
+      Mục <b>Kiểm tra khả thi</b> sẽ nói rõ ai không còn đủ buổi để có mặt ở các phân hiệu.</div></div></div>`:''}
   <div class="gy" style="margin-top:12px">Đây là ràng buộc <b>cứng</b>: máy không bao giờ xếp tiết vào buổi đã đánh dấu,
     kể cả khi vì thế mà thiếu chỗ. Đánh dấu càng nhiều thì càng khó xếp — nên chỉ ghi những buổi thật sự không lên lớp được.</div>`;
 }
@@ -11621,7 +11710,7 @@ function noiSuKien(){
     S.lop.forEach(l=>{if(S.lopDT[l.id]===x.dataset.xoadt)S.lopDT[l.id]=con.id;});
     S.diemTruong=S.diemTruong.filter(d=>d.id!==x.dataset.xoadt);
     if(S.phamVi===x.dataset.xoadt)S.phamVi='';
-    bao('Đã xoá điểm trường'); ve();});
+    bao('Đã xoá phân hiệu'); ve();});
   if($('#bPC')){
     /* Sang đây từ cột "Dạy" của bảng Giáo viên thì lọc sẵn đúng người ấy.
        Dùng MỘT LẦN rồi xoá: để lại thì lần sau mở màn Phân công vẫn bị lọc,
@@ -11685,13 +11774,13 @@ function noiSuKien(){
       !doi.length
       ? `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
           <b>Cả ${S.lop.length} lớp đều đã đúng dạng</b>
-          <div class="cb-g">Mã lớp hiện là <b>tên lớp _ viết tắt điểm trường</b>, ví dụ
+          <div class="cb-g">Mã lớp hiện là <b>tên lớp _ viết tắt phân hiệu</b>, ví dụ
             <b>1A_DL</b>. Không có gì cần đổi.</div></div></div>`
       : `<p style="font-size:13px;margin-bottom:12px">Đưa <b>${doi.length} lớp</b> về dạng chuẩn
-          <b>tên lớp _ viết tắt điểm trường</b> — đọc là biết ngay lớp nào ở đâu, và gõ vào Excel
-          không nhầm giữa các điểm trường trùng tên lớp.</p>
+          <b>tên lớp _ viết tắt phân hiệu</b> — đọc là biết ngay lớp nào ở đâu, và gõ vào Excel
+          không nhầm giữa các phân hiệu trùng tên lớp.</p>
          <div class="bang" style="max-height:34vh"><table class="dl"><thead><tr>
-           <th>Lớp</th><th>Điểm trường</th><th>Mã hiện tại</th><th>Mã mới</th></tr></thead><tbody>
+           <th>Lớp</th><th>Phân hiệu</th><th>Mã hiện tại</th><th>Mã mới</th></tr></thead><tbody>
          ${doi.slice(0,12).map(l=>`<tr><td><b>${esc(l.ten)}</b></td>
            <td style="font-size:11.5px;color:var(--chu-mo)">${esc(dtId(S.lopDT[l.id])?.ten||'')}</td>
            <td style="font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--chu-mo)">${esc(String(l.maLop||l.id).slice(0,18))}${String(l.maLop||l.id).length>18?'…':''}</td>
@@ -11766,8 +11855,8 @@ function noiSuKien(){
   $('#btPhongTuDT')&&($('#btPhongTuDT').onclick=()=>{
     S.phong=S.diemTruong.filter(d=>d.phongTin).map((d,i)=>({
       id:'ph'+(i+1), ten:'Phòng Tin học · '+tenDiemNgan(d.ten), dtId:d.id, mon:'Tin học'}));
-    if(!S.phong.length) return bao('Chưa điểm trường nào được đánh dấu có phòng Tin học',true);
-    bao(`Đã tạo ${S.phong.length} phòng Tin học từ các điểm trường`); ve(); });
+    if(!S.phong.length) return bao('Chưa phân hiệu nào được đánh dấu có phòng Tin học',true);
+    bao(`Đã tạo ${S.phong.length} phòng Tin học từ các phân hiệu`); ve(); });
   $$('[data-phongten]').forEach(x=>x.onchange=e=>{
     const p=S.phong[+x.dataset.phongten]; if(p){ p.ten=e.target.value.trim()||p.ten; ve(); } });
   $$('[data-phongdt]').forEach(x=>x.onchange=e=>{
@@ -11805,6 +11894,7 @@ function noiSuKien(){
   /* Cột Dạy chỉ đọc — bấm vào là sang màn Phân công đã lọc sẵn người ấy */
   $$('[data-gvpc]').forEach(x=>x.onclick=()=>{
     S.pcGV=x.dataset.gvpc; chuyen('phancong'); });
+  $$('[data-suagv]').forEach(x=>x.onclick=()=>hopSuaGV(x.dataset.suagv));
   $$('[data-xoagv]').forEach(x=>x.onclick=()=>hopXoaGV(x.dataset.xoagv));
 
   /* Phân công */
@@ -11821,9 +11911,9 @@ function noiSuKien(){
   $('#btInRong')&&($('#btInRong').onclick=()=>{
     const v=$('#inChonRong').value;
     if(v==='tt') return inRa(trangInToanTruong(),'toàn trường');
-    if(v==='dt') return inRa(trangInDiemTruong(),'từng điểm trường');
+    if(v==='dt') return inRa(trangInDiemTruong(),'từng phân hiệu');
     if(v.startsWith('dt:')) return inRa(trangInDiemTruong(v.slice(3)),
-      'điểm trường '+(dtId(v.slice(3))?.ten||''));
+      'phân hiệu '+(dtId(v.slice(3))?.ten||''));
     inRa(trangInKhoi(v?+v:null), v?'khối '+v:'các khối');
   });
   /* Tải Word — cùng nội dung với bản in, chỉ khác chỗ nhận: tệp .doc mở bằng
@@ -11949,14 +12039,14 @@ function hopXungDotLuu(kq){
 /* Ghi chú kèm mỗi phiên bản — đọc lịch sử là biết bản đó xếp được tới đâu */
 function ghiChuLuu(){
   const can=S.phanCong.reduce((s,p)=>s+p.soTiet,0);
-  return `${soTietDaXep()}/${can} tiết · ${S.lop.length} lớp · ${S.diemTruong.length} điểm trường`;
+  return `${soTietDaXep()}/${can} tiết · ${S.lop.length} lớp · ${S.diemTruong.length} phân hiệu`;
 }
 
 /* ==================================================================
    4b. CHỈNH TAY: CHẠM CHỌN — CHẠM ĐẶT, GHIM, HOÀN TÁC
    ------------------------------------------------------------------
    Kéo thả HTML5 không chạy trên điện thoại, mà phó hiệu trưởng phụ trách
-   điểm trường thì gần như chỉ dùng điện thoại. Nên lối chính là chạm:
+   phân hiệu thì gần như chỉ dùng điện thoại. Nên lối chính là chạm:
    chạm tiết nguồn → mọi ô đặt được sáng xanh → chạm ô đích. Kéo thả vẫn
    giữ cho người quen dùng chuột.
    ================================================================== */
@@ -12058,7 +12148,7 @@ function kiemTraChuyen(tu,den){
       if(la && dangChiemPhong(dt,la,den,S.lopXem) >= soPhong(dt,la))
         return soPhong(dt,la)
           ? `Phòng ${la} đã kín tiết này — lớp khác đang dùng`
-          : `${dtId(dt)?.ten||'Điểm trường này'} chưa có phòng ${la}`;
+          : `${dtId(dt)?.ten||'Phân hiệu này'} chưa có phòng ${la}`;
       if(lb && dangChiemPhong(dt,lb,tu,S.lopXem) >= soPhong(dt,lb))
         return `Phòng ${lb} đã kín tiết bên kia — không đổi chỗ được`;
     }
@@ -12161,53 +12251,53 @@ document.addEventListener('keydown',e=>{
   }
 });
 
-function hopThemDT(){ hop('Thêm điểm trường',
-  `<div class="on-l"><label>Tên điểm trường</label>
-    <input class="ip" id="dtTen" placeholder="Ví dụ: Điểm trường Diễn Thái">
+function hopThemDT(){ hop('Thêm phân hiệu',
+  `<div class="on-l"><label>Tên phân hiệu</label>
+    <input class="ip" id="dtTen" placeholder="Ví dụ: Phân hiệu Diễn Thái">
     <div class="gy">Đặt theo địa danh để giáo viên dễ nhận ra.</div></div>
    <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px">
-     <input type="checkbox" id="dtTin" checked> Điểm trường này có phòng Tin học</label>`,
+     <input type="checkbox" id="dtTin" checked> Phân hiệu này có phòng Tin học</label>`,
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Thêm',lam:()=>{
-    const t=$('#dtTen').value.trim(); if(!t) return bao('Nhập tên điểm trường',true);
+    const t=$('#dtTen').value.trim(); if(!t) return bao('Nhập tên phân hiệu',true);
     S.diemTruong.push({id:'dt'+Date.now(),ten:t,phongTin:$('#dtTin').checked});
     dong(); bao('Đã thêm '+t); ve();}}]);
 }
-function hopGanLop(){ hop('Phân bổ lớp về điểm trường',
-  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Việc này quyết định giáo viên nào phải di chuyển giữa các điểm trường.</p>
-   <div class="bang" style="max-height:52vh"><table class="dl"><thead><tr><th>Lớp</th><th>Điểm trường</th></tr></thead><tbody>
+function hopGanLop(){ hop('Phân bổ lớp về phân hiệu',
+  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Việc này quyết định giáo viên nào phải di chuyển giữa các phân hiệu.</p>
+   <div class="bang" style="max-height:52vh"><table class="dl"><thead><tr><th>Lớp</th><th>Phân hiệu</th></tr></thead><tbody>
    ${S.lop.map(l=>`<tr><td><b>${l.ten}</b></td><td><select class="ip" data-gan="${l.id}" style="width:100%">
      ${S.diemTruong.map(d=>`<option value="${d.id}" ${S.lopDT[l.id]===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}
    </select></td></tr>`).join('')}</tbody></table></div>`,
   [{ten:'Xong',lam:()=>{$$('[data-gan]').forEach(s=>S.lopDT[s.dataset.gan]=s.value);
     dong(); bao('Đã cập nhật phân bổ lớp'); ve();}}]);
 }
-/* Tạo dữ liệu thử cho một điểm trường.
-   Thay cho nút "Mô phỏng sáp nhập 3 điểm trường" cũ — nút ấy viết cứng tên
+/* Tạo dữ liệu thử cho một phân hiệu.
+   Thay cho nút "Mô phỏng sáp nhập 3 phân hiệu" cũ — nút ấy viết cứng tên
    ba trường cụ thể nên chỉ đúng cho đúng một nhà trường. Phần mềm này dùng
    cho nhiều trường, có trường sáp nhập có trường không, nên hộp thoại phải
    hỏi tên và số lớp chứ không đoán sẵn. */
-function hopTaoThu(){ hop('Tạo dữ liệu thử cho một điểm trường',
+function hopTaoThu(){ hop('Tạo dữ liệu thử cho một phân hiệu',
   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Dựng đủ lớp, chủ nhiệm, giáo viên bộ
      môn và bảng phân công khớp số tiết chuẩn CT GDPT 2018 — để xếp thử ngay khi danh sách cán bộ
      giáo viên thật chưa chốt.</p>
-   <div class="on-l"><label>Tên điểm trường</label>
-     <input class="ip" id="ttTenDiem" placeholder="Ví dụ: Điểm trường Diễn Đồng" style="width:100%"></div>
+   <div class="on-l"><label>Tên phân hiệu</label>
+     <input class="ip" id="ttTenDiem" placeholder="Ví dụ: Phân hiệu Diễn Đồng" style="width:100%"></div>
    <div class="on-l"><label>Tiền tố mã lớp</label>
      <input class="ip" id="ttTien" placeholder="Ví dụ: DD" style="width:100%">
-     <div class="gy">Mã lớp sẽ là <b id="ttVD">1A</b>. Nhờ tiền tố mà hai điểm trường cùng có lớp
+     <div class="gy">Mã lớp sẽ là <b id="ttVD">1A</b>. Nhờ tiền tố mà hai phân hiệu cùng có lớp
        tên "1A" vẫn phân biệt được.</div></div>
    <div class="on-l"><label>Số lớp</label>
      <input class="ip" id="ttSoLop" type="number" min="1" max="60" value="17" style="width:100%">
      <div class="gy" id="ttChia"></div></div>
    <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px">
-     <input type="checkbox" id="ttTin"> Điểm trường này có phòng Tin học</label>
+     <input type="checkbox" id="ttTin"> Phân hiệu này có phòng Tin học</label>
    <div class="canhbao" style="margin-top:12px"><div class="cb-ic">!</div><div class="cb-t">
      <b>Đây là dữ liệu thử, không phải người thật</b>
      <div class="cb-g">Họ tên giáo viên do máy sinh ra để chạy thử. Có số liệu thật thì xoá đi
        rồi nhập lại bằng nút <b>Nhập từ Excel</b>.</div></div></div>`,
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Tạo',lam:()=>{
     const ten=$('#ttTenDiem').value.trim();
-    if(!ten) return bao('Nhập tên điểm trường',true);
+    if(!ten) return bao('Nhập tên phân hiệu',true);
     const n=Math.max(1,Math.min(60,+$('#ttSoLop').value||0));
     const kq=taoDuLieuThu(ten, $('#ttTien').value.trim(), n, $('#ttTin').checked);
     S.phamVi=''; dong();
@@ -12254,13 +12344,13 @@ function hopSinhLop(){
   const dsDT=S.diemTruong;
   hop('Tạo lớp hàng loạt',
   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Khai mỗi khối có mấy lớp, máy tự sinh
-     <b>1A, 1B, 1C…</b> và tự đặt mã lớp theo điểm trường.</p>
-   <div class="on-l"><label>Điểm trường</label>
+     <b>1A, 1B, 1C…</b> và tự đặt mã lớp theo phân hiệu.</p>
+   <div class="on-l"><label>Phân hiệu</label>
      <select class="ip" id="slDT" style="width:100%">
        ${dsDT.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Tiền tố mã lớp</label>
      <input class="ip" id="slTien" value="${esc(goiYTienTo(dsDT[0]?.ten||''))}" style="width:100%">
-     <div class="gy">Mã lớp sẽ là <b id="slVD">DL-1A</b>. Ba điểm trường cùng có lớp tên "1A" thì
+     <div class="gy">Mã lớp sẽ là <b id="slVD">DL-1A</b>. Ba phân hiệu cùng có lớp tên "1A" thì
        mã khác nhau nên máy vẫn phân biệt được. Để trống nếu trường chỉ có một điểm.</div></div>
    <div class="on-l"><label>Số lớp mỗi khối</label>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
@@ -12276,7 +12366,7 @@ function hopSinhLop(){
     [1,2,3,4,5].forEach(k=>{
       const n=+$(`[data-sl="${k}"]`).value||0;
       sinhLop(k, n, tien, dt).forEach(l=>{
-        /* Trùng tên trong CÙNG điểm trường là nhầm lẫn thật, bỏ qua dòng đó */
+        /* Trùng tên trong CÙNG phân hiệu là nhầm lẫn thật, bỏ qua dòng đó */
         if(S.lop.some(x=>x.ten===l.ten && S.lopDT[x.id]===dt)) return;
         const ma=maChuaDung(l.maLop, daCo); daCo.add(ma);
         const id='lop_'+ma.replace(/[^A-Za-z0-9]+/g,'_');
@@ -12297,10 +12387,10 @@ function hopSinhLop(){
   $('#slDT').onchange=e=>{ $('#slTien').value=goiYTienTo(dtId(e.target.value)?.ten||''); veVD(); };
   veVD();
 }
-/* Gợi ý tiền tố từ tên điểm trường: "Điểm trường Diễn Liên" → "DL" */
+/* Gợi ý tiền tố từ tên phân hiệu: "Phân hiệu Diễn Liên" → "DL" */
 function goiYTienTo(ten){
   if(S.diemTruong.length<2) return '';
-  const chu=khongDau(String(ten).replace('Điểm trường','')).split('-').filter(Boolean);
+  const chu=khongDau(String(ten).replace('Phân hiệu','')).split('-').filter(Boolean);
   return chu.slice(-2).map(x=>x[0]).join('').toUpperCase();
 }
 
@@ -12311,7 +12401,7 @@ function hopThemLop(){
    <div class="on-l"><label>Khối</label>
      <select class="ip" id="tlKhoi" style="width:100%">
        ${[1,2,3,4,5].map(k=>`<option value="${k}">Khối ${k}</option>`).join('')}</select></div>
-   <div class="on-l"><label>Điểm trường</label>
+   <div class="on-l"><label>Phân hiệu</label>
      <select class="ip" id="tlDT" style="width:100%">
        ${S.diemTruong.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Mã lớp</label>
@@ -12321,7 +12411,7 @@ function hopThemLop(){
     const ten=$('#tlTen').value.trim(); if(!ten) return bao('Nhập tên lớp',true);
     const dt=$('#tlDT').value, khoi=+$('#tlKhoi').value;
     if(S.lop.some(x=>x.ten===ten && S.lopDT[x.id]===dt))
-      return bao('Điểm trường này đã có lớp tên "'+ten+'"',true);
+      return bao('Phân hiệu này đã có lớp tên "'+ten+'"',true);
     const daCo=new Set(S.lop.map(l=>l.maLop||l.id));
     const tien=goiYTienTo(dtId(dt)?.ten||'');
     const ma=maChuaDung($('#tlMa').value.trim() || (tien?tien+'-':'')+ten, daCo);
@@ -12352,27 +12442,91 @@ function hopXoaLop(id){
   }}]);
 }
 
-function hopThemGV(){
-  hop('Thêm giáo viên',
-  `<div class="on-l"><label>Họ và tên</label>
-     <input class="ip" id="tgTen" placeholder="Ví dụ: Lê Thị Nguyệt" style="width:100%">
+/* ---------- Khai một giáo viên: THÊM và SỬA dùng chung một hộp ----------
+   Chủ dự án: *"chỗ này em thêm các ô (trường) nhập gmail; điện thoại; điểm
+   trường"*. Hộp cũ chỉ hỏi ba thứ nên khai xong vẫn phải mở bảng sửa tiếp.
+
+   Một hộp cho cả hai việc, KHÔNG viết hai bản: thêm rồi sửa mà hai nơi hỏi
+   khác nhau thì sớm muộn một bên thiếu ô — đúng chuyện vừa xảy ra ở đây. */
+function oKhaiGV(g){
+  const dsLop=S.lop.filter(l=>!cnCuaLop(l.id) || (g && cnCuaLop(l.id)?.id===g.id));
+  return `
+   <div class="on-l"><label>Họ và tên</label>
+     <input class="ip" id="tgTen" placeholder="Ví dụ: Lê Thị Nguyệt" style="width:100%"
+       value="${esc(g?.hoTen||'')}">
      <div class="gy">Ghi đủ họ tên. Trường có nhiều cặp trùng tên gọi — "Cô Dung" thì không biết là ai.</div></div>
+   <div class="on-l"><label>Gmail</label>
+     <input class="ip" id="tgMail" type="email" spellcheck="false" style="width:100%"
+       placeholder="vidu@gmail.com" value="${esc(g?.email||'')}">
+     <div class="gy">Khai rồi thì thầy cô bấm <b>Đăng nhập bằng Google</b> là vào thẳng, không cần mã mời.
+       Bỏ trống cũng được, phát mã mời sau.</div></div>
+   <div class="on-l"><label>Điện thoại</label>
+     <input class="ip" id="tgDT" type="tel" inputmode="tel" style="width:100%"
+       placeholder="09xx xxx xxx" value="${esc(g?.dienThoai||'')}">
+     <div class="gy">Để gọi khi cần bố trí dạy thay gấp. Không bắt buộc.</div></div>
+   <div class="on-l"><label>Phân hiệu</label>
+     <select class="ip" id="tgPH" style="width:100%"><option value="">— chưa xác định —</option>
+       ${S.diemTruong.map(d=>`<option value="${d.id}" ${g?.dtChinh===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}
+     </select>
+     <div class="gy">Nơi thầy cô dạy chính. Chỉ là nhãn để lọc danh sách — máy vẫn tự biết
+       thầy cô có mặt ở đâu qua bảng phân công.</div></div>
    <div class="on-l"><label>Định mức tiết mỗi tuần</label>
-     <input class="ip" id="tgDM" type="number" min="1" max="40" value="${DINH_MUC}" style="width:100%">
+     <input class="ip" id="tgDM" type="number" min="1" max="40" style="width:100%"
+       value="${g?.dinhMuc||DINH_MUC}">
      <div class="gy">Giáo viên tiểu học theo quy định là ${DINH_MUC} tiết. Kiêm nhiệm thì ghi thấp hơn.</div></div>
    <div class="on-l"><label>Chủ nhiệm lớp</label>
      <select class="ip" id="tgCN" style="width:100%"><option value="">— không chủ nhiệm —</option>
-       ${S.lop.filter(l=>!cnCuaLop(l.id)).map(l=>`<option value="${l.id}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}
-     </select><div class="gy">Chỉ liệt kê các lớp chưa có chủ nhiệm.</div></div>`,
+       ${dsLop.map(l=>`<option value="${l.id}" ${g?.cn===l.id?'selected':''}>Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}
+     </select><div class="gy">Chỉ liệt kê các lớp chưa có chủ nhiệm${g?', và lớp của chính thầy cô này':''}.</div></div>
+   <div class="on-l"><label>Ghi chú</label>
+     <input class="ip" id="tgGhi" style="width:100%" placeholder="Ví dụ: nghỉ thai sản từ 10/2026"
+       value="${esc(g?.ghiChu||'')}"></div>`;
+}
+
+/* Đọc và SOÁT các ô, dùng chung cho cả thêm lẫn sửa. Trả `null` khi có lỗi —
+   hai phép soát Gmail giống hệt đường nhập Excel và ô gõ tay trong bảng;
+   một lối vào lỏng hơn hai lối kia là hàng rào coi như không có. */
+function docKhaiGV(boQuaId){
+  const ten=$('#tgTen').value.trim();
+  if(!ten){ bao('Nhập họ và tên',true); return null; }
+  const mail=$('#tgMail').value.trim().toLowerCase();
+  if(mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){
+    bao(`"${mail}" không phải một địa chỉ thư hợp lệ`,true); return null; }
+  const trung=mail && S.giaoVien.find(y=>y.id!==boQuaId && (y.email||'').toLowerCase()===mail);
+  if(trung){ bao(`Địa chỉ này đã khai cho ${trung.hoTen} — mỗi Gmail chỉ được một người`,true); return null; }
+  return {hoTen:ten, email:mail,
+          dienThoai:$('#tgDT').value.trim(),
+          dtChinh:$('#tgPH').value||'',
+          dinhMuc:Math.max(1,Math.min(40,+$('#tgDM').value||DINH_MUC)),
+          ghiChu:$('#tgGhi').value.trim(),
+          lopCN:$('#tgCN').value};
+}
+
+function hopThemGV(){
+  hop('Thêm giáo viên', oKhaiGV(null),
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Thêm',lam:()=>{
-    const ten=$('#tgTen').value.trim(); if(!ten) return bao('Nhập họ và tên',true);
+    const v=docKhaiGV(null); if(!v) return;
     const daCo=new Set(S.giaoVien.map(g=>g.maGV||g.id));
-    const ma=maChuaDung('gv_'+khongDau(ten).toLowerCase().replace(/-/g,'_'), daCo);
-    const g={id:ma, maGV:ma, hoTen:ten, tenNgan:'', cn:'',
-             dinhMuc:Math.max(1,Math.min(40,+$('#tgDM').value||DINH_MUC))};
+    const ma=maChuaDung('gv_'+khongDau(v.hoTen).toLowerCase().replace(/-/g,'_'), daCo);
+    const g={id:ma, maGV:ma, hoTen:v.hoTen, tenNgan:'', cn:'', dinhMuc:v.dinhMuc,
+             email:v.email, dienThoai:v.dienThoai, dtChinh:v.dtChinh, ghiChu:v.ghiChu};
     S.giaoVien.push(g);
-    const lp=$('#tgCN').value; if(lp) datCN(lp, g.id);
-    dong(); bao(`Đã thêm ${ten}. Bước tiếp theo: khai phân công giảng dạy cho thầy cô.`); ve();
+    if(v.lopCN) datCN(v.lopCN, g.id);
+    dong(); bao(`Đã thêm ${v.hoTen}. Bước tiếp theo: khai phân công giảng dạy cho thầy cô.`); ve();
+  }}]);
+}
+
+function hopSuaGV(id){
+  const g=gvId(id); if(!g) return;
+  hop('Sửa hồ sơ giáo viên', oKhaiGV(g),
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Lưu',lam:()=>{
+    const v=docKhaiGV(id); if(!v) return;
+    Object.assign(g, {hoTen:v.hoTen, email:v.email, dienThoai:v.dienThoai,
+                      dtChinh:v.dtChinh, dinhMuc:v.dinhMuc, ghiChu:v.ghiChu});
+    /* Chủ nhiệm gỡ ràng buộc ở CẢ HAI đầu — datCN() lo việc ấy; bỏ chọn thì
+       chỉ gỡ của chính người này, không đụng lớp của ai khác. */
+    if(v.lopCN) datCN(v.lopCN, g.id); else g.cn='';
+    dong(); bao(`Đã lưu hồ sơ ${v.hoTen}`); ve();
   }}]);
 }
 
@@ -12429,7 +12583,7 @@ function hopThemPhong(){
   hop('Thêm phòng chức năng',
   `<div class="on-l"><label>Tên phòng</label>
      <input class="ip" id="tpTen" placeholder="Ví dụ: Phòng Tin học số 1" style="width:100%"></div>
-   <div class="on-l"><label>Đặt tại điểm trường</label>
+   <div class="on-l"><label>Đặt tại phân hiệu</label>
      <select class="ip" id="tpDT" style="width:100%">
        ${S.diemTruong.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Dùng cho môn</label>
@@ -12447,42 +12601,85 @@ function hopThemPhong(){
 }
 
 /* Thêm một dòng phân công. `gv` truyền sẵn thì khoá luôn người dạy. */
+/* ---------- Thêm phân công: MỘT lớp, NHIỀU môn (28/8/2026) ----------
+   Chủ dự án: *"phân công chuyên môn chỉ có 1 lựa chọn dạy môn Tiếng việt
+   hoặc môn học khác (phải có đủ môn để tích vào)"*.
+
+   Ô xổ xuống cũ chọn được đúng một môn, mà giáo viên chủ nhiệm tiểu học dạy
+   năm sáu môn của chính lớp mình — khai một lớp là mở hộp năm lần, 25 lớp là
+   125 lần. Nay tích bao nhiêu môn cũng được, mỗi môn thành một dòng phân
+   công, số tiết lấy sẵn chuẩn CT GDPT 2018 theo khối của lớp ấy.
+
+   Hộp này và `hopPCTheoGV()` bù nhau, cố ý không gộp:
+     · đây          — một giáo viên · MỘT lớp · nhiều môn   (chủ nhiệm)
+     · phân công nhanh — một giáo viên · MỘT môn · nhiều lớp (bộ môn) */
 function hopThemPC(gv){
   const dsGV=[...S.giaoVien].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
   const dsL=xepTheoKhoi(S.lop);
   if(!dsGV.length) return bao('Chưa có giáo viên nào — khai ở mục Giáo viên trước.',true);
   if(!dsL.length)  return bao('Chưa có lớp nào — khai ở mục Lớp học trước.',true);
-  hop('Thêm dòng phân công',
+  const dsMon=dsMonDung();
+  if(!dsMon.length) return bao('Chưa có môn nào — khai ở mục Môn học trước.',true);
+
+  hop('Thêm phân công',
   `<div class="on-l"><label>Giáo viên</label>
      <select class="ip" id="pcGV" style="width:100%">
        ${dsGV.map(g=>`<option value="${g.id}" ${gv===g.id?'selected':''}>${esc(g.hoTen)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Lớp</label>
      <select class="ip" id="pcLop" style="width:100%">
        ${dsL.map(l=>`<option value="${l.id}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}</select></div>
-   <div class="on-l"><label>Môn</label>
-     <select class="ip" id="pcMon" style="width:100%">
-       ${dsMonDung().map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')}</select></div>
-   <div class="on-l"><label>Số tiết mỗi tuần</label>
-     <input class="ip" id="pcTiet" type="number" min="1" max="20" value="1" style="width:100%">
+   <div class="on-l">
+     <label style="display:flex;align-items:center;gap:10px">Môn — tích bao nhiêu môn cũng được
+       <span style="flex:1"></span>
+       <button type="button" class="b b-vien b-nho" id="pcTatCa">Tích tất cả</button>
+       <button type="button" class="b b-vien b-nho" id="pcBoHet">Bỏ tích</button></label>
+     <div class="pc-mon" id="pcMon">
+       ${dsMon.map((m,i)=>`<label class="pc-m"><input type="checkbox" value="${esc(m)}" data-pcm="${i}">
+         <span class="pc-m-t">${esc(m)}</span><b class="pc-m-s" data-pcs="${esc(m)}">chưa khai</b></label>`).join('')}
+     </div>
      <div class="gy" id="pcGoi"></div></div>`,
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Thêm',lam:()=>{
-    const g=$('#pcGV').value, lp=$('#pcLop').value, mon=$('#pcMon').value;
-    const st=Math.max(1,Math.min(20,+$('#pcTiet').value||1));
-    const cu=S.phanCong.find(p=>p.gvId===g&&p.lopId===lp&&p.mon===mon);
-    if(cu){ cu.soTiet=st; dong(); bao('Dòng này đã có — đã cập nhật thành '+st+' tiết'); return ve(); }
-    S.phanCong.push({gvId:g, lopId:lp, mon, soTiet:st});
-    dong(); bao(`Đã thêm ${mon} lớp ${lopId(lp)?.ten||''} · ${st} tiết`); ve();
+    const g=$('#pcGV').value, lp=$('#pcLop').value;
+    const chon=[...$('#pcMon').querySelectorAll('input:checked')].map(x=>x.value);
+    if(!chon.length) return bao('Chưa tích môn nào',true);
+    const k=lopId(lp)?.khoi;
+    let them=0, capNhat=0;
+    chon.forEach(mon=>{
+      const st=chuanMon(mon,k)||1;
+      const cu=S.phanCong.find(p=>p.gvId===g&&p.lopId===lp&&p.mon===mon);
+      if(cu){ cu.soTiet=st; capNhat++; }
+      else { S.phanCong.push({gvId:g, lopId:lp, mon, soTiet:st}); them++; }
+    });
+    dong();
+    bao(`Lớp ${lopId(lp)?.ten||''}: thêm ${them} môn`
+        +(capNhat?`, cập nhật ${capNhat} môn đã có`:'')
+        +`. Sửa số tiết ngay trong bảng nếu cần.`);
+    ve();
   }}]);
-  /* Gợi ý số tiết chuẩn ngay khi chọn lớp và môn — đỡ phải tra bảng */
+
+  /* Số tiết chuẩn đổi theo KHỐI của lớp đang chọn, nên phải vẽ lại mỗi lần
+     đổi lớp — không thì thầy cô tích môn theo con số của khối khác. */
   const goi=()=>{
-    const k=lopId($('#pcLop').value)?.khoi, m=$('#pcMon').value;
-    const c=chuanMon(m,k);
-    $('#pcGoi').innerHTML = c
-      ? `Chuẩn CT GDPT 2018: <b>${c} tiết</b> mỗi tuần cho khối ${k}.`
-      : 'Chưa khai số tiết chuẩn cho môn này ở mục Môn học.';
-    if(c) $('#pcTiet').value=c;
+    const k=lopId($('#pcLop').value)?.khoi;
+    let tong=0, so=0;
+    dsMon.forEach(m=>{
+      const c=chuanMon(m,k);
+      const o=$('#pcMon').querySelector(`[data-pcs="${CSS.escape(m)}"]`);
+      if(o){ o.textContent = c ? c+' tiết' : 'chưa khai'; o.classList.toggle('mo', !c); }
+      const tick=$('#pcMon').querySelector(`input[value="${CSS.escape(m)}"]`);
+      if(tick?.checked){ so++; tong += c||1; }
+    });
+    $('#pcGoi').innerHTML = so
+      ? `Đã tích <b>${so} môn</b> · cộng <b>${tong} tiết</b> mỗi tuần`
+        + (k?` — chuẩn khối ${k} là <b>${CHUAN_KHOI[k]||'?'} tiết</b>.`:'.')
+      : 'Số tiết lấy sẵn theo chuẩn CT GDPT 2018 của khối lớp đang chọn; môn nào '
+        +'chưa khai chuẩn thì để 1 tiết, sửa lại trong bảng.';
   };
-  $('#pcLop').onchange=goi; $('#pcMon').onchange=goi; goi();
+  $('#pcLop').onchange=goi;
+  $('#pcMon').onchange=goi;
+  $('#pcTatCa').onclick=()=>{ $$('#pcMon input').forEach(x=>x.checked=true); goi(); };
+  $('#pcBoHet').onclick=()=>{ $$('#pcMon input').forEach(x=>x.checked=false); goi(); };
+  goi();
 }
 
 /* Phân công nhanh: chọn một giáo viên rồi tích các lớp — đúng cách nhà trường
@@ -12760,7 +12957,7 @@ function bangPhuongAn(){
     <div class="the-t">
       <div class="gy" style="margin-bottom:12px">Máy tách thời khóa biểu thành
         <b>${PA_TIM.nhom} nhóm rời nhau</b> (${PA_TIM.coLop.join(' · ')} lớp) rồi giải riêng từng nhóm —
-        học sinh chỉ học tại điểm trường của mình nên các nhóm không ảnh hưởng nhau.</div>
+        học sinh chỉ học tại phân hiệu của mình nên các nhóm không ảnh hưởng nhau.</div>
       ${bangSoSanhPA()}
     </div></div>`;
 }
@@ -13015,7 +13212,7 @@ async function hopMaMoi(){
           <option value="">Chuyên môn toàn trường</option>
           ${S.diemTruong.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}
         </select>
-        <div class="gy">Chọn một điểm trường thì quyền sửa của vị này bó vào đúng điểm ấy.</div></div>`:''}
+        <div class="gy">Chọn một phân hiệu thì quyền sửa của vị này bó vào đúng điểm ấy.</div></div>`:''}
       <button class="b b-ch" id="btTaoMaMoi">Tạo mã</button>
     </div>
     ${(()=>{ const c=canPhatMa(kq.ok?kq.ds:[]);
@@ -13051,7 +13248,7 @@ async function hopMaMoi(){
     i.value=''; locChon(i); i.focus();
   });
   /* Ô "Phụ trách" chỉ có nghĩa cho vai quản lý — đang chọn giáo viên thì giấu,
-     kẻo người tạo mã tưởng gán được điểm trường cho thầy cô đứng lớp. */
+     kẻo người tạo mã tưởng gán được phân hiệu cho thầy cô đứng lớp. */
   const suaKhuDT=()=>{ const k=$('#mmKhuDT'); if(k) k.style.display=$('#mmChonGV').value?'none':''; };
   $('#mmChonGV').onchange=suaKhuDT; suaKhuDT();
   $('#btTaoMaMoi').onclick=async()=>{
@@ -13445,7 +13642,7 @@ function moTaCotNhap(c){
   const k=c.khoa||{};
   if(k.kieu==='chon') return 'Chọn từ danh sách xổ xuống ('
     +({DM_Co_khong:'Có / Không', DM_Thu:'2 · 3 · 4 · 5 · 6', DM_Buoi:'S (sáng) · C (chiều)',
-       DM_Diem_truong:'tên điểm trường đã khai', DM_Ma_lop:'mã lớp đã khai',
+       DM_Phan_hieu:'tên phân hiệu đã khai', DM_Ma_lop:'mã lớp đã khai',
        DM_Ma_GV:'mã giáo viên đã khai', DM_Mon:'môn trong danh mục'}[k.nguon]||'danh mục')+')';
   if(k.kieu==='so') return `Số từ ${k.tu} đến ${k.den}`
     + (c.ten==='So_tiet' ? ' — bỏ trống thì máy lấy tiết chuẩn CT GDPT 2018 theo khối' : '');
@@ -13475,7 +13672,10 @@ $('#tep').onchange=async e=>{
        mọi đường khác: người dùng đang ở màn Lớp học và cầm tệp LOP thì không
        có lý do gì đi hỏi nó có phải tệp mười trang không. */
     const m=MUC_NHAP[S.trangHienTai];
-    const hMuc = m ? doc(m.trang) : null;
+    /* Tên trang tính cũng đổi theo cách gọi mới (DIEM_TRUONG → PHAN_HIEU),
+       nên thử tên mới trước rồi mới tới tên cũ — tệp đã tải về từ bản trước
+       vẫn phải nhập được. */
+    const hMuc = m ? (doc(m.trang) || (m.trangCu||[]).map(x=>doc(x)).find(Boolean) || null) : null;
     if(m && hMuc && hopTrangMuc(hMuc, m)){
       kqMuc=duLieuTuMuc(S.trangHienTai, hMuc);
       if(kqMuc.soLoi) return hopLoiNhap(kqMuc, null);
@@ -13591,7 +13791,7 @@ function hopXacNhanNhap(dl, tim){
     bangTimThay(tim)+
     `<div class="hang">Giáo viên <b>${dl.giaoVien.length}</b></div>
      <div class="hang">Lớp <b>${dl.lop.length}</b></div>
-     <div class="hang">Điểm trường <b>${dl.diemTruong.length}</b></div>
+     <div class="hang">Phân hiệu <b>${dl.diemTruong.length}</b></div>
      <div class="hang">Dòng phân công <b>${dl.phanCong.length}</b></div>
      <div class="hang">Tổng số tiết mỗi tuần <b>${dl.tongTiet}</b></div>
      ${dl.tronGoi?`<div class="hang">Buổi học mỗi tuần

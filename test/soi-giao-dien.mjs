@@ -195,9 +195,9 @@ kt('Nút “tiếp theo” đi đúng màn hình kế trong chuỗi', (() => {
 })());
 
 console.log('\n7. Khai báo lớp học từ giao diện');
-/* Dựng thêm một điểm trường để thử đúng tình huống sau sáp nhập: điểm mới
+/* Dựng thêm một phân hiệu để thử đúng tình huống sau sáp nhập: điểm mới
    cũng có lớp mang tên "1A", và phần mềm phải phân biệt được bằng mã lớp. */
-S.diemTruong.push({ id: 'dtThu', ten: 'Điểm trường Thử', phongTin: false });
+S.diemTruong.push({ id: 'dtThu', ten: 'Phân hiệu Thử', phongTin: false });
 w.chuyen('lop');
 const soLopTruoc = S.lop.length;
 w.hopSinhLop();
@@ -210,10 +210,10 @@ const moi = S.lop.filter(l => (l.maLop || '').endsWith('_THU'));
 kt('Tạo lớp hàng loạt sinh đúng số lớp và đúng tên',
    moi.length === 3 && moi.map(l => l.ten).join(',') === '1A,1B,1C',
    `${soLopTruoc} → ${S.lop.length} lớp`);
-kt('Lớp trùng tên ở điểm trường khác vẫn tạo được, phân biệt bằng mã',
+kt('Lớp trùng tên ở phân hiệu khác vẫn tạo được, phân biệt bằng mã',
    S.lop.filter(l => l.ten === '1A').length === 2 &&
    moi[0].maLop === '1A_THU', `hai lớp "1A": ${S.lop.filter(l => l.ten === '1A').map(l => l.maLop || l.id).join(' · ')}`);
-kt('Tạo lại lần nữa không sinh trùng trong cùng điểm trường', (() => {
+kt('Tạo lại lần nữa không sinh trùng trong cùng phân hiệu', (() => {
   w.hopSinhLop();
   w.document.querySelector('#slDT').value = 'dtThu';
   w.document.querySelector('[data-sl="1"]').value = '3';
@@ -223,7 +223,7 @@ kt('Tạo lại lần nữa không sinh trùng trong cùng điểm trường', (
 })());
 kt('Mỗi lớp mới có mã riêng, không lớp nào trùng mã',
    new Set(S.lop.map(l => l.maLop || l.id)).size === S.lop.length);
-kt('Lớp mới được gán điểm trường và có ô lưới riêng',
+kt('Lớp mới được gán phân hiệu và có ô lưới riêng',
    moi.every(l => !!S.lopDT[l.id] && !!S.tkb[l.id]));
 
 /* Đặt chủ nhiệm cho lớp mới, rồi kiểm tra không ai chủ nhiệm hai lớp */
@@ -241,7 +241,7 @@ kt('Xoá lớp thì gỡ sạch phân công, lưới và con trỏ chủ nhiệm
    !S.lop.some(l => l.id === lopThu) && !S.phanCong.some(p => p.lopId === lopThu) &&
    !S.tkb[lopThu] && !S.giaoVien.some(g => g.cn === lopThu));
 
-/* Dọn sạch điểm trường thử để các phép thử sau chạy trên đúng dữ liệu vàng */
+/* Dọn sạch phân hiệu thử để các phép thử sau chạy trên đúng dữ liệu vàng */
 S.lop.filter(l => S.lopDT[l.id] === 'dtThu').forEach(l => {
   S.lop = S.lop.filter(x => x.id !== l.id);
   delete S.lopDT[l.id]; delete S.tkb[l.id];
@@ -250,20 +250,74 @@ S.diemTruong = S.diemTruong.filter(d => d.id !== 'dtThu');
 kt('Dọn xong thì trở lại đúng 25 lớp của bộ kiểm thử vàng',
    S.lop.length === soLopTruoc, `${S.lop.length} lớp`);
 
-console.log('\n8. Thêm và xoá dòng phân công');
+console.log('\n8. Thêm phân công — MỘT lớp, NHIỀU môn (28/8/2026)');
+/* Chủ dự án: "phân công chuyên môn chỉ có 1 lựa chọn dạy môn Tiếng việt hoặc
+   môn học khác (phải có đủ môn để tích vào)". Ô xổ xuống cũ chọn được đúng
+   một môn, mà chủ nhiệm tiểu học dạy năm sáu môn của chính lớp mình. */
 w.chuyen('phancong');
 const pcTruoc = S.phanCong.length;
 w.hopThemPC();
-const lopPC = w.document.querySelector('#pcLop').value;
-const monPC = w.document.querySelector('#pcMon').value;
-w.document.querySelector('#pcTiet').value = '2';
+const oMon = () => [...w.document.querySelectorAll('#pcMon input')];
+kt('Bày ĐỦ mọi môn để tích, không phải ô xổ xuống chọn một',
+   oMon().length === w.eval('dsMonDung().length') && oMon().length > 1,
+   `${oMon().length} môn`);
+kt('Có nút Tích tất cả và Bỏ tích — chủ nhiệm dạy gần hết các môn của lớp mình',
+   !!w.document.querySelector('#pcTatCa') && !!w.document.querySelector('#pcBoHet'));
+
+/* Lớp trống hẳn, để đếm cho sạch */
+const lopTrong = S.lop.find(l => !S.phanCong.some(p => p.lopId === l.id))
+               || S.lop[S.lop.length - 1];
+w.eval(`S.phanCong = S.phanCong.filter(p=>p.lopId!==${JSON.stringify(lopTrong.id)})`);
+const pcSach = S.phanCong.length;
+w.document.querySelector('#pcLop').value = lopTrong.id;
+w.document.querySelector('#pcLop').dispatchEvent(new w.Event('change', { bubbles: true }));
+
+const banMon = ['Tiếng Việt', 'Toán', 'TNXH'].filter(m =>
+  oMon().some(x => x.value === m));
+banMon.forEach(m => {
+  const o = oMon().find(x => x.value === m);
+  o.checked = true;
+});
+w.document.querySelector('#pcMon').dispatchEvent(new w.Event('change', { bubbles: true }));
+kt('Tích tới đâu thì cộng số tiết tới đó, ngay dưới lưới môn',
+   /Đã tích <b>3 môn<\/b>/.test(w.document.querySelector('#pcGoi').innerHTML),
+   w.document.querySelector('#pcGoi').textContent.trim());
+
 [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
-kt('Thêm được một dòng phân công ngay trong app',
-   S.phanCong.length === pcTruoc + 1, `${pcTruoc} → ${S.phanCong.length} dòng`);
-const iMoi = S.phanCong.findIndex(p => p.lopId === lopPC && p.mon === monPC && p.soTiet === 2);
-kt('Dòng mới ghi đúng lớp, môn và số tiết', iMoi >= 0);
+kt('Một lần bấm ra ĐỦ ba dòng phân công, không phải mở hộp ba lần',
+   S.phanCong.length === pcSach + banMon.length,
+   `${pcSach} → ${S.phanCong.length} dòng`);
+kt('Mỗi dòng lấy sẵn số tiết chuẩn CT GDPT 2018 theo khối của lớp', (() => {
+  const moi = S.phanCong.filter(p => p.lopId === lopTrong.id);
+  return moi.length === banMon.length && moi.every(p =>
+    p.soTiet === (w.eval(`chuanMon(${JSON.stringify(p.mon)},${lopTrong.khoi})`) || 1));
+})(), `khối ${lopTrong.khoi}: ` + S.phanCong.filter(p => p.lopId === lopTrong.id)
+        .map(p => `${p.mon} ${p.soTiet}`).join(' · '));
+
+/* Tích lại đúng những môn ấy lần nữa: cập nhật, KHÔNG đẻ dòng trùng */
+w.hopThemPC();
+w.document.querySelector('#pcLop').value = lopTrong.id;
+banMon.forEach(m => { oMon().find(x => x.value === m).checked = true; });
+[...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
+kt('Tích lại đúng những môn ấy thì cập nhật, không nhân đôi dòng nào',
+   S.phanCong.length === pcSach + banMon.length, `${S.phanCong.length} dòng`);
+
+kt('Không tích môn nào mà bấm Thêm thì báo, không thêm dòng rỗng', (() => {
+  w.hopThemPC();
+  const truoc = S.phanCong.length;
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
+  const ok = S.phanCong.length === truoc;
+  w.eval('dong()');
+  return ok;
+})());
+
+const iMoi = S.phanCong.findIndex(p => p.lopId === lopTrong.id);
+w.chuyen('phancong');
 w.document.querySelector(`[data-xoapc="${iMoi}"]`)?.dispatchEvent(new w.Event('click', { bubbles: true }));
-kt('Xoá dòng phân công ngay trên bảng', S.phanCong.length === pcTruoc);
+kt('Xoá dòng phân công ngay trên bảng',
+   S.phanCong.length === pcSach + banMon.length - 1);
+/* Trả bảng phân công về nguyên trạng cho các mục sau */
+w.eval(`S.phanCong = S.phanCong.filter(p=>p.lopId!==${JSON.stringify(lopTrong.id)})`);
 
 console.log('\n9. Danh mục môn học và phòng chức năng');
 w.chuyen('monhoc');
@@ -283,9 +337,9 @@ kt('Sửa số tiết chuẩn ghi thẳng vào danh mục',
 
 w.chuyen('phonghoc');
 w.document.querySelector('#btPhongTuDT')?.dispatchEvent(new w.Event('click', { bubbles: true }));
-kt('Tạo phòng Tin học từ các điểm trường có sẵn', S.phong.length > 0,
+kt('Tạo phòng Tin học từ các phân hiệu có sẵn', S.phong.length > 0,
    `${S.phong.length} phòng`);
-kt('Máy nhận ra điểm trường nào có phòng Tin học',
+kt('Máy nhận ra phân hiệu nào có phòng Tin học',
    S.phong.every(p => w.eval(`coPhong(${JSON.stringify(p.dtId)},'Tin học')`)));
 
 console.log('\n10. Sản phẩm toàn trường và theo khối');
@@ -378,53 +432,53 @@ kt('Nút lưu chỉ ghi "Lưu", không bắt người dùng nghĩ về máy ch�
   return !!b && b.textContent.trim() === 'Lưu';
 })());
 
-console.log('\n13. Tạo dữ liệu thử cho một điểm trường');
+console.log('\n13. Tạo dữ liệu thử cho một phân hiệu');
 w.chuyen('diemtruong');
-kt('Màn hình Điểm trường có nút Tạo dữ liệu thử', !!w.document.querySelector('#btTaoThu'));
+kt('Màn hình Phân hiệu có nút Tạo dữ liệu thử', !!w.document.querySelector('#btTaoThu'));
 const truocDT = { dt: S.diemTruong.length, lop: S.lop.length, gv: S.giaoVien.length };
 w.document.querySelector('#btTaoThu').dispatchEvent(new w.Event('click', { bubbles: true }));
-w.document.querySelector('#ttTenDiem').value = 'Điểm trường Diễn Đồng';
+w.document.querySelector('#ttTenDiem').value = 'Phân hiệu Diễn Đồng';
 w.document.querySelector('#ttTien').value = 'DD';
 w.document.querySelector('#ttSoLop').value = '17';
 [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Tạo').click();
-kt('Tạo xong có thêm một điểm trường với đủ 17 lớp',
+kt('Tạo xong có thêm một phân hiệu với đủ 17 lớp',
    S.diemTruong.length === truocDT.dt + 1 && S.lop.length === truocDT.lop + 17,
    `${truocDT.lop} → ${S.lop.length} lớp`);
 kt('Sinh kèm giáo viên, không để lớp nào trống chủ nhiệm', (() => {
   const moi = S.lop.filter(l => (l.maLop || '').endsWith('_DD'));
   return S.giaoVien.length > truocDT.gv && moi.every(l => S.giaoVien.some(g => g.cn === l.id));
 })(), `${truocDT.gv} → ${S.giaoVien.length} giáo viên`);
-/* Điểm trường mới tạo KHÔNG tích ô "có phòng Tin học", mà mục 9 ở trên đã khai
+/* Phân hiệu mới tạo KHÔNG tích ô "có phòng Tin học", mà mục 9 ở trên đã khai
    bảng phòng — nên ràng buộc cứng số 4 bật, và mọi tiết Tin học của Diễn Đồng
-   phải bị chặn lại chứ không được xếp bừa vào phòng ở điểm trường khác. */
+   phải bị chặn lại chứ không được xếp bừa vào phòng ở phân hiệu khác. */
 const soLopTin = S.lop.filter(l => (l.maLop || '').endsWith('_DD') && l.khoi >= 3).length;
 const r13 = w.eval('KQ_XEP = xepTuDong()');
 const tinChuaXep = r13.chuaXep.filter(x => x.mon === 'Tin học').reduce((s, x) => s + x.con, 0);
-kt('Điểm trường chưa có phòng máy thì tiết Tin học bị chặn, không xếp bừa',
+kt('Phân hiệu chưa có phòng máy thì tiết Tin học bị chặn, không xếp bừa',
    tinChuaXep === soLopTin && r13.tongCan - r13.daXep === tinChuaXep,
    `${r13.daXep}/${r13.tongCan} tiết — đúng ${tinChuaXep} tiết Tin học của ${soLopTin} lớp bị giữ lại`);
-kt('Quy tắc R10 nói rõ điểm trường nào đang thiếu phòng',
+kt('Quy tắc R10 nói rõ phân hiệu nào đang thiếu phòng',
    w.eval('kiemTra()').vm.some(v => v.ma === 'R10' && /Diễn Đồng/.test(v.t)));
 
 /* Khai thêm một phòng máy cho nơi đó thì phải xếp trọn ngay */
-kt('Khai thêm phòng Tin học cho điểm trường đó là xếp trọn vẹn', (() => {
-  const dtDD = S.diemTruong.find(d => d.ten === 'Điểm trường Diễn Đồng');
+kt('Khai thêm phòng Tin học cho phân hiệu đó là xếp trọn vẹn', (() => {
+  const dtDD = S.diemTruong.find(d => d.ten === 'Phân hiệu Diễn Đồng');
   S.phong.push({ id: 'p_dd', ten: 'Phòng Tin học · Diễn Đồng', dtId: dtDD.id, mon: 'Tin học' });
   const r = w.eval('KQ_XEP = xepTuDong()');
   return r.daXep === r.tongCan && r.chuaXep.length === 0;
 })(), (() => { const r = w.eval('KQ_XEP'); return `${r.daXep}/${r.tongCan} tiết · ${r.giay} giây`; })());
-/* Nhiều điểm trường thì lưới KHÔNG gộp hết vào một bảng — 60 cột đọc không
-   nổi. Mặc định bày một điểm trường, có dải nút chuyển. Bản gộp cả trường
+/* Nhiều phân hiệu thì lưới KHÔNG gộp hết vào một bảng — 60 cột đọc không
+   nổi. Mặc định bày một phân hiệu, có dải nút chuyển. Bản gộp cả trường
    chỉ còn ở đường Xuất và in. */
-kt('Nhiều điểm trường thì lưới bày MỘT điểm, có dải nút chuyển', (() => {
+kt('Nhiều phân hiệu thì lưới bày MỘT điểm, có dải nút chuyển', (() => {
   w.chuyen('toantruong');
   const nut = w.document.querySelectorAll('[data-dtluoi]');
   const cot = w.document.querySelectorAll('.tt thead tr:last-child th').length - 2;
   const dang = w.eval('S.dtLuoi');
   const lopCuaDiem = S.lop.filter(l => S.lopDT[l.id] === dang).length;
   return nut.length === S.diemTruong.length && cot === lopCuaDiem && cot < S.lop.length;
-})(), `${S.diemTruong.length} điểm trường`);
-kt('Bấm sang điểm trường khác thì lưới đổi theo', (() => {
+})(), `${S.diemTruong.length} phân hiệu`);
+kt('Bấm sang phân hiệu khác thì lưới đổi theo', (() => {
   const nut = [...w.document.querySelectorAll('[data-dtluoi]')];
   const khac = nut.find(b => b.dataset.dtluoi !== w.eval('S.dtLuoi'));
   khac.dispatchEvent(new w.Event('click', { bubbles: true }));
@@ -461,18 +515,18 @@ kt('Khổ giấy khai bằng trang có tên, đủ cả ba khổ', (() => {
 kt('Tệp Word mang theo đúng kiểu chữ của bản in — một nguồn duy nhất',
    /Times New Roman/.test(w.eval('CSS_BAN_IN')) && /in-ky/.test(w.eval('CSS_BAN_IN')));
 
-console.log('\n14b. Bản in theo TỪNG ĐIỂM TRƯỜNG — khổ A4 ngang');
-/* Ba điểm trường gộp một tờ là 60 cột, không ai đọc nổi — bản in hằng ngày
-   là mỗi điểm trường một bộ tờ A4 ngang, điểm đông lớp tự chia theo cụm khối.
+console.log('\n14b. Bản in theo TỪNG PHÂN HIỆU — khổ A4 ngang');
+/* Ba phân hiệu gộp một tờ là 60 cột, không ai đọc nổi — bản in hằng ngày
+   là mỗi phân hiệu một bộ tờ A4 ngang, điểm đông lớp tự chia theo cụm khối.
    Bản gộp A3 vẫn giữ nguyên cho tờ dán bảng tin (phép thử ở mục 14). */
 const hDT = w.trangInDiemTruong();
-kt('Bản in từng điểm trường dùng khổ A4 ngang, không lẫn khổ A3',
+kt('Bản in từng phân hiệu dùng khổ A4 ngang, không lẫn khổ A3',
    hDT.length > 0 && /tr-in ngang/.test(hDT) && !/tr-in rong/.test(hDT));
-kt('Tên từng điểm trường ghi rõ trên tiêu đề tờ của nó, không ghép trùng chữ',
+kt('Tên từng phân hiệu ghi rõ trên tiêu đề tờ của nó, không ghép trùng chữ',
    S.diemTruong.every(d => {
-     const nhan = /^điểm trường/i.test(d.ten) ? d.ten : `Điểm trường ${d.ten}`;
+     const nhan = /^phân hiệu/i.test(d.ten) ? d.ten : `Phân hiệu ${d.ten}`;
      return hDT.includes(nhan);
-   }) && !/Điểm trường Điểm trường/.test(hDT));
+   }) && !/Phân hiệu Phân hiệu/.test(hDT));
 kt('Không tờ nào vượt ngưỡng cột đọc được của A4 ngang', (() => {
   const to = hDT.split('class="tr-in').slice(1);
   const NGUONG = w.eval('NGUONG_COT_A4');
@@ -488,13 +542,13 @@ kt('Cộng mọi tờ lại thì đủ từng lớp của trường, không lớ
     - hDT.split('class="tr-in').slice(1).length;      /* mỗi tờ một cột Giờ */
   return soCot === S.lop.length;
 })(), `${S.lop.length} lớp`);
-kt('In riêng một điểm trường thì chỉ ra lớp của đúng điểm ấy', (() => {
+kt('In riêng một phân hiệu thì chỉ ra lớp của đúng điểm ấy', (() => {
   const d = S.diemTruong[0];
   const h1 = w.trangInDiemTruong(d.id);
   const soCot = (h1.match(/<th>/g) || []).length - h1.split('class="tr-in').slice(1).length;
   return soCot === S.lop.filter(l => S.lopDT[l.id] === d.id).length;
 })());
-kt('Màn hình Xuất và in bày bản A4 điểm trường lên ĐẦU danh sách chọn', (() => {
+kt('Màn hình Xuất và in bày bản A4 phân hiệu lên ĐẦU danh sách chọn', (() => {
   w.chuyen('xuatin');
   const chon = w.document.querySelector('#inChonRong');
   return !!chon && (chon.querySelector('option')?.value || '') === 'dt';
@@ -509,8 +563,8 @@ kt('Mở màn Xuất và in là khung xem trước bày sẵn các tờ giấy t
 })());
 kt('Kiểu chữ bản in nạp cho màn hình từ đúng một nguồn CSS_BAN_IN',
    !!w.document.querySelector('#kieuXemTruoc'));
-kt('Mặc định xem bản A4 từng điểm trường — đúng bản in hằng ngày',
-   /từng điểm trường/.test(w.document.querySelector('#xtMeta').textContent)
+kt('Mặc định xem bản A4 từng phân hiệu — đúng bản in hằng ngày',
+   /từng phân hiệu/.test(w.document.querySelector('#xtMeta').textContent)
    && /A4 ngang/.test(w.document.querySelector('#xtMeta').textContent));
 kt('Đổi ô chọn giáo viên là khung đổi sang bản của đúng người ấy', (() => {
   const sel = w.document.querySelector('#inChonGV');
@@ -646,7 +700,7 @@ kt('Thẻ có nút Xem phương án', !!w.document.querySelector('[data-xemphuon
 w.document.querySelector('[data-xemphuongan]').dispatchEvent(new w.Event('click', {bubbles:true}));
 kt('Bấm Xem phương án thì hiện bảng các tiết cần dạy thay', (() => {
   const t = w.document.querySelector('#noiDung').textContent;
-  return /Phương án dạy thay/.test(t) && /Điểm trường/.test(t);
+  return /Phương án dạy thay/.test(t) && /Phân hiệu/.test(t);
 })());
 kt('Đề xuất đúng BA phương án, không nhiều không ít', ...((() => {
   const n = w.document.querySelectorAll('.pa-the').length;
@@ -654,7 +708,7 @@ kt('Đề xuất đúng BA phương án, không nhiều không ít', ...((() => 
 })()));
 kt('Thẻ phương án nói LÝ DO bằng chữ, tuyệt đối không bày điểm số', (() => {
   const t = w.document.querySelector('.pa-luoi').textContent;
-  return /cùng điểm trường|trống cả buổi|đã từng dạy lớp này|chuyên môn phù hợp|Ghép/.test(t)
+  return /cùng phân hiệu|trống cả buổi|đã từng dạy lớp này|chuyên môn phù hợp|Ghép/.test(t)
     && !/\bđiểm:\s*\d/.test(t);
 })());
 kt('Phương án 1 ghi rõ là ưu tiên cao nhất, phương án 3 là dự phòng', (() => {
@@ -1081,7 +1135,7 @@ kt('Thứ tự là ƯU TIÊN THẬT: việc gấp trước, quy mô trường sa
   const d = [...w.document.querySelectorAll('#noiDung .cot-so .cs-d span')]
     .map(x => x.textContent);
   return /báo nghỉ/.test(d[0]) && /dạy thay/.test(d[1]) && /cảnh báo/.test(d[2])
-    && /đã xếp/.test(d[3]) && /điểm trường/.test(d[6]);
+    && /đã xếp/.test(d[3]) && /phân hiệu/.test(d[6]);
 })());
 kt('Số 0 KHÔNG bị tô đỏ — báo động giả còn tệ hơn không báo', (() => {
   const d = [...w.document.querySelectorAll('#noiDung .cot-so .cs-d')];
@@ -1183,7 +1237,7 @@ kt('Bấm tiếp "Theo giáo viên" thì đổi sang lịch của giáo viên', 
     .dispatchEvent(new w.Event('click', {bubbles:true}));
   return w.eval('S.trangHienTai') === 'dieuhanh' && !!w.document.querySelector('#dhGV');
 })());
-kt('Quay lại "Toàn trường" thì có dải điểm trường và lưới rộng', (() => {
+kt('Quay lại "Toàn trường" thì có dải phân hiệu và lưới rộng', (() => {
   [...w.document.querySelectorAll('[data-dhxem]')].find(b => b.dataset.dhxem === 'toantruong')
     .dispatchEvent(new w.Event('click', {bubbles:true}));
   return !!w.document.querySelector('#noiDung table.tt');
@@ -1258,7 +1312,7 @@ kt('Bấm một lớp khác thì lưới đổi ngay, vẫn ở Bảng điều h
     `đổi sang ${ten}`];
 })()));
 kt('Ô tìm trong cột lọc tại chỗ, và KHÔNG đếm nhãn khối vào số lớp', ...((() => {
-  /* Trường mẫu lúc này đã có nhiều điểm trường nên "1a" khớp lớp 1A của
+  /* Trường mẫu lúc này đã có nhiều phân hiệu nên "1a" khớp lớp 1A của
      TỪNG điểm — số lớp khớp lấy từ dữ liệu, đừng đoán bằng 1. */
   const mong = w.eval(`lopTrongPV().filter(l => chuTim(l.ten + ' ' + (l.maLop||'')).includes('1a')).length`);
   const tong = w.eval('lopTrongPV().length');
@@ -1506,10 +1560,10 @@ kt('Nạp ExcelJS để ghi tệp có màu, có viền, có khổ giấy', (() =
 })(), 'SheetJS đọc tệp · ExcelJS ghi tệp');
 /* Mẫu ba trang và mẫu mười trang đã bỏ 28/8/2026 — nay mỗi mục một trang.
    Canh đúng thứ người dùng đọc: tên cột trên trang Giáo viên. */
-kt('Mẫu Giáo viên đúng bộ cột, có cả Gmail và Ghi_chu', (() => {
+kt('Mẫu Giáo viên đủ bộ cột: Gmail · Điện thoại · Phân hiệu · Ghi chú', (() => {
   /* `const MUC_NHAP` không nằm trên window — lấy qua eval trong chính khung trang */
   const cot = w.eval("MUC_NHAP.giaovien.cot.map(c=>c.ten).join()");
-  return [cot === 'TT,Ma_GV,Ho_ten,Gmail,Chu_nhiem,Dinh_muc,Ghi_chu', cot];
+  return [cot === 'TT,Ma_GV,Ho_ten,Gmail,Dien_thoai,Phan_hieu,Chu_nhiem,Dinh_muc,Ghi_chu', cot];
 })()[0], w.eval("MUC_NHAP.giaovien.cot.map(c=>c.ten).join(' · ')"));
 
 console.log('\n16b. Ô tìm kiếm trong danh sách dài');
@@ -1677,20 +1731,20 @@ console.log('\n17a. Lịch cá nhân tách SÁNG · CHIỀU; lưới rộng nh�
      !/CHIỀU/.test(nhan[0] || ''), nhan[0]);
   S.nguoiDung = vai;
 
-  /* Dải nút điểm trường phải ghi tên GỌN và ĐỒNG NHẤT. Tên chính thức đều là
-     "Điểm trường Diễn ...", nhưng nơi hiện đủ nơi hiện gọn thì nút dài ngắn
+  /* Dải nút phân hiệu phải ghi tên GỌN và ĐỒNG NHẤT. Tên chính thức đều là
+     "Phân hiệu Diễn ...", nhưng nơi hiện đủ nơi hiện gọn thì nút dài ngắn
      lệch nhau, trên điện thoại tràn hàng. Dựng lại đúng cả hai kiểu tên. */
   if(S.diemTruong.length > 1){
     const tenCu = S.diemTruong.map(d => d.ten);
-    /* Dải nút chỉ hiện khi người xem thấy được từ hai điểm trường trở lên —
+    /* Dải nút chỉ hiện khi người xem thấy được từ hai phân hiệu trở lên —
        PHT bị bó vào một điểm thì không có dải nào để soi. */
     S.nguoiDung = { vaiTro: 'qt', gvId: null, diemTruongId: null };
     S.phamVi = '';
-    S.diemTruong[0].ten = 'Điểm trường Diễn Đồng';
-    S.diemTruong[1].ten = 'Điểm trường Diễn Thái'.normalize('NFD');  /* dấu rời */
+    S.diemTruong[0].ten = 'Phân hiệu Diễn Đồng';
+    S.diemTruong[1].ten = 'Phân hiệu Diễn Thái'.normalize('NFD');  /* dấu rời */
     w.chuyen('toantruong');
     const nut = [...w.document.querySelectorAll('.dt-nut')].map(x => x.textContent);
-    kt('Dải nút điểm trường không còn chữ "Điểm trường" thừa',
+    kt('Dải nút phân hiệu không còn chữ "Phân hiệu" thừa',
        nut.length > 1 && nut.every(x => !/Điểm\s*trường/i.test(x.normalize('NFC'))),
        nut.join(' | '));
     kt('Cắt được cả tên gõ ở dạng dấu rời — nhìn giống hệt nhau nên rất dễ sót',
@@ -1812,32 +1866,32 @@ console.log('\n17b. Lịch trống thì phải nói ĐÚNG vì sao trống');
      /Bỏ qua \d+ hồ sơ/.test(hopN?.textContent || ''));
   w.eval('dong()');
 
-  /* Dựng đúng bối cảnh trường MỘT điểm trường — kịch bản đang chạy có sẵn
+  /* Dựng đúng bối cảnh trường MỘT phân hiệu — kịch bản đang chạy có sẵn
      nhiều điểm nên phải cắt tạm, xong trả lại nguyên trạng. */
   const dtGiu = S.diemTruong.splice(1);
   await w.eval('hopMaMoi()');
-  kt('Trường MỘT điểm trường thì không bày ô "Phụ trách" — thứ không có gì để chọn',
+  kt('Trường MỘT phân hiệu thì không bày ô "Phụ trách" — thứ không có gì để chọn',
      !w.document.querySelector('#hopN #mmKhuDT'));
   w.eval('dong()');
   dtGiu.forEach(d => S.diemTruong.push(d));
 
-  /* Trường NHIỀU điểm trường: mã quản lý phải gán được điểm trường ngay lúc
+  /* Trường NHIỀU phân hiệu: mã quản lý phải gán được phân hiệu ngay lúc
      tạo — không thì PHT phụ trách một điểm vào app với quyền toàn trường, và
      toàn bộ hàng rào phạm vi (khoá lưới, gộp khi lưu theo p_pham_vi) không
      bao giờ được kích hoạt nếu không có người chạy SQL tay. */
-  S.diemTruong.push({ id: 'dt-thu2', ten: 'Điểm trường thử', coPhongTin: false });
+  S.diemTruong.push({ id: 'dt-thu2', ten: 'Phân hiệu thử', coPhongTin: false });
   await w.eval('hopMaMoi()');
   const hopMM2 = w.document.querySelector('#hopN');
   const khuDT = hopMM2?.querySelector('#mmKhuDT');
-  kt('Trường nhiều điểm trường: có ô "Phụ trách", GIẤU khi đang chọn giáo viên',
+  kt('Trường nhiều phân hiệu: có ô "Phụ trách", GIẤU khi đang chọn giáo viên',
      !!khuDT && khuDT.style.display === 'none');
   const selMM = hopMM2?.querySelector('#mmChonGV');
   if (selMM) { selMM.value = ''; selMM.onchange && selMM.onchange(); }
-  kt('Chọn vai quản lý là ô Phụ trách hiện ra, đủ mọi điểm trường + toàn trường',
+  kt('Chọn vai quản lý là ô Phụ trách hiện ra, đủ mọi phân hiệu + toàn trường',
      !!khuDT && khuDT.style.display !== 'none' &&
      [...khuDT.querySelectorAll('option')].length === S.diemTruong.length + 1,
      khuDT ? `${khuDT.querySelectorAll('option').length} lựa chọn` : '(không có ô)');
-  kt('Lựa chọn đầu là "toàn trường" — bỏ trống điểm trường vẫn là mặc định an toàn',
+  kt('Lựa chọn đầu là "toàn trường" — bỏ trống phân hiệu vẫn là mặc định an toàn',
      khuDT?.querySelector('option')?.value === '');
   w.eval('dong()');
   S.diemTruong.pop();
@@ -1944,7 +1998,7 @@ kt('Sao lưu nói rõ nạp tệp sẽ THAY dữ liệu, và máy chủ chưa đ
 kt('Bảng phân quyền nói đủ ba vai và ghi rõ ai KHÔNG làm được gì', (() => {
   w.chuyen('nguoidung');
   const t = w.document.querySelector('#noiDung').textContent;
-  return /PHT một điểm trường/.test(t) && /không/.test(t) && /Báo nghỉ/.test(t);
+  return /PHT một phân hiệu/.test(t) && /không/.test(t) && /Báo nghỉ/.test(t);
 })());
 
 console.log('\n19c. Biểu mẫu Báo nghỉ');
@@ -2010,7 +2064,7 @@ kt('Nút kính lúp mở hộp tìm, bấm lần nữa hoặc Escape là đóng'
 })());
 kt('Màn Giáo viên chỉ còn MỘT ô lọc bảng — hết cảnh hai ô tìm chồng nhau',
    w.document.querySelectorAll('#noiDung input[type="search"], #noiDung .loc-o input').length === 1);
-kt('Gõ tên giáo viên thì ra đúng người, kèm số tiết và điểm trường', (() => {
+kt('Gõ tên giáo viên thì ra đúng người, kèm số tiết và phân hiệu', (() => {
   const g = S.giaoVien[0];
   const tu = g.hoTen.split(' ').pop();
   const kq = w.eval(`ketQuaTim(${JSON.stringify(tu)})`);
@@ -2021,22 +2075,22 @@ kt('Tìm KHÔNG DẤU vẫn ra — thầy cô gõ điện thoại ít khi bỏ d
   const tu = w.eval(`khongDau(${JSON.stringify(g.hoTen.split(' ').pop())})`).toLowerCase();
   return w.eval(`ketQuaTim(${JSON.stringify(tu)})`).some(x => x.ten === g.hoTen);
 })());
-kt('Gõ tên lớp thì ra lớp, kèm chủ nhiệm và điểm trường', (() => {
+kt('Gõ tên lớp thì ra lớp, kèm chủ nhiệm và phân hiệu', (() => {
   const kq = w.eval(`ketQuaTim('1A')`);
   return kq.some(x => x.loai === 'Lớp' && /Chủ nhiệm/.test(x.phu));
 })());
-kt('Tìm được cả môn học và điểm trường, không chỉ người và lớp', (() => {
+kt('Tìm được cả môn học và phân hiệu, không chỉ người và lớp', (() => {
   const a = w.eval(`ketQuaTim('Toán')`);
   const b = w.eval(`ketQuaTim('Diễn')`);
-  return a.some(x => x.loai === 'Môn học') && b.some(x => x.loai === 'Điểm trường');
+  return a.some(x => x.loai === 'Môn học') && b.some(x => x.loai === 'Phân hiệu');
 })());
 kt('Gõ một chữ cái thì chưa tìm — tránh đổ cả trường ra màn hình',
    w.eval(`ketQuaTim('a')`).length === 0);
-kt('Từ khoá khớp hàng chục lớp vẫn KHÔNG đẩy điểm trường ra ngoài danh sách',
+kt('Từ khoá khớp hàng chục lớp vẫn KHÔNG đẩy phân hiệu ra ngoài danh sách',
    ...((() => {
      const kq = w.eval(`ketQuaTim('Diễn')`);
      const loai = [...new Set(kq.map(x => x.loai))];
-     return [loai.includes('Điểm trường') && kq.filter(x => x.loai === 'Lớp').length <= 6,
+     return [loai.includes('Phân hiệu') && kq.filter(x => x.loai === 'Lớp').length <= 6,
        loai.join(' · ')];
    })()));
 
@@ -2371,8 +2425,53 @@ console.log('\n17h. Bảng Giáo viên: Gmail và cột Dạy (28/8/2026)');
   w.chuyen('giaovien');
   const dau = [...w.document.querySelectorAll('#bGV thead th')].map(t => t.textContent.trim());
   kt('Bảng có đủ bảy thứ chủ dự án nêu, theo đúng thứ tự đọc',
-     ['TT', 'Họ và tên', 'Gmail', 'Chủ nhiệm', 'Dạy', 'Tiết / định mức', 'Ghi chú']
+     ['TT', 'Họ và tên', 'Gmail', 'Chủ nhiệm', 'Dạy', 'Tiết / ĐM', 'Ghi chú']
        .every(c => dau.includes(c)), dau.join(' · '));
+  /* Mười cột là trần: thêm nữa là cụm Sửa/Xoá tràn khỏi màn hình 1500px và
+     người dùng phải cuộn ngang mới bấm được — đúng lỗi vừa vá. */
+  kt('Không quá mười cột, để cụm Sửa/Xoá luôn nằm trong tầm nhìn',
+     dau.length <= 10, `${dau.length} cột`);
+  /* Phân hiệu và số buổi cần đã GỘP vào ô của chúng, không mất thông tin */
+  kt('Phân hiệu nằm ngay dưới cột Dạy — nó chính là nơi những lớp ấy nằm',
+     !!w.document.querySelector('.gv-day-o .gv-ph .tag.dt'));
+  kt('Số buổi cần nằm dưới Tình trạng',
+     /\d+\/\d+ buổi/.test(w.document.querySelector('.gv-buoi')?.textContent || ''),
+     w.document.querySelector('.gv-buoi')?.textContent);
+
+  /* Cụm SỬA / XOÁ thay dấu × đỏ trần (28/8/2026) */
+  kt('Cuối mỗi dòng là cụm Sửa / Xoá có chữ, không còn dấu × trần', (() => {
+    const n = [...w.document.querySelectorAll('#bGV .hang-nut button')];
+    return n.length >= 2 && n[0].textContent.includes('Sửa') && n[1].textContent.includes('Xoá')
+        && !w.document.querySelector('#bGV .x-hang');
+  })());
+  kt('Bấm Sửa mở hộp hồ sơ với ĐỦ bảy ô, kể cả Gmail · Điện thoại · Phân hiệu', (() => {
+    w.document.querySelector('[data-suagv]').click();
+    const co = ['#tgTen', '#tgMail', '#tgDT', '#tgPH', '#tgDM', '#tgCN', '#tgGhi']
+      .every(x => !!w.document.querySelector(x));
+    const dung = w.document.querySelector('#tgTen').value;
+    w.eval('dong()');
+    return [co && !!dung, dung];
+  })()[0]);
+  /* Thêm và Sửa dùng CHUNG một bộ ô — hai bản riêng thì sớm muộn một bên thiếu */
+  kt('Hộp Thêm giáo viên cũng có đúng bảy ô ấy', (() => {
+    w.eval('hopThemGV()');
+    const co = ['#tgTen', '#tgMail', '#tgDT', '#tgPH', '#tgDM', '#tgCN', '#tgGhi']
+      .every(x => !!w.document.querySelector(x));
+    const rong = w.document.querySelector('#tgTen').value === '';
+    w.eval('dong()');
+    return co && rong;
+  })());
+  /* Ô Gmail trong hộp soát y hệt ô gõ tay trong bảng và đường nhập Excel */
+  kt('Hộp Thêm chặn Gmail sai dạng, không thêm người nào', (() => {
+    const truoc = w.eval('S.giaoVien.length');
+    w.eval('hopThemGV()');
+    w.document.querySelector('#tgTen').value = 'Người Thử';
+    w.document.querySelector('#tgMail').value = 'khong-phai-email';
+    [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
+    const ok = w.eval('S.giaoVien.length') === truoc;
+    w.eval('dong()');
+    return ok;
+  })());
 
   /* Bảng sắp theo SỐ TIẾT giảm dần, không theo thứ tự S.giaoVien — dò theo id
      chứ đừng lấy dòng đầu, không thì phép thử xanh/đỏ theo thứ tự sắp xếp. */
@@ -2461,9 +2560,10 @@ console.log('\n17i. db/gmail-giao-vien.sql');
      /async function napHoSo\(thuGmail=true\)/.test(src));
   kt('Máy chủ chưa chạy tệp SQL thì im lặng lùi về đường mã mời',
      /return \{ok:false, thongBao:''\};/.test(src));
-  kt('Ghi giáo viên có đường lui khi máy chủ chưa có hai cột mới',
-     /Could not find the '\(email\|ghi_chu\)' column/.test(src) &&
-     /KHO\.coCotGV=false/.test(src));
+  kt('Ghi giáo viên có đường lui khi máy chủ chưa có bốn cột thêm sau',
+     /Could not find the '\(email\|ghi_chu\|dien_thoai\|diem_truong_id\)' column/.test(src) &&
+     /KHO\.coCotGV=false/.test(src) &&
+     /\{email, ghi_chu, dien_thoai, diem_truong_id, \.\.\.r\}/.test(src));
 }
 
 console.log('\n17f. Màn hình trường CHỜ DUYỆT (28/8/2026)');

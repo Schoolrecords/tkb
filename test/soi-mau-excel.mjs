@@ -142,7 +142,7 @@ kt('Mỗi mục một tên tệp riêng, đọc ra được mục nào',
   kt('Trang Phân công mang đủ ba danh mục nó dùng',
      ['DM_Ma_GV', 'DM_Ma_lop', 'DM_Mon'].every(n => vung('phancong').includes(n)),
      vung('phancong').join(' · '));
-  kt('Trang Điểm trường KHÔNG kèm danh sách mã giáo viên — nó không dùng tới',
+  kt('Trang Phân hiệu KHÔNG kèm danh sách mã giáo viên — nó không dùng tới',
      !vung('diemtruong').includes('DM_Ma_GV'), vung('diemtruong').join(' · '));
   kt('Trang nào có ô xổ xuống thì có trang DANH_MUC, không thì thôi',
      !!TEP_MUC.lop.lai.getWorksheet('DANH_MUC') &&

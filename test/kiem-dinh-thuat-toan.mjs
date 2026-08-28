@@ -82,18 +82,18 @@ function soatDocLap(u) {
     theoGVKhoa[kh] = o.lopId;
   }
 
-  /* V3 — một giáo viên, một buổi, một điểm trường */
+  /* V3 — một giáo viên, một buổi, một phân hiệu */
   const dtBuoi = {};
   for (const o of oTat) {
     const kh = `${o.gvId}|${o.thu}-${o.buoi}`;
     (dtBuoi[kh] ||= new Set()).add(S.lopDT[o.lopId]);
   }
   for (const [kh, tap] of Object.entries(dtBuoi))
-    if (tap.size > 1) loi.push(`V3: ${kh} có mặt ở ${tap.size} điểm trường trong MỘT buổi`);
+    if (tap.size > 1) loi.push(`V3: ${kh} có mặt ở ${tap.size} phân hiệu trong MỘT buổi`);
 
   /* V4 — phòng chức năng (chỉ khi trường đã khai bảng phòng):
-     mỗi (điểm trường · loại phòng · ô giờ) không quá số phòng hiện có,
-     và không xếp môn cần phòng tại điểm trường không có phòng loại đó */
+     mỗi (phân hiệu · loại phòng · ô giờ) không quá số phòng hiện có,
+     và không xếp môn cần phòng tại phân hiệu không có phòng loại đó */
   if ((S.phong || []).length) {
     const demPhong = {};
     (S.phong || []).forEach(p => { if (p.mon) demPhong[`${p.dtId}|${p.mon}`] = (demPhong[`${p.dtId}|${p.mon}`] || 0) + 1; });
@@ -103,7 +103,7 @@ function soatDocLap(u) {
       if (!loai) continue;
       const dt = S.lopDT[o.lopId];
       const coPhong = demPhong[`${dt}|${loai}`] || 0;
-      if (!coPhong) { loi.push(`V4: môn ${o.mon} xếp tại điểm trường KHÔNG có phòng ${loai} (${o.khoa})`); continue; }
+      if (!coPhong) { loi.push(`V4: môn ${o.mon} xếp tại phân hiệu KHÔNG có phòng ${loai} (${o.khoa})`); continue; }
       const kh = `${dt}|${loai}|${o.khoa}`;
       chiem[kh] = (chiem[kh] || 0) + 1;
       if (chiem[kh] > coPhong) loi.push(`V4: ${kh} có ${chiem[kh]} lớp cùng dùng ${coPhong} phòng`);
@@ -181,7 +181,7 @@ function doChatLuong(u) {
       ds.sort((a, b) => a - b);
       trongKep += ds[ds.length - 1] - ds[0] + 1 - ds.length;
     }
-    /* lượt đổi điểm trường giữa hai buổi CÓ MẶT liên tiếp trong tuần */
+    /* lượt đổi phân hiệu giữa hai buổi CÓ MẶT liên tiếp trong tuần */
     const tuan = [];
     for (let t = 2; t <= 6; t++) for (const b of ['S', 'C']) {
       const ky = theoBuoi[`${t}-${b}`];
@@ -211,7 +211,7 @@ function doChatLuong(u) {
 }
 
 const inChiSo = (m, diem) => console.log(
-  `    · điểm phạt ${so(diem)} · tiết trống kẹp ${m.trongKep} · lượt đổi điểm trường ${m.doiDT}`
+  `    · điểm phạt ${so(diem)} · tiết trống kẹp ${m.trongKep} · lượt đổi phân hiệu ${m.doiDT}`
   + ` · Toán/TV vào tiết 1–3 sáng ${m.nangSomPT}% · chuỗi >2 tiết cùng môn ${m.chuoiDai}`);
 
 /* ================================================================== */
@@ -252,10 +252,10 @@ console.log('\nB. Tất định — cùng dữ liệu, hai lần chạy phải r
 
 /* ---------- C. Sáp nhập 60 lớp ---------- */
 const dungThu = u => {
-  u.taoDuLieuThu('Điểm trường Diễn Đồng', 'DĐ', 17, true);
-  u.taoDuLieuThu('Điểm trường Diễn Thái', 'DT', 18, true);
+  u.taoDuLieuThu('Phân hiệu Diễn Đồng', 'DĐ', 17, true);
+  u.taoDuLieuThu('Phân hiệu Diễn Thái', 'DT', 18, true);
 };
-console.log('\nC. Sáp nhập ba điểm trường — 60 lớp');
+console.log('\nC. Sáp nhập ba phân hiệu — 60 lớp');
 let diemNhanh60 = 0;
 {
   const u = taoUngDung();
@@ -267,9 +267,9 @@ let diemNhanh60 = 0;
   diemNhanh60 = u.diemToanCuc();
   kt('Xếp trọn vẹn toàn bộ tiết ở quy mô 60 lớp', kq.daXep === kq.tongCan,
      `${kq.daXep}/${kq.tongCan} tiết · ${giay} giây`);
-  kt('KHÔNG một vi phạm nào — kể cả "một buổi một điểm trường" và phòng Tin',
+  kt('KHÔNG một vi phạm nào — kể cả "một buổi một phân hiệu" và phòng Tin',
      s.loi.length === 0, s.loi.slice(0, 3).join(' | ') || `soát ${s.soO} ô`);
-  kt('Tách đúng các nhóm độc lập theo điểm trường', (() => {
+  kt('Tách đúng các nhóm độc lập theo phân hiệu', (() => {
     const n = u.nhomDocLap().map(x => x.length).sort((a, b) => b - a);
     return n.length >= 3;
   })(), u.nhomDocLap().map(x => x.length).join(' · ') + ' lớp');
@@ -332,13 +332,13 @@ console.log('\nF. Gây khó — giáo viên bộ môn bận dày đặc, thuật
      `${kq.daXep}/${kq.tongCan} tiết · báo thiếu ${kq.chuaXep.length} trường hợp`);
 }
 
-/* ---------- G. Giáo viên LIÊN ĐIỂM TRƯỜNG ---------- */
-console.log('\nG. Giáo viên liên điểm trường — ràng buộc lõi phải bị thử thách THẬT');
+/* ---------- G. Giáo viên LIÊN PHÂN HIỆU ---------- */
+console.log('\nG. Giáo viên liên phân hiệu — ràng buộc lõi phải bị thử thách THẬT');
 {
-  /* Bộ dữ liệu thử cắt giáo viên gọn theo từng điểm trường, nên hai kịch
-     bản trên thoả ràng buộc "một buổi một điểm trường" một cách tầm thường.
+  /* Bộ dữ liệu thử cắt giáo viên gọn theo từng phân hiệu, nên hai kịch
+     bản trên thoả ràng buộc "một buổi một phân hiệu" một cách tầm thường.
      Ở đây ép cho nó hoạt động thật: chuyển 4 lớp môn Âm nhạc của Diễn Đồng
-     sang cô Âm nhạc của Diễn Thái — một người dạy HAI điểm trường. */
+     sang cô Âm nhạc của Diễn Thái — một người dạy HAI phân hiệu. */
   const u = taoUngDung();
   dungThu(u);
   const { S } = u;
@@ -357,19 +357,19 @@ console.log('\nG. Giáo viên liên điểm trường — ràng buộc lõi ph�
   const kq = u.xepTuDong();
   const s = soatDocLap(u);
   const m = doChatLuong(u);
-  /* Cô nhận thêm giờ thật sự hiện diện ở HAI điểm trường trong tuần */
+  /* Cô nhận thêm giờ thật sự hiện diện ở HAI phân hiệu trong tuần */
   const dtCua = new Set();
   for (const luoi of Object.values(S.tkb))
     for (const v of Object.values(luoi))
       if (v.gvId === gvNhan) dtCua.add(S.lopDT[Object.keys(S.tkb).find(l => S.tkb[l] === luoi)]);
-  kt('Xếp gần trọn dù một người gánh hai điểm trường',
+  kt('Xếp gần trọn dù một người gánh hai phân hiệu',
      kq.daXep >= kq.tongCan - 4, `${kq.daXep}/${kq.tongCan} tiết`);
-  kt('KHÔNG vi phạm nào — mỗi buổi cô ấy chỉ ở đúng MỘT điểm trường',
+  kt('KHÔNG vi phạm nào — mỗi buổi cô ấy chỉ ở đúng MỘT phân hiệu',
      s.loi.length === 0, s.loi.slice(0, 3).join(' | ') || 'soát cả 7 nhóm ràng buộc');
-  kt('Cô ấy thật sự dạy ở HAI điểm trường trong tuần — phép thử không còn tầm thường',
-     dtCua.size === 2, `có mặt tại ${dtCua.size} điểm trường`);
+  kt('Cô ấy thật sự dạy ở HAI phân hiệu trong tuần — phép thử không còn tầm thường',
+     dtCua.size === 2, `có mặt tại ${dtCua.size} phân hiệu`);
   kt('Sổ sách vẫn khớp tuyệt đối', soatDuTiet(u, kq, s).length === 0);
-  console.log(`    · lượt đổi điểm trường toàn trường: ${m.doiDT} (phải > 0 mới là thử thật)`);
+  console.log(`    · lượt đổi phân hiệu toàn trường: ${m.doiDT} (phải > 0 mới là thử thật)`);
 }
 
 console.log(`\nKết quả kiểm định: ${dat} đạt, ${hong} hỏng\n`);

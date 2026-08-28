@@ -26,7 +26,7 @@ export default function muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS,
   };
   /* Hai mục TUỲ CHỌN (`PHONG` · `BUOI_BAN`) trường Diễn Liên chưa khai, nên
      `hang()` rỗng và vòng tròn không kiểm được gì. Gieo sẵn một dòng dựng từ
-     chính dữ liệu thật — KHÔNG dùng dòng ví dụ "Điểm trường chính", cái tên
+     chính dữ liệu thật — KHÔNG dùng dòng ví dụ "Phân hiệu chính", cái tên
      ấy không tồn tại ở trường này và đó đúng là cái bẫy đã ghi ở mục 21. */
   const gieo = () => {
     const k = chepKhoNguon();
@@ -214,12 +214,12 @@ export default function muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS,
   /* ---------- l) napMucVaoS() là đường DUY NHẤT ghi vào S ---------- */
   {
     const u = taoUngDung(documentGia);
-    const r = u.duLieuTuMuc('diemtruong', [{Ten_diem_truong: 'Điểm trường Mới Toanh'}]);
+    const r = u.duLieuTuMuc('diemtruong', [{Ten_diem_truong: 'Phân hiệu Mới Toanh'}]);
     const truoc = u.S.diemTruong.length;
     u.napMucVaoS(r);
     kt('napMucVaoS() nạp trọn bản sao vào S, không sót bảng nào',
        u.S.diemTruong.length === truoc + 1 &&
-       u.S.diemTruong.some(d => d.ten === 'Điểm trường Mới Toanh') &&
+       u.S.diemTruong.some(d => d.ten === 'Phân hiệu Mới Toanh') &&
        u.S.lop === r.kho.lop && u.S.phanCong === r.kho.phanCong &&
        u.S.giaoVien === r.kho.giaoVien && u.S.gvNghi === r.kho.gvNghi);
   }
