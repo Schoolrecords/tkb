@@ -21,6 +21,12 @@
      Pages không đặt được HTTP header nên chỉ có đường thẻ meta này.
      ⚠️ style-src bắt buộc có 'unsafe-inline': cả trang dùng style="…" khắp
      nơi, đó là quy ước một-tệp, không đổi.
+     ⚠️ worker-src PHẢI có `blob:`. `taoWorkerXep()` dựng Worker từ một Blob
+     URL — cách duy nhất chạy vùng LOGIC trong luồng riêng mà vẫn giữ quy ước
+     một tệp. Khai `worker-src 'self'` trơn thì trình duyệt chặn, nút *Xếp kỹ*
+     lặng lẽ rơi về chạy trên luồng chính và treo giao diện mấy phút. Không có
+     lỗi nào hiện ra: `npm test` và `npm run soi` vẫn xanh vì chúng gọi thẳng
+     hàm thuần — chỉ `node test/soi-worker.mjs` bắt được.
      ⚠️ connect-src phải khớp SUPABASE_URL trong src/cauhinh.js — có phép thử
      đối chiếu hai chỗ, không ghi cứng. -->
 <meta http-equiv="Content-Security-Policy" content="
@@ -30,7 +36,7 @@
   font-src 'self' https://fonts.gstatic.com;
   img-src 'self' data: blob:;
   connect-src 'self' https://rvunpreynpvicoidrojk.supabase.co wss://rvunpreynpvicoidrojk.supabase.co;
-  worker-src 'self';
+  worker-src 'self' blob:;
   object-src 'none';
   base-uri 'self';
   form-action 'self'">

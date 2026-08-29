@@ -505,6 +505,16 @@ Chrome thật gọi `sanSangExcelJS()` · `sanSangXLSX()` để chắc CDN vẫn
 ghi cứng — cùng khuôn phép thử ba-chỗ-khai-màu-chủ-đề. Ghi cứng thì đổi dự án
 Supabase là phép thử vẫn xanh trong khi app mất hẳn đường gọi máy chủ.
 
+⚠️ **`worker-src` PHẢI có `blob:`** *(vá 29/8/2026, ngay trong ngày thêm CSP)*.
+`taoWorkerXep()` dựng Worker từ một **Blob URL** — cách duy nhất chạy vùng
+LOGIC trong luồng riêng mà vẫn giữ quy ước một tệp. Khai `worker-src 'self'`
+trơn thì trình duyệt chặn, nút *Xếp kỹ* **lặng lẽ rơi về luồng chính** và treo
+giao diện mấy phút. Không một lỗi nào hiện ra, và `npm test` · `npm run soi` ·
+`npm run soi-nhap` · `npm run soi-mau` đều xanh — chúng gọi thẳng hàm thuần.
+Chỉ `node test/soi-worker.mjs` bắt được, mà bộ ấy **không nằm trong danh sách
+chạy thường**. Bài học: thêm một hàng rào (CSP) thì phải chạy **cả tám** bộ
+soi, không chỉ bốn bộ quen tay.
+
 **`db/siet-dang-ky-va-nhat-ky.sql`** *(ĐÃ CHẠY trên máy chủ thật 29/8/2026)* —
 hai việc còn lại:
 
