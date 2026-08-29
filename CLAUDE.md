@@ -1410,6 +1410,32 @@ thì không. Nay `docTepMuc()` gọi thẳng `bangTuMaTran()`, hàm thật của
 rơi xuống câu *"không có trang tính nào máy đọc được"* — người dùng đang
 cầm đúng tệp mẫu, chỉ là chưa gõ gì vào.
 
+#### `npm run soi-nhap` — bộ soi thứ năm, đi đường của TRƯỜNG MỚI *(29/8/2026)*
+
+Ba bộ soi cũ mỗi bộ nhìn một mảnh: `npm test` chạy hàm thuần, `npm run soi`
+vẽ màn hình của trường **đã có 25 lớp**, `npm run soi-mau` soi hình thức tệp
+`.xlsx`. Không bộ nào đi hết đường một trường **mới tinh** — đúng đường Tiểu
+học Quảng Châu 1 đang đi, và đúng chỗ ba lỗi ngày 29/8 nằm.
+
+`test/soi-nhap-lieu.mjs` dựng trường TRẮNG rồi đi trọn hai lối: **gõ tay**
+(bấm thật vào chín hộp thoại khai báo) và **Excel** (tải mẫu, gõ dữ liệu vào
+chính tệp ấy, đẩy ngược qua `#tep.onchange`). Cần
+`npm install --no-save jsdom xlsx exceljs`; thiếu thì tự bỏ qua.
+
+⚠️ Ba chỗ dễ sai khi sửa bộ soi này:
+- **`#hopN` là nội dung hộp thoại, `#hopC` chỉ là hàng nút.** Soi câu lỗi ở
+  `#hopC` thì được chuỗi rỗng và phép thử đỏ oan.
+- **Mẫu của trường TRẮNG mang sẵn dòng ví dụ** — tổng sau khi nhập = ví dụ +
+  phần gõ thêm. Soi theo phần MÌNH GÕ, đừng soi tổng.
+- Mọi thao tác đi qua đúng hộp thoại người dùng bấm; gọi tắt hàm là quay lại
+  đúng cái bẫy "phép thử tự làm hộ app" ở trên.
+
+⚠️ **Hai đường tạo lớp phải ra CÙNG một dạng mã** *(vá 29/8/2026)*.
+`hopThemLop()` sinh `TT-1C` trong khi `sinhLop()` sinh `1A_TT`, và nhãn xem
+trước trong hộp *Tạo lớp hàng loạt* ghi `DL-1A` — tức là **dạy người dùng gõ
+sai ngay tại chỗ hướng dẫn**, mà mã lớp chính là thứ họ phải gõ vào cột
+`Ma_lop`. Dạng đúng: **tên lớp trước, gạch DƯỚI, viết tắt phân hiệu sau**.
+
 #### "199 chỗ chưa đúng" — dòng trống không phải lỗi *(28/8/2026)*
 
 Soi lại danh sách chủ dự án gửi thì **phần lớn 199 chỗ ấy không phải lỗi của

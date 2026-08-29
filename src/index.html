@@ -4549,7 +4549,12 @@ const TEN_COT_XL = /^[A-Za-z][A-Za-z0-9_]*\s*\*?$/;
 function bangTuMaTran(a){
   const dong = (a||[]).findIndex(h =>
     (h||[]).filter(o => TEN_COT_XL.test(String(o??'').trim())).length >= 2);
-  if(dong < 0) return [];
+  /* KHÔNG dò ra dòng tên cột nào → `null`, để nơi gọi biết mà lùi về cách
+     đọc cũ. Dò ra mà chưa có dòng dữ liệu nào → `[]`, một chuyện khác hẳn:
+     tệp ĐÚNG mẫu, chỉ là người dùng chưa gõ gì. Trả cùng một giá trị cho hai
+     ca ấy thì câu báo lỗi sai hẳn — mẫu trống bị mắng là "tệp không đọc
+     được". */
+  if(dong < 0) return null;
   const cot = (a[dong]||[]).map(o => String(o??'').trim().replace(/\s*\*$/,''));
   const r = [];
   for(let i=dong+1;i<a.length;i++){
@@ -12392,7 +12397,7 @@ function hopSinhLop(){
        ${dsDT.map(d=>`<option value="${d.id}">${esc(d.ten)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Tiền tố mã lớp</label>
      <input class="ip" id="slTien" value="${esc(goiYTienTo(dsDT[0]?.ten||''))}" style="width:100%">
-     <div class="gy">Mã lớp sẽ là <b id="slVD">DL-1A</b>. Ba phân hiệu cùng có lớp tên "1A" thì
+     <div class="gy">Mã lớp sẽ là <b id="slVD">1A_DL</b>. Ba phân hiệu cùng có lớp tên "1A" thì
        mã khác nhau nên máy vẫn phân biệt được. Để trống nếu trường chỉ có một điểm.</div></div>
    <div class="on-l"><label>Số lớp mỗi khối</label>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
@@ -12424,7 +12429,10 @@ function hopSinhLop(){
   /* Xem trước mã lớp ngay khi gõ tiền tố. Gọi một lần lúc mở hộp thoại nữa —
      trường một điểm thì ô tiền tố để trống, ví dụ phải là "1A" chứ không phải
      "DL-1A" như dòng mẫu viết sẵn trong HTML. */
-  const veVD=()=>{ const t=$('#slTien').value.trim(); $('#slVD').textContent=(t?t+'-':'')+'1A'; };
+  /* Nhãn xem trước phải nói ĐÚNG mã máy sẽ đặt — nó từng ghi "DL-1A" trong
+     khi sinhLop() đặt "1A_DL", tức là dạy người dùng gõ sai ngay tại chỗ
+     hướng dẫn. */
+  const veVD=()=>{ const t=$('#slTien').value.trim(); $('#slVD').textContent='1A'+(t?'_'+t:''); };
   $('#slTien').oninput=veVD;
   $('#slDT').onchange=e=>{ $('#slTien').value=goiYTienTo(dtId(e.target.value)?.ten||''); veVD(); };
   veVD();
@@ -12456,7 +12464,11 @@ function hopThemLop(){
       return bao('Phân hiệu này đã có lớp tên "'+ten+'"',true);
     const daCo=new Set(S.lop.map(l=>l.maLop||l.id));
     const tien=goiYTienTo(dtId(dt)?.ten||'');
-    const ma=maChuaDung($('#tlMa').value.trim() || (tien?tien+'-':'')+ten, daCo);
+    /* Cùng dạng với sinhLop(): TÊN LỚP trước, viết tắt phân hiệu sau, ngăn
+       bằng gạch DƯỚI — `1A_DL`. Hai đường tạo lớp ra hai dạng mã khác nhau
+       thì bảng Lớp học bày ra một mớ lộn xộn, mà mã lớp chính là thứ người
+       dùng gõ vào cột Ma_lop của tệp Excel. */
+    const ma=maChuaDung($('#tlMa').value.trim() || ten+(tien?'_'+tien:''), daCo);
     const id='lop_'+ma.replace(/[^A-Za-z0-9]+/g,'_');
     S.lop.push({id, maLop:ma, ten, khoi});
     S.lopDT[id]=dt; S.tkb[id]={};
@@ -13712,7 +13724,7 @@ $('#tep').onchange=async e=>{
       const ws=wb.Sheets[n]; if(!ws) return null;
       const h=bangTuMaTran(XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:true}));
       /* Không dò ra dòng tên cột nào thì cứ đọc như cũ — đường lui cho tệp lạ */
-      return h.length ? h : XLSX.utils.sheet_to_json(ws);
+      return h || XLSX.utils.sheet_to_json(ws);
     };
 
     /* ĐƯỜNG CHÍNH từ 28/8/2026 — một trang của đúng mục đang mở. Xét trước

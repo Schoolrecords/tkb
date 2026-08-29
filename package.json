@@ -10,6 +10,7 @@
     "kiemdinh": "node test/kiem-dinh-thuat-toan.mjs",
     "soi": "node test/soi-giao-dien.mjs",
     "soi-mau": "node test/soi-mau-excel.mjs",
+    "soi-nhap": "node test/soi-nhap-lieu.mjs",
     "soat": "node db/soat-sql.mjs",
     "soi-sao-luu": "node db/soi-sao-luu.mjs"
   },

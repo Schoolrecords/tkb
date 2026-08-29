@@ -1350,3 +1350,88 @@ khoản đăng ký được, và `nhat_ky` hiện cho mọi người cùng trư�
 `npm run soat` 0 lỗi 0 cảnh báo (370 câu lệnh) · `npm run kiemdinh` 22.
 `db/cai-dat.sql` sinh lại từ **13** tệp nguồn, đã có bản vá trong đó nên
 trường mới cài trọn gói là có sẵn.
+
+---
+
+## 29/8/2026 — công đoạn NHẬP LIỆU BAN ĐẦU: ba lỗi và một bộ soi mới
+
+Ngày làm việc bắt đầu bằng hai câu hỏi của chủ dự án, cả hai đều chỉ đúng
+vào chỗ hở, và kết thúc bằng một bộ soi đi trọn đường của **trường mới
+tinh** — đường mà ba bộ soi cũ không bộ nào đi hết.
+
+### 1. "Sao không quy định mã GV mới ngay từ đầu?"
+
+Ảnh chụp hộp *Đặt lại mã giáo viên* trên trường Tiểu học Quảng Châu 1 —
+một trường **mới đăng ký, chưa có dữ liệu cũ nào**. Vậy mà nó vẫn phải
+dọn dẹp mã.
+
+Nút ấy dựng ngày 3/8 để chữa hậu quả sự cố upsert 2/8 (UUID máy chủ lọt
+vào cột `ma_gv`). Nhưng hai đường **tạo hồ sơ mới** thì chưa ai sửa:
+`hopThemGV()` sinh `gv_cao_thi_minh_khue`, `taoDuLieuThu()` sinh
+`gv_dl_cn1`. Nay cả hai đi qua `maGVMoi(hoTen)` — cùng dạng `maGVTu()`,
+chống trùng bằng hậu tố `_2` y như `datLaiMaGV()`. `id` nội bộ vẫn giữ
+dạng slug cũ, nên không tham chiếu nào phải đổi.
+
+Nút Đặt lại giữ nguyên, nhưng lui về đúng vai: chữa **dữ liệu cũ**.
+
+### 2. "Chọn đúng tệp mẫu mà báo không đọc được"
+
+Chủ dự án tải mẫu *Giáo viên* về, chọn lại đúng tệp ấy, nhận
+**"Tệp này không có trang tính nào máy đọc được"** — trong khi trang tính
+tên đúng là `GIAO_VIEN`. Tức là **mẫu do chính app sinh ra thì chính app
+không đọc lại được**. Hai tầng cộng lại:
+
+- Mẫu mở đầu bằng dải tiêu đề gộp ô + một dòng nhắc việc → tên cột nằm ở
+  **dòng 3**, mà `sheet_to_json()` mặc định lấy dòng đầu.
+- Cột bắt buộc mang **dấu sao** (`Ma_GV *`) cho người điền dễ nhìn.
+
+`bangTuMaTran(a)` nhận diện dòng tên cột bằng **chính dạng của tên** (chữ
+không dấu kiểu `Ma_GV`, tối thiểu hai ô khớp), bỏ dấu sao, gán `__dong`
+là số dòng Excel thật. Trả về **`null`** khi không dò ra dòng tên cột nào
+— khác hẳn **`[]`** nghĩa là tệp đúng mẫu nhưng chưa gõ gì. Trả cùng một
+giá trị cho hai ca ấy chính là thứ làm mẫu trống bị mắng là "tệp không
+đọc được"; nay ca thứ hai có câu riêng.
+
+⚠️ **Phép thử tự làm hộ app đúng cái việc app không làm.** `npm run soi-mau`
+đã có cụm *"VÒNG TRÒN QUA TỆP THẬT"* từ 28/8 — sinh tệp, đọc lại, đổ ngược
+qua `duLieuTuMuc()`, và **xanh suốt** trong khi app hỏng. Vì hàm đọc của nó
+chép tay `getRow(3)` và `replace(/ \*$/, '')`. Nay `docTepMuc()` gọi thẳng
+`bangTuMaTran()`; thử ngược bằng cách bỏ phép dò thì **25 phép thử đỏ**.
+
+### 3. Hai đường tạo lớp ra hai dạng mã khác nhau
+
+Lộ ra khi bộ soi mới đi qua màn Lớp học của trường trắng:
+
+| | trước | sau |
+|---|---|---|
+| *Tạo lớp hàng loạt* | `1A_TT` | `1A_TT` |
+| *Thêm một lớp* | **`TT-1C`** | `1C_TT` |
+| Nhãn xem trước trong hộp | **`TT-1A`** | `1A_TT` |
+
+Nhãn xem trước còn tệ hơn cả mã sai: nó **dạy người dùng gõ sai ngay tại
+chỗ hướng dẫn**, mà mã lớp chính là thứ họ phải gõ vào cột `Ma_lop`.
+
+### `npm run soi-nhap` — bộ soi thứ năm
+
+`test/soi-nhap-lieu.mjs` dựng một trường **TRẮNG** rồi đi trọn hai lối:
+
+- **Gõ tay** — bấm thật vào từng hộp thoại: phân hiệu → tạo lớp hàng loạt
+  → thêm lớp lẻ → ba giáo viên (có hai người trùng tên gọi) → môn tự chọn
+  → phân công một-lớp-nhiều-môn → phân công nhanh một-môn-nhiều-lớp →
+  phòng chức năng → kiểm tra khả thi.
+- **Excel** — tải mẫu từng mục, **gõ dữ liệu vào chính tệp ấy** rồi đẩy
+  ngược qua `#tep.onchange`, tức đúng đường người dùng chọn tệp, không gọi
+  tắt `duLieuTuMuc()`. Nhập lần hai phải không nhân đôi dòng nào; tệp lạ,
+  mẫu chưa điền, và khối ngoài 1–5 đều phải có câu báo riêng.
+
+Ba điều đáng nhớ khi sửa bộ soi này:
+
+- **Hộp thoại: `#hopN` là nội dung, `#hopC` chỉ là hàng nút.** Soi câu lỗi
+  ở `#hopC` thì chuỗi rỗng và phép thử đỏ oan.
+- **Mẫu của trường TRẮNG mang sẵn dòng ví dụ**, nên tổng số dòng sau khi
+  nhập = ví dụ + phần gõ thêm. Soi theo **phần mình gõ**, đừng soi tổng.
+- Cần `npm install --no-save jsdom xlsx exceljs`; thiếu thì bộ soi tự bỏ
+  qua, không làm đỏ CI của máy chưa cài.
+
+**Số đo:** `npm test` 451 · `npm run soi` 426 · `npm run soi-mau` 81 ·
+`npm run soi-nhap` 50 · `npm run soat` 0 lỗi.
