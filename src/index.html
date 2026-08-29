@@ -607,6 +607,12 @@ table.dl{border-collapse:collapse;width:100%;font-size:13px}
 table.dl th{background:#F4F9FD;text-align:left;padding:11px 15px;font-size:10.5px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;color:var(--chu-mo);border-bottom:1px solid var(--ke);position:sticky;top:0;z-index:2;white-space:nowrap}
 table.dl td{padding:10px 15px;border-bottom:1px solid #EAF5FB}
+/* Bảng nhiều dòng mà mỗi dòng chỉ chứa ô nhập một dòng — Môn học 13+ môn —
+   thì 10px trên dưới đẩy bốn môn cuối ra khỏi màn hình mà chẳng thêm gì cho
+   dễ đọc. Nới tay ở bảng ít dòng, siết ở bảng dài. */
+table.dl.gon td{padding:5px 12px}
+table.dl.gon th{padding:9px 12px}
+table.dl.gon td .ip{padding:5px 8px}
 table.dl tbody tr:last-child td{border-bottom:none}
 table.dl tbody tr:hover{background:#F7FBFE}
 .giua{text-align:center}.phai{text-align:right}
@@ -11323,28 +11329,41 @@ function mMonHoc(){
       <div class="cb-g">${esc(laMonNgoai.join(' · '))} — vẫn xếp được, nhưng chưa có màu riêng và chưa
         khai được số tiết chuẩn. Bấm <b>Thêm môn</b> để bổ sung.</div></div></div>`:''}
   ${oLoc('bMon',ds.length,'môn','Tìm tên môn hay loại phòng…')}
-  <div class="bang" style="max-height:66vh"><table class="dl" id="bMon"><thead><tr>
+  ${''/* ⚠️ KHÔNG khoá chiều cao. Chủ dự án: "cả trang này vẫn bị lấp các môn
+        còn lại, nếu có thể em cho hàng sát lên, cho đủ 13+ môn". Khung cuộn
+        66vh chỉ chứa 10 hàng nên bốn môn cuối luôn khuất, mà danh mục chuẩn
+        đã 13 môn — nghĩa là ai cũng gặp. Bảng cao tự nhiên, trang cuộn như
+        mọi trang khác; `.bang` vẫn giữ overflow cho cuộn NGANG 13 cột. */}
+  <div class="bang"><table class="dl gon" id="bMon"><thead><tr>
     <th>Môn học</th><th>Màu</th><th style="text-align:center">Ưu tiên<br>sáng sớm</th>
     <th style="text-align:center">Tránh đầu<br>cuối buổi</th><th>Phòng cần</th>
     ${[1,2,3,4,5].map(k=>`<th class="phai">K${k}</th>`).join('')}
-    <th class="phai">Đang xếp</th>${sua?'<th></th>':''}</tr></thead><tbody>
+    <th class="phai">Đang xếp</th>${sua?'<th style="text-align:right">Sửa</th>':''}</tr></thead><tbody>
   ${ds.map((m,i)=>`<tr data-loctu="${tuLoc(m.ten,m.phong)}">
-    <td><span class="${esc(m.mau)}" style="display:inline-block;width:11px;height:11px;border-radius:4px;
-        background:var(--mc);margin-right:8px;vertical-align:-1px"></span>
-      ${sua?`<input class="ip" data-monten="${i}" value="${esc(m.ten)}" style="width:120px">`:`<b>${esc(m.ten)}</b>`}</td>
-    <td>${sua?`<select class="ip" data-monmau="${i}" style="width:112px">
+    ${''/* ⚠️ `white-space:nowrap`. Thiếu nó thì cột này hẹp lại là ô nhập rơi
+          xuống DƯỚI chấm màu, hàng cao gấp đôi — đúng thứ đẩy bốn môn cuối ra
+          khỏi màn hình. Bảng 13 cột thì cột nào cũng bị ép, nên phải nói rõ. */}
+    <td style="white-space:nowrap"><span class="${esc(m.mau)}" style="display:inline-block;width:11px;height:11px;border-radius:4px;
+        background:var(--mc);margin-right:7px;vertical-align:-1px"></span>
+      ${sua?`<input class="ip" data-monten="${i}" value="${esc(m.ten)}" style="width:106px">`:`<b>${esc(m.ten)}</b>`}</td>
+    <td>${sua?`<select class="ip" data-monmau="${i}" style="width:98px">
         ${MAU_MON.map(x=>`<option value="${x.ma}" ${m.mau===x.ma?'selected':''}>${esc(x.ten)}</option>`).join('')}</select>`
       :esc(MAU_MON.find(x=>x.ma===m.mau)?.ten||'')}</td>
     <td style="text-align:center"><input type="checkbox" data-monnang="${i}" ${m.nang?'checked':''} ${sua?'':'disabled'}></td>
     <td style="text-align:center"><input type="checkbox" data-monnhe="${i}" ${m.nhe?'checked':''} ${sua?'':'disabled'}></td>
-    <td>${sua?`<input class="ip" data-monphong="${i}" value="${esc(m.phong||'')}" placeholder="học tại lớp" style="width:104px">`
+    <td>${sua?`<input class="ip" data-monphong="${i}" value="${esc(m.phong||'')}" placeholder="học tại lớp" style="width:92px">`
       :esc(m.phong||'—')}</td>
     ${[1,2,3,4,5].map(k=>`<td class="phai">${sua
       ?`<input class="ip" type="number" min="0" max="20" data-monchuan="${i}|${k}"
           value="${m.chuan?.[k]||''}" placeholder="—" style="width:56px;text-align:right">`
       :(m.chuan?.[k]||'—')}</td>`).join('')}
     <td class="phai">${dungTrongPC[m.ten]||0}</td>
-    ${sua?`<td class="phai"><button class="x-hang" data-xoamon="${i}" title="Xoá môn">&times;</button></td>`:''}
+    ${sua?`<td><div class="hang-nut">
+      <button data-suamon="${i}" title="Sửa môn ${esc(m.ten)}">
+        <svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M14 6l4 4"/></svg>Sửa</button>
+      <button class="n-xoa" data-xoamon="${i}" title="Xoá môn ${esc(m.ten)}">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>Xoá</button>
+    </div></td>`:''}
   </tr>`).join('')}
   </tbody></table></div>
   ${locRong('bMon')}
@@ -12155,6 +12174,7 @@ function noiSuKien(){
     const n=+e.target.value;
     if(Number.isFinite(n) && n>0) m.chuan[k]=Math.min(20,n); else delete m.chuan[k];
     ve(); });
+  $$('[data-suamon]').forEach(b=>b.onclick=()=>hopSuaMon(+b.dataset.suamon));
   $$('[data-xoamon]').forEach(x=>x.onclick=()=>{
     const m=S.monHoc[+x.dataset.xoamon]; if(!m) return;
     const dung=S.phanCong.filter(p=>p.mon===m.ten).length;
@@ -12869,30 +12889,73 @@ function hopXoaGV(id){
   }}]);
 }
 
-function hopThemMon(){
-  hop('Thêm môn học',
-  `<div class="on-l"><label>Tên môn</label>
-     <input class="ip" id="tmTen" placeholder="Ví dụ: Tiếng dân tộc" style="width:100%"></div>
+/* Ô khai của MỘT môn — dùng chung cho cả Thêm lẫn Sửa. Viết hai bản thì sớm
+   muộn một bên thiếu ô, đúng chuyện đã xảy ra với hộp Thêm giáo viên hôm
+   28/8: bảng có bảy cột mà hộp chỉ hỏi ba. Hộp cũ ở đây cũng thiếu đúng hai
+   ô "Ưu tiên sáng sớm" và "Tránh đầu cuối buổi". */
+function oKhaiMon(m){
+  const g=(x,d='')=>esc(m?.[x] ?? d);
+  return `<div class="on-l"><label>Tên môn</label>
+     <input class="ip" id="tmTen" value="${g('ten')}" placeholder="Ví dụ: Tiếng dân tộc" style="width:100%"></div>
    <div class="on-l"><label>Màu trên lưới</label>
      <select class="ip" id="tmMau" style="width:100%">
-       ${MAU_MON.map(x=>`<option value="${x.ma}">${esc(x.ten)}</option>`).join('')}</select></div>
+       ${MAU_MON.map(x=>`<option value="${x.ma}" ${m?.mau===x.ma?'selected':''}>${esc(x.ten)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Phòng chức năng cần dùng</label>
-     <input class="ip" id="tmPhong" placeholder="để trống nếu học tại lớp" style="width:100%"></div>
+     <input class="ip" id="tmPhong" value="${g('phong')}" placeholder="để trống nếu học tại lớp" style="width:100%"></div>
+   <div class="on-l"><label>Cách xếp</label>
+     <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px;margin-bottom:7px">
+       <input type="checkbox" id="tmNang" ${m?.nang?'checked':''}>
+       Ưu tiên sáng sớm — máy đẩy về tiết 1–3 buổi sáng</label>
+     <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px">
+       <input type="checkbox" id="tmNhe" ${m?.nhe?'checked':''}>
+       Tránh đầu cuối buổi — không xếp tiết cuối sáng hay tiết 1 chiều</label></div>
    <div class="on-l"><label>Số tiết chuẩn mỗi tuần</label>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
        ${[1,2,3,4,5].map(k=>`<div style="text-align:center">
          <div style="font-size:11px;font-weight:700;color:var(--chu-mo);margin-bottom:4px">K${k}</div>
          <input class="ip" type="number" min="0" max="20" placeholder="—" data-tmc="${k}"
-           style="width:100%;text-align:center"></div>`).join('')}
-     </div><div class="gy">Khối nào không học môn này thì để trống.</div></div>`,
+           value="${m?.chuan?.[k]||''}" style="width:100%;text-align:center"></div>`).join('')}
+     </div><div class="gy">Khối nào không học môn này thì để trống — khối ấy sẽ không tích được
+       môn này trong hộp Thêm phân công.</div></div>`;
+}
+
+/* Đọc ngược ô khai. Trả null khi có lỗi và đã báo — nơi gọi chỉ việc dừng. */
+function docKhaiMon(iBoQua){
+  const ten=$('#tmTen').value.trim();
+  if(!ten){ bao('Nhập tên môn',true); return null; }
+  if(S.monHoc.some((m,i)=>i!==iBoQua && m.ten===ten)){
+    bao('Danh mục đã có môn "'+ten+'"',true); return null; }
+  const chuan={};
+  [1,2,3,4,5].forEach(k=>{ const n=+$(`[data-tmc="${k}"]`).value; if(n>0) chuan[k]=Math.min(20,n); });
+  return {ten, mau:$('#tmMau').value, nang:$('#tmNang').checked, nhe:$('#tmNhe').checked,
+          phong:$('#tmPhong').value.trim(), chuan};
+}
+
+function hopThemMon(){
+  hop('Thêm môn học', oKhaiMon(null),
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Thêm',lam:()=>{
-    const ten=$('#tmTen').value.trim(); if(!ten) return bao('Nhập tên môn',true);
-    if(S.monHoc.some(m=>m.ten===ten)) return bao('Danh mục đã có môn "'+ten+'"',true);
-    const chuan={};
-    [1,2,3,4,5].forEach(k=>{ const n=+$(`[data-tmc="${k}"]`).value; if(n>0) chuan[k]=Math.min(20,n); });
-    S.monHoc.push({ten, mau:$('#tmMau').value, nang:false, nhe:false,
-                   phong:$('#tmPhong').value.trim(), chuan});
-    dong(); bao('Đã thêm môn '+ten); ve();
+    const v=docKhaiMon(-1); if(!v) return;
+    S.monHoc.push(v);
+    dong(); bao('Đã thêm môn '+v.ten); ve();
+  }}]);
+}
+
+function hopSuaMon(i){
+  const m=S.monHoc[i]; if(!m) return;
+  hop('Sửa môn '+m.ten, oKhaiMon(m),
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Lưu',lam:()=>{
+    const v=docKhaiMon(i); if(!v) return;
+    /* Đổi TÊN môn thì phải đổi theo ở bảng phân công và ở lưới đã xếp — hai
+       nơi ấy tham chiếu môn bằng chính chuỗi tên. Bỏ bước này là dòng phân
+       công thành môn lạ, và ô trên lưới mất màu. */
+    const tenCu=m.ten;
+    Object.assign(m, v);
+    if(tenCu!==v.ten){
+      S.phanCong.forEach(p=>{ if(p.mon===tenCu) p.mon=v.ten; });
+      Object.values(S.tkb||{}).forEach(o=>Object.values(o).forEach(t=>{
+        if(t?.mon===tenCu) t.mon=v.ten; }));
+    }
+    dong(); bao('Đã lưu môn '+v.ten); ve();
   }}]);
 }
 

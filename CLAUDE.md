@@ -712,6 +712,31 @@ tìm ra.
 | Thêm phân công | **một lớp** · nhiều môn — dành cho chủ nhiệm |
 | Phân công nhanh | một môn · **nhiều lớp** — dành cho bộ môn |
 
+### Bảng Môn học: cụm Sửa/Xoá, và hiện đủ 13 môn *(29/8/2026)*
+
+Chủ dự án: *"nút dấu x (màu đỏ) cần thay bằng nút sửa/xoá. Và cả trang này vẫn
+bị lấp các môn còn lại, cho hàng sát lên, cho đủ 13 + môn"*.
+
+- **Dấu `×` đỏ trần → cụm Sửa / Xoá**, đúng khuôn bảng Giáo viên hôm 28/8:
+  nút Xoá **không tô đỏ sẵn**, chỉ đỏ khi rê chuột.
+- **`hopSuaMon()` mở hộp đầy đủ**, dùng chung `oKhaiMon()` · `docKhaiMon()`
+  với hộp Thêm. Hộp Thêm cũ thiếu đúng hai ô *Ưu tiên sáng sớm* và *Tránh đầu
+  cuối buổi* mà bảng vẫn có — lại đúng chuyện đã xảy ra với hộp Thêm giáo viên.
+- ⚠️ **Đổi TÊN môn thì phải đổi theo ở `phanCong` và `S.tkb`** — hai nơi ấy
+  tham chiếu môn bằng chính chuỗi tên. Bỏ bước này là dòng phân công thành môn
+  lạ và ô trên lưới mất màu. Có phép thử canh.
+
+⚠️ **Khung cuộn `max-height:66vh` đã BỎ.** Nó chỉ chứa 10 hàng, mà danh mục
+chuẩn đã 13 môn — nghĩa là **mọi** trường đều mất bốn môn cuối, không riêng ai.
+Bảng nay cao tự nhiên, trang cuộn như mọi trang; `.bang` vẫn giữ `overflow`
+cho cuộn NGANG 13 cột.
+
+⚠️ **Thứ thật sự làm hàng cao gấp đôi là `white-space` chứ không phải padding.**
+Cột đầu hẹp lại thì ô nhập tên rơi xuống **dưới** chấm màu, hàng thành 59px.
+Thêm `nowrap` cho ô ấy và lớp `.dl.gon` (padding 5px) đưa hàng về 41px — 13 môn
+vừa một màn hình. Bảng 13 cột thì cột nào cũng bị ép, nên chỗ nào không được
+xuống dòng phải nói rõ.
+
 ⚠️ **Bảng Giáo viên trần ở MƯỜI cột.** Thêm cụm Sửa/Xoá làm nó tràn khỏi màn
 hình 1500px, người dùng phải cuộn ngang mới bấm được. Hai cột bị gộp vào chỗ
 chúng vốn thuộc về — phân hiệu xuống dưới cột *Dạy* (nó chính là nơi những

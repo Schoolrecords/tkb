@@ -2888,6 +2888,86 @@ console.log('\n17l. Thẻ Content-Security-Policy');
      `${(src.match(/onclick="/g) || []).length} chỗ`);
 }
 
+console.log('\n17m. Bảng Môn học — cụm Sửa/Xoá và hiện đủ môn');
+/* Chủ dự án 29/8/2026: "nút dấu x (màu đỏ) cần thay bằng nút sửa/xoá. Và cả
+   trang này vẫn bị lấp các môn còn lại, cho hàng sát lên, cho đủ 13+ môn". */
+{
+  w.chuyen('monhoc');
+  const bang = w.document.querySelector('#bMon');
+
+  kt('Không còn dấu × trần, mỗi dòng là cụm nút Sửa / Xoá có chữ',
+     !w.document.querySelector('[data-xoamon].x-hang') &&
+     w.document.querySelectorAll('[data-suamon]').length === S.monHoc.length &&
+     w.document.querySelectorAll('[data-xoamon]').length === S.monHoc.length,
+     `${w.document.querySelectorAll('[data-suamon]').length} nút Sửa`);
+
+  /* Nút Xoá KHÔNG tô đỏ sẵn — hai nút cạnh nhau mà một cái đỏ rực thì mắt bị
+     kéo về đúng cái nguy hiểm hơn. Cùng luật đã đặt cho bảng Giáo viên 28/8. */
+  kt('Nút Xoá chỉ đỏ khi rê chuột, không tô đỏ sẵn',
+     [...w.document.querySelectorAll('[data-xoamon]')].every(b =>
+       b.classList.contains('n-xoa') && !/color\s*:/.test(b.getAttribute('style') || '')));
+
+  /* ⚠️ Khung cuộn 66vh chỉ chứa 10 hàng, mà danh mục chuẩn đã 13 môn — nghĩa
+     là MỌI trường đều mất bốn môn cuối. Bảng phải cao tự nhiên. */
+  kt('Bảng KHÔNG khoá chiều cao — 13+ môn hiện đủ, trang cuộn như mọi trang',
+     !/max-height/.test(bang?.closest('.bang')?.getAttribute('style') || ''),
+     bang?.closest('.bang')?.getAttribute('style') || 'không có style');
+  kt('Hàng dùng lớp gọn để 13 môn vừa một màn hình', bang?.classList.contains('gon'));
+
+  /* Ô nhập tên rơi xuống DƯỚI chấm màu là thứ làm hàng cao gấp đôi — đúng
+     nguyên nhân bốn môn cuối bị đẩy ra ngoài. */
+  kt('Chấm màu và ô tên nằm cùng một dòng, không bị ngắt',
+     [...bang.querySelectorAll('tbody td:first-child')]
+       .every(td => /nowrap/.test(td.getAttribute('style') || '')));
+}
+
+console.log('\n17n. Hộp khai môn — một bộ ô cho cả Thêm lẫn Sửa');
+{
+  /* Hộp cũ chỉ hỏi tên · màu · phòng · số tiết, thiếu đúng hai ô "Ưu tiên
+     sáng sớm" và "Tránh đầu cuối buổi" mà bảng vẫn có — đúng chuyện đã xảy
+     ra với hộp Thêm giáo viên hôm 28/8. */
+  w.hopThemMon();
+  const oCan = ['#tmTen', '#tmMau', '#tmPhong', '#tmNang', '#tmNhe'];
+  kt('Hộp Thêm môn đủ ô, không thiếu hai ô cách xếp mà bảng vẫn có',
+     oCan.every(x => !!w.document.querySelector(x)) &&
+     [1,2,3,4,5].every(k => !!w.document.querySelector(`[data-tmc="${k}"]`)),
+     oCan.filter(x => !w.document.querySelector(x)).join(' ') || 'đủ 5 ô + 5 khối');
+  w.eval('dong()');
+
+  const i = S.monHoc.findIndex(m => m.ten === 'Mỹ thuật');
+  w.hopSuaMon(i);
+  kt('Hộp Sửa điền sẵn đúng giá trị đang có, dùng chung một bộ ô với Thêm',
+     w.document.querySelector('#tmTen').value === 'Mỹ thuật' &&
+     w.document.querySelector('#tmNhe').checked === !!S.monHoc[i].nhe &&
+     w.document.querySelector('#tmMau').value === S.monHoc[i].mau);
+
+  /* ⚠️ Bảng phân công và lưới đã xếp tham chiếu môn bằng chính CHUỖI TÊN.
+     Đổi tên mà không đổi theo là dòng phân công thành môn lạ, ô trên lưới
+     mất màu. */
+  const soPC = S.phanCong.filter(p => p.mon === 'Mỹ thuật').length;
+  w.document.querySelector('#tmTen').value = 'Mĩ thuật';
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Lưu').click();
+  kt('Đổi tên môn thì bảng phân công đổi theo, không bỏ lại dòng môn lạ',
+     soPC > 0 && S.phanCong.filter(p => p.mon === 'Mĩ thuật').length === soPC &&
+     S.phanCong.filter(p => p.mon === 'Mỹ thuật').length === 0,
+     `${soPC} dòng`);
+
+  /* Trả lại tên cũ cho các mục sau */
+  w.hopSuaMon(i);
+  w.document.querySelector('#tmTen').value = 'Mỹ thuật';
+  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Lưu').click();
+
+  kt('Trùng tên với môn đã có thì BỊ CHẶN', (() => {
+    w.hopThemMon();
+    const truoc = S.monHoc.length;
+    w.document.querySelector('#tmTen').value = 'Toán';
+    [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
+    const ok = S.monHoc.length === truoc;
+    w.eval('dong()');
+    return ok;
+  })());
+}
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
