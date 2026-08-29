@@ -2473,6 +2473,20 @@ console.log('\n17h. Bảng Giáo viên: Gmail và cột Dạy (28/8/2026)');
     return ok;
   })());
 
+  /* Mã đúng dạng NGAY LÚC KHAI (29/8/2026). Trước đó hộp này sinh mã slug
+     `gv_cao_thi_minh_khue`, nên trường mới khai xong vẫn phải bấm *Đặt lại
+     mã giáo viên* — một việc dọn dẹp lẽ ra chỉ dành cho dữ liệu cũ. */
+  const maVuaKhai = (() => {
+    w.eval('hopThemGV()');
+    w.document.querySelector('#tgTen').value = 'Cao Thị Minh Khuê';
+    [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
+    const ma = w.eval("(S.giaoVien.find(g=>g.hoTen==='Cao Thị Minh Khuê')||{}).maGV||''");
+    w.eval("S.giaoVien = S.giaoVien.filter(g=>g.hoTen!=='Cao Thị Minh Khuê'); ve();");
+    return ma;
+  })();
+  kt('Giáo viên vừa khai đã mang mã chuẩn, không chờ nút Đặt lại',
+     maVuaKhai === 'Khuê_CTM', maVuaKhai);
+
   /* Bảng sắp theo SỐ TIẾT giảm dần, không theo thứ tự S.giaoVien — dò theo id
      chứ đừng lấy dòng đầu, không thì phép thử xanh/đỏ theo thứ tự sắp xếp. */
   const idMot = w.eval('S.giaoVien[0].id');

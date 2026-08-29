@@ -935,6 +935,17 @@ trước. **Giữ nguyên dấu** — *Thùy* và *Thủy* bỏ dấu đều th�
 | `maGVXau(g)` | nhận diện mã cần chữa (ngưỡng 20, không phải 14) |
 | `datLaiMaGV(tatCa)` | đổi và chống trùng |
 | `chuanMaGV()` | chạy tự động lúc nạp, **chỉ chữa mã xấu** |
+| `maGVMoi(hoTen)` | mã cho hồ sơ VỪA KHAI — mọi đường tạo giáo viên mới đi qua đây |
+
+⚠️ **Mã phải đúng NGAY LÚC KHAI, không phải chữa sau** *(29/8/2026)*. Chủ dự
+án hỏi đúng chỗ: *"tại sao lại đổi như thế này mà không quy định mã GV mới
+ngay từ đầu?"*. Hai đường tạo hồ sơ mới — hộp *Thêm giáo viên* và
+`taoDuLieuThu()` — vẫn sinh mã slug `gv_cao_thi_minh_khue` rồi trông chờ nút
+*Đặt lại mã giáo viên* dọn hộ, nên **trường mới tinh cũng gặp hộp thoại dọn
+dẹp ấy** dù chẳng có dữ liệu cũ nào. Nay cả hai gọi `maGVMoi()`. Nút Đặt lại
+giữ nguyên nhưng lui về đúng vai: chữa **dữ liệu cũ** (UUID máy chủ để lại
+sau sự cố upsert 2/8, mã slug các bản trước sinh, mã trường tự gõ vào Excel).
+Có phép thử canh cả hai đường (`npm test` mục 19 · `npm run soi` mục 8).
 
 Ba điều bắt buộc:
 
@@ -1368,6 +1379,36 @@ trình ĐỌC thì giữ nguyên** (`duLieuTuTronGoi` · `duLieuTuBang` ·
 `duLieuTuMaTran`): trường nào đã điền dở tệp cũ không được bỗng mất công.
 `bangMauTronGoi()` cũng giữ, làm dữ liệu cho phép thử vòng tròn của chính
 trình đọc ấy — bỏ nó đi là đường lui còn đó mà không ai canh nữa.
+
+#### Tệp mẫu tải về phải NHẬP LẠI ĐƯỢC *(29/8/2026)*
+
+Chủ dự án tải mẫu *Giáo viên* về, chọn lại đúng tệp ấy, và nhận
+**"Tệp này không có trang tính nào máy đọc được"** — trong khi trang tính
+tên đúng là `GIAO_VIEN`. Hai thứ đánh nhau:
+
+- Mẫu mở đầu bằng **dải tiêu đề gộp ô + một dòng nhắc việc**, nên tên cột
+  nằm ở **dòng 3**; `sheet_to_json()` của SheetJS mặc định lấy **dòng đầu**
+  làm tên cột, ra `{"GIÁO VIÊN": …}`.
+- Cột bắt buộc mang **dấu sao** cho người điền dễ nhìn (`Ma_GV *`) — ngay
+  cả khi bỏ đúng hai dòng thì khoá vẫn không khớp.
+
+`bangTuMaTran(a)` (vùng DULIEU) nhận diện dòng tên cột bằng **chính dạng
+của tên** — chữ không dấu kiểu `Ma_GV`, `Ho_ten`, tối thiểu hai ô khớp —
+rồi bỏ dấu sao và gán `__dong` là **số dòng Excel thật**. Tệp mà dòng đầu
+đã là tên cột (kết xuất SmartScheduler, tệp người dùng tự gõ) thì ra chỉ
+số 0, hành vi y như cũ; không dò ra gì thì `doc()` lùi về `sheet_to_json`
+như trước.
+
+⚠️ **Phép thử tự làm hộ app đúng cái việc app không làm.** `npm run soi-mau`
+đã có sẵn cụm *"VÒNG TRÒN QUA TỆP THẬT"* từ 28/8 — nó sinh tệp, đọc lại,
+đổ ngược qua `duLieuTuMuc()` và **xanh suốt**. Vì hàm đọc của nó **chép tay**
+`getRow(3)` và `replace(/ \*$/, '')`: nó biết cách bỏ dòng tiêu đề, còn app
+thì không. Nay `docTepMuc()` gọi thẳng `bangTuMaTran()`, hàm thật của app —
+đã thử ngược: bỏ phép dò thì **25 phép thử đỏ ngay**.
+
+⚠️ Trang đúng tên mà **chưa điền dòng nào** thì báo đúng chuyện ấy, đừng để
+rơi xuống câu *"không có trang tính nào máy đọc được"* — người dùng đang
+cầm đúng tệp mẫu, chỉ là chưa gõ gì vào.
 
 #### "199 chỗ chưa đúng" — dòng trống không phải lỗi *(28/8/2026)*
 

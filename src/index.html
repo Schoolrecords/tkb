@@ -2887,6 +2887,18 @@ function datLaiMaGV(tatCa){
    Mã đang tử tế sẵn (kiểu `GV01` trường tự đặt) thì để nguyên. */
 const chuanMaGV = () => datLaiMaGV();
 
+/* Mã cho một giáo viên VỪA KHAI — đúng dạng `maGVTu()` ngay từ đầu, chống
+   trùng với người đã có. Mọi đường tạo hồ sơ mới phải đi qua đây: trường
+   mới thì không bao giờ phải bấm *Đặt lại mã giáo viên*, nút ấy chỉ còn
+   là chỗ chữa dữ liệu cũ (mã UUID máy chủ để lại, mã slug bản trước sinh).
+   Hậu tố `_2` viết y như `datLaiMaGV()` để hai đường ra cùng một dạng. */
+const maGVMoi = hoTen => {
+  const daCo=new Set(S.giaoVien.map(g=>g.maGV).filter(Boolean));
+  const goc=maGVTu(hoTen); let m=goc, i=1;
+  while(daCo.has(m)) m=goc+'_'+(++i);
+  return m;
+};
+
 function sinhLop(khoi, so, tienTo, dt){
   const r=[], n=Math.max(0,Math.min(26,+so||0));
   for(let i=0;i<n;i++){
@@ -2963,7 +2975,8 @@ function taoDuLieuThu(tenDiem, tienTo, soLop, coPhongTin){
   let stt=S.giaoVien.length, themGV=0, themPC=0;
   lopMoi.forEach((l,i)=>{
     const id=duyNhat('gv_'+goc+'_cn'+(i+1), daGV);
-    S.giaoVien.push({id, maGV:id, hoTen:tenGVSinh(stt++), tenNgan:'', cn:l.id, dinhMuc:DINH_MUC});
+    const hoTen=tenGVSinh(stt++);
+    S.giaoVien.push({id, maGV:maGVMoi(hoTen), hoTen, tenNgan:'', cn:l.id, dinhMuc:DINH_MUC});
     themGV++;
     Object.keys(TIET_CHUAN).forEach(mon=>{
       const st=chuanMon(mon,l.khoi);
@@ -2984,7 +2997,8 @@ function taoDuLieuThu(tenDiem, tienTo, soLop, coPhongTin){
     ds.forEach(x=>{
       if(!hienTai || tai+x.soTiet>DINH_MUC){
         hienTai=duyNhat('gv_'+goc+'_bm'+(++soBM), daGV);
-        S.giaoVien.push({id:hienTai, maGV:hienTai, hoTen:tenGVSinh(stt++), tenNgan:'', cn:'', dinhMuc:DINH_MUC});
+        const hoTen=tenGVSinh(stt++);
+        S.giaoVien.push({id:hienTai, maGV:maGVMoi(hoTen), hoTen, tenNgan:'', cn:'', dinhMuc:DINH_MUC});
         themGV++; tai=0;
       }
       S.phanCong.push({gvId:hienTai, lopId:x.lop, mon, soTiet:x.soTiet});
@@ -4520,12 +4534,40 @@ function chuanTenCot(hang){
   });
 }
 
+/* ---------- Dòng tên cột KHÔNG phải lúc nào cũng là dòng đầu (29/8/2026) ----------
+   Mẫu tải về mở đầu bằng dải tiêu đề gộp ô và một dòng nhắc việc, nên tên cột
+   nằm ở dòng 3; cột bắt buộc lại mang dấu sao cho người điền dễ nhìn
+   (`Ma_GV *`). `sheet_to_json` của SheetJS mặc định lấy DÒNG ĐẦU làm tên cột,
+   nên tệp do CHÍNH app sinh ra đọc lên thành `{"GIÁO VIÊN": …}` và app báo
+   *"không có trang tính nào máy đọc được"* trong khi người dùng cầm đúng tệp
+   mẫu vừa tải về. Một chỗ duy nhất biết chuyện này, dùng cho mọi lối nhập.
+
+   Nhận diện dòng tên cột bằng CHÍNH DẠNG của tên: chữ không dấu kiểu `Ma_GV`,
+   `Ho_ten`. Dòng đầu đã là tên cột (tệp kết xuất SmartScheduler, tệp người
+   dùng tự gõ) thì `dong` ra 0 — hành vi y như cũ. */
+const TEN_COT_XL = /^[A-Za-z][A-Za-z0-9_]*\s*\*?$/;
+function bangTuMaTran(a){
+  const dong = (a||[]).findIndex(h =>
+    (h||[]).filter(o => TEN_COT_XL.test(String(o??'').trim())).length >= 2);
+  if(dong < 0) return [];
+  const cot = (a[dong]||[]).map(o => String(o??'').trim().replace(/\s*\*$/,''));
+  const r = [];
+  for(let i=dong+1;i<a.length;i++){
+    const h = a[i]||[];
+    if(h.every(oTrongXL)) continue;                    /* dòng trống hẳn */
+    const o = {__dong:i+1};                            /* đúng số dòng Excel bày ra */
+    cot.forEach((c,j)=>{ if(c && !oTrongXL(h[j])) o[c]=h[j]; });
+    r.push(o);
+  }
+  return r;
+}
+
 /* Giữ NGUYÊN số dòng như Excel hiển thị (`__dong`) sau khi lọc — người nhập
    cầm tệp trong tay, báo sai số dòng còn tệ hơn không báo. */
 function locDongDaDien(hang, cotBatBuoc){
   const co = [], bo = [];
   (hang || []).forEach((r, i) => {
-    const d = Object.assign({}, r, {__dong: i + 2});
+    const d = Object.assign({}, r, {__dong: r.__dong ?? i + 2});
     (cotBatBuoc.some(c => !oTrongXL(r[c])) ? co : bo).push(d);
   });
   return {co, bo};
@@ -12506,9 +12548,9 @@ function hopThemGV(){
   hop('Thêm giáo viên', oKhaiGV(null),
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Thêm',lam:()=>{
     const v=docKhaiGV(null); if(!v) return;
-    const daCo=new Set(S.giaoVien.map(g=>g.maGV||g.id));
-    const ma=maChuaDung('gv_'+khongDau(v.hoTen).toLowerCase().replace(/-/g,'_'), daCo);
-    const g={id:ma, maGV:ma, hoTen:v.hoTen, tenNgan:'', cn:'', dinhMuc:v.dinhMuc,
+    const daId=new Set(S.giaoVien.map(g=>g.id));
+    const id=maChuaDung('gv_'+khongDau(v.hoTen).toLowerCase().replace(/-/g,'_'), daId);
+    const g={id, maGV:maGVMoi(v.hoTen), hoTen:v.hoTen, tenNgan:'', cn:'', dinhMuc:v.dinhMuc,
              email:v.email, dienThoai:v.dienThoai, dtChinh:v.dtChinh, ghiChu:v.ghiChu};
     S.giaoVien.push(g);
     if(v.lopCN) datCN(v.lopCN, g.id);
@@ -13666,7 +13708,12 @@ $('#tep').onchange=async e=>{
   let dl, tim, kqMuc=null;
   try{
     const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
-    const doc=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n]):null;
+    const doc=n=>{
+      const ws=wb.Sheets[n]; if(!ws) return null;
+      const h=bangTuMaTran(XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:true}));
+      /* Không dò ra dòng tên cột nào thì cứ đọc như cũ — đường lui cho tệp lạ */
+      return h.length ? h : XLSX.utils.sheet_to_json(ws);
+    };
 
     /* ĐƯỜNG CHÍNH từ 28/8/2026 — một trang của đúng mục đang mở. Xét trước
        mọi đường khác: người dùng đang ở màn Lớp học và cầm tệp LOP thì không
@@ -13681,6 +13728,13 @@ $('#tep').onchange=async e=>{
       if(kqMuc.soLoi) return hopLoiNhap(kqMuc, null);
       return hopXacNhanNhapMuc(kqMuc);
     }
+
+    /* Trang đúng tên nhưng CHƯA ĐIỀN dòng nào — nói đúng chuyện ấy. Câu
+       "không có trang tính nào máy đọc được" ở cuối hàm sẽ sai hẳn: người
+       dùng đang cầm đúng tệp mẫu, chỉ là chưa gõ gì vào. */
+    if(m && wb.Sheets[m.trang] && !(hMuc||[]).length)
+      return bao(`Trang ${m.trang} trong tệp chưa có dòng nào đã điền — `
+                +'gõ dữ liệu vào rồi chọn lại tệp.', true);
 
     /* ĐƯỜNG LUI — tệp điền theo mẫu cũ vẫn phải nhập được. Trường nào đã
        điền dở mẫu mười trang thì không được bỗng mất công. Trọn gói xét

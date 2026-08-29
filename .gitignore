@@ -12,3 +12,8 @@ desktop.ini
 # Đưa lên GitHub Pages mà thiếu tệp này thì trang không đăng nhập được.
 #
 # TUYỆT ĐỐI không đưa khoá sb_secret_… hay service_role vào tệp nào.
+
+# Tệp Excel nhà trường điền ở thư mục gốc — chứa họ tên, Gmail và số điện
+# thoại thật của giáo viên (dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP),
+# mà kho này là kho CÔNG KHAI. Mẫu và bộ kiểm thử không cần tới chúng.
+/*.xlsx

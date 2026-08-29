@@ -53,7 +53,7 @@ async function ghiTepXL(wb, ten){ ghiRa(wb, ten); }
 async function sanSangExcelJS(){ return true; }
 function bao(){}
 ; return { taiMauMuc, danhMucCuaMuc, MUC_NHAP, duLieuTuMuc, duLieuTuTronGoi, xuatExcel,
-           S, napVaoS, NGUON, maGVTu, xepTuDong, tenTepXuat };`;
+           S, napVaoS, NGUON, maGVTu, xepTuDong, tenTepXuat, bangTuMaTran };`;
 
 const app = new Function('document', 'window', 'fetch', 'ExcelJS',
   'MAU_XL', 'VIEN_MANH', 'ghiRa', 'TIET_CHUAN_X', NGUON)(
@@ -104,6 +104,55 @@ for (const ma of MUC) {
   kt(`${m.trang}: đặt sẵn khổ A4, canh vừa bề ngang — in ra dùng được ngay`,
      lai.worksheets.filter(w => w.name !== 'DANH_MUC')
         .every(w => w.pageSetup?.paperSize === 9 && w.pageSetup?.fitToPage));
+}
+
+/* ==================================================================
+   VÒNG TRÒN THẬT: tải mẫu về → đọc lại tệp ấy → nhập ngược  (29/8/2026)
+   ------------------------------------------------------------------
+   Đây là khâu chưa bộ nào chạm tới, và nó hỏng thật: mẫu mở đầu bằng dải
+   tiêu đề gộp ô nên tên cột nằm ở dòng 3, lại mang dấu sao (`Ma_GV *`).
+   `sheet_to_json` mặc định lấy DÒNG ĐẦU làm tên cột, nên app đọc tệp do
+   chính nó sinh ra rồi báo *"Tệp này không có trang tính nào máy đọc
+   được"* — chủ dự án gặp đúng câu ấy khi cầm tệp mẫu vừa tải về.
+
+   `npm test` mục 22 gọi thẳng `duLieuTuMuc()` với mảng object đã đúng key
+   nên không bao giờ nhìn thấy chuyện này; phần trên của tệp này thì soi
+   hình thức ô và khổ giấy. Chỗ hở nằm đúng giữa hai bộ.
+   ================================================================== */
+console.log('\n5. Tải mẫu về rồi nhập ngược lại chính tệp ấy');
+
+/* Ma trận ô như SheetJS trả về với {header:1} — ExcelJS gói ô công thức và ô
+   giàu định dạng thành object, phải rút lấy phần chữ. */
+const maTranXL = ws => {
+  const a = [];
+  ws.eachRow({ includeEmpty: true }, (r, n) => {
+    a[n - 1] = r.values.slice(1).map(v =>
+      v && typeof v === 'object' ? (v.text ?? v.result ?? v.richText?.map(x => x.text).join('') ?? '') : v);
+  });
+  for (let i = 0; i < a.length; i++) if (!a[i]) a[i] = [];
+  return a;
+};
+
+for (const ma of MUC) {
+  const m = app.MUC_NHAP[ma];
+  const hang = app.bangTuMaTran(maTranXL(TEP_MUC[ma].lai.getWorksheet(m.trang)));
+  if (!hang.length) continue;             /* mục trường chưa khai gì — không có dòng để soi */
+  /* Chính phép soát app chạy khi người dùng chọn tệp: đủ bộ cột thì mới nhận
+     ra đây là trang của mục đang mở, thiếu là rơi xuống câu "không có trang
+     tính nào máy đọc được". */
+  kt(`${m.trang}: tệp vừa tải về đọc ra ĐÚNG bộ cột, không phải dòng tiêu đề`,
+     m.khoaDong.every(c => c in hang[0]),
+     Object.keys(hang[0]).filter(k => k !== '__dong').join(' · '));
+}
+
+/* Số dòng trong câu lỗi phải là số dòng Excel BÀY RA, không phải số thứ tự
+   trong mảng — người nhập cầm tệp trong tay mà bị chỉ sai chỗ thì còn tệ
+   hơn không chỉ. Mẫu có hai dòng tiêu đề nên dữ liệu bắt đầu ở dòng 4. */
+{
+  const ws = TEP_MUC.giaovien.lai.getWorksheet('GIAO_VIEN');
+  const hang = app.bangTuMaTran(maTranXL(ws));
+  kt('Dòng dữ liệu đầu tiên được đánh đúng số dòng Excel (dòng 4)',
+     hang[0]?.__dong === 4, `__dong = ${hang[0]?.__dong}`);
 }
 
 /* --- Tên tệp nói rõ mục nào, để thư mục Tải về không thành một đống giống nhau --- */
@@ -211,19 +260,12 @@ kt('Mã lớp đủ gọn — không quá 10 ký tự',
    Đọc lại từng tệp .xlsx vừa ghi rồi đổ ngược qua đúng trình soát người dùng
    chạy. Đây là phép thử đáng giá nhất của cả bộ: nó bắt được mọi thứ lệch
    giữa hai đầu — tên cột, kiểu ô, dòng ví dụ trỏ vào chỗ không tồn tại. */
-const docTepMuc = ma => {
-  const ws = TEP_MUC[ma].lai.getWorksheet(app.MUC_NHAP[ma].trang);
-  const dauCot = ws.getRow(3).values.slice(1).map(v => String(v || '').replace(/ \*$/, ''));
-  const hang = [];
-  for (let r = 4; r <= ws.rowCount; r++) {
-    const v = ws.getRow(r).values;
-    if (!v.slice(1).some(x => x != null && x !== '')) continue;
-    const o = {};
-    dauCot.forEach((c, i) => { if (v[i + 1] != null && v[i + 1] !== '') o[c] = v[i + 1]; });
-    hang.push(o);
-  }
-  return hang;
-};
+/* ⚠️ Bản đầu tự chép tay "dòng 3 là tên cột, bỏ dấu *" ngay tại đây — và
+   chính vì thế nó XANH suốt trong khi app hỏng: phép thử tự làm hộ app đúng
+   cái việc app không làm. Nay đi qua `bangTuMaTran()`, hàm thật của app, nên
+   nếu app không dò ra dòng tên cột thì bộ soi đỏ ngay. */
+const docTepMuc = ma =>
+  app.bangTuMaTran(maTranXL(TEP_MUC[ma].lai.getWorksheet(app.MUC_NHAP[ma].trang)));
 for (const ma of MUC) {
   const hang = docTepMuc(ma);
   const r = app.duLieuTuMuc(ma, hang);

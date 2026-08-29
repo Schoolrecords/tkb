@@ -2349,6 +2349,20 @@ console.log('\n19. Mã giáo viên đọc được');
     const xau = u.S.giaoVien.filter(g => u.maGVXau(g));
     return [n > 0 && xau.length === 0, `đổi ${n} mã, còn ${xau.length} mã xấu`];
   })()));
+  /* Mã phải ĐÚNG NGAY LÚC KHAI, không phải chữa sau (29/8/2026). Trường mới
+     dựng dữ liệu bằng taoDuLieuThu() mà mã vẫn xấu thì việc đầu tiên người
+     dùng gặp là một hộp thoại rủ đi đặt lại mã — thứ lẽ ra không bao giờ cần. */
+  kt('Bộ sinh dữ liệu thử đặt mã chuẩn ngay, không ai phải đặt lại', ...((() => {
+    const v = taoUngDung(documentGia);
+    const cu = new Set(v.S.giaoVien.map(g => g.id));   /* 35 hồ sơ của bộ mẫu, không xét */
+    v.taoDuLieuThu('Phân hiệu Thử Mã', 'TM', 12, true);
+    const moi = v.S.giaoVien.filter(g => !cu.has(g.id));
+    const xau = moi.filter(g => v.maGVXau(g));
+    const lech = moi.filter(g =>
+      g.maGV !== v.maGVTu(g.hoTen) && !new RegExp('^' + v.maGVTu(g.hoTen) + '_\d+$').test(g.maGV));
+    return [moi.length > 0 && xau.length === 0 && lech.length === 0,
+            `${moi.length} mã mới, ví dụ ${moi[0]?.maGV}`];
+  })()));
   kt('Không hai giáo viên nào trùng mã — mã là khoá tự nhiên', ...((() => {
     const ma = u.S.giaoVien.map(g => g.maGV);
     return [new Set(ma).size === ma.length, `${new Set(ma).size}/${ma.length} mã riêng biệt`];
