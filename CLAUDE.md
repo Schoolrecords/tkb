@@ -505,7 +505,8 @@ Chrome thật gọi `sanSangExcelJS()` · `sanSangXLSX()` để chắc CDN vẫn
 ghi cứng — cùng khuôn phép thử ba-chỗ-khai-màu-chủ-đề. Ghi cứng thì đổi dự án
 Supabase là phép thử vẫn xanh trong khi app mất hẳn đường gọi máy chủ.
 
-**`db/siet-dang-ky-va-nhat-ky.sql`** — hai việc còn lại:
+**`db/siet-dang-ky-va-nhat-ky.sql`** *(ĐÃ CHẠY trên máy chủ thật 29/8/2026)* —
+hai việc còn lại:
 
 - **Đơn đăng ký rác.** ⚠️ `dang_ky_truong()` **đã** chặn "một tài khoản một
   trường" và "trùng tên trường trong cùng xã" — đừng làm lại. Chỗ hở thật là
@@ -2203,8 +2204,9 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
       `docs/lich-su-quyet-dinh.md`. Quy tắc rút ra: **trường đăng ký bằng
       Gmail CỦA NHÀ TRƯỜNG**, không dùng Gmail cá nhân.
 - [x] ~~**Ba việc bảo mật**~~ — xong 29/8/2026: thẻ CSP, chống đơn đăng ký
-      rác, siết `p_nk_ghi`. Chi tiết ở mục 3. ⚠️ `db/siet-dang-ky-va-nhat-ky.sql`
-      còn **chờ chạy** trên máy chủ thật.
+      rác, siết `p_nk_ghi`. Cả hai tệp SQL đã chạy trên máy chủ thật cùng
+      ngày (`db/chu-he-thong-xem.sql` · `db/siet-dang-ky-va-nhat-ky.sql`).
+      Chi tiết ở mục 3.
 - [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi
