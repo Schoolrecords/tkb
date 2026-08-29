@@ -3185,6 +3185,30 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
   })());
 }
 
+  /* Hộp nhập của mục Phân công nay CHỈ mời mẫu MA TRẬN — màn hình đã là bảng
+     ma trận thì mẫu Excel phải cùng hình dạng (chủ dự án 29/8/2026). */
+  kt('Hộp nhập Phân công mô tả mẫu ma trận, không còn mẫu từng dòng', (() => {
+    w.chuyen('phancong');
+    w.eval('hopNhapExcel()');
+    const chu = w.document.querySelector('#hopN')?.textContent || '';
+    const ok = /Lop_day/.test(chu) && /Mỗi môn một cột/.test(chu) &&
+               !/Ma_lop/.test(chu) && !/So_tiet/.test(chu);
+    return [ok, chu.slice(0, 60).replace(/\s+/g, ' ')];
+  })());
+  kt('Và nói rõ tệp ma trận THAY toàn bộ bảng phân công, không phải thêm/cập nhật', (() => {
+    const chu = w.document.querySelector('#hopN')?.textContent || '';
+    const ok = /THAY toàn bộ/.test(chu) && !/không xoá dòng nào đang có/.test(chu);
+    w.eval('dong()');
+    return [ok, (chu.match(/THAY toàn bộ[^.]*/) || [''])[0].slice(0, 50)];
+  })());
+  kt('Mục khác vẫn giữ mẫu từng dòng và lời hứa thêm/cập nhật', (() => {
+    w.chuyen('lop');
+    w.eval('hopNhapExcel()');
+    const chu = w.document.querySelector('#hopN')?.textContent || '';
+    w.eval('dong()');
+    return [/Ma_lop/.test(chu) && !/THAY toàn bộ/.test(chu), chu.slice(0, 40).replace(/\s+/g, ' ')];
+  })());
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,

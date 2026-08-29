@@ -1632,6 +1632,23 @@ mục 15e, `npm run soi-mau`):
 - **Một bộ khai, hai đầu dùng.** Không có cách nào để mẫu và trình soát lệch
   nhau — cùng bài học đã ghi cho mẫu trọn gói.
 
+⚠️ **Mục Phân công nay CHỈ mời mẫu MA TRẬN** *(29/8/2026)*. Chủ dự án: *"chúng
+ta chỉ có duy nhất mẫu theo ma trận, mà em vẫn còn để mẫu cũ"*. Màn hình đã là
+bảng ma trận thì mẫu Excel phải cùng hình dạng — tải về một tờ giấy khác hẳn
+thứ vừa nhìn là bắt người dùng dịch qua lại. Nút *Tải mẫu về điền* của mục ấy
+gọi `taiMauMaTran()`, bảng mô tả cột viết lại theo ma trận, và **bỏ** dòng nhắc
+"mỗi dòng là một môn…" cùng dòng mời mẫu ma trận phụ.
+
+⚠️ **Nhưng hộp phải NÓI ĐÚNG hành vi:** mẫu ma trận đi đường `hopXacNhanNhap()`
+— **thay sạch** lớp · giáo viên · phân công — khác hẳn nhập từng mục vốn
+*thêm và cập nhật*. Câu xanh *"không xoá dòng nào đang có"* để nguyên ở đó là
+nói sai về chính thứ nguy hiểm nhất, nên với mục này nó đổi thành dải cảnh báo
+*"Tệp này THAY toàn bộ bảng phân công"*, kèm lối an toàn: tải mẫu về sửa trên
+đó, vì mẫu đã điền sẵn mọi thứ đang có. Có phép thử canh cả hai chiều.
+
+**Trình ĐỌC mẫu từng dòng vẫn giữ nguyên** — trường nào đã điền dở tệp cũ không
+được bỗng mất công. Chỉ bỏ phần MỜI, đúng khuôn đã làm với mẫu trọn gói.
+
 ⚠️ **Mẫu ma trận vẫn giữ, và chỉ mời ở màn Phân công.** Nó là tờ phân công
 nhiều trường vẫn kẻ tay (mỗi môn một cột đánh dấu `x`). Trang tính của nó
 cũng tên `PHAN_CONG`, nên `hopTrangMuc()` phân biệt bằng **CỘT** chứ không

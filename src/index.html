@@ -14139,34 +14139,58 @@ function hopNhapExcel(){
      dự án mất cả buổi. */
   const thieu=thieuMucTruoc(ma);
   const that=m.hang().length;
+  /* Phân công nay CHỈ có mẫu ma trận. Chủ dự án 29/8/2026: "chúng ta chỉ có
+     duy nhất mẫu theo ma trận, mà em vẫn còn để mẫu cũ" — màn hình đã là bảng
+     ma trận thì mẫu Excel phải cùng hình dạng, không thì người dùng tải về một
+     tờ giấy khác hẳn thứ họ vừa nhìn. Trình ĐỌC mẫu từng dòng vẫn giữ nguyên:
+     trường nào đã điền dở tệp cũ không được bỗng mất công. */
+  const maTran = ma==='phancong';
 
   hop(`Nhập ${m.ten} từ Excel`,
   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Một tệp, <b>một trang tính
      ${esc(m.trang)}</b> — đúng mục đang mở, không phải khai cả trường trong một lần.
-     ${that ? `Mẫu tải về <b>điền sẵn ${that} dòng</b> đang có; sửa hoặc gõ thêm rồi nhập lại.`
-            : 'Mẫu tải về có sẵn đúng cột và ô xổ xuống chống gõ sai.'}</p>
+     ${maTran ? `Mẫu <b>ma trận</b>: hàng là giáo viên, cột là môn — đúng bảng đang mở.
+                  Điền sẵn mọi thứ đang có, chỉ việc đánh dấu thêm.`
+       : that ? `Mẫu tải về <b>điền sẵn ${that} dòng</b> đang có; sửa hoặc gõ thêm rồi nhập lại.`
+              : 'Mẫu tải về có sẵn đúng cột và ô xổ xuống chống gõ sai.'}</p>
    ${thieu?`<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
       <b>Chưa nhập mục này được</b><div class="cb-g">${esc(thieu)}</div></div></div>`
+   :maTran?`<div class="bang" style="margin-bottom:13px"><table class="dl gon">
+      <thead><tr><th>Cột</th><th>Ghi gì vào</th></tr></thead><tbody>
+      <tr><td><b>Ma_GV</b> · <b>Ho_ten</b></td>
+        <td style="color:var(--chu-mo)">Mẫu điền sẵn cả ${[...gvTrongPV()].length} thầy cô — không phải gõ lại</td></tr>
+      <tr><td><b>Chu_nhiem</b></td>
+        <td style="color:var(--chu-mo)">Mã lớp chủ nhiệm, ví dụ <i>1A_ND</i>. Ghi tên lớp <i>1A</i> cũng nhận</td></tr>
+      <tr><td><b>Lop_day</b></td>
+        <td style="color:var(--chu-mo)">Các lớp người ấy dạy, cách nhau dấu phẩy. Bỏ trống thì lấy lớp chủ nhiệm</td></tr>
+      <tr><td><b>Mỗi môn một cột</b></td>
+        <td style="color:var(--chu-mo)">Đánh <b>x</b> vào ô giao giữa người và môn.
+          Dạy môn ấy cho vài lớp khác thì ghi thẳng danh sách lớp vào ô, ví dụ <i>1A, 1B</i>.
+          Số tiết máy tự lấy chuẩn theo khối</td></tr>
+      </tbody></table></div>
+    <div class="gy">Đúng hình dạng tờ phân công nhà trường vẫn kẻ tay, và đúng bảng đang mở
+      trên màn hình: hàng là giáo viên, cột là môn.</div>`
    :`<div class="bang" style="margin-bottom:13px"><table class="dl">
       <thead><tr><th>Cột</th><th>Ghi gì vào</th></tr></thead><tbody>
       ${m.cot.map(c=>`<tr><td><b>${esc(c.ten)}</b>${c.khoa?.batBuoc?' <span class="tag do">bắt buộc</span>':''}</td>
         <td style="color:var(--chu-mo)">${esc(moTaCotNhap(c))}</td></tr>`).join('')}
       </tbody></table></div>
-    <div class="gy">${esc(m.nhac)}</div>
-    ${ma==='phancong'?`<div class="gy" style="margin-top:9px">Trường vẫn kẻ tờ phân công kiểu
-       <b>mỗi môn một cột đánh dấu x</b> thì tải
-       <button class="b b-vien b-nho" id="btMauMaTran">mẫu ma trận</button> —
-       nút <b>Chọn tệp</b> nhận cả hai kiểu.</div>`:''}`}
-   <div style="margin-top:13px;padding:11px 14px;background:${coMayChu()&&duocSuaNguon()?'var(--xanh-nen)':'var(--canh-nen)'};border-radius:10px;font-size:12.5px">
+    <div class="gy">${esc(m.nhac)}</div>`}
+   ${thieu?'':maTran
+     ? `<div class="canhbao" style="margin-top:13px"><div class="cb-ic">!</div><div class="cb-t">
+          <b>Tệp này THAY toàn bộ bảng phân công</b>
+          <div class="cb-g">Khác các mục khác — mẫu ma trận là bản chụp cả trường nên nhập vào
+            là thay sạch phân công cũ, kể cả dòng tệp không nhắc tới. Tải mẫu về sửa trên đó
+            thì an toàn, vì mẫu đã điền sẵn mọi thứ đang có.</div></div></div>`
+     : `<div style="margin-top:13px;padding:11px 14px;background:${coMayChu()&&duocSuaNguon()?'var(--xanh-nen)':'var(--canh-nen)'};border-radius:10px;font-size:12.5px">
      ${coMayChu()&&duocSuaNguon()
        ? 'Nhập vào là <b>thêm và cập nhật</b> theo mã — không xoá dòng nào đang có. '
          +'Nhập lại đúng tệp ấy lần nữa cũng không nhân đôi.'
-       : 'Chưa nối máy chủ — dữ liệu chỉ nằm trên máy này. Máy sẽ soát lỗi tệp trước khi nhập.'}</div>`,
+       : 'Chưa nối máy chủ — dữ liệu chỉ nằm trên máy này. Máy sẽ soát lỗi tệp trước khi nhập.'}</div>`}`,
   thieu ? [{ten:'Đóng',lam:dong}]
         : [{ten:'Huỷ',phu:1,lam:dong},
-           {ten:'Tải mẫu về điền',phu:1,lam:()=>taiMauMuc(ma)},
+           {ten:'Tải mẫu về điền',phu:1,lam:()=>maTran?taiMauMaTran():taiMauMuc(ma)},
            {ten:'Chọn tệp',lam:()=>{dong();$('#tep').click();}}]);
-  const bMt=$('#btMauMaTran'); if(bMt) bMt.onclick=()=>taiMauMaTran();
 }
 
 /* Một dòng người đọc hiểu được cho mỗi cột, suy từ chính `khoa` đã khai —
