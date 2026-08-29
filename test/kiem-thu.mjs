@@ -37,7 +37,7 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [], addEventL
 const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}\n; return {
   S, xepTuDong, kiemTra, buoiBat, KHO, NGUON, khungGioMacDinh,
   taiDuLieu, luuTKB, lichSuPhienBan, dangNhap, taiPhienBan, dangXuat, taiNhatKy,
-  taiChoGiaoVien, taiChoQuanLy, taiLuoiDayDu, taiThemNgayNghi, coThayDoiChuaLuu,
+  taiChoGiaoVien, taiChoQuanLy, taiLuoiDayDu, taiThemNgayNghi, coThayDoiChuaLuu, vanTayNguon,
   tuMayChu, napVaoS, dongGoiTKB, docTKB, taiCauHinh,
   diaChiDangNhapGoogle, donVeOAuth, dungMaMoi, sinhMaMoi, taoMaMoi, dsMaMoi,
   tietVangCua, luuDayThay, xoaDayThay,
@@ -1358,6 +1358,36 @@ kt('Lưu lần hai sau khi tải về KHÔNG nhân đôi danh sách giáo viên'
    })(),
    'người đã có trên máy chủ ghi theo id · người mới khai ghi theo mã');
 
+/* ⚠️ LỖI XOÁ GMAIL KHI NHẬP MA TRẬN — tìm ra 30/8/2026 khi rà soát, chưa kịp
+   cắn thật. Mẫu ma trận không có cột Gmail · Dien_thoai · Dinh_muc, nên tệp
+   đọc về dựng giáo viên với các ô ấy rỗng; upsert theo mã lại KHỚP đúng dòng
+   cũ trên máy chủ — gửi null là xoá sạch Gmail cả trường (sáng hôm sau không
+   ai đăng nhập bằng Google được nữa) và định mức riêng của giáo viên kiêm
+   nhiệm bị đè về 23. Ô để trống nghĩa là "tôi không khai", không phải "xoá". */
+kt('Nhập tệp không có cột Gmail thì GIỮ NGUYÊN Gmail · điện thoại · ghi chú · định mức riêng',
+   await (async () => {
+     const nguonCu = MC.KHO.nguon, sCu = MC.S.giaoVien;
+     MC.KHO.nguon = 'may-chu';
+     MC.S.giaoVien = [{id:'gv-uuid-0', maGV:'GV01', hoTen:'Nguyễn Thị Trinh', cn:'',
+       dinhMuc:18, email:'trinh@nghean.edu.vn', dienThoai:'0912345678', ghiChu:'Kiêm nhiệm'}];
+     const truoc = (GHI.gvTheoKhoa || []).length;
+     await MC.ghiDuLieuNguon({...tep, phanCong:[], maTran:true,
+       giaoVien:[{id:'GV01', maGV:'GV01', hoTen:'Nguyễn Thị Trinh', cn:'',
+                  dinhMuc:23, dinhMucKhai:0, email:'', ghiChu:''}]});
+     MC.KHO.nguon = nguonCu; MC.S.giaoVien = sCu;
+     const hang = (GHI.gvTheoKhoa || []).slice(truoc).find(x => x.hang.ma_gv === 'GV01')?.hang;
+     return !!hang && hang.email === 'trinh@nghean.edu.vn'
+       && hang.dien_thoai === '0912345678' && hang.ghi_chu === 'Kiêm nhiệm'
+       && hang.dinh_muc === 18;
+   })());
+kt('duLieuTuBang: ô Dinh_muc bỏ trống thì dinhMucKhai = 0 — dấu hiệu cho đường ghi giữ định mức cũ',
+   (() => {
+     const r = duLieuTuBang([{Ma_GV:'G1', Ho_ten:'Cô A', Dinh_muc:''},
+                             {Ma_GV:'G2', Ho_ten:'Cô B', Dinh_muc:'18'}], [], []);
+     const [a, b] = r.giaoVien;
+     return a.dinhMucKhai === 0 && a.dinhMuc === 23 && b.dinhMucKhai === 18 && b.dinhMuc === 18;
+   })());
+
 kt('Mã giáo viên không bao giờ bị ghi đè bằng UUID của máy chủ',
    (GHI.giaoVien || []).every(h => !/^[0-9a-f-]{36}$/i.test(h.ma_gv)),
    JSON.stringify((GHI.giaoVien || []).map(h => h.ma_gv)));
@@ -2171,6 +2201,23 @@ console.log('\n18. Báo nghỉ và phương án dạy thay');
   kt('Lớp tự quản (không chọn ai) không sinh xung đột',
      u.xungDotDayThay([{ngay: T2, buoi: o1.buoi, tiet: o1.i, lopId: o1.lopId,
        mon: o1.mon, gvVangId: gvCoTiet.id, gvThayId: null}]).length === 0);
+  kt('Cùng buổi, KHÁC tiết, hai phân hiệu — chốt cuối phải bắt, kể cả hai dòng cùng mẻ', (() => {
+    /* Kịch bản hai quản lý ở hai máy: mỗi bên chọn cùng một người trống cả
+       buổi cho một phân hiệu — từng dòng đều "sạch", chỉ nhìn CẢ BUỔI mới
+       thấy người ấy phải có mặt ở hai nơi. Ràng buộc lõi sau sáp nhập. */
+    const l = u.lichTraGV();
+    const trong = u.S.giaoVien.find(g => !Object.keys(l[g.id] || {}).some(k => k.startsWith('2-S-')));
+    if (!trong) return [false, 'không tìm được ai trống buổi sáng thứ Hai — dữ liệu thử đổi rồi?'];
+    const dtCu = u.S.lopDT[lopKhac.id];
+    u.S.lopDT[lopKhac.id] = 'dt-ao-phan-hieu-khac';
+    const loi = u.xungDotDayThay([
+      {ngay: T2, buoi: 'S', tiet: 0, lopId: o1.lopId, mon: o1.mon,
+       gvVangId: gvCoTiet.id, gvThayId: trong.id},
+      {ngay: T2, buoi: 'S', tiet: 1, lopId: lopKhac.id, mon: o1.mon,
+       gvVangId: gvCoTiet.id, gvThayId: trong.id}]);
+    u.S.lopDT[lopKhac.id] = dtCu;
+    return loi.length > 0;
+  })());
   kt('Câu báo xung đột nói rõ AI, KHI NÀO và VÌ SAO — đủ để sửa ngay', (() => {
     const l = u.lichTraGV();
     for (const x of uv) {
@@ -2336,6 +2383,40 @@ console.log('\n18b. Tổng hợp ngày công theo tháng');
     const trong = u.tongHopNgayCong('2026-11');
     return trong.dong.length === 0 && trong.duCong === u.S.giaoVien.length;
   })());
+  kt('Đơn chồng lấn — buổi sáng rồi CẢ NGÀY cùng một ngày — vẫn 1 công, không phải 1,5', (() => {
+    /* Sáng gửi "nghỉ buổi sáng", trưa thấy chưa đỡ gửi tiếp "nghỉ cả ngày":
+       máy chủ có HAI dòng cho cùng một ngày. Đếm từng dòng độc lập là bảng
+       báo cáo nộp hằng tháng ghi 1,5 công cho một ngày nghỉ thật sự 1 công. */
+    const u2 = taoUngDung(documentGia);
+    const g = u2.S.giaoVien[0];
+    u2.S.baoNghi = [
+      {id:'a', gvId:g.id, ngay:'2026-09-15', buoi:'S',  lyDo:'Nghỉ ốm', trangThai:'cho'},
+      {id:'b', gvId:g.id, ngay:'2026-09-15', buoi:'CN', lyDo:'Nghỉ ốm', trangThai:'xong'}];
+    const r = u2.tongHopNgayCong('2026-09');
+    return r.dong[0].cong === 1 && r.dong[0].dem.CN === 1 && r.dong[0].dem.S === 0;
+  })());
+}
+
+console.log('\n18b2. Vân tay dữ liệu nguồn phủ các cột thêm sau');
+{
+  /* Sự cố 2/8/2026 tái phát trên cột mới: sửa Gmail, khung giờ hay số tiết
+     chuẩn của môn mà vân tay không đổi thì dải đỏ "chưa lưu" không hiện,
+     beforeunload không chặn, tải lại trang là mất ÂM THẦM. */
+  const u = taoUngDung(documentGia);
+  const doi = lam => { const truoc = u.vanTayNguon(); lam(); return u.vanTayNguon() !== truoc; };
+  kt('Sửa Gmail giáo viên là vân tay đổi', doi(() => { u.S.giaoVien[0].email = 'a@b.vn'; }));
+  kt('Sửa điện thoại · ghi chú · phân hiệu chính · mã GV là vân tay đổi',
+     doi(() => { u.S.giaoVien[0].dienThoai = '0987'; })
+     && doi(() => { u.S.giaoVien[0].ghiChu = 'ghi chú thử'; })
+     && doi(() => { u.S.giaoVien[0].dtChinh = 'dt-thu'; })
+     && doi(() => { u.S.giaoVien[0].maGV = 'Ma_Thu'; }));
+  kt('Sửa số tiết một buổi trong khung giờ là vân tay đổi',
+     doi(() => { u.S.khungGio[0].tiet = 9; }));
+  kt('Bật tắt một buổi là vân tay đổi',
+     doi(() => { u.S.khungGio[1].bat = u.S.khungGio[1].bat === false; }));
+  kt('Sửa số tiết chuẩn hay màu của một môn là vân tay đổi',
+     doi(() => { (u.S.monHoc[0].chuan ||= {})[1] = 99; })
+     && doi(() => { u.S.monHoc[0].mau = '#123456'; }));
 }
 
 console.log('\n18c. Lớp còn thiếu tiết MÔN NÀO');

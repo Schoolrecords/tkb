@@ -3450,12 +3450,33 @@ function xungDotDayThay(ds, boQua){
     if(cu) loi.push({gv:ten, noi,
       vi:`đã được phân dạy thay lớp ${tenLopDay(cu.lopId)} cùng tiết này`});
 
-    /* f) Đang ở phân hiệu khác trong cùng buổi */
+    /* f) Đang ở phân hiệu khác trong cùng buổi. Chốt cuối phải MẠNH BẰNG bộ
+       lọc ứng viên: `ungVienThay()` điều kiện (6) cộng cả tiết DẠY THAY đã
+       nhận vào tập phân hiệu, thiếu vế ấy thì hai quản lý ở hai máy cùng chọn
+       một người cho hai phân hiệu (khác tiết, cùng buổi) đều thấy "sạch" —
+       cả dòng đã lưu lẫn dòng khác trong chính mẻ này đều phải tính. */
     const dtLop = S.lopDT[d.lopId];
     const dtBuoi = new Set(Object.keys(lich[d.gvThayId]||{})
       .filter(x=>x.startsWith(kB+'-')).map(x=>S.lopDT[(lich[d.gvThayId]||{})[x]]));
+    const daNhanBuoi = (S.dayThay||[]).filter(x=>x.gvThayId===d.gvThayId
+      && x.ngay===d.ngay && x.buoi===d.buoi
+      && !bo.has(x.id) && !bo.has(khoaTiet(x.ngay,x.buoi,x.tiet,x.lopId)));
+    const meBuoi = ds.filter(x=>x!==d && x.gvThayId===d.gvThayId
+      && x.ngay===d.ngay && x.buoi===d.buoi);
+    daNhanBuoi.forEach(x=>dtBuoi.add(S.lopDT[x.lopId]));
+    meBuoi.forEach(x=>dtBuoi.add(S.lopDT[x.lopId]));
     if(dtBuoi.size && !dtBuoi.has(dtLop)) loi.push({gv:ten, noi,
       vi:`đang dạy tại ${tenDT(([...dtBuoi])[0])}, không kịp sang ${tenDT(dtLop)}`});
+
+    /* g) Đã kín số tiết trong buổi — `ungVienThay()` điều kiện (7) đã lọc,
+       nhưng dữ liệu lúc bấm Lưu có thể mới hơn lúc dựng danh sách gợi ý. */
+    const tietChinh = Object.keys(lich[d.gvThayId]||{})
+      .filter(x=>x.startsWith(kB+'-')).length;
+    const tietDaCo = new Set(daNhanBuoi.map(x=>x.tiet));
+    meBuoi.forEach(x=>tietDaCo.add(x.tiet));
+    if(!tietDaCo.has(d.tiet) && tietChinh + tietDaCo.size >= GIOI_HAN_TIET_BUOI)
+      loi.push({gv:ten, noi,
+        vi:`đã có ${tietChinh + tietDaCo.size} tiết trong buổi này — quá giới hạn ${GIOI_HAN_TIET_BUOI} tiết một buổi`});
   });
   /* Cùng một lỗi có thể bắt được từ hai phía — chỉ nói một lần */
   const thay=new Set();
@@ -3514,8 +3535,17 @@ function tongHopNgayCong(thang){
   trong.forEach(b=>{ (theoGV[b.gvId] ||= []).push(b); });
   const dong=Object.entries(theoGV).map(([id,ds])=>{
     ds.sort((a,b)=>a.ngay.localeCompare(b.ngay));
+    /* Quy công theo NGÀY, khử chồng lấn: sáng cô A gửi "nghỉ buổi sáng" rồi
+       trưa gửi tiếp "nghỉ cả ngày" là HAI dòng cho cùng một ngày — đếm từng
+       dòng độc lập ra 1,5 công cho một ngày nghỉ thật sự chỉ 1 công. Một ngày
+       tối đa 1 công: có CN thì S/C cùng ngày không đếm nữa. */
+    const theoNgay={};
+    ds.forEach(b=>{ (theoNgay[b.ngay] ||= new Set()).add(b.buoi); });
     const dem={S:0,C:0,CN:0};
-    ds.forEach(b=>{ if(dem[b.buoi]!=null) dem[b.buoi]++; });
+    Object.values(theoNgay).forEach(bo=>{
+      if(bo.has('CN')) dem.CN++;
+      else{ if(bo.has('S')) dem.S++; if(bo.has('C')) dem.C++; }
+    });
     return {gv:gvId(id), ds, dem, cong:(dem.S+dem.C)*0.5+dem.CN};
   }).filter(r=>r.gv)
     /* Sắp theo họ tên như danh sách nhà trường vẫn dùng, không theo số công */
@@ -3862,6 +3892,11 @@ async function vaoLaiBangVeNho(){
     if(!p?.access_token) throw new Error('Vé đã hết hạn');
     KHO.phien = {token:p.access_token, lamMoi:p.refresh_token||n.lamMoi,
                  uid:p.user?.id, email:p.user?.email||n.email};
+    /* Ghi vé MỚI xuống máy NGAY: Supabase xoay vòng vé làm mới, nên vé cũ
+       vừa dùng xong là hết hiệu lực. Đợi napHoSo() xong mới ghi thì một cú
+       mất mạng ở giữa là vé mới bị vứt — không còn đường nào ngoài gõ lại
+       mật khẩu. */
+    nhoPhien();
     const ho = await napHoSo();
     if(!ho.ok){
       if(ho.moCoi){
@@ -3874,8 +3909,14 @@ async function vaoLaiBangVeNho(){
     nhoPhien();
     return true;
   }catch(e){
-    /* Vé hỏng hoặc quá hạn thì xoá đi, lần sau hỏi mật khẩu như thường */
-    KHO.phien = null; quenPhien(); return false;
+    /* Vé hỏng hoặc quá hạn (máy chủ trả 4xx) thì xoá đi, lần sau hỏi mật
+       khẩu như thường. Còn LỖI MẠNG (fetch ném không có mã trạng thái, hay
+       máy chủ 5xx) thì GIỮ vé: thầy cô mở app lúc sóng yếu mà bị vứt vé còn
+       nguyên hạn là hôm sau lại phải gõ mật khẩu — đúng thứ cơ chế ghi nhớ
+       sinh ra để tránh. App chạy tạm dữ liệu mẫu, lần mở sau thử lại. */
+    KHO.phien = null;
+    if(e?.ma>=400 && e.ma<500) quenPhien();
+    return false;
   }
 }
 
@@ -3993,6 +4034,12 @@ async function taoMaMoi(tt){
        thì đừng để một lần đen đủi làm hỏng cả mẻ — bốc lại một lần. */
     if(/duplicate key|already exists|23505/i.test(t) && !tt?.thuLai)
       return taoMaMoi({...tt, thuLai:true});
+    /* Hồ sơ giáo viên vừa khai trong app mà chưa bấm Lưu thì id còn là id
+       trong app, không phải uuid — Postgres từ chối cả lệnh (không dòng nào
+       kịp ghi). Dịch thành việc phải làm, đừng bày câu tiếng Anh khó hiểu. */
+    if(/invalid input syntax for type uuid/i.test(t)) return {ok:false,
+      loi:'Hồ sơ giáo viên này vừa khai mà chưa lưu lên hệ thống. '+
+        'Vào mục Giáo viên bấm Lưu rồi tạo mã lại.'};
     if(/ma_moi|relation|404/i.test(t)) return {ok:false,
       loi:'Máy chủ chưa có bảng mã mời. Quản trị chạy db/ma-moi.sql (có sẵn trong db/cai-dat.sql) một lần trong SQL Editor.'};
     return {ok:false, loi:dienGiaiLoi(e)};
@@ -4109,7 +4156,11 @@ async function moTruongDeXem(id, ten){
        PostgREST vẫn trả 200 nhưng LỌC SẠCH mọi dòng — nhìn ra là trường
        rỗng trơn. Nói đúng chuyện ấy, đừng để người dùng tưởng nhà trường
        chưa khai gì. */
-    if(kq.ok && !S.lop.length && !S.giaoVien.length){
+    /* taiDuLieu() KHÔNG bao giờ throw: lỗi mạng hay RLS thì nó nạp dữ liệu
+       MẪU vào S rồi trả {ok:false}. Để lọt qua đây là chủ hệ thống nhìn 25
+       lớp của bộ mẫu dưới tấm thẻ đỏ ghi tên trường thật — tưởng nhầm đó là
+       dữ liệu của trường ấy. Cả hai trường hợp đều phải lùi về trường cũ. */
+    if(!kq.ok || KHO.nguon!=='may-chu' || (!S.lop.length && !S.giaoVien.length)){
       KHO.truongXem = truoc;
       await taiDuLieu();
       return {ok:false, thongBao:'Chưa đọc được dữ liệu trường này. '
@@ -4146,6 +4197,10 @@ function dangXuat(){
   KHO.phien = null; KHO.nguoiDung = null; KHO.nguon = 'nhung';
   KHO.version = 0; KHO.loiCuoi = '';
   KHO.khach = null; KHO.xemDemo = false;
+  /* Dọn cả dấu vết phiên trước: còn giữ truongXem thì tài khoản đăng nhập
+     SAU trên cùng máy bị taiDuLieu() tải nhầm trường mà chủ hệ thống đang
+     xem dở — RLS lọc sạch và trường thật của họ hiện ra "chưa có dữ liệu". */
+  KHO.truongXem = null; KHO.vanBan = null; KHO.banCongBo = 0;
   S.nguoiDung = {vaiTro:'qt', gvId:null, diemTruongId:null};
   quenPhien();          /* đăng xuất là quên hẳn, máy dùng chung mới an toàn */
 }
@@ -4873,8 +4928,12 @@ function duLieuTuBang(hangGV, hangLop, hangPC, tenTrang){
     if(!ma) loi.push({t:T.gv, d:r.__dong, v:'thiếu Ma_GV'});
     if(!ten) loi.push({t:T.gv, d:r.__dong, v:'thiếu Ho_ten'});
     return {id:ma, hoTen:ten, maGV:ma, tenNgan:ma,
-            /* giữ nguyên ô người dùng gõ, lát nữa dò về mã lớp */
+            /* giữ nguyên ô người dùng gõ, lát nữa dò về mã lớp.
+               `dinhMucKhai` nhớ ô Dinh_muc có ĐƯỢC ĐIỀN hay không (0 = bỏ
+               trống): lúc ghi lên máy chủ, ô trống phải giữ định mức cũ của
+               giáo viên kiêm nhiệm chứ không đè về mặc định 23. */
             cn:chu(r.Chu_nhiem), dongCN:r.__dong, dinhMuc:+r.Dinh_muc||DINH_MUC,
+            dinhMucKhai:+r.Dinh_muc||0,
             email:chu(r.Gmail||r.Email), ghiChu:chu(r.Ghi_chu)};
   });
   const lopTho=lLop.co.map(r=>{
@@ -5819,6 +5878,23 @@ async function ghiDuLieuNguon(dl){
     /* 1. Phân hiệu — bảng này không có ràng buộc duy nhất nên tự dò theo tên */
     const dtCu=await goiAPI(`/rest/v1/diem_truong?truong_id=eq.${t}&select=id,ten`);
     const maDT={}; (dtCu||[]).forEach(d=>maDT[d.ten]=d.id);
+    /* ⚠️ ĐỔI TÊN phân hiệu: dòng đã có trên máy chủ (id là UUID) thì SỬA
+       đúng dòng ấy, không tạo-mới-rồi-xoá-cũ. Tạo-xoá làm mọi tham chiếu
+       ngoài bảng lop đứt dây chuyền: giao_vien.diem_truong_id (set null) —
+       cả phân hiệu mất nhãn; nguoi_dung.diem_truong_id (không FK) treo vào
+       UUID đã xoá — PHT phụ trách bấm Lưu được máy chủ báo ok nhưng phạm vi
+       rỗng, không ghi lớp nào. Sửa không được (RLS thiếu, tên mới trùng tên
+       đang có) thì lùi về đường cũ như trước — không hỏng thêm gì. */
+    for(const d of dl.diemTruong){
+      if(!laUUID(d.id) || maDT[d.ten]) continue;
+      const cu=(dtCu||[]).find(x=>x.id===d.id);
+      if(!cu || cu.ten===d.ten) continue;
+      try{
+        if(await suaHang(`/rest/v1/diem_truong?id=eq.${d.id}`, {ten:d.ten})){
+          delete maDT[cu.ten]; maDT[d.ten]=d.id; cu.ten=d.ten;
+        }
+      }catch(e){ /* lùi về đường tạo mới phía dưới */ }
+    }
     const dtThem=dl.diemTruong.filter(d=>!maDT[d.ten]);
     if(dtThem.length){
       const moi=await goiAPI('/rest/v1/diem_truong', {method:'POST',
@@ -5862,10 +5938,33 @@ async function ghiDuLieuNguon(dl){
       return maDT[dl.diemTruong.find(d=>d.id===id)?.ten] || null;
     };
     const maCuaGV=g=>g.maGV||g.id;
-    const hangGV=g=>({truong_id:t, ma_gv:maCuaGV(g), ho_ten:g.hoTen,
-                      dinh_muc:g.dinhMuc||DINH_MUC,
-                      ...(KHO.coCotGV===false?{}:{email:g.email||null, ghi_chu:g.ghiChu||null,
-                          dien_thoai:g.dienThoai||null, diem_truong_id:idDTSv(g.dtChinh)})});
+    /* ⚠️ Ô để TRỐNG thì GIỮ NGUYÊN giá trị cũ, không xoá. Mẫu ma trận (và
+       tệp PCGD cũ) không có cột Gmail · điện thoại · phân hiệu · ghi chú, nên
+       tệp nhập về dựng giáo viên với các ô ấy rỗng — mà upsert theo mã lại
+       KHỚP đúng dòng cũ trên máy chủ: gửi null là xoá sạch Gmail cả trường,
+       sáng hôm sau không ai đăng nhập bằng Google được nữa. Trộn với dữ liệu
+       đang có trong S (lúc này còn là bản TRƯỚC khi nhập); chỉ tin S khi nó
+       thật sự đến từ máy chủ — dữ liệu mẫu có mã trùng là dính email hư cấu. */
+    const gvCu={};
+    if(KHO.nguon==='may-chu') (S.giaoVien||[]).forEach(g=>{
+      if(g.maGV) gvCu[g.maGV]=g;
+      gvCu[g.id]=gvCu[g.id]||g;
+    });
+    const hangGV=g=>{
+      const cu=gvCu[maCuaGV(g)]||gvCu[g.id];
+      /* Tệp nhập không điền ô Dinh_muc thì trình đọc đã đặt sẵn mặc định 23
+         (`dinhMucKhai` = 0) — con số ấy không phải người dùng khai, đừng để
+         nó đè định mức riêng của giáo viên kiêm nhiệm (R01 · R08 tôn trọng
+         con số riêng). Hồ sơ khai trong app không có dinhMucKhai thì tin
+         thẳng dinhMuc. */
+      const khai=g.dinhMucKhai!==undefined ? g.dinhMucKhai : g.dinhMuc;
+      const dinhMuc=(khai||cu?.dinhMuc)||DINH_MUC;
+      return {truong_id:t, ma_gv:maCuaGV(g), ho_ten:g.hoTen, dinh_muc:dinhMuc,
+              ...(KHO.coCotGV===false?{}:{email:(g.email||cu?.email)||null,
+                  ghi_chu:(g.ghiChu||cu?.ghiChu)||null,
+                  dien_thoai:(g.dienThoai||cu?.dienThoai)||null,
+                  diem_truong_id:idDTSv(g.dtChinh||cu?.dtChinh)})};
+    };
     /* ⚠️ ĐƯỜNG LUI cho hai cột thêm ngày 28/8/2026 (db/gmail-giao-vien.sql).
        Máy chủ chưa chạy tệp ấy thì PostgREST từ chối CẢ lệnh chứ không bỏ qua
        cột thiếu — nghĩa là mất luôn cả lần lưu, kể cả họ tên và định mức. Nên
@@ -5950,27 +6049,39 @@ async function ghiDuLieuNguon(dl){
           loiTruong = `Chưa lưu được thông tin trường (tên, năm học, địa bàn). ${NHAC_CAI_DAT}`;
       }catch(e){ loiTruong = `Chưa lưu được thông tin trường: ${dienGiaiLoi(e)}`; }
     }
+    /* ⚠️ Hai bảng thêm sau, "xoá sạch rồi ghi lại". Chỉ được NUỐT lỗi khi
+       bảng CHƯA CÓ trên máy chủ (chưa chạy db/mon-hoc-phong.sql — đường lui
+       cũ, giữ nguyên). Còn DELETE đã ăn mà POST hỏng (mạng chớp giữa hai
+       lệnh) thì máy chủ mất sạch danh mục — im lặng lúc ấy là "báo đã lưu
+       mà chẳng lưu gì", lần tải sau app lùi về danh mục mặc định và các môn
+       tự chọn nhà trường thêm biến mất không dấu vết. */
+    let loiDanhMuc='';
+    const thieuBang=e=>/does not exist|404|relation/i.test(String(e?.message||''))||e?.ma===404;
     if(dl.monHoc?.length){
-      await goiAPI(`/rest/v1/mon_hoc?truong_id=eq.${t}`,
-        {method:'DELETE', headers:{Prefer:'return=minimal'}})
-      .then(()=>goiAPI('/rest/v1/mon_hoc', {method:'POST',
-        headers:{Prefer:'return=minimal'},
-        body:JSON.stringify(dl.monHoc.map((m,i)=>({truong_id:t, ten:m.ten, mau:m.mau||null,
-          nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||null,
-          tiet_chuan:m.chuan||null, thu_tu:i})))}))
-      .catch(()=>{});
+      try{
+        await goiAPI(`/rest/v1/mon_hoc?truong_id=eq.${t}`,
+          {method:'DELETE', headers:{Prefer:'return=minimal'}});
+        await goiAPI('/rest/v1/mon_hoc', {method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify(dl.monHoc.map((m,i)=>({truong_id:t, ten:m.ten, mau:m.mau||null,
+            nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||null,
+            tiet_chuan:m.chuan||null, thu_tu:i})))});
+      }catch(e){ if(!thieuBang(e))
+        loiDanhMuc='Chưa lưu được danh mục môn học — bấm Lưu lại một lần nữa. '; }
     }
     if(dl.phong?.length){
-      await goiAPI(`/rest/v1/phong?truong_id=eq.${t}`,
-        {method:'DELETE', headers:{Prefer:'return=minimal'}})
-      .then(()=>goiAPI('/rest/v1/phong', {method:'POST',
-        headers:{Prefer:'return=minimal'},
-        body:JSON.stringify(dl.phong
-          .map(p=>({truong_id:t, ten:p.ten,
-                    diem_truong_id:maDT[dl.diemTruong.find(d=>d.id===p.dtId)?.ten],
-                    mon:p.mon||null}))
-          .filter(r=>r.diem_truong_id))}))
-      .catch(()=>{});
+      try{
+        await goiAPI(`/rest/v1/phong?truong_id=eq.${t}`,
+          {method:'DELETE', headers:{Prefer:'return=minimal'}});
+        await goiAPI('/rest/v1/phong', {method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify(dl.phong
+            .map(p=>({truong_id:t, ten:p.ten,
+                      diem_truong_id:maDT[dl.diemTruong.find(d=>d.id===p.dtId)?.ten],
+                      mon:p.mon||null}))
+            .filter(r=>r.diem_truong_id))});
+      }catch(e){ if(!thieuBang(e))
+        loiDanhMuc+='Chưa lưu được bảng phòng học — bấm Lưu lại một lần nữa. '; }
     }
 
     /* 6b. Buổi bận — chỉ mẫu ma trận mới mang theo (cột Buoi_ban). Có thì
@@ -6027,12 +6138,13 @@ async function ghiDuLieuNguon(dl){
 
     ghiNhatKy('nhap_du_lieu_nguon',
       {lop:dl.lop.length, giaoVien:dl.giaoVien.length, phanCong:hangPC.length});
-    return {ok:true, lopThua, gvThua, loiTruong, dtChuaXoa,
+    return {ok:true, lopThua, gvThua, loiTruong:(loiTruong+(loiTruong&&loiDanhMuc?' ':'')+loiDanhMuc).trim(), dtChuaXoa,
       chiTiet:{diemTruong:Object.keys(maDT).length, khungGio:dl.khungGio.length,
                giaoVien:dl.giaoVien.length, lop:dl.lop.length, phanCong:hangPC.length},
       thongBao:`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${hangPC.length} dòng phân công.`
         + (dtChuaXoa.length?` ⚠️ Chưa xoá được ${dtChuaXoa.join(', ')} — trên máy chủ còn lớp học ở đó.`:'')
-        + (loiTruong?` ⚠️ ${loiTruong}`:'')};
+        + (loiTruong?` ⚠️ ${loiTruong}`:'')
+        + (loiDanhMuc?` ⚠️ ${loiDanhMuc.trim()}`:'')};
   }catch(e){
     return {ok:false, thongBao:dienGiaiLoi(e)};
   }
@@ -6042,9 +6154,17 @@ async function ghiDuLieuNguon(dl){
    Bảng gv_nghi nhỏ và thay đổi cả cụm (thầy cô báo bận theo học kỳ), nên xoá
    sạch rồi ghi lại — cùng cách đã dùng cho bảng phân công, và nhờ vậy bỏ đánh
    dấu cũng được ghi nhận chứ không sót lại dòng cũ trên máy chủ. */
+/* An toàn kép cho chế độ chỉ-đọc (17k): cờ chiXem đã khoá nút trên giao
+   diện, nhưng một nút sót là đủ để DELETE buổi bận của trường MÌNH rồi ghi
+   dòng mang giáo viên trường đang xem — nên mọi đường ghi trong-năm-học
+   cũng tự chặn, đúng khuôn ghiDuLieuNguon() và luuTKB(). */
+const LOI_CHI_XEM = () => ({ok:false,
+  thongBao:`Đang xem ${KHO.truongXem?.ten||'trường khác'} ở chế độ chỉ đọc — không ghi được. `
+    +'Thoát về trường của mình rồi thao tác.'});
 async function luuBuoiBan(gvNghi){
   if(!coMayChu()) return {ok:false,
     thongBao:'Chưa nối máy chủ nên chưa lưu được. Đánh dấu vẫn còn trên màn hình.'};
+  if(dangXemTruongKhac()) return LOI_CHI_XEM();
   if(KHO.nguon!=='may-chu') return {ok:false,
     thongBao:'Đang chạy dữ liệu mẫu nên chưa lưu được — mã giáo viên không phải của trường.'};
   const t=KHO.nguoiDung.truongId;
@@ -6071,6 +6191,7 @@ async function luuBuoiBan(gvNghi){
 async function luuDayThay(ds){
   if(!coMayChu()) return {ok:false,
     thongBao:'Chưa nối máy chủ nên chưa lưu được. Đăng nhập rồi lưu lại.'};
+  if(dangXemTruongKhac()) return LOI_CHI_XEM();
   if(KHO.nguon!=='may-chu') return {ok:false,
     thongBao:'Đang chạy dữ liệu mẫu nên chưa lưu được — mã lớp, mã giáo viên không phải của trường.'};
   try{
@@ -6102,6 +6223,12 @@ async function luuDayThay(ds){
     if(/ux_day_thay_gv_mot_tiet/i.test(m)) return {ok:false, thongBao:
       'Không lưu được: một giáo viên trong danh sách vừa được người khác phân công '
       + 'dạy lớp khác đúng tiết đó. Tải lại trang để lấy bản mới nhất rồi chọn người khác.'};
+    /* Lớp hay giáo viên vừa khai trong app mà chưa bấm Lưu thì id còn là id
+       trong app — Postgres từ chối CẢ lệnh, không dòng nào kịp ghi. Dịch
+       thành việc phải làm, đúng khuôn taoMaMoi(). */
+    if(/invalid input syntax for type uuid/i.test(m)) return {ok:false,
+      thongBao:'Có lớp hoặc giáo viên vừa khai mà chưa lưu lên hệ thống. '
+        +'Bấm Lưu ở mục Lớp học / Giáo viên trước rồi phân công dạy thay lại.'};
     if(/day_thay|relation|404/i.test(m)) return {ok:false,
       thongBao:'Máy chủ chưa có bảng dạy thay. Quản trị chạy db/day-thay.sql (có sẵn trong db/cai-dat.sql) một lần trong SQL Editor.'};
     return {ok:false, thongBao:dienGiaiLoi(e)};
@@ -6109,6 +6236,7 @@ async function luuDayThay(ds){
 }
 async function xoaDayThay(id){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
+  if(dangXemTruongKhac()) return LOI_CHI_XEM();
   try{
     await goiAPI(`/rest/v1/day_thay?id=eq.${id}`, {method:'DELETE'});
     return {ok:true, thongBao:'Đã xoá phân công dạy thay.'};
@@ -6130,6 +6258,7 @@ const thieuBangBN = e => /bao_nghi|relation|404|column/i.test(String(e?.message|
 async function guiBaoNghi(b){
   if(!coMayChu()) return {ok:false,
     thongBao:'Chưa nối máy chủ nên chưa gửi được. Đăng nhập rồi gửi lại.'};
+  if(dangXemTruongKhac()) return LOI_CHI_XEM();
   if(KHO.nguon!=='may-chu') return {ok:false,
     thongBao:'Đang chạy dữ liệu mẫu nên chưa gửi được — mã giáo viên không phải của trường.'};
   try{
@@ -6144,6 +6273,11 @@ async function guiBaoNghi(b){
     ghiNhatKy('bao_nghi', {ngay:b.ngay, buoi:b.buoi});
     return {ok:true, hang:tra?.[0]||null, thongBao:'Đã gửi thông báo nghỉ.'};
   }catch(e){
+    /* Hồ sơ giáo viên vừa khai mà chưa bấm Lưu — id còn là id trong app,
+       Postgres từ chối cả lệnh. Dịch thành việc phải làm. */
+    if(/invalid input syntax for type uuid/i.test(String(e?.message||'')))
+      return {ok:false, thongBao:'Hồ sơ giáo viên này vừa khai mà chưa lưu lên hệ thống. '
+        +'Bấm Lưu ở mục Giáo viên trước rồi gửi lại.'};
     if(thieuBangBN(e)) return {ok:false, thongBao:LOI_THIEU_BANG};
     return {ok:false, thongBao:dienGiaiLoi(e)};
   }
@@ -6151,6 +6285,7 @@ async function guiBaoNghi(b){
 
 async function huyBaoNghi(id){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
+  if(dangXemTruongKhac()) return LOI_CHI_XEM();
   try{
     await goiAPI(`/rest/v1/bao_nghi?id=eq.${id}`, {method:'DELETE'});
     return {ok:true, thongBao:'Đã huỷ thông báo nghỉ.'};
@@ -6165,6 +6300,7 @@ async function huyBaoNghi(id){
    chặn ghi trông y hệt ghi trót lọt. Mọi lệnh PATCH phải đi qua suaHang(). */
 async function danhDauXuLy(id){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
+  if(dangXemTruongKhac()) return LOI_CHI_XEM();
   try{
     const so = await suaHang(`/rest/v1/bao_nghi?id=eq.${id}`,
       {trang_thai:'xong', nguoi_xu_ly:KHO.nguoiDung.id, xu_ly_luc:new Date().toISOString()});
@@ -6286,13 +6422,21 @@ function ghiNhatKy(hanhDong, duLieuCu){
    có sửa chưa lưu, bất kể sửa ở đâu. */
 function vanTayNguon(){
   const gon = (a,f) => (a||[]).map(f).sort().join('|');
+  /* ⚠️ Vân tay phải phủ MỌI trường mà ghiDuLieuNguon() ghi lên máy chủ.
+     Bỏ sót trường nào là sửa trường ấy rồi tải lại trang mất ÂM THẦM —
+     không dải đỏ, không beforeunload — đúng sự cố 2/8/2026 tái phát trên
+     các cột thêm sau (Gmail, điện thoại, khung giờ, số tiết chuẩn môn). */
   return [
     gon(S.lop, l=>`${l.id}:${l.ten}:${l.khoi}:${l.maLop||''}:${S.lopDT[l.id]||''}`),
-    gon(S.giaoVien, g=>`${g.id}:${g.hoTen}:${g.cn||''}:${g.dinhMuc||''}`),
+    gon(S.giaoVien, g=>`${g.id}:${g.hoTen}:${g.cn||''}:${g.dinhMuc||''}:${g.maGV||''}`
+      +`:${g.email||''}:${g.dienThoai||''}:${g.ghiChu||''}:${g.dtChinh||''}`),
     gon(S.phanCong, p=>`${p.gvId}:${p.lopId}:${p.mon}:${p.soTiet}`),
     gon(S.diemTruong, d=>`${d.id}:${d.ten}:${d.phongTin!==false}`),
-    gon(S.monHoc, m=>`${m.ten}:${m.nang}:${m.nhe}:${m.phong||''}`),
+    gon(S.monHoc, m=>`${m.ten}:${m.nang}:${m.nhe}:${m.phong||''}:${m.mau||''}`
+      +`:${JSON.stringify(m.chuan||null)}`),
     gon(S.phong, p=>`${p.ten}:${p.dtId}:${p.mon||''}`),
+    gon(S.khungGio, k=>`${k.thu}:${k.buoi}:${k.tiet}:${k.bat!==false}`
+      +`:${JSON.stringify(k.tietKhoi||null)}`),
     Object.entries(S.gvNghi||{}).map(([k,v])=>k+':'+[...v].sort().join(',')).sort().join('|')
   ].join('##');
 }
@@ -7754,7 +7898,7 @@ function mDieuHanh(){
       return `<div class="dt-the d${iDT(d.id)}"><div class="dt-t"><span class="cham"></span>${esc(d.ten)}</div>
         <div class="dt-s"><div>Lớp<b>${lp.length}</b></div><div>Tiết/tuần<b>${cn}</b></div>
         <div>Đã xếp<b>${cn?Math.round(xp/cn*100):0}%</b></div></div>
-        <div class="dt-l">${lp.length?lp.map(l=>`<span>${l.ten}</span>`).join(''):'<span style="color:var(--chu-mo)">Chưa có lớp</span>'}</div></div>`;
+        <div class="dt-l">${lp.length?lp.map(l=>`<span>${esc(l.ten)}</span>`).join(''):'<span style="color:var(--chu-mo)">Chưa có lớp</span>'}</div></div>`;
     }).join('')}</div></div>
   </div>
   </div>
@@ -11635,7 +11779,7 @@ function mDiemTruong(){
       <div class="dt-s"><div>Lớp<b>${lp.length}</b></div><div>Giáo viên<b>${gv.size}</b></div><div>Tiết/tuần<b>${ti}</b></div></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:11px;cursor:${sua?'pointer':'default'}">
         <input type="checkbox" data-tin="${d.id}" ${d.phongTin?'checked':''} ${sua?'':'disabled'}> Có phòng Tin học</label>
-      <div class="dt-l">${lp.length?lp.map(l=>`<span>${l.ten}</span>`).join(''):'<span style="color:var(--chu-mo)">Chưa có lớp</span>'}</div>
+      <div class="dt-l">${lp.length?lp.map(l=>`<span>${esc(l.ten)}</span>`).join(''):'<span style="color:var(--chu-mo)">Chưa có lớp</span>'}</div>
     </div>`;}).join('')}</div>`;
 }
 function mGiaoVien(){
@@ -12757,6 +12901,12 @@ function kiemTraChuyen(tu,den){
       return `Trùng lịch: ${tenTat(gvId(b.gvId).hoTen)} đang dạy lớp khác`;
     const dtB=cs.gvBuoiDT[b.gvId]?.[kB2];
     if(dtB && dtB!==S.lopDT[S.lopXem]) return `${tenTat(gvId(b.gvId).hoTen)} đang ở ${dtId(dtB).ten} trong buổi này`;
+    /* Ràng buộc cứng số 7 phải cứng ở CẢ HAI CHIỀU: chiều xuôi đã kiểm buổi
+       bận (kB1 phía trên) mà chiều ngược bỏ sót thì kéo tiết đổi chỗ vẫn đẩy
+       được tiết của đồng nghiệp vào đúng buổi họ đã đăng ký nghỉ — và tiết
+       ghim rồi thì Xếp lại cũng không chữa. */
+    if((S.gvNghi[b.gvId]||[]).includes(kB2))
+      return `${tenTat(gvId(b.gvId).hoTen)} đã đăng ký nghỉ buổi bên kia — không đổi chỗ được`;
   }
   /* Phòng chức năng. Bỏ chính lớp đang xem ra khỏi phép đếm — tiết của nó
      đang được dời đi, chỗ nó bỏ lại không tính là đang chiếm. */
@@ -12884,7 +13034,7 @@ function hopThemDT(){ hop('Thêm phân hiệu',
 function hopGanLop(){ hop('Phân bổ lớp về phân hiệu',
   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Việc này quyết định giáo viên nào phải di chuyển giữa các phân hiệu.</p>
    <div class="bang" style="max-height:52vh"><table class="dl"><thead><tr><th>Lớp</th><th>Phân hiệu</th></tr></thead><tbody>
-   ${S.lop.map(l=>`<tr><td><b>${l.ten}</b></td><td><select class="ip" data-gan="${l.id}" style="width:100%">
+   ${S.lop.map(l=>`<tr><td><b>${esc(l.ten)}</b></td><td><select class="ip" data-gan="${l.id}" style="width:100%">
      ${S.diemTruong.map(d=>`<option value="${d.id}" ${S.lopDT[l.id]===d.id?'selected':''}>${esc(d.ten)}</option>`).join('')}
    </select></td></tr>`).join('')}</tbody></table></div>`,
   [{ten:'Xong',lam:()=>{$$('[data-gan]').forEach(s=>S.lopDT[s.dataset.gan]=s.value);

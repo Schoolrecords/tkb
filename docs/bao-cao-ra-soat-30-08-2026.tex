@@ -1,0 +1,213 @@
+% Báo cáo rà soát lỗi Hệ thống Thời khóa biểu — 30/8/2026
+% Biên dịch: pdflatex (cần gói babel vietnamese) hoặc xelatex đều được.
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!60!black]{hyperref}
+
+\newcommand{\muc}[1]{\textbf{#1}}
+\definecolor{do}{RGB}{180,30,30}
+\definecolor{xanh}{RGB}{21,128,61}
+\newcommand{\nghiemtrong}{\textcolor{do}{\textbf{Nghiêm trọng}}}
+\newcommand{\cao}{\textcolor{do}{Cao}}
+\newcommand{\vua}{Vừa}
+\newcommand{\nhe}{Nhẹ}
+\newcommand{\dasua}{\textcolor{xanh}{\textbf{Đã sửa}}}
+
+\title{\textbf{BÁO CÁO RÀ SOÁT LỖI}\\[4pt]
+\large Hệ thống Thời khóa biểu --- trường tiểu học nhiều phân hiệu}
+\author{Rà soát tự động bằng 7 bộ kiểm thử + 3 tác tử soi mã độc lập}
+\date{Ngày 30 tháng 8 năm 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Tóm tắt}
+Đợt rà soát tiến hành theo hai hướng song song: (1) chạy \textbf{toàn bộ bảy bộ
+kiểm thử tự động} của dự án; (2) giao \textbf{ba tác tử soi mã độc lập} rà ba
+vùng rủi ro cao nhất theo lịch sử sự cố --- tầng truy cập dữ liệu (DULIEU),
+thuật toán và nghiệp vụ (LOGIC), giao diện và bảo mật phía trình duyệt.
+
+Kết quả: bảy bộ kiểm thử \textbf{đều xanh} trước khi rà (1.524 phép thử), nhưng
+ba tác tử tìm ra \textbf{13 lỗi thật} chưa bộ nào canh tới --- trong đó 2 lỗi
+nghiêm trọng, 1 lỗi mức cao, 1 lỗi bảo mật XSS. \textbf{Cả 13 lỗi đã được sửa
+trong cùng ngày}, kèm 9 phép thử mới canh không cho tái phát. Sau khi vá, cả
+bảy bộ kiểm thử chạy lại đều xanh (1.533 phép thử).
+
+\section{Kết quả bảy bộ kiểm thử (trước khi vá)}
+\begin{longtable}{@{}llr@{}}
+\toprule
+\muc{Bộ} & \muc{Phạm vi} & \muc{Kết quả}\\
+\midrule
+\texttt{npm test}          & hàm thuần (thuật toán, dữ liệu, quyền)      & 455 đạt, 0 hỏng\\
+\texttt{npm run soi}       & giao diện 12+ màn hình, trình duyệt giả      & 488 đạt, 0 hỏng\\
+\texttt{npm run soi-mau}   & hình thức tệp Excel xuất ra                  & 81 đạt, 0 hỏng\\
+\texttt{npm run soi-nhap}  & đường nhập liệu của trường mới tinh          & 60 đạt, 0 hỏng\\
+\texttt{npm run soat}      & cú pháp SQL, quy tắc RLS, cột quyền          & 409 câu lệnh, 0 lỗi\\
+\texttt{soi-worker}        & Web Worker, CSP, nút Xếp kỹ                  & 9 đạt, 0 hỏng\\
+\texttt{npm run kiemdinh}  & trình kiểm định thuật toán độc lập, 7 kịch bản & 22 đạt, 0 hỏng\\
+\bottomrule
+\end{longtable}
+
+Nhận xét: các bộ kiểm thử canh rất chắc những gì chúng \emph{đã biết}; 13 lỗi
+dưới đây đều nằm ở những đường đi mà chưa phép thử nào bước qua.
+
+\section{Bảng tổng hợp 13 lỗi}
+\begin{longtable}{@{}p{0.6cm}p{1.9cm}p{9.3cm}p{1.6cm}@{}}
+\toprule
+\muc{\#} & \muc{Mức} & \muc{Lỗi} & \muc{T.thái}\\
+\midrule
+1 & \nghiemtrong & Nhập Excel ma trận \textbf{xoá sạch Gmail, điện thoại, ghi chú,
+    phân hiệu} và đè định mức riêng của mọi giáo viên đang có trên máy chủ & \dasua\\
+2 & \nghiemtrong & Vân tay ``chưa lưu'' \textbf{không phủ khung giờ và các cột mới}
+    (Gmail, điện thoại, số tiết chuẩn môn) --- sửa xong tải lại trang là mất âm thầm & \dasua\\
+3 & \cao & Chỉnh tay TKB: chiều ngược của phép hoán đổi \textbf{thiếu kiểm buổi bận}
+    --- vi phạm ràng buộc cứng số 7, tiết bị ghim nên Xếp lại cũng không chữa & \dasua\\
+4 & \cao & \textbf{XSS} qua tên lớp tại 3 chỗ chèn thẳng \texttt{l.ten} không qua
+    \texttt{esc()} (Bảng điều hành, mục Phân hiệu, hộp Phân bổ lớp) & \dasua\\
+5 & \vua & Bảng \textbf{ngày công} đếm đơn nghỉ chồng lấn (buổi + cả ngày cùng
+    một ngày) thành 1,5 công thay vì 1 công --- sai số liệu báo cáo hằng tháng & \dasua\\
+6 & \vua & Chốt chặn cuối trước khi lưu \textbf{dạy thay} yếu hơn bộ lọc ứng viên:
+    không bắt ``cùng buổi, khác tiết, hai phân hiệu'' và không kiểm giới hạn tiết/buổi & \dasua\\
+7 & \vua & Đổi \textbf{tên phân hiệu} bị ghi thành tạo-mới-xoá-cũ: giáo viên mất
+    nhãn phân hiệu, PHT phụ trách mất phạm vi lưu mà máy vẫn báo ``Đã lưu'' & \dasua\\
+8 & \vua & Chế độ chủ hệ thống xem trường khác: tải lỗi thì \textbf{bày dữ liệu mẫu}
+    dưới thẻ ghi tên trường thật, dễ đọc nhầm thành dữ liệu của trường ấy & \dasua\\
+9 & \vua & \textbf{Đăng xuất không dọn} cờ trường-đang-xem: tài khoản đăng nhập sau
+    trên cùng máy bị tải nhầm trường, thấy ``trường chưa có dữ liệu'' & \dasua\\
+10 & \vua & Danh mục môn/phòng: xoá xong mà ghi lại hỏng thì \textbf{nuốt lỗi} ---
+    máy chủ mất sạch danh mục nhưng vẫn báo ``Đã nhập'' & \dasua\\
+11 & \vua & Mở app lúc \textbf{sóng yếu} bị xoá vé đăng nhập còn tốt --- hôm sau
+    thầy cô lại phải gõ mật khẩu; vé mới xoay vòng chưa kịp ghi cũng bị vứt & \dasua\\
+12 & \nhe & Bốn đường ghi trong-năm-học (buổi bận, dạy thay, báo nghỉ, đánh dấu
+    xử lý) \textbf{thiếu chốt chỉ-đọc} của chế độ xem trường khác & \dasua\\
+13 & \nhe & Id vừa khai trong app (chưa lưu) lọt vào cột \texttt{uuid} ở mã mời,
+    dạy thay, báo nghỉ --- người dùng nhận câu lỗi tiếng Anh khó hiểu & \dasua\\
+\bottomrule
+\end{longtable}
+
+\section{Chi tiết các lỗi chính và cách sửa}
+
+\subsection*{Lỗi 1 --- Nhập ma trận xoá Gmail cả trường (nghiêm trọng)}
+\muc{Kịch bản:} mẫu ma trận (mẫu \emph{duy nhất} được mời ở màn Phân công) không
+có cột Gmail, điện thoại, định mức, phân hiệu. Trường đã khai Gmail cho 35 thầy
+cô, giữa kỳ tải mẫu về sửa phân công rồi nhập lại: dòng giáo viên upsert theo mã
+\emph{khớp đúng dòng cũ} trên máy chủ và ghi đè các cột ấy bằng \texttt{null} ---
+sáng hôm sau cả trường không ai đăng nhập bằng Google được nữa; định mức riêng
+của giáo viên kiêm nhiệm (18 tiết) bị nâng lại 23 nên quy tắc R01 im lặng.
+
+\muc{Cách sửa:} tại đường ghi duy nhất \texttt{ghiDuLieuNguon()}: ô để trống thì
+\emph{giữ nguyên giá trị cũ} đang có (chỉ tin dữ liệu cũ khi nó thật sự đến từ
+máy chủ); trình đọc Excel đánh dấu \texttt{dinhMucKhai} để phân biệt ``ô bỏ
+trống'' với ``người dùng khai 23''. Đúng nguyên tắc đã ghi trong CLAUDE.md:
+\emph{``Ô Gmail để trống thì giữ nguyên địa chỉ cũ, không xoá.''}
+
+\subsection*{Lỗi 2 --- Vân tay ``chưa lưu'' thủng ở các cột mới (nghiêm trọng)}
+\muc{Kịch bản:} cơ chế \texttt{vanTayNguon()} sinh ra sau sự cố mất dữ liệu
+2/8/2026, nhưng không được cập nhật khi bảng giáo viên thêm cột Gmail, điện
+thoại, ghi chú, phân hiệu chính, mã GV; khung giờ và số tiết chuẩn của môn cũng
+không nằm trong vân tay. Quản trị gõ Gmail cho 35 thầy cô ngay trong bảng, quên
+bấm Lưu, trang tải lại --- mất sạch mà không dải đỏ, không \texttt{beforeunload}.
+
+\muc{Cách sửa:} bổ sung đủ các trường trên vào vân tay; thêm cụm phép thử 18b2
+sửa từng trường một và đòi \texttt{coThayDoiChuaLuu()} phải đổi.
+
+\subsection*{Lỗi 3 --- Hoán đổi tay đẩy tiết vào buổi đồng nghiệp đã báo bận (cao)}
+\muc{Kịch bản:} \texttt{kiemTraChuyen()} kiểm buổi bận cho chiều xuôi nhưng
+\emph{quên chiều ngược}: kéo tiết Toán thả vào ô Tiếng Anh của cô Mận thì tiết
+của cô bị đẩy vào đúng buổi cô đã đăng ký bận --- vi phạm ràng buộc cứng số 7
+một cách âm thầm, và vì tiết chỉnh tay được ghim nên lần Xếp lại sau cũng không
+chữa. Chốt của đường chỉnh tay yếu hơn chốt của máy (\texttt{doiChoDuoc()} kiểm
+đủ cả hai chiều).
+
+\muc{Cách sửa:} thêm phép kiểm \texttt{S.gvNghi} cho chiều ngược, câu báo nói rõ
+ai và vì sao.
+
+\subsection*{Lỗi 4 --- XSS qua tên lớp (bảo mật)}
+\muc{Kịch bản:} ba chỗ chèn thẳng tên lớp vào HTML không qua \texttt{esc()}.
+Tên lớp là chuỗi nhập tự do (sửa tại chỗ hoặc cột \texttt{Ten\_lop} của Excel)
+và CSP còn \texttt{'unsafe-inline'} (giới hạn đã ghi nhận của quy ước một tệp),
+nên một tên lớp chứa mã có thể chạy trong phiên của bất kỳ ai mở trang --- kể cả
+chủ hệ thống đang xem trường khác. Vé đăng nhập nằm ở \texttt{localStorage}.
+
+\muc{Cách sửa:} bọc \texttt{esc()} cả ba chỗ, đồng nhất với mọi nơi khác.
+
+\subsection*{Lỗi 5 --- Ngày công đếm trùng đơn chồng lấn}
+Sáng gửi ``nghỉ buổi sáng'', trưa gửi tiếp ``nghỉ cả ngày'' là hai dòng cho cùng
+một ngày; bảng tổng hợp cộng thành 1,5 công. Nay quy công theo \emph{ngày}: có
+``cả ngày'' thì buổi lẻ cùng ngày không đếm nữa, một ngày tối đa 1 công.
+
+\subsection*{Lỗi 6 --- Chốt cuối dạy thay yếu hơn bộ lọc}
+\texttt{xungDotDayThay()} (chạy ngay trước khi lưu) không cộng các tiết dạy thay
+đã nhận vào tập phân hiệu trong buổi và không kiểm giới hạn tiết/buổi --- hai
+quản lý ở hai máy cùng chọn một người cho hai phân hiệu (khác tiết, cùng buổi)
+đều thấy ``sạch''. Nay chốt cuối kiểm đủ cả dòng đã lưu lẫn dòng trong chính mẻ
+đang lưu. \emph{Lưu ý còn để ngỏ:} hàng rào tuyệt đối cho kịch bản hai máy phải
+nằm ở cơ sở dữ liệu (xem mục~\ref{sec:dengo}).
+
+\subsection*{Lỗi 7 --- Đổi tên phân hiệu làm đứt tham chiếu}
+Đổi ``Điểm trường Diễn Liên'' thành ``Phân hiệu Diễn Liên'' rồi bấm Lưu: bản cũ
+dò phân hiệu theo tên nên tạo dòng mới rồi xoá dòng cũ --- giáo viên của phân
+hiệu ấy mất nhãn (\texttt{on delete set null}), tài khoản PHT phụ trách trỏ vào
+id đã xoá nên phạm vi lưu rỗng: bấm Lưu được báo thành công mà không ghi lớp
+nào. Nay dòng đã có trên máy chủ thì \emph{sửa tên đúng dòng ấy} qua
+\texttt{suaHang()}; sửa không được thì lùi về đường cũ, không hỏng thêm gì.
+
+\subsection*{Các lỗi 8--13}
+Đã sửa theo đúng khuôn sẵn có của dự án: điều kiện khôi phục trong
+\texttt{moTruongDeXem()} xét cả \texttt{ok=false} và nguồn dữ liệu mẫu;
+\texttt{dangXuat()} dọn \texttt{truongXem}/\texttt{vanBan}/\texttt{banCongBo};
+danh mục môn/phòng chỉ nuốt lỗi ``bảng chưa có'', còn lại báo ra kèm lời nhắc
+bấm Lưu lại; vé đăng nhập chỉ bị xoá khi máy chủ từ chối (4xx), lỗi mạng thì giữ
+vé và ghi vé xoay vòng xuống máy \emph{ngay} sau khi làm mới; sáu đường ghi
+trong-năm-học thêm chốt \texttt{dangXemTruongKhac()}; lỗi
+\texttt{invalid input syntax for type uuid} được dịch thành việc phải làm
+(``Bấm Lưu ở mục Giáo viên trước\dots'') thay vì câu tiếng Anh.
+
+\section{Phép thử mới (9 phép, đều đã thử ngược)}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt]
+  \item Nhập tệp không có cột Gmail giữ nguyên Gmail, điện thoại, ghi chú, định mức riêng (mục 11).
+  \item \texttt{duLieuTuBang}: ô \texttt{Dinh\_muc} bỏ trống đánh dấu \texttt{dinhMucKhai = 0} (mục 11).
+  \item Cùng buổi, khác tiết, hai phân hiệu --- chốt cuối dạy thay phải bắt, kể cả hai dòng cùng mẻ (mục 14).
+  \item Đơn chồng lấn buổi + cả ngày chỉ tính 1 công (mục 18b).
+  \item Cụm 18b2 --- năm phép: sửa Gmail, điện thoại/ghi chú/phân hiệu/mã GV, số tiết khung giờ,
+        bật tắt buổi, số tiết chuẩn/màu môn đều làm vân tay đổi.
+\end{itemize}
+
+\section{Kết quả sau khi vá}
+Cả bảy bộ chạy lại xanh trọn: \texttt{npm test} 464 đạt (455 cũ + 9 mới),
+\texttt{soi} 488, \texttt{soi-mau} 81, \texttt{soi-nhap} 60, \texttt{soat} 0
+lỗi, \texttt{soi-worker} 9, \texttt{kiemdinh} 22 --- tổng \textbf{1.533 phép
+thử, 0 hỏng}. Các mốc thuật toán giữ nguyên: 710/710 tiết một phân hiệu,
+1698/1698 ba phân hiệu, 0 xung đột.
+
+\section{Việc còn để ngỏ (khuyến nghị, chưa sửa trong đợt này)}\label{sec:dengo}
+\begin{enumerate}[leftmargin=1.6em,itemsep=2pt]
+  \item \muc{Trigger ở cơ sở dữ liệu cho dạy thay hai máy.} Chốt cuối phía app đã
+    vá, nhưng hai trình duyệt chỉ biết trạng thái của mình; hàng rào tuyệt đối
+    cho ``một giáo viên, một buổi, một phân hiệu'' trên bảng \texttt{day\_thay}
+    cần một trigger \texttt{before insert} (chỉ số unique không diễn tả được
+    điều kiện này). Nên làm thành một tệp \texttt{db/*.sql} riêng, thử kỹ rồi
+    chạy trên máy chủ thật.
+  \item \muc{Chặn chồng lấn ngay lúc gửi báo nghỉ.} Hiện mới sửa ở bảng tổng hợp;
+    gọn hơn nữa là khi gửi ``cả ngày'' thì thay các dòng buổi lẻ cùng ngày.
+  \item \muc{Tham số \texttt{boQua} chưa được nối dây} ở ba nơi gọi thật của bộ
+    dạy thay --- hiện không sai vì chưa có luồng ``sửa phương án đã lưu'', nhưng
+    ai thêm luồng ấy phải nhớ truyền.
+  \item \muc{\texttt{esc()} không thoát dấu nháy đơn} --- an toàn với kỷ luật hiện
+    tại (mọi thuộc tính động dùng nháy kép); giữ kỷ luật ấy hoặc bổ sung khi
+    thuận tiện.
+\end{enumerate}
+
+\bigskip
+\noindent\textit{Toàn bộ thay đổi nằm trong \texttt{src/index.html} và
+\texttt{test/kiem-thu.mjs}, không đụng lược đồ cơ sở dữ liệu --- không cần chạy
+tệp SQL nào trên máy chủ cho đợt vá này.}
+
+\end{document}
