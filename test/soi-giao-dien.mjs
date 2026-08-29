@@ -2968,6 +2968,52 @@ console.log('\n17n. Hộp khai môn — một bộ ô cho cả Thêm lẫn Sửa
   })());
 }
 
+console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không phải hằng số CT GDPT');
+/* Tiểu học Quảng Châu 1 (29/8/2026) thêm hai môn tự chọn — HD Tự học và Kĩ
+   năng CDS — rồi mở khung giờ lên 9 buổi cho đủ 32 ô. App bày dải vàng "Khối
+   1 thừa 5 ô mỗi tuần · học sinh có tiết trống giữa buổi", trong khi 32 ô
+   khớp đúng 32 tiết đã khai. Theo lời cảnh báo ấy thì nhà trường sẽ đi xoá
+   bớt một buổi học có thật. */
+{
+  const monGoc = w.eval('JSON.stringify(S.monHoc)');
+  const kgGoc  = w.eval('JSON.stringify(S.khungGio)');
+
+  /* Dựng đúng cảnh của trường: mỗi khối 32 tiết môn, khung 9 buổi = 32 ô */
+  w.eval(`S.monHoc = [{ten:'Gộp chuẩn', mau:'m-tv', chuan:{1:27,2:27,3:28,4:30,5:30}},
+                      {ten:'HD Tự học', mau:'m-hdtn', chuan:{1:5,2:5,3:4,4:2,5:2}}]`);
+  kt('tietCanKhoi() cộng theo danh mục môn, không lấy hằng số 27',
+     w.eval('tietCanKhoi(1)') === 32 && w.eval('tietCanKhoi(4)') === 32,
+     `K1 ${w.eval('tietCanKhoi(1)')} · K4 ${w.eval('tietCanKhoi(4)')}`);
+
+  w.eval(`S.khungGio.forEach(k=>{ k.bat = !(k.thu===4 && k.buoi==='C');
+    [1,2,3,4,5].forEach(x=>{ k.tietKhoi = k.tietKhoi||{}; k.tietKhoi[x] = k.buoi==='S'?4:3; }); })`);
+  w.chuyen('khunggio');
+  const chu = w.document.querySelector('#noiDung').textContent;
+  kt('Khung 9 buổi khớp 32 tiết thì KHÔNG còn báo "thừa ô"',
+     !/thừa \d+ ô/.test(chu) && /khớp đúng danh mục môn/.test(chu),
+     (chu.match(/(thừa \d+ ô[^.]*|khớp đúng danh mục môn)/) || [''])[0]);
+  kt('Và nói rõ trường có dạy thêm môn ngoài Chương trình GDPT 2018',
+     /ngoài Chương trình GDPT 2018/.test(chu));
+  kt('Dòng tổng vẫn bày mốc CT GDPT bên cạnh để đối chiếu, chỉ thôi làm thước đo',
+     /CT 27/.test(chu) && /cần 32/.test(chu));
+
+  /* Thiếu chỗ thật thì vẫn phải báo — bỏ mốc cứng không có nghĩa là bỏ luôn
+     phép soát. */
+  w.eval(`S.khungGio.forEach(k=>{ if(k.thu===6 && k.buoi==='C') k.bat=false; })`);
+  w.chuyen('khunggio');
+  kt('Bớt một buổi thì báo THIẾU ô, đúng số còn hụt',
+     /thiếu 3 ô mỗi tuần/.test(w.document.querySelector('#noiDung').textContent),
+     (w.document.querySelector('#noiDung').textContent.match(/thiếu \d+ ô mỗi tuần/) || [''])[0]);
+
+  /* Trường chưa khai môn nào thì lùi về mốc CT GDPT — đường lui phải còn */
+  w.eval('S.monHoc = []');
+  kt('Chưa khai môn nào thì lùi về chuẩn CT GDPT 2018',
+     w.eval('tietCanKhoi(1)') === 27 && w.eval('tietCanKhoi(5)') === 30);
+
+  w.eval(`S.monHoc = ${monGoc}; S.khungGio = ${kgGoc}`);
+  w.chuyen('khunggio');
+}
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,

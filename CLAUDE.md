@@ -2036,6 +2036,41 @@ KHÁCH, nút *Khám phá bản demo*), mà kho mã thì công khai — họ tên
 của 35 thầy cô có thật là dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.
 Đổi tên trong tệp này thì phải chụp lại `docs/anh-giao-dien/`.
 
+### `CHUAN_KHOI` là SÀN, không phải TRẦN *(29/8/2026)*
+
+Tiểu học Quảng Châu 1 thêm hai môn tự chọn — *HD Tự học* và *Kĩ năng CDS* —
+rồi mở khung giờ lên **9 buổi/tuần, 32 ô**, khớp đúng 32 tiết đã khai. App bày
+một dải vàng **"Khối 1 thừa 5 ô mỗi tuần · học sinh có tiết trống giữa buổi"**.
+Báo động giả, ngay tại màn hình người dùng vừa khai xong — và nghe theo nó thì
+nhà trường đi xoá bớt một buổi học có thật.
+
+Gốc: mọi phép soát đều so với hằng số `CHUAN_KHOI = {27,27,28,30,30}`. Đó là
+mốc **Chương trình GDPT 2018** — sàn pháp lý, không phải trần; trường được dạy
+thêm môn tự chọn. Nay mốc so sánh là **tổng tiết chuẩn của danh mục môn nhà
+trường đã khai**:
+
+| Hàm | Việc |
+|---|---|
+| `tietCanTu(dsMon, k)` | tổng tiết chuẩn khối `k` của một danh mục môn |
+| `tietCanKhoi(k)` | bản dùng `S.monHoc` — cho mọi màn hình |
+
+Sáu chỗ đã đổi mốc: R04 · dòng tổng và khối cảnh báo màn *Khối và khung giờ* ·
+cột lệch tiết bảng *Lớp học* · gợi ý trong hộp *Thêm phân công* · hai đường
+soát tệp Excel. Chuẩn CT GDPT **vẫn bày ra bên cạnh** (`cần 32 · CT 27`) để đối
+chiếu, chỉ thôi làm thước đo đúng–sai.
+
+- **Chưa khai môn nào thì lùi về `CHUAN_KHOI`** — trường mới tinh vẫn được
+  soát tử tế. Có phép thử canh.
+- ⚠️ **Đường nhập Excel phải gọi `tietCanTu(kho.monHoc, k)`**, không gọi bản
+  không tham số: nó soát trên BẢN SAO, không phải trên `S`. Cùng lý do
+  `duLieuTuMuc()` không đụng `S`.
+- **Bỏ mốc cứng không có nghĩa bỏ phép soát**: bớt một buổi thì vẫn báo thiếu
+  đúng số ô còn hụt. Có phép thử canh cả hai chiều.
+
+⚠️ Bài học rộng hơn: **một hằng số đúng lúc viết có thể sai khi trường làm khác
+đi mà vẫn hợp lệ.** Trước khi lấy hằng số làm thước đo, hỏi xem người dùng có
+quyền vượt nó không.
+
 ### Những con số đã kiểm chứng, không được đoán lại
 - **Số tiết/tuần:** khối 1–2 = 27 (25 chính khoá + 2 Tiếng Anh tự chọn),
   khối 3 = 28, khối 4–5 = 30. Khớp chính xác CT GDPT 2018.
