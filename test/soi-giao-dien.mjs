@@ -3021,6 +3021,85 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
   w.chuyen('khunggio');
 }
 
+console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
+/* Chủ dự án gửi ảnh tờ phân công trường vẫn kẻ tay: hàng giáo viên, cột môn.
+   Bảng từng dòng đúng về dữ liệu nhưng sai về hình dạng công việc — cô Mỹ
+   thuật dạy 25 lớp thành 25 dòng giống hệt nhau, mà câu hỏi thật của người
+   xếp là "ai dạy môn gì" và "còn ô nào trống". */
+{
+  w.eval("S.pcXem='matran'");
+  w.chuyen('phancong');
+  const bang = w.document.querySelector('#bMT');
+  const soGV = [...w.eval('gvTrongPV()')].length;
+  const soMon = w.eval('dsMonDung()').length;
+
+  kt('Vẽ được bảng ma trận: mỗi giáo viên một hàng, mỗi môn một cột',
+     !!bang && bang.querySelectorAll('tbody tr').length === soGV &&
+     bang.querySelectorAll('thead th.mt-mon').length === soMon,
+     `${bang?.querySelectorAll('tbody tr').length} hàng × ${bang?.querySelectorAll('thead th.mt-mon').length} cột môn`);
+
+  /* Ba cột trái phải DÍNH, không thì cuộn sang môn thứ mười là không còn biết
+     đang ở hàng của ai — đúng bài học lưới rộng ngày 2/8. */
+  kt('Cột thứ tự và họ tên dính lại khi cuộn ngang',
+     bang.querySelectorAll('tbody tr:first-child .mt-dinh').length >= 2);
+
+  kt('Ô có phân công ghi lớp và tổng tiết; ô trống thì bấm được để thêm', (() => {
+    const co = [...bang.querySelectorAll('.mt-o.co')];
+    const trong = [...bang.querySelectorAll('.mt-o:not(.co)')];
+    return [co.length > 0 && trong.length > 0 &&
+            /\d+t/.test(co[0].textContent) &&
+            co.every(o => o.dataset.mt) && trong.every(o => o.dataset.mt),
+            `${co.length} ô có · ${trong.length} ô trống`];
+  })());
+
+  /* Cô dạy nhiều lớp thì GOM lại, không kể ra 25 tên lớp — cùng luật đã đặt
+     cho cột "Dạy" của bảng Giáo viên hôm 28/8. */
+  kt('Giáo viên dạy nhiều lớp thì gom thành "n lớp", không liệt kê hết', (() => {
+    const nhieu = [...bang.querySelectorAll('.mt-o.co')]
+      .filter(o => /\d+ lớp/.test(o.textContent));
+    return [nhieu.length > 0, nhieu[0]?.textContent.trim().slice(0, 20)];
+  })());
+
+  kt('Hàng cuối đếm mỗi môn đã có người dạy ở mấy lớp trên tổng số lớp',
+     /\/\s*\d+/.test(bang.querySelector('tfoot')?.textContent || ''),
+     bang.querySelector('tfoot td:nth-child(4)')?.textContent.trim());
+
+  /* Bấm một ô mở đúng hộp Phân công nhanh, điền sẵn người và môn của ô ấy —
+     một hộp dùng chung, không viết bản thứ hai. */
+  kt('Bấm ô mở hộp phân công điền sẵn đúng giáo viên và môn của ô', (() => {
+    const o = bang.querySelector('.mt-o.co[data-mt]');
+    const [gid, mon] = o.dataset.mt.split('|');
+    o.onclick();
+    const ok = w.document.querySelector('#nqGV')?.value === gid &&
+               w.document.querySelector('#nqMon')?.value === mon;
+    /* và tích sẵn đúng những lớp đang dạy, để người dùng thấy hiện trạng */
+    const daCo = S.phanCong.filter(p => p.gvId === gid && p.mon === mon).length;
+    const tich = [...w.document.querySelectorAll('[data-nq]')].filter(x => x.checked).length;
+    w.eval('dong()');
+    return [ok && tich === daCo, `${tich}/${daCo} lớp tích sẵn`];
+  })());
+
+  kt('Ô tìm kiếm lọc TẠI CHỖ trên ma trận, không vẽ lại cả màn hình', (() => {
+    const o = w.document.querySelector('#fTim');
+    const ten = S.giaoVien[0].hoTen;
+    o.value = ten; o.oninput();
+    const hien = [...bang.querySelectorAll('tbody tr')].filter(r => r.style.display !== 'none');
+    o.value = ''; o.oninput();
+    return [hien.length >= 1 && hien.length < soGV, `${hien.length}/${soGV} hàng`];
+  })());
+
+  kt('Hai ô lọc giáo viên/lớp giấu đi ở chế độ ma trận — bày ô không làm gì là tệ hơn',
+     !w.document.querySelector('#fGV') && !w.document.querySelector('#fLop'));
+
+  kt('Đổi cách xem là vẽ lại TẠI CHỖ, không rời màn hình', (() => {
+    w.document.querySelector('[data-pcxem="dong"]').onclick();
+    const ok = w.eval("S.trangHienTai") === 'phancong' && !!w.document.querySelector('#bPC');
+    return ok;
+  })());
+
+  w.eval("S.pcXem='dong'");
+}
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,

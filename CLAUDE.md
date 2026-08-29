@@ -705,6 +705,41 @@ khoá" nên trúng một môn hợp lệ ở cả hai khối — **xanh mà khô
 đúng bẫy đã ghi ở mục 3; nay tìm đúng môn lệch khối (TNXH) và báo rõ khi không
 tìm ra.
 
+### Bảng phân công dạng MA TRẬN *(29/8/2026)*
+
+Chủ dự án gửi ảnh tờ phân công trường vẫn kẻ tay: **hàng là giáo viên, cột là
+môn**. Bảng từng dòng của app đúng về dữ liệu nhưng sai về **hình dạng công
+việc** — cô Mỹ thuật dạy 25 lớp thành 25 dòng giống hệt nhau, trong khi câu hỏi
+thật của người xếp là *"ai dạy môn gì"* và *"còn ô nào trống"*.
+
+Hai cách xem **cùng một dữ liệu**, đổi bằng thẻ chuyển tại chỗ; `S.pcXem` nhớ
+lựa chọn. Không tách màn hình mới — hai nơi cùng sửa một thứ thì sớm muộn lệch
+hành vi.
+
+| Hàm | Việc |
+|---|---|
+| `bangMaTran()` | dựng bảng; hàng = giáo viên, cột = môn |
+| `oMaTran(g, mon)` | nội dung một ô: tên lớp (≤2) hoặc `n lớp`, kèm tổng tiết |
+| `hopPCTheoGV(gvSan, monSan)` | hộp cũ, nay nhận sẵn người và môn |
+
+Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục 17p):
+
+- **Ba cột trái DÍNH** (`.mt-dinh`). Cuộn sang môn thứ mười mà không còn biết
+  đang ở hàng của ai thì bảng vô dụng — đúng bài học lưới rộng ngày 2/8.
+- **Ô gom lớp**: cô Mỹ thuật hiện `25 lớp · 25t`, không kể ra 25 tên lớp. Cùng
+  luật đã đặt cho cột *Dạy* của bảng Giáo viên.
+- **Bấm ô mở đúng hộp Phân công nhanh**, điền sẵn người và môn, và **tích sẵn
+  những lớp đang dạy** — người dùng thấy hiện trạng rồi sửa, không phải nhớ lại
+  mình đã phân công những đâu. Một hộp dùng chung, không viết bản thứ hai.
+- **Hàng cuối đếm độ phủ từng môn** (`41/42` lớp): chỗ duy nhất nhìn ra môn nào
+  còn lớp chưa có người dạy.
+- ⚠️ **Hai ô lọc giáo viên/lớp GIẤU ĐI ở chế độ ma trận** — chúng chỉ có nghĩa
+  với bảng từng dòng. Bày một ô không làm gì thì người dùng gõ vào rồi tưởng
+  phần mềm hỏng.
+
+⚠️ `locBang()` nhận **chính ô nhập** và đọc `data-loc` của nó, không nhận id
+bảng. Gọi `locBang('bMT')` là lỗi `Cannot read properties of undefined`.
+
 `hopThemPC()` và `hopPCTheoGV()` **bù nhau, cố ý không gộp**:
 
 | Hộp | Một giáo viên · … |
