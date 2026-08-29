@@ -3209,6 +3209,47 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
     return [/Ma_lop/.test(chu) && !/THAY toàn bộ/.test(chu), chu.slice(0, 40).replace(/\s+/g, ' ')];
   })());
 
+console.log('\n17q. Số hiệu và ngày thực hiện của văn bản thời khóa biểu');
+/* Chủ dự án 29/8/2026: "khi ký và ban hành có tính pháp lý, có thể trong 1 học
+   kỳ nhiều Phiên bản … Vẫn phải để ngày thực hiện, vì đó là tính pháp lý của
+   văn bản!". Đánh số liên tiếp theo cả năm học, từ 01. */
+{
+  const vbGoc = w.eval('JSON.stringify(KHO.vanBan)');
+
+  w.eval('KHO.vanBan = null');
+  const nhap = w.eval('khungIn("THỜI KHÓA BIỂU", ["Lớp 1A"], "<table></table>", "doc")');
+  kt('Chưa ban hành bản nào thì KHÔNG bịa số hiệu — đó là bản nháp',
+     !/Số \d+\/TKB/.test(nhap) && !/Thực hiện từ/.test(nhap));
+
+  w.eval(`KHO.vanBan = {soHieu:3, ngayThucHien:'2026-09-07', hocKy:'Học kỳ 1',
+                        banHanhLuc:'2026-08-30T02:00:00Z'}`);
+  const in3 = w.eval('khungIn("THỜI KHÓA BIỂU", ["Lớp 1A"], "<table></table>", "doc")');
+  kt('Bản in mang số hiệu hai chữ số, đúng thể thức văn bản',
+     /Số 03\/TKB/.test(in3), (in3.match(/Số \d+\/TKB/) || [''])[0]);
+  kt('Và mang mốc pháp lý "Thực hiện từ ngày…"',
+     /Thực hiện từ ngày 07 tháng 9 năm 2026/.test(in3),
+     (in3.match(/\(Thực hiện từ[^)]*\)/) || [''])[0]);
+  kt('Học kỳ in cạnh năm học — một học kỳ có nhiều bản',
+     /Học kỳ 1/.test(in3));
+
+  /* ⚠️ Ngày ký phải là NGÀY BAN HÀNH đã khoá, không phải ngày bấm nút In. Bản
+     cũ ghi ngày hôm nay nên in lại tháng sau là ra ngày khác — hai bản của
+     cùng một thời khóa biểu mang hai ngày ký thì hết làm căn cứ được. */
+  kt('Ngày ký lấy từ ngày BAN HÀNH đã khoá, không phải ngày in',
+     /ngày 30 tháng 8 năm 2026/.test(in3),
+     (in3.match(/ngày \d+ tháng \d+ năm \d+/g) || []).join(' | '));
+
+  /* Bốn loại bản in dùng chung khungIn nên không thể lệch nhau */
+  kt('Cả bốn loại bản in đọc cùng một nguồn số hiệu', (() => {
+    const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+    const soLanTuTinh = (src.match(/so_hieu|soHieu/g) || []).length;
+    return [/KHO\.vanBan/.test(src) && !/khungIn\([^)]*soHieu/.test(src),
+            `${soLanTuTinh} chỗ nhắc số hiệu`];
+  })());
+
+  w.eval(`KHO.vanBan = ${vbGoc}`);
+}
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,

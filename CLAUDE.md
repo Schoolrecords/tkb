@@ -1848,6 +1848,42 @@ chồng nhau. Nay `npm run soi-mau` sinh tệp thật rồi đọc lại bằng 
 - Bản thứ năm thêm 3/8/2026: **Lịch phân công dạy thay** (`trangInDayThay`),
   A4 ngang, in đúng khoảng đang lọc trên màn hình chứ không in cả năm học.
 
+#### Bản in là VĂN BẢN: số hiệu · ngày thực hiện · ngày ký *(29/8/2026 — `db/so-hieu-tkb.sql`)*
+
+Chủ dự án: *"khi ký và ban hành có tính pháp lý, có thể trong 1 học kỳ nhiều
+Phiên bản … Vẫn phải để ngày thực hiện, vì đó là tính pháp lý của văn bản!"*
+
+Công bố nay không còn là bật một cái cờ mà là **ban hành một văn bản**. Bốn cột
+mới của `tkb_phien_ban` gắn vào đúng bản được công bố, nên cả bốn loại bản in
+đọc chung một nguồn:
+
+| Cột | Nghĩa |
+|---|---|
+| `so_hieu` | số văn bản, **liên tiếp cả năm học từ 01** — chủ dự án chốt, không đánh lại theo học kỳ |
+| `ngay_thuc_hien` | mốc **pháp lý** bắt đầu áp dụng, nhà trường tự ghi |
+| `hoc_ky` | một học kỳ có nhiều bản |
+| `ban_hanh_luc` | **ngày ký**, khoá lại lúc bấm Ban hành |
+
+⚠️ **`version` KHÔNG phải số hiệu.** Nó nhảy mỗi lần bấm Lưu — một mùa xếp lên
+tới sáu chục — còn nhà trường ban hành vài bản một năm. Lẫn hai thứ là in ra
+"Thời khóa biểu số 47".
+
+⚠️ **Ngày ký ≠ ngày in.** Bản cũ ghi `new Date()` ngay lúc dựng khung, nên in
+lại tháng sau là ra một ngày khác: hai bản của cùng một thời khóa biểu mang hai
+ngày ban hành thì hết làm căn cứ được. Nay lấy `ban_hanh_luc` đã khoá; chưa ban
+hành bản nào mới rơi về hôm nay, và đó đúng là bản nháp.
+
+⚠️ **Chỉ số `ux_tkb_so_hieu` chống trùng số hiệu.** Hai phó hiệu trưởng cùng
+bấm Ban hành một tối thì cả hai đều đọc *"số lớn nhất là 2"* rồi cùng ghi số 3
+— hai văn bản khác nhau cùng một số hiệu là hỏng hẳn về hành chính mà không ai
+thấy. Cùng khuôn chốt chặn `ux_day_thay_gv_mot_tiet`: hai trình duyệt chỉ biết
+trạng thái của mình, hàng rào phải nằm ở cơ sở dữ liệu.
+
+**Luôn có đường lui:** máy chủ chưa chạy `db/so-hieu-tkb.sql` thì `congBoTKB()`
+bắt đúng lỗi thiếu cột, công bố lại **không kèm bốn cột** và nói rõ trong câu
+báo. Không bao giờ để một trường đang chạy mất nút Công bố vì một tệp SQL chưa
+kịp chạy.
+
 #### Khổ giấy chọn theo số cột, không theo thói quen *(1/8/2026)*
 
 | Bản | Khổ | Vì sao |

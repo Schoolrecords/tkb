@@ -3617,6 +3617,9 @@ let KHO = {
      null = đang ở trường của chính mình. Quyền đọc do db/chu-he-thong-xem.sql
      cấp; mọi đường GHI vẫn bó theo truong_cua_toi() ở máy chủ nên chế độ này
      tự nó là chỉ đọc — cờ bên ứng dụng chỉ lo phần giao diện cho dễ hiểu. */
+  /* Số hiệu · ngày thực hiện · học kỳ · ngày ban hành của bản ĐANG CÔNG BỐ.
+     null = chưa công bố bản nào, hoặc máy chủ chưa chạy db/so-hieu-tkb.sql. */
+  vanBan:null,
   truongXem:null,
   loiCuoi:''
 };
@@ -4530,7 +4533,13 @@ async function taiChoQuanLy(t, bang){
     bang('nguoi_dung','&select=id,vai_tro').catch(()=>[]),
     goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&select=version,du_lieu,tao_luc,cong_bo&order=version.desc&limit=1`),
     /* Bản đang công bố — để màn hình nói rõ giáo viên đang xem bản nào */
-    goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true&select=version&limit=1`).catch(()=>[])
+    /* Bốn cột pháp lý của bản đang công bố. Máy chủ chưa chạy db/so-hieu-tkb.sql
+       thì PostgREST báo thiếu cột — lùi về lời gọi cũ, bản in chỉ thiếu số hiệu
+       chứ trường vẫn dùng bình thường. */
+    goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true`
+      +`&select=version,so_hieu,ngay_thuc_hien,hoc_ky,ban_hanh_luc&limit=1`)
+      .catch(()=>goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true&select=version&limit=1`)
+        .catch(()=>[]))
   ]);
   /* Trường MỚI chưa có lớp nào KHÔNG phải là lỗi — đó là quyển vở trắng.
      Trước 25/8/2026 chỗ này ném lỗi, taiDuLieu() bắt được rồi rơi về DỮ LIỆU
@@ -4542,6 +4551,12 @@ async function taiChoQuanLy(t, bang){
                     phan_cong, gv_nghi, mon_hoc, phong, day_thay, bao_nghi, nguoi_dung}));
   KHO.version = +pb?.[0]?.version || 0;
   KHO.banCongBo = +cb?.[0]?.version || 0;
+  /* Ba mốc pháp lý của văn bản đang có hiệu lực. Bản in đọc TỪ ĐÂY, không tự
+     tính lại — bốn loại bản in mà mỗi bản tự suy một kiểu thì sớm muộn lệch. */
+  KHO.vanBan = cb?.[0]?.so_hieu ? {
+    soHieu:+cb[0].so_hieu, ngayThucHien:cb[0].ngay_thuc_hien||'',
+    hocKy:cb[0].hoc_ky||'', banHanhLuc:cb[0].ban_hanh_luc||''
+  } : null;
   KHO.luoiDayDu = true;
   KHO.tuNgayNghi = tuNgay;
   chotVanTay();                    /* mốc so sánh: vừa tải về thì chưa có gì để lưu */
@@ -4641,7 +4656,21 @@ async function lichSuPhienBan(gioiHan=20){
    db/schema.sql). Nhà trường chốt xong mới bật, không để thầy cô thấy
    bản đang xếp dở. Bật một bản là tự tắt các bản khác — mỗi lúc chỉ có
    MỘT thời khóa biểu đang hiệu lực, tránh mỗi người xem một bản. */
-async function congBoTKB(version, bat=true){
+/* Số hiệu văn bản kế tiếp: liên tiếp trong cả NĂM HỌC, từ 01. Chủ dự án chốt
+   29/8/2026 — không đánh lại theo học kỳ, vì thầy cô cầm tờ "Số 3" là biết
+   ngay nó mới hơn tờ "Số 2" dù hai tờ khác học kỳ.
+   ⚠️ KHÔNG lấy `version`: con số ấy nhảy mỗi lần bấm Lưu, một mùa xếp lên tới
+   sáu chục. Số hiệu là số lần BAN HÀNH, nhà trường ra vài bản một năm. */
+async function soHieuKeTiep(){
+  const t=KHO.nguoiDung.truongId;
+  try{
+    const ds=await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}`
+      +'&so_hieu=not.is.null&select=so_hieu&order=so_hieu.desc&limit=1');
+    return (+ds?.[0]?.so_hieu || 0) + 1;
+  }catch(e){ return 1; }   /* máy chủ chưa có cột — coi như bản đầu */
+}
+
+async function congBoTKB(version, bat=true, vb=null){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
   if(!duocLuu()) return {ok:false, thongBao:'Thầy cô chỉ xem, không công bố được.'};
   const t=KHO.nguoiDung.truongId;
@@ -4652,13 +4681,39 @@ async function congBoTKB(version, bat=true){
       await suaHang(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&cong_bo=eq.true`, {cong_bo:false});
     /* Còn bước này thì bắt buộc phải đổi đúng một dòng. Không đổi được dòng
        nào nghĩa là thiếu quy tắc p_tkb_sua — báo thẳng, đừng khoe "đã công bố". */
-    const so = await suaHang(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&version=eq.${+version}`,
-      {cong_bo:!!bat});
+    /* Ba mốc pháp lý ghi CÙNG LÚC với cờ công bố, trong một lệnh — ghi hai
+       lệnh thì lệnh sau hỏng là có một văn bản đã công bố mà không số hiệu.
+       `ban_hanh_luc` khoá lại ở đây: đó là ngày KÝ, in lại bao nhiêu lần cũng
+       không đổi, khác hẳn ngày bấm nút In mà bản cũ vẫn ghi. */
+    const than = {cong_bo:!!bat};
+    if(bat && vb){
+      than.so_hieu = vb.soHieu;
+      than.ngay_thuc_hien = vb.ngayThucHien || null;
+      than.hoc_ky = vb.hocKy || null;
+      than.ban_hanh_luc = new Date().toISOString();
+    }
+    let so;
+    try{ so = await suaHang(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&version=eq.${+version}`, than); }
+    catch(e){
+      /* Máy chủ chưa chạy db/so-hieu-tkb.sql thì bốn cột chưa có. Vẫn phải
+         công bố được — trường đang chạy không bao giờ mất nút vì một tệp SQL
+         chưa kịp chạy; chỉ là bản in thiếu số hiệu. */
+      if(!/Could not find the '(so_hieu|ngay_thuc_hien|hoc_ky|ban_hanh_luc)' column/i
+          .test(String(e?.message||''))) throw e;
+      KHO.thieuCotVanBan = true;
+      so = await suaHang(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}&version=eq.${+version}`,
+        {cong_bo:!!bat});
+    }
     if(!so) return {ok:false, thongBao:NHAC_CAI_DAT};
     KHO.banCongBo = bat ? +version : 0;
-    ghiNhatKy(bat?'cong_bo':'rut_cong_bo', {version:+version});
+    KHO.vanBan = (bat && vb && !KHO.thieuCotVanBan)
+      ? {...vb, banHanhLuc:than.ban_hanh_luc} : null;
+    ghiNhatKy(bat?'cong_bo':'rut_cong_bo', {version:+version, soHieu:vb?.soHieu});
     return {ok:true, thongBao: bat
-      ? `Đã công bố phiên bản ${version}. Giáo viên đăng nhập là thấy lịch của mình.`
+      ? `Đã ban hành Thời khóa biểu số ${vb?.soHieu||version}`
+        + (vb?.ngayThucHien?`, thực hiện từ ${ngayDayDu(vb.ngayThucHien)}`:'')
+        + '. Giáo viên đăng nhập là thấy lịch của mình.'
+        + (KHO.thieuCotVanBan?' ⚠️ Máy chủ chưa chạy db/so-hieu-tkb.sql nên bản in chưa có số hiệu.':'')
       : `Đã rút công bố. Giáo viên tạm thời không xem được nữa.`};
   }catch(e){
     const m=String(e?.message||'');
@@ -10211,18 +10266,30 @@ async function xuatExcel(){
    Thể thức theo cách trình bày văn bản nhà trường: tên đơn vị góc trái có
    gạch chân ngắn, tiêu đề giữa trang viết hoa, địa danh và ngày tháng nghiêng
    ở góc phải trên chỗ ký. Cố ý KHÔNG ghi cơ quan chủ quản. */
+/* Ngày viết theo lối văn bản hành chính: "ngày 07 tháng 9 năm 2026". */
+function ngayVanBan(iso){
+  const d = iso ? new Date(iso) : new Date();
+  if(isNaN(d)) return '';
+  return `ngày ${String(d.getDate()).padStart(2,'0')} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
+}
+
 function khungIn(tieu, phu, bang, huong='ngang'){
-  const n=new Date();
-  const s=x=>String(x).padStart(2,'0');
+  /* ⚠️ NGÀY KÝ lấy từ bản đã ban hành, KHÔNG lấy ngày hôm nay. Bản cũ ghi ngày
+     bấm nút In, nên in lại tháng sau là ra một ngày khác — hai bản của cùng
+     một thời khóa biểu mang hai ngày ban hành thì không dùng làm căn cứ được.
+     Chưa ban hành bản nào thì mới rơi về hôm nay, và đó đúng là bản nháp. */
+  const vb = KHO.vanBan;
   return `<div class="tr-in ${huong}">
     <div class="in-dv"><b>${esc(S.tenTruong.toUpperCase())}</b><span class="in-gach"></span></div>
+    ${vb?.soHieu?`<div class="in-so">Số ${String(vb.soHieu).padStart(2,'0')}/TKB</div>`:''}
     <div class="in-d">
       <div class="in-d2">${tieu}</div>
-      <div class="in-d3">Năm học ${esc(S.namHoc||'')}</div>
+      <div class="in-d3">Năm học ${esc(S.namHoc||'')}${vb?.hocKy?` · ${esc(vb.hocKy)}`:''}</div>
+      ${vb?.ngayThucHien?`<div class="in-hl"><i>(Thực hiện từ ${ngayVanBan(vb.ngayThucHien)})</i></div>`:''}
       ${phu.filter(Boolean).length?`<div class="in-d4">${phu.filter(Boolean).join(' · ')}</div>`:''}
     </div>
     ${bang}
-    <div class="in-ngay">${esc(S.xa?S.xa+', ':'')}ngày ${s(n.getDate())} tháng ${s(n.getMonth()+1)} năm ${n.getFullYear()}</div>
+    <div class="in-ngay">${esc(S.xa?S.xa+', ':'')}${ngayVanBan(vb?.banHanhLuc)}</div>
     <div class="in-ky">
       <div><b>NGƯỜI LẬP BIỂU</b><i>(Ký, ghi rõ họ tên)</i></div>
       <div><b>HIỆU TRƯỞNG</b><i>(Ký, đóng dấu, ghi rõ họ tên)</i></div>
@@ -10242,12 +10309,17 @@ function khungIn(tieu, phu, bang, huong='ngang'){
    Phông Times New Roman 13pt là thể thức văn bản hành chính quen thuộc của
    nhà trường; màn hình dùng Be Vietnam Pro nhưng giấy in thì không. */
 const CSS_BAN_IN = `
-.tr-in{font-family:'Times New Roman',serif;font-size:13pt;color:#000;line-height:1.3}
+.tr-in{font-family:'Times New Roman',serif;font-size:13pt;color:#000;line-height:1.3;position:relative}
 .in-dv{margin-bottom:10px}
 .in-dv b{font-size:12pt;font-weight:700;text-transform:uppercase;letter-spacing:.01em}
 .in-gach{display:block;width:38%;max-width:190px;border-bottom:1.2px solid #000;margin-top:3px}
 .in-d{text-align:center;margin:14px 0 12px}
 .in-d2{font-size:15pt;font-weight:700;text-transform:uppercase;letter-spacing:.01em}
+/* Số hiệu văn bản nằm góc phải, ngang hàng tên trường — đúng thể thức tờ
+   thời khóa biểu nhà trường vẫn ký. Dòng hiệu lực in nghiêng ngay dưới tiêu
+   đề, là thứ giáo viên nhìn để biết mình đang cầm bản nào. */
+.in-so{position:absolute;right:0;top:0;font-weight:700;font-size:13pt}
+.in-hl{text-align:center;font-size:11.5pt;margin-top:2px}
 .in-d3{font-size:12pt;font-style:italic;margin-top:4px}
 .in-d4{font-size:11.5pt;margin-top:3px}
 table.in-b{width:100%;border-collapse:collapse;margin-top:10px}
@@ -11277,6 +11349,55 @@ function thanhKhaiBao(nut, coNhap){
     <button class="b ${treo?'b-do':'b-vang'}" id="btLuuNguon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21V9M8 13l4-4 4 4M4 3h16"/></svg>
       Lưu${treo?' ngay':''}</button></div>`;
+}
+
+/* ---------- Ban hành một bản thời khóa biểu (29/8/2026) ----------
+   Chủ dự án: *"khi ký và ban hành có tính pháp lý, có thể trong 1 học kỳ nhiều
+   Phiên bản … Vẫn phải để ngày thực hiện, vì đó là tính pháp lý của văn bản!"*
+
+   Công bố không còn là bật một cái cờ, mà là BAN HÀNH một văn bản: có số hiệu,
+   có ngày bắt đầu thực hiện, có học kỳ. Ba thứ ấy đi cùng phiên bản trên máy
+   chủ nên mọi bản in đọc chung một nguồn.
+
+   ⚠️ NGÀY THỰC HIỆN khác NGÀY BAN HÀNH. Ngày ban hành là hôm bấm nút, máy tự
+   ghi và khoá lại. Ngày thực hiện do nhà trường quyết — thường là thứ Hai của
+   tuần áp dụng, có thể sau ngày ký cả tuần. */
+function thuHaiToi(){
+  const d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));   /* thứ Hai kế tiếp */
+  return d.toISOString().slice(0,10);
+}
+
+async function hopBanHanh(){
+  const so = await soHieuKeTiep();
+  const hkCu = KHO.vanBan?.hocKy || 'Học kỳ 1';
+  hop('Ban hành thời khóa biểu',
+  `<div class="hang">Số hiệu văn bản
+     <b style="font-size:19px">Số ${String(so).padStart(2,'0')}</b></div>
+   <div class="gy" style="margin:4px 0 13px">Máy tự đánh liên tiếp trong cả năm học, không
+     đánh lại theo học kỳ — thầy cô cầm tờ số lớn hơn là biết ngay tờ ấy mới hơn.</div>
+   <div class="on-l"><label>Thực hiện từ ngày</label>
+     <input class="ip" type="date" id="bhNgay" value="${thuHaiToi()}" style="width:100%">
+     <div class="gy">Mốc <b>pháp lý</b> in ở đầu mỗi tờ thời khóa biểu. Thường là thứ Hai của
+       tuần bắt đầu áp dụng — có thể sau ngày ký vài hôm.</div></div>
+   <div class="on-l"><label>Học kỳ</label>
+     <select class="ip" id="bhHK" style="width:100%">
+       ${['Học kỳ 1','Học kỳ 2','Cả năm'].map(x=>
+         `<option ${x===hkCu?'selected':''}>${x}</option>`).join('')}</select></div>
+   <div class="canhbao" style="margin-top:13px"><div class="cb-ic">i</div><div class="cb-t">
+     <b>Bản đang công bố sẽ hết hiệu lực</b>
+     <div class="cb-g">${KHO.vanBan?.soHieu
+       ? `Số ${String(KHO.vanBan.soHieu).padStart(2,'0')} thôi áp dụng kể từ ngày thực hiện của bản này.`
+       : 'Từ nay giáo viên xem bản mới.'} Ngày ký ghi vào văn bản là hôm nay và
+       không đổi về sau, dù in lại lúc nào.</div></div></div>`,
+  [{ten:'Huỷ',phu:1,lam:dong},
+   {ten:'Ban hành',lam:async()=>{
+     const ngay=$('#bhNgay').value, hk=$('#bhHK').value;
+     if(!ngay) return bao('Chọn ngày bắt đầu thực hiện',true);
+     dong();
+     const kq=await congBoTKB(KHO.version, true, {soHieu:so, ngayThucHien:ngay, hocKy:hk});
+     bao(kq.thongBao, !kq.ok); ve();
+   }}]);
 }
 
 /* ---------- 3.8a Thông tin trường ---------- */
@@ -12493,11 +12614,15 @@ function noiSuKien(){
   $('#btLichSu')&&($('#btLichSu').onclick=hopLichSu);
   $('#btNhatKy')&&($('#btNhatKy').onclick=hopNhatKy);
   $('#btCongBo')&&($('#btCongBo').onclick=async e=>{
-    const b=e.currentTarget, cu=b.innerHTML, rut=KHO.banCongBo===KHO.version;
-    b.disabled=true; b.textContent=rut?'Đang rút…':'Đang công bố…';
-    const kq=await congBoTKB(KHO.version, !rut);
-    b.disabled=false; b.innerHTML=cu;
-    bao(kq.thongBao, !kq.ok); ve();
+    const rut=KHO.banCongBo===KHO.version;
+    if(rut){
+      const b=e.currentTarget, cu=b.innerHTML;
+      b.disabled=true; b.textContent='Đang rút…';
+      const kq=await congBoTKB(KHO.version, false);
+      b.disabled=false; b.innerHTML=cu;
+      return void(bao(kq.thongBao, !kq.ok), ve());
+    }
+    hopBanHanh();
   });
   $('#btLuu')&&($('#btLuu').onclick=async e=>{
     if(!duocLuu()) return bao('Thầy cô chỉ xem, không lưu được thời khóa biểu',true);
