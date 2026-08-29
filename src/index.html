@@ -8086,7 +8086,19 @@ function mXep(){
   </div>`+bangPhuongAn()+`</div>`;
 }
 function ketQuaXep(){
-  const k=KQ_XEP, pt=Math.round(k.daXep/k.tongCan*100);
+  const k=KQ_XEP;
+  /* ⚠️ Bảng phân công trống thì tongCan = 0, và 0/0 ra **NaN** — chủ dự án
+     gặp đúng "NaN% hoàn tất" ngày 29/8/2026. Nhưng con số xấu chưa phải điều
+     tệ nhất: nhánh dưới còn khoe "Xếp trọn vẹn toàn bộ tiết ✓" vì danh sách
+     chưa-xếp rỗng. Trường mới bấm Xếp lần đầu nhận một lời chúc mừng cho việc
+     KHÔNG LÀM GÌ CẢ, rồi đi tìm thời khóa biểu không tồn tại. Cùng luật "số 0
+     không tô đỏ" của dải chỉ số: đừng báo tin về thứ chưa xảy ra. */
+  if(!k.tongCan) return `<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
+      <b>Chưa có tiết nào để xếp</b>
+      <div class="cb-g">Bảng phân công chuyên môn còn trống, nên máy không có việc gì để làm.
+        Khai ai dạy môn gì ở lớp nào trước đã.</div></div></div>
+    <div style="margin-top:14px"><button class="b b-ch" data-di="phancong">Đi tới Phân công chuyên môn</button></div>`;
+  const pt=Math.round(k.daXep/k.tongCan*100);
   return `<div class="vong">
     <div class="donut" style="background:conic-gradient(${pt===100?'#0A659F':'#D97A29'} ${pt*3.6}deg,#E4F0F9 0)"><b>${pt}%</b><span>hoàn tất</span></div>
     <div style="flex:1">
@@ -11930,6 +11942,10 @@ function noiSuKien(){
   $('#btHoanTac')&&($('#btHoanTac').onclick=hoanTac);
 
   $('#btXep')&&($('#btXep').onclick=()=>{
+    /* Nói trước khi bấm, đừng để máy chạy 0 giây rồi trả về một bảng kết quả
+       rỗng — người dùng không đoán được mình còn thiếu bước nào. */
+    if(!S.phanCong.length)
+      return bao('Chưa có dòng phân công nào — khai ở mục Phân công chuyên môn trước.', true);
     if(soTietDaXep()) luuLui('xếp tự động');
     KQ_XEP=xepTuDong();
     bao(KQ_XEP.chuaXep.length?`Đã xếp ${KQ_XEP.daXep}/${KQ_XEP.tongCan} tiết — còn vướng`

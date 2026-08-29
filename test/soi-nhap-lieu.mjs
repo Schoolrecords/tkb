@@ -464,6 +464,50 @@ kt('Phòng và buổi bận nhập được',
      !!S.giaoVien.find(g => g.hoTen === 'Cô Tên Lớp')?.cn);
 }
 
+/* --- Trường TRẮNG: không màn hình nào được bày NaN hay undefined ----------
+   Chủ dự án bấm Xếp ở trường chưa khai phân công và nhận "NaN% hoàn tất"
+   (29/8/2026) — 0 tiết chia 0 tiết. Loại lỗi này hiếm khi đứng một mình,
+   nên quét cả lượt thay vì vá đúng một chỗ. */
+{
+  const MAN = ['dieuhanh', 'thongtin', 'diemtruong', 'khunggio', 'lop', 'giaovien',
+               'monhoc', 'phancong', 'phonghoc', 'buoiban', 'kiemtra', 'xep',
+               'toantruong', 'tkbkhoi', 'tkblop', 'tkbgv', 'xuatin'];
+  const ban = [];
+  for (const t of MAN) {
+    try {
+      w.chuyen(t);
+      const chu = w.document.querySelector('#noiDung').textContent;
+      if (/NaN|undefined|Infinity/.test(chu))
+        ban.push(`${t}: ${(chu.match(/.{0,24}(NaN|undefined|Infinity).{0,16}/) || [''])[0].trim()}`);
+    } catch (e) { ban.push(`${t}: ${e.message}`); }
+  }
+  kt('Trường chưa có dữ liệu: không màn hình nào bày NaN hay undefined',
+     ban.length === 0, ban.slice(0, 3).join(' | ') || `quét ${MAN.length} màn hình`);
+}
+
+/* --- Bấm Xếp khi bảng phân công còn trống --- */
+{
+  const pcGoc = w.eval('JSON.stringify(S.phanCong)');
+  w.eval('S.phanCong = []; KQ_XEP = null');
+  w.chuyen('xep');
+  bao.length = 0;
+  w.document.querySelector('#btXep')?.onclick?.();
+  const c = baoCuoi();
+  kt('Bảng phân công trống thì nút Xếp BÁO RÕ, không chạy rồi trả về bảng rỗng',
+     c.loi && /[Pp]hân công/.test(c.chu || ''), (c.chu || '').slice(0, 70));
+  kt('Và KHÔNG dựng ra kết quả xếp nào — không có bảng 0/0 để mà chia',
+     w.eval('KQ_XEP === null'));
+
+  /* Còn nếu có kết quả 0/0 thật (dữ liệu bị xoá sau khi đã xếp) thì bảng kết
+     quả phải nói đúng chuyện ấy, đừng khoe "Xếp trọn vẹn toàn bộ tiết". */
+  w.eval('KQ_XEP = {daXep:0, tongCan:0, chuaXep:[], giay:"0.0", soGhim:0}');
+  const html = w.eval('ketQuaXep()');
+  kt('Kết quả 0/0 không ra NaN, và không khoe xếp trọn vẹn',
+     !/NaN/.test(html) && !/Xếp trọn vẹn/.test(html) && /Chưa có tiết nào để xếp/.test(html),
+     (html.match(/NaN|Xếp trọn vẹn|Chưa có tiết nào để xếp/) || [''])[0]);
+  w.eval(`S.phanCong = ${pcGoc.replace(/`/g, '')}; KQ_XEP = null`);
+}
+
 
 console.log('\n3. Không có lỗi chạy nào trong suốt hai lối khai báo');
 kt('Không lỗi JavaScript nào', loiChay.length === 0,

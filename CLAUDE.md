@@ -1874,6 +1874,25 @@ Lý do xếp GVCN sau cùng: ở tiểu học GVCN dạy ~20/25 tiết của ch�
 nên cực kỳ linh hoạt, xếp vào đâu cũng được. Giáo viên bộ môn liên điểm
 trường thì gần như chỉ có 1–2 phương án khả dĩ.
 
+### Bảng phân công trống: 0/0 ra **NaN%** *(29/8/2026)*
+
+Chủ dự án bấm *Xếp* ở trường chưa khai phân công và nhận **"NaN% hoàn tất"**.
+Con số xấu chưa phải điều tệ nhất: nhánh dưới còn khoe **"Xếp trọn vẹn toàn bộ
+tiết ✓ Không có xung đột"** — vì danh sách chưa-xếp rỗng. Trường mới bấm lần
+đầu nhận một lời chúc mừng cho việc **không làm gì cả**, rồi đi tìm thời khóa
+biểu không tồn tại. Cùng luật *"số 0 không tô đỏ"*: đừng báo tin về thứ chưa
+xảy ra.
+
+- `ketQuaXep()` có nhánh riêng cho `tongCan === 0`, nói thẳng *"Chưa có tiết
+  nào để xếp"* kèm nút đi tới **Phân công chuyên môn**.
+- Nút *Xếp* **chặn ngay từ lúc bấm** — đừng để máy chạy 0 giây rồi trả về một
+  bảng rỗng, người dùng không đoán được mình còn thiếu bước nào.
+
+⚠️ Bảng điều hành đã phòng đúng phép chia này từ trước (`tongCan?…:0`), chỉ
+`ketQuaXep()` bị sót — **loại lỗi này hiếm khi đứng một mình**. Nay `npm run
+soi-nhap` quét **17 màn hình** của một trường TRẮNG và đòi không màn nào bày
+`NaN` · `undefined` · `Infinity`.
+
 ### Xếp kỹ — chạy lâu, tìm nhiều phương án *(1/8/2026)*
 
 Một giây chỉ đủ dò một nhánh. Cho nó vài phút thì tìm được phương án đẹp hơn
