@@ -750,6 +750,12 @@ Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục
   mình đã phân công những đâu. Một hộp dùng chung, không viết bản thứ hai.
 - **Hàng cuối đếm độ phủ từng môn** (`41/42` lớp): chỗ duy nhất nhìn ra môn nào
   còn lớp chưa có người dạy.
+- ⚠️ **Lớp chủ nhiệm ở CỘT RIÊNG**, không xếp dưới họ tên *(29/8/2026)*. Bản
+  đầu để nó thành dòng phụ, nên hàng có chủ nhiệm cao gấp rưỡi hàng không có —
+  cả bảng gợn sóng, đọc theo hàng ngang rất mệt và một màn hình chỉ chứa 10
+  người thay vì 13. Thứ tự cột lấy đúng tờ phân công nhà trường vẫn kẻ:
+  **TT · Họ tên · Tổng số tiết · Chủ nhiệm · các môn**. Cột *Tiết* cũng phải
+  `nowrap`, không thì `/23` rơi xuống dòng và hỏng lại đúng như thế.
 - ⚠️ **Mỗi ô môn có đường kẻ dọc** (`.mt-o{border-left}`). Bảng chỉ kẻ ngang
   thì 15 cột trông như một mảng trắng, không ai đoán được ô nào bấm được.
 - **Thanh công cụ chỉ còn MỘT nút** — *Phân công nhanh cho một giáo viên*.

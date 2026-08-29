@@ -3048,6 +3048,31 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
      bang.querySelectorAll('thead th.mt-mon').length === soMon,
      `${bang?.querySelectorAll('tbody tr').length} hàng × ${bang?.querySelectorAll('thead th.mt-mon').length} cột môn`);
 
+  /* ⚠️ Lớp chủ nhiệm phải ở CỘT RIÊNG, không xếp dưới họ tên. Chủ dự án
+     29/8/2026: "tách giúp thầy cột GVCN lớp để cho tên các lớp không rớt xuống
+     dòng" — hàng có chủ nhiệm cao gấp rưỡi hàng không có, cả bảng gợn sóng và
+     đọc theo hàng ngang rất mệt. Thứ tự lấy đúng tờ phân công nhà trường vẫn
+     kẻ: TT · Họ tên · Tổng số tiết · Chủ nhiệm · các môn. */
+  kt('Chủ nhiệm là một CỘT riêng, không phải dòng phụ dưới họ tên', (() => {
+    const dau = [...bang.querySelectorAll('thead th')].map(t => t.textContent.trim());
+    const coCN = [...bang.querySelectorAll('tbody td.mt-cn')].filter(t => /^\d/.test(t.textContent.trim()));
+    return [dau.slice(0, 4).join(' · ') === 'TT · Họ và tên · Tiết · Chủ nhiệm' &&
+            coCN.length > 0 &&
+            !bang.querySelector('.mt-ten div'),
+            dau.slice(0, 4).join(' · ')];
+  })());
+  kt('Ô họ tên và ô tiết không còn dòng phụ nào để hàng cao thêm', (() => {
+    /* jsdom không tính bố cục, nên kiểm bằng CẤU TRÚC: ô tên chỉ chứa <b>,
+       không còn <div> lớp chủ nhiệm bên dưới; ô tiết mang lớp nowrap. */
+    const ten = [...bang.querySelectorAll('tbody td.mt-ten')];
+    const tiet = [...bang.querySelectorAll('tbody td.mt-tiet')];
+    const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+    return [ten.length > 0 && ten.every(t => !t.querySelector('div')) &&
+            tiet.length === ten.length &&
+            /\.mt-tiet\{[^}]*nowrap/.test(src),
+            `${ten.length} hàng`];
+  })());
+
   /* Ba cột trái phải DÍNH, không thì cuộn sang môn thứ mười là không còn biết
      đang ở hàng của ai — đúng bài học lưới rộng ngày 2/8. */
   kt('Cột thứ tự và họ tên dính lại khi cuộn ngang',
