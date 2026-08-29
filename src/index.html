@@ -339,6 +339,12 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .ts[data-di]:active{transform:translateY(-2px)}
 
 .cot2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+/* Bốn thẻ số liệu của màn Trường trong hệ thống. Lớp này từng được DÙNG mà
+   chưa bao giờ được KHAI, nên bốn thẻ rơi xuống xếp dọc, chiếm gần trọn màn
+   hình để nói bốn con số — đúng lỗi đã chê ở Bảng điều hành ngày 3/8. */
+.cot4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+@media(max-width:1000px){.cot4{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.cot4{grid-template-columns:1fr}}
 .the{background:var(--the);border:1px solid var(--ke);border-radius:var(--r);box-shadow:var(--bong)}
 .the-d{padding:16px 20px;border-bottom:1px solid var(--ke);display:flex;align-items:center;gap:12px}
 /* Ô biểu tượng vuông bo tròn ở đầu tiêu đề thẻ (16/8/2026, theo mẫu).

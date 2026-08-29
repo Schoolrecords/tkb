@@ -2666,6 +2666,23 @@ console.log('\n17c. Ký tự xuống dòng');
   const crlf = (d.toString('latin1').match(/\r\n/g) || []).length;
   kt(`${t} dùng LF, không phải CRLF`, crlf === 0, crlf ? `${crlf} dòng CRLF` : '');
 });
+console.log('\n17j. Lớp bố cục dùng thì phải có khai');
+/* `.cot4` được DÙNG ở màn Trường trong hệ thống mà chưa bao giờ được KHAI,
+   nên bốn thẻ số liệu rơi xuống xếp dọc — chiếm gần trọn màn hình để nói
+   bốn con số, đúng lỗi đã chê ở Bảng điều hành ngày 3/8. Chủ dự án phát
+   hiện qua ảnh chụp, không phải phép thử: jsdom không tính bố cục nên mọi
+   bộ soi đều xanh. Cách canh được là soi ở mức VĂN BẢN — lớp chia cột nào
+   xuất hiện trong HTML thì phải có một quy tắc CSS mang đúng tên ấy. */
+{
+  const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+  const dung = new Set();
+  for (const m of src.matchAll(/class="([^"]*)"/g))
+    m[1].split(/\s+/).forEach(c => { if (/^cot\d+$/.test(c)) dung.add(c); });
+  const thieu = [...dung].filter(c => !new RegExp(`\.${c}\s*\{`).test(src));
+  kt('Mọi lớp chia cột đang dùng đều có quy tắc CSS', thieu.length === 0,
+     thieu.length ? `thiếu: ${thieu.join(' · ')}` : [...dung].sort().join(' · '));
+}
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
