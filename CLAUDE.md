@@ -1642,6 +1642,22 @@ mục 15e, `npm run soi-mau`):
 - **Một bộ khai, hai đầu dùng.** Không có cách nào để mẫu và trình soát lệch
   nhau — cùng bài học đã ghi cho mẫu trọn gói.
 
+⚠️ **Khoá kỹ thuật `__dong` không phải một cột môn** *(vá 29/8/2026)*. Tiểu học
+Thần Lĩnh 1 tải mẫu ma trận về, điền dấu `x`, nhập lại và nhận
+*'cột "__dong" không có trong danh mục môn — khai thêm ở mục Môn học'*. Cột ấy
+người dùng chưa từng gõ: `bangTuMaTran()` gắn `__dong` vào mỗi dòng để câu lỗi
+chỉ đúng số dòng Excel, còn `duLieuTuMaTran()` coi **mọi** khoá lạ là tên môn.
+Nay bỏ qua mọi khoá bắt đầu bằng `__` — máy tự thêm khoá gì thì máy phải tự
+biết mà bỏ qua, đừng bắt người dùng đi sửa một cột họ không tạo ra.
+
+⚠️ Phép thử vòng tròn cũ **không thấy gì** vì nó tự dựng dòng bằng `doiObj()`,
+không đi qua `bangTuMaTran()` — lại đúng khuôn *"phép thử tự làm hộ app"*. Nay
+có phép thử gắn thêm `__dong` đúng như tệp thật.
+
+⚠️ Cùng lúc sửa một câu lỗi **lỗi thời**: *"dùng mẫu 3 trang nếu cố ý ghi số
+tiết riêng"* — mẫu ấy thôi được mời từ 28/8, nên lời khuyên dẫn tới một nút
+không còn tồn tại. Nay chỉ đúng đường: *khai số tiết cho khối ấy ở mục Môn học*.
+
 ⚠️ **Mục Phân công nay CHỈ mời mẫu MA TRẬN** *(29/8/2026)*. Chủ dự án: *"chúng
 ta chỉ có duy nhất mẫu theo ma trận, mà em vẫn còn để mẫu cũ"*. Màn hình đã là
 bảng ma trận thì mẫu Excel phải cùng hình dạng — tải về một tờ giấy khác hẳn

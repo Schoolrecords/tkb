@@ -1177,6 +1177,20 @@ kt('Vòng khép kín: xuất ma trận rồi nhập lại — 0 lỗi, đủ 35 
    rtDL.soLoi === 0 && rtDL.giaoVien.length === 35 && rtDL.lop.length === 25 &&
    rtDL.phanCong.length === 265 && rtDL.tongTiet === 710,
    `${rtDL.soLoi} lỗi · ${rtDL.phanCong.length} dòng · ${rtDL.tongTiet} tiết`);
+
+/* ⚠️ Dòng đọc từ tệp THẬT mang thêm khoá kỹ thuật `__dong` (số dòng Excel, do
+   bangTuMaTran gắn để câu lỗi chỉ đúng chỗ). Trình đọc ma trận coi mọi khoá lạ
+   là TÊN MÔN, nên nó báo 'cột "__dong" không có trong danh mục môn' và chặn cả
+   tệp — Tiểu học Thần Lĩnh 1 gặp đúng thế ngày 29/8/2026. Phép thử cũ dùng
+   doiObj() tự dựng nên không có khoá ấy, và không thấy gì. */
+{
+  const coDong = doiObj(mMT.mt).map((r, i) => ({ ...r, __dong: i + 4 }));
+  const r = duLieuTuMaTran(coDong, doiObj(mMT.lop));
+  kt('Khoá kỹ thuật __dong KHÔNG bị nhận nhầm là một cột môn',
+     r.soLoi === 0 && r.phanCong.length === 265,
+     r.soLoi ? String(r.loi[0]).slice(0, 70) : `${r.phanCong.length} dòng`);
+}
+
 /* Tệp Excel tham chiếu lớp bằng MÃ LỚP và giáo viên bằng MÃ GIÁO VIÊN, còn
    S.phanCong dùng id nội bộ — ánh xạ ngược CẢ HAI trước khi so, không thì so
    mã với id.

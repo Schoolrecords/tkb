@@ -4916,10 +4916,16 @@ function duLieuTuMaTran(hangMT, hangLop){
   const laTick=v=>/^(x|✓|✔|v)$/i.test(chu(v));
   const tach=s=>chu(s).split(/[,;·]+/).map(x=>x.trim()).filter(Boolean);
 
-  /* Cột nào không thuộc bộ cố định thì là một môn — phải có trong danh mục */
+  /* Cột nào không thuộc bộ cố định thì là một môn — phải có trong danh mục.
+     ⚠️ Trừ các khoá KỸ THUẬT bắt đầu bằng `__`. `bangTuMaTran()` gắn `__dong`
+     vào mỗi dòng để câu lỗi chỉ đúng số dòng Excel; hàm này thì coi mọi khoá
+     lạ là tên môn, nên nó báo *'cột "__dong" không có trong danh mục môn'* và
+     chặn cả tệp — Tiểu học Thần Lĩnh 1 gặp đúng thế ngày 29/8/2026. Máy tự
+     thêm khoá gì thì máy phải tự biết mà bỏ qua, đừng bắt người dùng đi sửa
+     một cột họ chưa từng gõ. */
   const monDung=new Map((S.monHoc||[]).map(m=>[m.ten, m.chuan||{}]));
   const cotMon=[...new Set(hangMT.flatMap(r=>Object.keys(r)))]
-    .filter(c=>!CO_DINH.includes(c));
+    .filter(c=>!CO_DINH.includes(c) && !String(c).startsWith('__'));
   cotMon.filter(c=>!monDung.has(c)).forEach(c=>
     loi.push(`PHAN_CONG: cột "${c}" không có trong danh mục môn — khai thêm ở mục Môn học, hoặc sửa lại tên cột`));
 
@@ -5024,7 +5030,11 @@ function duLieuTuMaTran(hangMT, hangLop){
     const k=khoiCua(ma);
     const st=+(monDung.get(mon)?.[k] ?? monDung.get(mon)?.[String(k)]);
     if(!(st>0)) return void loi.push(
-      `${g.ten||g.ma}: môn ${mon} không có tiết chuẩn cho khối ${k||'?'} (lớp ${ma}) — bỏ dấu ở ô đó, hoặc dùng mẫu 3 trang nếu cố ý ghi số tiết riêng`);
+      /* ⚠️ Câu cũ khuyên "dùng mẫu 3 trang" — mẫu ấy đã thôi được mời từ
+         28/8/2026, nên lời khuyên dẫn người dùng tới một nút không còn tồn
+         tại. Đường đúng: khai số tiết cho khối ấy ngay ở mục Môn học. */
+      `${g.ten||g.ma}: môn ${mon} chưa khai số tiết cho khối ${k||'?'} (lớp ${ma}) — `
+      +`vào mục Môn học điền số tiết ở cột K${k||'?'}, hoặc bỏ dấu ở ô đó`);
     pcRows.push({Ma_GV:g.ma, Ma_lop:ma, Mon:mon, So_tiet:st});
   })));
 
