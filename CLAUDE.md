@@ -664,7 +664,14 @@ Ba việc chủ dự án nêu cùng lúc, cả ba đều có phép thử (`npm r
   khai xong vẫn phải mở bảng sửa tiếp. Nay đủ bảy ô, thêm **Gmail · Điện
   thoại · Phân hiệu · Ghi chú**. `oKhaiGV()` và `docKhaiGV()` dùng chung cho
   **cả Thêm lẫn Sửa** — viết hai bản thì sớm muộn một bên thiếu ô, đúng
-  chuyện vừa xảy ra. Hai cột mới ở `db/them-cot-giao-vien.sql`.
+  chuyện vừa xảy ra. Hai cột mới ở `db/them-cot-giao-vien.sql`
+  *(ĐÃ CHẠY trên máy chủ thật 29/8/2026)*.
+
+  ⚠️ Chạy tệp ấy xong phải **tải lại trang**. `KHO.coCotGV` là cờ nhớ trong
+  phiên: lần ghi đầu mà máy chủ báo thiếu cột thì nó giữ `false` tới hết
+  phiên và lặng lẽ ghi không kèm hai cột — đường lui để không mất cả lần
+  lưu, nhưng cũng nghĩa là khai xong vẫn không lên được mà app vẫn báo
+  "đã lưu".
 - **Dấu `×` đỏ trần → cụm nút Sửa / Xoá.** Dấu × là lối DUY NHẤT nên muốn đổi
   một chữ cũng phải sửa ngay trên bảng, mà bảng không chứa nổi bảy ô. ⚠️ Nút
   Xoá **không tô đỏ sẵn**, chỉ đỏ khi rê chuột — hai nút cạnh nhau mà một cái
@@ -2211,9 +2218,6 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi
       quảng bá rộng**.
-- [ ] **Chạy `db/them-cot-giao-vien.sql`** — hai cột `dien_thoai` và
-      `diem_truong_id` cho hồ sơ giáo viên. Chưa chạy thì app vẫn tốt (đường
-      lui chung với bốn cột kia), chỉ là hai ô ấy khai xong không lưu lên được.
 - [ ] **Phát quyền cho 35 thầy cô Diễn Liên.** Đường CHÍNH từ 28/8/2026 là
       **cột Gmail**: mục *Giáo viên* → *Nhập từ Excel* → *Tải mẫu về điền*
       (mẫu ra sẵn đủ 35 người, chỉ gõ thêm một cột) → nhập lại → Lưu. Thầy cô
