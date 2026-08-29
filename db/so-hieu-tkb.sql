@@ -16,6 +16,21 @@
 --  Chạy MỘT LẦN trong SQL Editor. Chạy lại nhiều lần vẫn an toàn.
 -- ============================================================
 
+-- ------------------------------------------------------------
+--  0. ĐÚNG DỰ ÁN CHƯA?
+--
+--  Chủ dự án có nhiều dự án Supabase và đã dán nhầm một lần (30/8/2026).
+--  Postgres khi ấy báo `relation "tkb_phien_ban" does not exist` — đúng
+--  nhưng khó đoán, dễ tưởng tệp SQL viết sai. Hỏi trước bằng tiếng Việt.
+-- ------------------------------------------------------------
+do $$
+begin
+  if to_regclass('public.tkb_phien_ban') is null then
+    raise exception
+      'Cơ sở dữ liệu này không có bảng của phần mềm Thời khóa biểu. Nhiều khả năng SQL Editor đang mở NHẦM DỰ ÁN — thoát ra, chọn đúng dự án của trường rồi chạy lại.';
+  end if;
+end $$;
+
 alter table tkb_phien_ban add column if not exists so_hieu       integer;
 alter table tkb_phien_ban add column if not exists ngay_thuc_hien date;
 alter table tkb_phien_ban add column if not exists hoc_ky         text;
