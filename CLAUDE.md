@@ -1879,6 +1879,19 @@ bấm Ban hành một tối thì cả hai đều đọc *"số lớn nhất là 
 thấy. Cùng khuôn chốt chặn `ux_day_thay_gv_mot_tiet`: hai trình duyệt chỉ biết
 trạng thái của mình, hàng rào phải nằm ở cơ sở dữ liệu.
 
+**Đã chạy trên máy chủ thật 30/8/2026**, cùng `db/dien-ngay-thuc-hien.sql` —
+tệp sau điền ngày thực hiện 07/9/2026 và học kỳ cho bản số 01 của hai trường
+đang công bố. Cố ý tách hai tệp: tệp đầu là **cấu trúc**, tệp sau là **dữ liệu
+pháp lý của từng trường** — trộn chung thì lần cài cho trường thứ ba lại kéo
+theo ngày tháng của trường thứ nhất.
+
+⚠️ **Mọi tệp SQL từ nay mở đầu bằng khối kiểm "đúng dự án chưa?"** *(30/8/2026)*.
+Chủ dự án có nhiều dự án Supabase và đã dán nhầm một lần: Postgres báo
+`relation "tkb_phien_ban" does not exist` — đúng nhưng khó đoán, dễ tưởng tệp
+SQL viết sai. Khối kiểm dừng ngay và nói bằng tiếng Việt; quan trọng hơn là
+**không câu lệnh nào kịp chạy dở dang** ở một dự án lạ. `db/soi-dung-du-an.sql`
+là câu kiểm chỉ đọc, dùng khi nghi ngờ đang đứng ở đâu.
+
 **Luôn có đường lui:** máy chủ chưa chạy `db/so-hieu-tkb.sql` thì `congBoTKB()`
 bắt đúng lỗi thiếu cột, công bố lại **không kèm bốn cột** và nói rõ trong câu
 báo. Không bao giờ để một trường đang chạy mất nút Công bố vì một tệp SQL chưa
