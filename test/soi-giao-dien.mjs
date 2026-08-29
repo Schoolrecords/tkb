@@ -3003,9 +3003,23 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
      phép soát. */
   w.eval(`S.khungGio.forEach(k=>{ if(k.thu===6 && k.buoi==='C') k.bat=false; })`);
   w.chuyen('khunggio');
-  kt('Bớt một buổi thì báo THIẾU ô, đúng số còn hụt',
-     /thiếu 3 ô mỗi tuần/.test(w.document.querySelector('#noiDung').textContent),
-     (w.document.querySelector('#noiDung').textContent.match(/thiếu \d+ ô mỗi tuần/) || [''])[0]);
+  kt('Bớt một buổi thì báo THIẾU chỗ, đúng số còn hụt',
+     /thiếu 3 chỗ mỗi tuần/.test(w.document.querySelector('#noiDung').textContent),
+     (w.document.querySelector('#noiDung').textContent.match(/thiếu \d+ chỗ mỗi tuần/) || [''])[0]);
+
+  /* ⚠️ Nhãn phải nói HẬU QUẢ. Chủ dự án đọc "thừa 2" rồi vẫn phải hỏi lại
+     "chữ thừa 2 ý nghĩa gì đây em" — đó là nhận xét về cái bảng, không phải
+     điều người dùng cần biết. Thứ họ cần: hai ô ấy sẽ TRỐNG, học sinh ngồi
+     chơi giữa buổi. */
+  kt('Thừa chỗ thì nói "ô trống" và nói rõ học sinh ngồi chơi mấy tiết', (() => {
+    w.eval(`S.monHoc = [{ten:'Ít môn', mau:'m-tv', chuan:{1:30,2:30,3:32,4:32,5:32}}]`);
+    w.eval(`S.khungGio.forEach(k=>{ k.bat = !(k.thu===4 && k.buoi==='C');
+      [1,2,3,4,5].forEach(x=>{ k.tietKhoi = k.tietKhoi||{}; k.tietKhoi[x] = k.buoi==='S'?4:3; }); })`);
+    w.chuyen('khunggio');
+    const chu = w.document.querySelector('#noiDung').textContent;
+    return [/2 ô trống/.test(chu) && /ngồi chơi 2 tiết/.test(chu) && !/thừa 2/.test(chu),
+            (chu.match(/có \d+ ô trống mỗi tuần|ngồi chơi \d+ tiết/) || [''])[0]];
+  })());
 
   /* Trường chưa khai môn nào thì lùi về mốc CT GDPT — đường lui phải còn */
   w.eval('S.monHoc = []');

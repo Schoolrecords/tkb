@@ -2099,6 +2099,15 @@ cột lệch tiết bảng *Lớp học* · gợi ý trong hộp *Thêm phân c�
 soát tệp Excel. Chuẩn CT GDPT **vẫn bày ra bên cạnh** (`cần 32 · CT 27`) để đối
 chiếu, chỉ thôi làm thước đo đúng–sai.
 
+⚠️ **Nhãn phải nói HẬU QUẢ, không nói phép trừ** *(29/8/2026, lần thứ hai)*.
+Sửa xong nhãn thành `thừa 2` thì chủ dự án vẫn hỏi lại *"chữ thừa 2 ý nghĩa gì
+đây em"*. *Thừa* là nhận xét về cái bảng; thứ người dùng cần biết là hai ô ấy
+sẽ **trống**, học sinh khối 1 ngồi chơi 2 tiết mỗi tuần. Nay ô ghi `2 ô trống`
+· `thiếu 3 chỗ` · `vừa đủ`, và khối cảnh báo nói thẳng *"Học sinh khối 1 sẽ ngồi
+chơi 2 tiết mỗi tuần"* kèm cách chữa đúng của bảng này — **hạ ô của riêng khối
+ấy ở một buổi chiều** cho các em tan sớm. Nói bằng thứ người dùng nhìn thấy ở
+lớp, đừng nói bằng con số chênh lệch.
+
 ⚠️ **Ô 78px không đủ chỗ cho một nhãn tự giải thích.** Bản đầu ghi
 `cần 32 / CT 27` ngay dưới tổng; chủ dự án đọc và hỏi thẳng *"chữ cần 30, cần
 32 là gì thầy chưa hiểu"*. Hai con số trần không tự nói ra chúng là gì. Nay ô

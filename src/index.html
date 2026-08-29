@@ -11742,11 +11742,17 @@ function mKhungGio(){
           nói ra chúng là gì, mà chỗ này rộng có 78px. Nay chỉ bày KẾT LUẬN —
           đủ, thừa mấy, thiếu mấy — còn ba con số đầy đủ để ở khối dưới bảng,
           nơi có chỗ viết thành câu. */}
+    ${''/* ⚠️ Nhãn phải tự nói ra HẬU QUẢ, không chỉ nói con số. Bản trước ghi
+          "thừa 2" và chủ dự án vẫn phải hỏi lại "chữ thừa 2 ý nghĩa gì đây" —
+          "thừa" là nhận xét về cái bảng, còn thứ người dùng cần biết là hai ô
+          ấy sẽ TRỐNG, học sinh ngồi chơi giữa buổi. Nói bằng thứ họ nhìn thấy
+          ở lớp, đừng nói bằng phép trừ. */}
     ${[1,2,3,4,5].map(x=>{
       const t=suc[x]||0, c=tietCanKhoi(x), d=t-c;
       return `<td class="giua"><b style="color:var(--${!d?'xanh':d<0?'do':'canh'})">${t}</b>
-        <div style="font-size:11px;color:var(--chu-mo)">${
-          !d?'đủ':d<0?`thiếu ${-d}`:`thừa ${d}`}</div></td>`;
+        <div style="font-size:11px;color:var(--chu-mo)"
+          title="Khung giờ mở ${t} ô · danh mục môn cần ${c} tiết">${
+          !d?'vừa đủ':d<0?`thiếu ${-d} chỗ`:`${d} ô trống`}</div></td>`;
     }).join('')}
     <td style="font-size:12px;color:var(--chu-mo)">${KT.buoi} buổi/tuần</td>
   </tr></tfoot></table></div>
@@ -11759,11 +11765,14 @@ function mKhungGio(){
       : [1,2,3,4,5].filter(x=>(suc[x]||0)!==tietCanKhoi(x)).map(x=>{
           const t=suc[x]||0, c=tietCanKhoi(x), d=t-c;
           return `<div class="canhbao ${d<0?'do':''}"><div class="cb-ic">${d<0?'!':'~'}</div><div class="cb-t">
-            <b>Khối ${x} ${d<0?'thiếu':'thừa'} ${Math.abs(d)} ô mỗi tuần</b>
+            <b>Khối ${x} ${d<0?`thiếu ${-d} chỗ mỗi tuần`
+                              :`có ${d} ô trống mỗi tuần`}</b>
             <div class="cb-g">Khung giờ đang mở <b>${t} ô</b>, mà danh mục môn ở mục
               <b>Môn học</b> cộng lại <b>${c} tiết</b>.
               ${d<0?'Thiếu chỗ thì có tiết không xếp được — mở thêm buổi, hoặc bớt tiết ở mục Môn học.'
-                   :'Thừa chỗ thì học sinh có tiết trống giữa buổi — bớt một buổi, hoặc khai thêm môn.'}</div>
+                   :`Học sinh khối ${x} sẽ ngồi chơi ${d} tiết mỗi tuần. Bảng này cho phép
+                      <b>mỗi khối một số tiết riêng</b> — hạ ô của khối ${x} ở một buổi chiều
+                      xuống cho các em tan sớm, hoặc khai thêm môn ở mục Môn học.`}</div>
             </div></div>`;
         }).join('')}
     ${''/* Ba con số dễ lẫn nhau, nên nói rõ từng khối một ở đây — chỗ này có
