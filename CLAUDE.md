@@ -324,6 +324,22 @@ viên thành **105 hồ sơ, mỗi người ba bản**; hai lứa cũ mất sạ
 thành hồ sơ trùng tên 0 tiết, và mã mời nối nhầm một cô giáo vào đó. Vá một
 lỗi upsert thì phải rà **mọi** bảng dùng cùng khuôn trong cùng hàm.
 
+**Mọi id do APP tự đặt phải ánh xạ trước khi ghi vào cột `uuid`** *(29/8/2026)*.
+Tiểu học Quảng Châu 1 bấm Lưu ở mục Môn học và nhận
+*"invalid input syntax for type uuid: dt1787992176500"* — mất nguyên lần lưu,
+kể cả họ tên và định mức, vì Postgres từ chối CẢ lệnh chứ không riêng một ô.
+Chuỗi ấy là id phân hiệu **trong app** (`hopThemDT()` đặt `dt`+thời điểm);
+`ghiDuLieuNguon()` ánh xạ nó qua TÊN phân hiệu cho bảng `lop` và bảng `phong`
+nhưng **bỏ sót `giao_vien.diem_truong_id`** — đúng khuôn lỗi upsert 2/8. Nay
+có `idDTSv()` và `laUUID()` khai chung ở đầu vùng DULIEU. `taoMaMoi()` cũng
+chặn id chưa lưu và **báo ra**, tuyệt đối không bỏ trống cho qua: cột ấy trống
+nghĩa là PHT **toàn trường**, tức âm thầm phát rộng quyền hơn người tạo mã
+định phát. Vá một chỗ ghi id thì rà **mọi** bảng nhận id của cùng thứ ấy.
+
+⚠️ Phép thử đầu tiên viết ra **xanh oan**: bộ giả lập đặt id máy chủ là `dt1`,
+trùng đúng id app trong bộ dữ liệu mẫu. Lại là cái bẫy "hai thứ tình cờ bằng
+nhau" ở mục 3 — id app trong phép thử phải khác hẳn mọi id máy chủ.
+
 **Mọi lệnh SỬA (PATCH) phải đi qua `suaHang()` và ĐẾM số dòng đổi được.**
 PostgREST trả "thành công" cho lệnh sửa 0 dòng, nên quy tắc RLS chặn ghi trông
 y hệt ghi trót lọt. Đã cắn hai lần — nút *Công bố* (thiếu `p_tkb_sua`) và lưu

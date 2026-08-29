@@ -3434,6 +3434,12 @@ const chuThieuMon = ds => ds.map(x=>`${x.mon} ${x.thieu}`).join(', ');
 /*#endregion LOGIC*/
 
 /*#region DULIEU*/
+
+/* Máy chủ dùng UUID; app tự đặt id cho thứ vừa khai trên màn hình
+   (`dt1787992176500`, `gv_le_thi_hoa`). Phân biệt hai loại ấy là việc lặp
+   ở nhiều chỗ nên để một định nghĩa duy nhất. */
+const laUUID = s => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
+
 /* ==================================================================
    2b. TẦNG TRUY CẬP DỮ LIỆU
    ------------------------------------------------------------------
@@ -3836,6 +3842,13 @@ function sinhMaMoi(rnd){
 }
 async function taoMaMoi(tt){
   if(!coMayChu()) return {ok:false, loi:'Chưa nối máy chủ.'};
+  /* Phân hiệu vừa khai mà chưa lưu thì id còn là id trong app — cột này là
+     uuid nên máy chủ từ chối. Báo ra, tuyệt đối không bỏ trống cho qua: bỏ
+     trống nghĩa là phó hiệu trưởng phụ trách TOÀN TRƯỜNG, tức là âm thầm
+     phát rộng quyền hơn người tạo mã định phát. */
+  if(tt?.diemTruongId && !laUUID(tt.diemTruongId))
+    return {ok:false, loi:'Phân hiệu này chưa lưu lên hệ thống. '+
+      'Vào mục Phân hiệu bấm Lưu rồi tạo mã lại.'};
   try{
     const ma=sinhMaMoi();
     const kq=await goiAPI('/rest/v1/ma_moi',{method:'POST',
@@ -5521,7 +5534,6 @@ async function ghiDuLieuNguon(dl){
       so_tiet_khoi:k.tietKhoi||null, bat:k.bat!==false
     })), 'truong_id,thu,buoi');
 
-    const laUUID=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
 
     /* 3. Giáo viên.
        ⚠️ ĐÚNG CÁI BẪY ĐÃ VÁ CHO BẢNG LỚP — nhưng bảng này bị bỏ sót, và nó
@@ -5539,11 +5551,21 @@ async function ghiDuLieuNguon(dl){
 
        Vá y như bảng lớp: mã giữ NGUYÊN (`g.maGV`), và ai đã có trên máy chủ
        thì upsert theo `id` để sửa đúng dòng cũ. */
+    /* ⚠️ `dtChinh` của giáo viên là id phân hiệu TRONG APP — hộp Thêm phân
+       hiệu đặt `dt`+thời điểm, ví dụ `dt1787992176500`. Đẩy thẳng lên cột
+       uuid là Postgres từ chối CẢ lệnh: *invalid input syntax for type uuid*,
+       nghĩa là mất nguyên lần lưu chứ không riêng ô phân hiệu. Đi qua TÊN
+       phân hiệu, đúng cách bảng lớp và bảng phòng vẫn làm. */
+    const idDTSv=id=>{
+      if(!id) return null;
+      if(laUUID(id)) return id;
+      return maDT[dl.diemTruong.find(d=>d.id===id)?.ten] || null;
+    };
     const maCuaGV=g=>g.maGV||g.id;
     const hangGV=g=>({truong_id:t, ma_gv:maCuaGV(g), ho_ten:g.hoTen,
                       dinh_muc:g.dinhMuc||DINH_MUC,
                       ...(KHO.coCotGV===false?{}:{email:g.email||null, ghi_chu:g.ghiChu||null,
-                          dien_thoai:g.dienThoai||null, diem_truong_id:g.dtChinh||null})});
+                          dien_thoai:g.dienThoai||null, diem_truong_id:idDTSv(g.dtChinh)})});
     /* ⚠️ ĐƯỜNG LUI cho hai cột thêm ngày 28/8/2026 (db/gmail-giao-vien.sql).
        Máy chủ chưa chạy tệp ấy thì PostgREST từ chối CẢ lệnh chứ không bỏ qua
        cột thiếu — nghĩa là mất luôn cả lần lưu, kể cả họ tên và định mức. Nên

@@ -699,13 +699,22 @@ kt('Tạo mã mời ghi lên máy chủ, nối đúng trường và giáo viên'
   return t.ok === true && /^[A-HJ-KM-NP-Z2-9]{6}$/.test(t.ma) &&
     GHI.maMoi[0].truong_id === 't1' && GHI.maMoi[0].giao_vien_id === 'g2';
 })());
+const UUID_DT2 = '2f1c8a44-9b3e-4d17-8c05-6a7b0e5d1234';
 kt('Mã mời quản lý mang được phân hiệu — PHT phụ trách điểm nhận đúng phạm vi khi vào', await (async () => {
   /* dung_ma_moi phía máy chủ chép diem_truong_id của mã vào nguoi_dung,
      nên gán sai ở đây là PHT một điểm vào app với quyền toàn trường. */
-  const t = await G.taoMaMoi({ vaiTro: 'pho_hieu_truong', diemTruongId: 'd2' });
+  const t = await G.taoMaMoi({ vaiTro: 'pho_hieu_truong', diemTruongId: UUID_DT2 });
   const dong = GHI.maMoi[GHI.maMoi.length - 1];
   return t.ok === true && dong.vai_tro === 'pho_hieu_truong' &&
-    dong.diem_truong_id === 'd2' && !dong.giao_vien_id;
+    dong.diem_truong_id === UUID_DT2 && !dong.giao_vien_id;
+})());
+kt('Phân hiệu chưa lưu lên máy chủ thì mã mời BỊ CHẶN, không lặng lẽ thành mã toàn trường',
+   await (async () => {
+  /* id trong app (`dt1787992176500`) không phải uuid — bỏ trống cột ấy cho
+     qua nghĩa là phát ra một mã PHT TOÀN TRƯỜNG. */
+  const truoc = GHI.maMoi.length;
+  const t = await G.taoMaMoi({ vaiTro: 'pho_hieu_truong', diemTruongId: 'dt1787992176500' });
+  return t.ok === false && /chưa lưu/.test(t.loi) && GHI.maMoi.length === truoc;
 })());
 GHI.oauthUser = 'u1';
 
@@ -1238,6 +1247,35 @@ kt('Phân công xoá sạch rồi ghi lại, mọi dòng nối đúng mã',
 kt('Tổng số tiết ghi lên đúng bằng tệp Excel',
    GHI.phanCong.reduce((s, p) => s + p.so_tiet, 0) === tep.tongTiet,
    `${tep.tongTiet} tiết`);
+
+/* ⚠️ LỖI "invalid input syntax for type uuid: dt1787992176500" — 29/8/2026,
+   Tiểu học Quảng Châu 1 bấm Lưu ở mục Môn học và MẤT NGUYÊN lần lưu.
+
+   Gốc: hộp Thêm phân hiệu đặt id `dt`+thời điểm, và hồ sơ giáo viên giữ
+   thẳng id ấy ở `dtChinh`. Bảng lớp và bảng phòng đều đi qua TÊN phân hiệu
+   để lấy id máy chủ, riêng bảng giáo viên đẩy id app lên cột uuid — Postgres
+   từ chối CẢ lệnh, nên hỏng luôn cả họ tên lẫn định mức. */
+kt('Phân hiệu vừa khai trong app: id giáo viên ghi lên là id MÁY CHỦ, không phải id app',
+   await (async () => {
+     /* Đúng dạng hộp Thêm phân hiệu đặt ra, và cố ý KHÁC HẲN mọi id máy chủ
+        giả lập — hai thứ tình cờ bằng nhau thì phép thử không kiểm được gì. */
+     const dtApp = 'dt1787992176500';
+     await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       diemTruong: [...tep.diemTruong, { id: dtApp, ten: 'Phân hiệu Mới', phongTin: true }],
+       giaoVien: [{ id: 'gv_moi', maGV: 'GV_PH', hoTen: 'Cô Phân Hiệu', cn: '',
+                    dinhMuc: 23, dtChinh: dtApp }] });
+     const hang = (GHI.giaoVien || []).find(g => g.ma_gv === 'GV_PH');
+     const idSv = GHI.diemTruong.find(d => d.ten === 'Phân hiệu Mới')?.id;
+     return !!hang && !!idSv && hang.diem_truong_id === idSv && hang.diem_truong_id !== dtApp;
+   })());
+kt('Phân hiệu chưa khai bao giờ thì để TRỐNG, không đẩy chữ lạ lên cột uuid',
+   await (async () => {
+     await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       giaoVien: [{ id: 'gv_la', maGV: 'GV_LA', hoTen: 'Cô Lạ', cn: '',
+                    dinhMuc: 23, dtChinh: 'dt_khong_ton_tai' }] });
+     const hang = (GHI.giaoVien || []).find(g => g.ma_gv === 'GV_LA');
+     return !!hang && hang.diem_truong_id === null;
+   })());
 
 /* ---------- Thông tin trường: tên, năm học, địa bàn ----------
    Bảng `truong` bật RLS nhưng suốt từ đầu chỉ có quy tắc SELECT. Lệnh sửa vì
