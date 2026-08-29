@@ -3,6 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Content-Security-Policy (29/8/2026). Vé làm mới nằm ở localStorage, nên
+     một lỗ XSS là mất phiên đăng nhập của thầy cô. esc() phủ mọi chỗ đã soi;
+     đây là lớp thứ hai để một chỗ sót không thành mất tài khoản.
+
+     ⚠️ script-src PHẢI mang 'unsafe-inline'. Toàn bộ mã app nằm inline trong
+     tệp này — đó là quy ước một-tệp của dự án. Siết bằng hash thì hash đổi
+     mỗi lần sửa một chữ, mà không có build tool để sinh lại: quên một lần là
+     TRẮNG TRANG với mọi trường đang chạy. Đổi lấy an toàn vận hành, và nâng
+     lên hash được ngay khi nào mã tách ra tệp riêng ở Pha 2.
+
+     Giá trị thật của thẻ này nằm ở connect-src và img-src: mã lạ có chạy được
+     thì cũng không gửi vé đăng nhập về máy chủ của ai. Cộng object-src 'none'
+     và base-uri 'self' chặn hai lối chèn kinh điển.
+
+     ⚠️ Thẻ meta KHÔNG nhận frame-ancestors — đừng mất thì giờ với nó; GitHub
+     Pages không đặt được HTTP header nên chỉ có đường thẻ meta này.
+     ⚠️ style-src bắt buộc có 'unsafe-inline': cả trang dùng style="…" khắp
+     nơi, đó là quy ước một-tệp, không đổi.
+     ⚠️ connect-src phải khớp SUPABASE_URL trong src/cauhinh.js — có phép thử
+     đối chiếu hai chỗ, không ghi cứng. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com;
+  img-src 'self' data: blob:;
+  connect-src 'self' https://rvunpreynpvicoidrojk.supabase.co wss://rvunpreynpvicoidrojk.supabase.co;
+  worker-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self'">
 <title>Thời khóa biểu năm học 2026–2027</title>
 <!-- Ảnh và mô tả khi dán link vào Zalo, Messenger, Facebook. og:image bắt
      buộc là URL tuyệt đối tới một TỆP ảnh thật — không nhúng data: được,
@@ -4354,7 +4385,7 @@ async function luoiCuaToi(){
 
 /* Đường lui: tải nguyên khối thời khóa biểu như trước khi có tkb_cua_toi() */
 async function luoiDayDuTuMayChu(){
-  const t = KHO.nguoiDung.truongId;
+  const t = truongDangXem();
   const pb = await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}`
     + '&select=version,du_lieu&order=version.desc&limit=1').catch(()=>[]);
   return {version:+pb?.[0]?.version||0, blob:pb?.[0]?.du_lieu||null};
@@ -4380,7 +4411,7 @@ async function taiLuoiDayDu(){
 async function taiThemNgayNghi(tuNgay){
   if(KHO.nguon !== 'may-chu' || !tuNgay || tuNgay >= (KHO.tuNgayNghi||'9999-12-31'))
     return {ok:true};
-  const t = KHO.nguoiDung.truongId;
+  const t = truongDangXem();
   const den = KHO.tuNgayNghi;
   try{
     const [dt, bn] = await Promise.all([
@@ -4523,7 +4554,7 @@ async function lichSuPhienBan(gioiHan=20){
   if(!coMayChu()) return {ok:false, ds:[],
     thongBao:'Chưa nối máy chủ nên chưa có lịch sử. Đăng nhập rồi lưu một bản là có ngay.'};
   try{
-    const ds = await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${KHO.nguoiDung.truongId}`
+    const ds = await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${truongDangXem()}`
       + `&select=version,ghi_chu,tao_luc,cong_bo&order=version.desc&limit=${+gioiHan||20}`);
     return {ok:true, thongBao:'', ds:(ds||[]).map(v=>({
       version:+v.version, ghiChu:v.ghi_chu||'', congBo:!!v.cong_bo,
@@ -4568,7 +4599,7 @@ async function congBoTKB(version, bat=true){
 async function taiPhienBan(version){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
   try{
-    const ds = await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${KHO.nguoiDung.truongId}`
+    const ds = await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${truongDangXem()}`
       + `&version=eq.${+version}&select=version,du_lieu&limit=1`);
     if(!ds?.length) return {ok:false, thongBao:`Không tìm thấy phiên bản ${version}.`};
     return {ok:true, version:+ds[0].version, duLieu:ds[0].du_lieu, thongBao:''};
@@ -6084,7 +6115,7 @@ async function taiNhatKy(gioiHan=100){
   if(!coMayChu()) return {ok:false, ds:[],
     thongBao:'Chưa nối máy chủ nên chưa có nhật ký. Nhật ký ghi lại các thao tác trên máy chủ: lưu, công bố, nhập dữ liệu.'};
   try{
-    const ds = await goiAPI(`/rest/v1/nhat_ky?truong_id=eq.${KHO.nguoiDung.truongId}`
+    const ds = await goiAPI(`/rest/v1/nhat_ky?truong_id=eq.${truongDangXem()}`
       + '&select=hanh_dong,du_lieu_cu,thoi_diem,nguoi_dung(ho_ten)'
       + `&order=thoi_diem.desc&limit=${+gioiHan||100}`);
     return {ok:true, thongBao:'', ds:(ds||[]).map(h=>({
@@ -10506,9 +10537,12 @@ async function chepDayThay(){
     hop('Sao chép để gửi Zalo',
       `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:11px">Trình duyệt không cho
         chép tự động. Bôi đen nội dung dưới đây rồi bấm Ctrl+C.</p>
-       <textarea class="ip" rows="12" style="width:100%;font-family:inherit"
-         onclick="this.select()">${esc(t)}</textarea>`,
+       <textarea class="ip" rows="12" id="taZalo" style="width:100%;font-family:inherit"
+         >${esc(t)}</textarea>`,
       [{ten:'Đóng',lam:dong}]);
+    /* Gắn sau khi hộp dựng xong, không viết onclick thẳng trong HTML: thẻ CSP
+       đặt ngày 29/8 nhắm tới việc bỏ hẳn lối ấy. */
+    const ta=$('#taZalo'); if(ta) ta.onclick=()=>ta.select();
   }
 }
 
@@ -13885,7 +13919,7 @@ function hopNhapExcel(){
     <div class="gy">${esc(m.nhac)}</div>
     ${ma==='phancong'?`<div class="gy" style="margin-top:9px">Trường vẫn kẻ tờ phân công kiểu
        <b>mỗi môn một cột đánh dấu x</b> thì tải
-       <button class="b b-vien b-nho" onclick="taiMauMaTran()">mẫu ma trận</button> —
+       <button class="b b-vien b-nho" id="btMauMaTran">mẫu ma trận</button> —
        nút <b>Chọn tệp</b> nhận cả hai kiểu.</div>`:''}`}
    <div style="margin-top:13px;padding:11px 14px;background:${coMayChu()&&duocSuaNguon()?'var(--xanh-nen)':'var(--canh-nen)'};border-radius:10px;font-size:12.5px">
      ${coMayChu()&&duocSuaNguon()
@@ -13896,6 +13930,7 @@ function hopNhapExcel(){
         : [{ten:'Huỷ',phu:1,lam:dong},
            {ten:'Tải mẫu về điền',phu:1,lam:()=>taiMauMuc(ma)},
            {ten:'Chọn tệp',lam:()=>{dong();$('#tep').click();}}]);
+  const bMt=$('#btMauMaTran'); if(bMt) bMt.onclick=()=>taiMauMaTran();
 }
 
 /* Một dòng người đọc hiểu được cho mỗi cột, suy từ chính `khoa` đã khai —

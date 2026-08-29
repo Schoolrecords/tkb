@@ -44,6 +44,14 @@ async function chup(ten, { rong = 1400, cao = 900, lam }) {
   const ctx = await tr.newContext({ viewport: { width: rong, height: cao }, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
   p.on('pageerror', e => loi.push(ten + ': ' + e.message));
+  /* Vi phạm CSP KHÔNG phải lỗi JavaScript — nó chỉ hiện ở console. Không bắt
+     ở đây thì một chỉ thị quá chặt lặng lẽ chặn mất thư viện Excel hay phông
+     chữ, mọi bộ soi vẫn xanh còn người dùng thì bấm nút không ra gì. */
+  p.on('console', m => {
+    const t = m.text();
+    if (/Content Security Policy|Refused to (load|connect|execute)/i.test(t))
+      loi.push(ten + ' [CSP]: ' + t.slice(0, 160));
+  });
   await p.goto('http://localhost:8777/src/index.html', { waitUntil: 'networkidle' });
   await p.waitForTimeout(700);
   if (lam) await lam(p);

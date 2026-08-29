@@ -482,6 +482,48 @@ Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục
   chưa khai gì. `moTruongDeXem()` thấy trường rỗng trơn thì lùi về trường cũ
   và nhắc chạy `db/chu-he-thong-xem.sql`.
 
+### Ba việc bảo mật — đã xong *(29/8/2026)*
+
+**Thẻ Content-Security-Policy.** Vé làm mới nằm ở `localStorage` nên một lỗ
+XSS là mất phiên đăng nhập của thầy cô; `esc()` phủ mọi chỗ đã soi, thẻ này là
+lớp thứ hai. Đã gỡ hết `onclick` viết thẳng trong HTML (còn 0).
+
+⚠️ **`script-src` VẪN mang `'unsafe-inline'` — trái với dự tính ban đầu.** Toàn
+bộ mã app nằm inline trong `index.html` (quy ước một-tệp), nên siết bằng hash
+thì hash đổi mỗi lần sửa một chữ, mà không có build tool để sinh lại: quên một
+lần là **TRẮNG TRANG** với mọi trường đang chạy. Đổi lấy an toàn vận hành; nâng
+lên hash được ngay khi mã tách ra tệp riêng ở Pha 2. Giá trị thật của thẻ nằm ở
+`connect-src` và `img-src` — mã lạ có chạy được cũng không gửi vé đăng nhập về
+máy chủ của ai — cộng `object-src 'none'` và `base-uri 'self'`.
+
+⚠️ **Vi phạm CSP KHÔNG phải lỗi JavaScript** — nó chỉ hiện ở console, nên
+`npm run soi` và `npm test` xanh trong khi thư viện Excel bị chặn mất. Nay
+`docs/anh-giao-dien/chup.mjs` bắt cả `console`, và có một phép thử riêng chạy
+Chrome thật gọi `sanSangExcelJS()` · `sanSangXLSX()` để chắc CDN vẫn nạp được.
+
+⚠️ `connect-src` **đối chiếu với `SUPABASE_URL` trong `src/cauhinh.js`**, không
+ghi cứng — cùng khuôn phép thử ba-chỗ-khai-màu-chủ-đề. Ghi cứng thì đổi dự án
+Supabase là phép thử vẫn xanh trong khi app mất hẳn đường gọi máy chủ.
+
+**`db/siet-dang-ky-va-nhat-ky.sql`** — hai việc còn lại:
+
+- **Đơn đăng ký rác.** ⚠️ `dang_ky_truong()` **đã** chặn "một tài khoản một
+  trường" và "trùng tên trường trong cùng xã" — đừng làm lại. Chỗ hở thật là
+  một người mở **nhiều Gmail**. Đếm theo `dien_thoai` (đã bắt buộc, đã chuẩn
+  hoá về chữ số): quá **3** đơn `cho_duyet` cùng số thì từ chối, kèm câu nói rõ
+  phải liên hệ ai. Chỉ đếm đơn CHỜ DUYỆT nên người dùng thật không chạm trần.
+- **`p_nk_ghi` siết thêm `nguoi_dung_id = auth.uid()`.** Nhật ký là thứ đem ra
+  đối chiếu khi có tranh cãi *"ai xoá mất dữ liệu"*; một bảng ai cũng viết hộ
+  được thì không còn giá trị làm chứng. `ghiNhatKy()` vốn đã gửi đúng id của
+  chính người đang đăng nhập nên không phá luồng nào.
+
+⚠️ **Ranh giới ĐỌC / GHI của chế độ xem trường khác** — chỗ dễ sai nhất, có
+phép thử canh cả hai chiều: năm đường **đọc** (`luoiDayDuTuMayChu` ·
+`taiThemNgayNghi` · `lichSuPhienBan` · `taiPhienBan` · `nhatKy`) đi theo
+`truongDangXem()`, còn bốn đường **ghi** (`congBoTKB` · `taoMaMoi` ·
+`ghiNhatKy` · `datTaiKhoanGV`) giữ nguyên `KHO.nguoiDung.truongId`. An toàn
+kép: kể cả cờ chỉ-xem có lỗi thì cũng không ghi nhầm sang trường khác.
+
 ### Siết quyền theo CỘT — `db/siet-quyen.sql` *(28/8/2026)*
 
 RLS của Postgres cấp quyền theo **dòng**, không theo **cột**. Nên một quy
@@ -2160,49 +2202,9 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
       Nhật ký ngày vào hệ thống (bốn chỗ vấp, đã vá cả bốn) ở
       `docs/lich-su-quyet-dinh.md`. Quy tắc rút ra: **trường đăng ký bằng
       Gmail CỦA NHÀ TRƯỜNG**, không dùng Gmail cá nhân.
-- [ ] **LÀM NGAY PHIÊN SAU — ba việc bảo mật còn lại** *(chốt 28/8/2026;
-      `db/siet-quyen.sql` đã chạy trên máy chủ thật, hai trigger đã gắn,
-      lỗ leo thang quyền đã đóng)*. Ba việc độc lập nhau, làm theo thứ tự
-      này vì việc đầu nặng nhất và cũng đáng nhất:
-
-      **1. Thẻ Content-Security-Policy.** Vé làm mới nằm ở `localStorage`,
-      nên một lỗ XSS là mất phiên đăng nhập của thầy cô — `esc()` đang phủ
-      tốt mọi chỗ đã soi, CSP là lớp thứ hai để một chỗ sót không thành mất
-      tài khoản. GitHub Pages không đặt được HTTP header, nên phải là thẻ
-      `<meta http-equiv>` — và **thẻ meta KHÔNG nhận `frame-ancestors`**,
-      đừng mất thì giờ với nó.
-      · **Bước đầu tiên: gỡ 4 chỗ `onclick="…"` còn viết thẳng trong HTML**
-        (`grep -c 'onclick="' src/index.html`). Còn một chỗ inline handler
-        thì `script-src` buộc phải mang `'unsafe-inline'`, mà cờ ấy vô
-        hiệu hoá luôn mọi hash — coi như không có CSP cho script.
-      · Nguồn ngoài phải cho qua, đúng ba chỗ: `https://cdn.jsdelivr.net`
-        (exceljs 4.4.0 · xlsx 0.18.5, nạp khi cần), `fonts.googleapis.com`
-        (CSS) và `fonts.gstatic.com` (tệp phông). `connect-src` phải khớp
-        `SUPABASE_URL` trong `src/cauhinh.js`.
-      · `style-src` bắt buộc có `'unsafe-inline'`: cả trang dùng
-        `style="…"` khắp nơi, đó là quy ước một-tệp của dự án, không đổi.
-      · Phép thử (`npm run soi`): thẻ meta có mặt, có đủ `default-src` ·
-        `script-src` · `connect-src` · `base-uri` · `object-src`, và
-        `connect-src` **so với** địa chỉ trong `cauhinh.js` chứ không ghi
-        cứng — cùng khuôn phép thử ba-chỗ-khai-màu-chủ-đề ở mục 8.
-
-      **2. Chống đơn đăng ký rác.** ⚠️ Đừng làm lại thứ đã có:
-      `dang_ky_truong()` **đã** chặn "một tài khoản chỉ vào được một
-      trường", và đã chặn trùng tên trường trong cùng một xã. Chỗ hở thật
-      là **một người tạo nhiều Gmail** — mỗi cái một trường rác, và chủ hệ
-      thống phải ngồi dọn tay. Hướng rẻ nhất: đếm theo `dien_thoai` (đã
-      bắt buộc, đã chuẩn hoá về chữ số trong `v_dt`) — quá N đơn
-      `cho_duyet` cùng số thì từ chối, kèm câu nói rõ phải liên hệ người
-      quản trị. Không cần bảng mới.
-
-      **3. `nhat_ky` đang cho mọi người cùng trường ghi tự do.**
-      `p_nk_ghi` chỉ đòi `truong_id = truong_cua_toi()`, nên một tài khoản
-      giáo viên bơm được vô số dòng, hoặc ghi dòng mang tên người khác.
-      Siết thành `with check (truong_id = truong_cua_toi() and
-      nguoi_dung_id = auth.uid())` — `ghiNhatKy()` vốn đã gửi đúng id của
-      chính người đang đăng nhập nên không phá luồng nào. Nhớ chạy
-      `npm run soat` sau khi sửa: bảng `nhat_ky` phải còn quy tắc INSERT,
-      không thì mọi lệnh ghi nhật ký lặng lẽ sửa 0 dòng.
+- [x] ~~**Ba việc bảo mật**~~ — xong 29/8/2026: thẻ CSP, chống đơn đăng ký
+      rác, siết `p_nk_ghi`. Chi tiết ở mục 3. ⚠️ `db/siet-dang-ky-va-nhat-ky.sql`
+      còn **chờ chạy** trên máy chủ thật.
 - [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi

@@ -2724,6 +2724,31 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
   kt('Không một màn hình nào còn nút ghi khi đang xem trường khác',
      lot.length === 0, lot.slice(0, 4).join(' | ') || `quét ${MAN.length} màn hình`);
 
+/* ⚠️ Ranh giới ĐỌC / GHI của chế độ xem trường khác. Đây là chỗ dễ sai nhất
+   của cả tính năng: đường ĐỌC phải theo trường đang xem (không thì mở trường
+   bạn mà nhật ký lại hiện của trường mình), còn đường GHI phải giữ nguyên
+   trường của tài khoản — an toàn kép, không bao giờ ghi nhầm sang trường khác
+   kể cả khi cờ chỉ-xem có lỗi. */
+{
+  const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+  const than = f => {
+    const i = src.indexOf(f);
+    return i < 0 ? '' : src.slice(i, i + 900);
+  };
+  const DOC = ['async function luoiDayDuTuMayChu(){', 'async function taiThemNgayNghi(',
+               'async function lichSuPhienBan(', 'async function taiPhienBan(',
+               'async function nhatKy('];
+  const hongDoc = DOC.filter(f => than(f) && !/truongDangXem\(\)/.test(than(f)));
+  kt('Mọi đường ĐỌC lấy dữ liệu theo trường đang xem', hongDoc.length === 0,
+     hongDoc.join(' | ') || `${DOC.length} hàm`);
+
+  const GHI = ['async function congBoTKB(', 'async function taoMaMoi(',
+               'function ghiNhatKy(', 'async function datTaiKhoanGV('];
+  const hongGhi = GHI.filter(f => than(f) && /truongDangXem\(\)/.test(than(f)));
+  kt('Đường GHI vẫn khoá vào trường của tài khoản, không đi theo trường đang xem',
+     hongGhi.length === 0, hongGhi.join(' | ') || `${GHI.length} hàm`);
+}
+
   kt('Thẻ nổi đỏ báo rõ đang xem trường nào, kèm lối thoát', (() => {
     w.chuyen('dieuhanh');
     const the = w.document.querySelector('#theXemTruong');
@@ -2741,6 +2766,56 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
      w.eval('duocSuaNguon()') === true);
   /* Trả KHO.nguoiDung về đúng trạng thái cũ — phép thử sau còn dùng */
   w.eval(`KHO.nguoiDung = ${ndGoc}`);
+}
+
+console.log('\n17l. Thẻ Content-Security-Policy');
+/* Vé làm mới nằm ở localStorage nên một lỗ XSS là mất phiên đăng nhập của
+   thầy cô. esc() phủ mọi chỗ đã soi; thẻ này là lớp thứ hai. */
+{
+  const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+  const the = (src.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)"/) || [])[1] || '';
+  const chi = {};
+  the.split(';').forEach(d => {
+    const p = d.trim().split(/\s+/);
+    if (p[0]) chi[p[0]] = p.slice(1);
+  });
+
+  kt('Có thẻ CSP trong <head>', !!the);
+  kt('Khai đủ năm chỉ thị cốt lõi',
+     ['default-src', 'script-src', 'connect-src', 'base-uri', 'object-src']
+       .every(d => d in chi),
+     Object.keys(chi).join(' · '));
+  kt('object-src none và base-uri self — chặn hai lối chèn kinh điển',
+     chi['object-src']?.[0] === "'none'" && chi['base-uri']?.[0] === "'self'");
+
+  /* ⚠️ So với địa chỉ THẬT trong cauhinh.js, không ghi cứng — cùng khuôn phép
+     thử ba-chỗ-khai-màu-chủ-đề. Ghi cứng thì đổi dự án Supabase là phép thử
+     vẫn xanh trong khi app mất hẳn đường gọi máy chủ. */
+  const url = (readFileSync(join(goc, 'src/cauhinh.js'), 'utf8')
+    .match(/SUPABASE_URL\s*=\s*'([^']+)'/) || [])[1] || '';
+  kt('connect-src cho đúng máy chủ khai trong cauhinh.js',
+     !!url && (chi['connect-src'] || []).includes(url), `${url} · ${(chi['connect-src']||[]).join(' ')}`);
+
+  /* Hai thư viện Excel nạp khi cần từ jsdelivr — chặn nhầm là mất hẳn đường
+     nhập và xuất Excel, mà không có lỗi nào hiện ra cho người dùng. */
+  const cdn = [...src.matchAll(/napThuVien\('https:\/\/([^/']+)/g)].map(m => m[1]);
+  kt('Mọi CDN app thật sự nạp đều được script-src cho qua',
+     cdn.length > 0 && cdn.every(d => (chi['script-src'] || []).some(x => x.includes(d))),
+     [...new Set(cdn)].join(' · '));
+  kt('Phông chữ Google được font-src và style-src cho qua',
+     (chi['font-src'] || []).some(x => x.includes('fonts.gstatic.com')) &&
+     (chi['style-src'] || []).some(x => x.includes('fonts.googleapis.com')));
+
+  /* Thẻ meta không có hiệu lực với frame-ancestors — khai vào chỉ tổ làm
+     trình duyệt kêu trong console và người sau tưởng đã chống được clickjacking. */
+  kt('Không khai frame-ancestors trong thẻ meta — thẻ meta không nhận chỉ thị ấy',
+     !('frame-ancestors' in chi));
+
+  /* Bước bắt buộc trước khi siết script-src bằng hash: còn một onclick inline
+     thì 'unsafe-inline' là bắt buộc, mà cờ ấy vô hiệu hoá mọi hash. */
+  kt('Không còn onclick viết thẳng trong HTML',
+     (src.match(/onclick="/g) || []).length === 0,
+     `${(src.match(/onclick="/g) || []).length} chỗ`);
 }
 
 
