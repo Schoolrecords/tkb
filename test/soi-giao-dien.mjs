@@ -2683,6 +2683,66 @@ console.log('\n17j. Lớp bố cục dùng thì phải có khai');
      thieu.length ? `thiếu: ${thieu.join(' · ')}` : [...dung].sort().join(' · '));
 }
 
+console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CHỈ ĐỌC');
+/* Chủ dự án muốn "sửa luôn chứ xem cũng không cần lắm". Đã bàn và chốt chỉ
+   đọc: đường ghi suy mã trường từ tài khoản, mở nó ra là sửa xương sống mà
+   năm trường đang lưu dữ liệu thật qua đó. Bộ này canh đúng lời hứa ấy. */
+{
+  /* Chế độ này chỉ bật cho chủ hệ thống, nên phải giả lập cả tài khoản —
+     thiếu nó thì `thayDuocMuc('hethong')` trả false và phép thử kêu oan. */
+  const ndGoc = w.eval('JSON.stringify(KHO.nguoiDung)');
+  const dat = (id, ten) => w.eval(`KHO.truongXem = ${JSON.stringify(id ? {id, ten} : null)}`);
+  w.eval(`KHO.nguoiDung = ${JSON.stringify({id:'u-cht', hoTen:'Trần Thanh Chung',
+    email:'chungtrt@gmail.com', vaiTro:'quan_tri', truongId:'t-cua-toi',
+    tenTruong:'Trường của tôi', chuHeThong:true, diemTruongId:null, gvId:null})}`);
+
+  dat(null);
+  const quyenGoc = w.eval('quyen()');
+  kt('Bình thường thì quản trị vẫn đủ quyền — cờ chỉ-xem không rò rỉ ra ngoài',
+     quyenGoc.toanTruong === true && quyenGoc.chiXem === false &&
+     w.eval('duocSuaNguon()') === true && w.eval('duocXep()') === true);
+
+  dat('t-khac', 'Trường Tiểu học Thần Lĩnh 1');
+  kt('Mở trường khác thì MỌI quyền ghi tắt cùng lúc, chỉ sửa một chỗ trong quyen()',
+     w.eval('quyen()').chiXem === true &&
+     w.eval('duocSuaNguon()') === false && w.eval('duocXep()') === false &&
+     w.eval('quyen()').laQuanLy === false);
+
+  /* Phép thử đáng giá nhất: quét CẢ 12 màn hình khai báo và điều hành, đòi
+     không còn một nút ghi nào. Cùng khuôn phép thử "không màn hình nào lọt
+     chữ Bước 1". Sót một nút thì cái sót ấy ghi đè dữ liệu trường khác. */
+  const MAN = ['dieuhanh','thongtin','diemtruong','khunggio','lop','giaovien',
+               'monhoc','phonghoc','phancong','buoiban','xep','tkblop'];
+  const NUT_GHI = /^(Lưu|Lưu ngay|Xếp|Xếp nhanh|Xếp kỹ|Thêm|Tạo|Xoá|Đặt lại|Công bố|Nhập từ Excel|Khôi phục)/;
+  const lot = [];
+  for (const t of MAN) {
+    w.chuyen(t);
+    [...w.document.querySelectorAll('#noiDung button')].forEach(b => {
+      if (NUT_GHI.test(b.textContent.trim())) lot.push(`${t}: ${b.textContent.trim()}`);
+    });
+  }
+  kt('Không một màn hình nào còn nút ghi khi đang xem trường khác',
+     lot.length === 0, lot.slice(0, 4).join(' | ') || `quét ${MAN.length} màn hình`);
+
+  kt('Thẻ nổi đỏ báo rõ đang xem trường nào, kèm lối thoát', (() => {
+    w.chuyen('dieuhanh');
+    const the = w.document.querySelector('#theXemTruong');
+    return [!!the && /Thần Lĩnh 1/.test(the.textContent) && /chỉ đọc/.test(the.textContent) &&
+            !!the.querySelector('#btThoatXemTruong'), the?.textContent.trim().slice(0, 60)];
+  })());
+
+  kt('Vẫn quay về được danh sách trường — không tự nhốt mình trong trường khác',
+     w.eval("thayDuocMuc('hethong')") === true);
+
+  dat(null);
+  w.chuyen('dieuhanh');
+  kt('Thoát ra thì thẻ đỏ biến mất và quyền trở lại như cũ',
+     !w.document.querySelector('#theXemTruong') &&
+     w.eval('duocSuaNguon()') === true);
+  /* Trả KHO.nguoiDung về đúng trạng thái cũ — phép thử sau còn dùng */
+  w.eval(`KHO.nguoiDung = ${ndGoc}`);
+}
+
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,

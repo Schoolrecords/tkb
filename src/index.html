@@ -3509,8 +3509,18 @@ let KHO = {
   luoiDayDu:true,
   tuNgayNghi:'',     /* dạy thay và báo nghỉ đã tải từ ngày nào trở đi */
   thieuHamNhe:false, /* máy chủ chưa chạy db/tai-nhe.sql — đang chạy đường lui */
+  /* Chủ hệ thống đang mở dữ liệu của một trường KHÁC để hỗ trợ: {id, ten}.
+     null = đang ở trường của chính mình. Quyền đọc do db/chu-he-thong-xem.sql
+     cấp; mọi đường GHI vẫn bó theo truong_cua_toi() ở máy chủ nên chế độ này
+     tự nó là chỉ đọc — cờ bên ứng dụng chỉ lo phần giao diện cho dễ hiểu. */
+  truongXem:null,
   loiCuoi:''
 };
+
+/* Trường mà màn hình đang bày. Mọi lời gọi tải dữ liệu đi qua đây, không
+   đọc thẳng KHO.nguoiDung.truongId nữa. */
+const truongDangXem = () => KHO.truongXem?.id || KHO.nguoiDung?.truongId || '';
+const dangXemTruongKhac = () => !!KHO.truongXem;
 
 const TEN_NGUON = {
   'may-chu':'Máy chủ hệ thống',
@@ -3972,6 +3982,46 @@ async function dsTruongHeThong(){
   }
 }
 
+/* ---------- Mở dữ liệu một trường để hỗ trợ (29/8/2026) ----------
+   Chủ dự án: "muốn hỗ trợ, có thể sửa luôn chứ xem cũng không cần lắm".
+   Đã bàn và chốt CHỈ ĐỌC: đường ghi suy mã trường từ tài khoản
+   (luu_tkb · ghiDuLieuNguon · phamViLuu), mở nó ra là sửa đúng xương sống
+   mà năm trường đang lưu dữ liệu thật qua đó — giữa tháng khai giảng.
+   Cần sửa tận tay một trường thì xin nhà trường một tài khoản trong
+   trường ấy: không tốn dòng mã nào, và nhật ký ghi đúng tên người sửa.
+
+   Hàm này KHÔNG đụng DOM, đúng quy ước vùng DULIEU. */
+async function moTruongDeXem(id, ten){
+  if(!laChuHeThong()) return {ok:false, thongBao:'Chỉ chủ hệ thống mở được dữ liệu trường khác.'};
+  if(!id) return {ok:false, thongBao:'Thiếu mã trường.'};
+  const truoc = KHO.truongXem;
+  KHO.truongXem = {id, ten:ten||''};
+  try{
+    const kq = await taiDuLieu();
+    /* Máy chủ chưa chạy db/chu-he-thong-xem.sql thì quy tắc đọc chưa có,
+       PostgREST vẫn trả 200 nhưng LỌC SẠCH mọi dòng — nhìn ra là trường
+       rỗng trơn. Nói đúng chuyện ấy, đừng để người dùng tưởng nhà trường
+       chưa khai gì. */
+    if(kq.ok && !S.lop.length && !S.giaoVien.length){
+      KHO.truongXem = truoc;
+      await taiDuLieu();
+      return {ok:false, thongBao:'Chưa đọc được dữ liệu trường này. '
+        +'Nếu trường đã khai lớp và giáo viên thì máy chủ còn thiếu quy tắc đọc — '
+        +'chạy db/chu-he-thong-xem.sql một lần trong SQL Editor.'};
+    }
+    return {ok:true, thongBao:`Đang xem ${ten||'trường'} — chỉ đọc, mọi nút sửa đã khoá.`};
+  }catch(e){
+    KHO.truongXem = truoc;
+    return {ok:false, thongBao:dienGiaiLoi(e)};
+  }
+}
+
+async function thoatTruongXem(){
+  KHO.truongXem = null;
+  const kq = await taiDuLieu();
+  return {ok:kq.ok!==false, thongBao:'Đã về trường của mình.'};
+}
+
 async function duyetTruong(idTruong, dongY, ghiChu){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
   try{
@@ -4229,7 +4279,7 @@ function tuNgayTaiSan(){
 }
 
 async function taiTuMayChu(){
-  const t = KHO.nguoiDung.truongId;
+  const t = truongDangXem();
   const bang = (b, them='') => goiAPI(`/rest/v1/${b}?truong_id=eq.${t}&select=*${them}`);
   return KHO.nguoiDung.vaiTro === 'giao_vien'
     ? taiChoGiaoVien(t, bang)
@@ -4421,6 +4471,10 @@ async function taiChoQuanLy(t, bang){
 async function luuTKB(tkb, version, ghiChu, phamVi){
   if(!coMayChu()) return {ok:false, version:KHO.version,
     thongBao:'Chưa nối máy chủ nên chưa lưu được. Kết quả vẫn còn nguyên trên màn hình.'};
+  /* Cùng khuôn chốt chặn của ghiDuLieuNguon(): máy chủ vốn đã từ chối, đây
+     chỉ là để câu báo nói đúng chuyện gì đang xảy ra. */
+  if(dangXemTruongKhac()) return {ok:false, version:KHO.version,
+    thongBao:`Đang xem ${KHO.truongXem.ten||'trường khác'} ở chế độ chỉ đọc — không lưu được.`};
   /* Đăng nhập được nhưng đang chạy dữ liệu mẫu — thường là do trường trên máy
      chủ chưa nhập lớp. Lưới lúc này dựng trên mã lớp và mã giáo viên của bộ
      mẫu, ghi lên máy chủ sẽ thành một phiên bản rác: tải về không khớp ô nào. */
@@ -5580,6 +5634,12 @@ function napMucVaoS(kq){
 async function ghiDuLieuNguon(dl){
   if(!coMayChu()) return {ok:false,
     thongBao:'Chưa nối máy chủ nên chưa ghi lên được. Đăng nhập rồi nhập lại.'};
+  /* Máy chủ đã từ chối sẵn (quy tắc ghi vẫn bó theo truong_cua_toi), nhưng
+     chặn ngay ở đây thì người dùng nhận một câu rõ ràng thay vì một lỗi
+     quyền khó hiểu — và không có lệnh nửa vời nào kịp chạy. */
+  if(dangXemTruongKhac()) return {ok:false,
+    thongBao:`Đang xem ${KHO.truongXem.ten||'trường khác'} ở chế độ chỉ đọc — không ghi được. `
+      +'Thoát về trường của mình rồi thao tác.'};
   const t=KHO.nguoiDung.truongId;
   const gop=(bang, hang, khoa)=>goiAPI(`/rest/v1/${bang}?on_conflict=${khoa}`,
     {method:'POST', body:JSON.stringify(hang),
@@ -6116,12 +6176,18 @@ function quyen(){
   const dt = S.diemTruong.some(d=>d.id===n.diemTruongId) ? n.diemTruongId : '';
   const laGV = n.vaiTro==='gv';
   const boHep = n.vaiTro==='pht' && !!dt;
+  /* Chủ hệ thống đang mở dữ liệu trường khác thì CHỈ ĐỌC. Đặt cờ ở đây là
+     đủ cho cả ứng dụng: `duocXep()` và `duocSuaNguon()` chỉ hỏi hàm này, và
+     56 nơi khác đều đi qua nó — khoá một chỗ, tắt đồng loạt. Đi khoá từng
+     nút thì sớm muộn sót một cái, mà cái sót ấy lại là cái ghi đè dữ liệu
+     của một nhà trường khác. */
+  const chiXem = dangXemTruongKhac();
   return {
     vaiTro:n.vaiTro||'qt', gvId:n.gvId||null,
     diemTruongId: boHep?dt:'',
-    laGV, boHep,
-    laQuanLy: !laGV,        /* được chỉnh lưới và lưu */
-    toanTruong: !laGV && !boHep
+    laGV, boHep, chiXem,
+    laQuanLy: !laGV && !chiXem,   /* được chỉnh lưới và lưu */
+    toanTruong: !laGV && !boHep && !chiXem
   };
 }
 
@@ -6954,7 +7020,7 @@ function ve(){
     : t==='buoiban'   ? mBuoiBan()
     : mKhungGio();
   capNhatDem(); noiSuKien();
-  veTheDemo();
+  veTheDemo(); veTheXemTruong();
   cuonToiLopDangXem();
 }
 
@@ -6973,6 +7039,30 @@ function cuonToiLopDangXem(){
 
 /* Dải nổi nhắc đang xem demo — theo người dùng qua mọi màn hình, kèm hai lối
    thoát: về trang chào để nhập mã mời / đăng ký trường, hoặc rời demo. */
+/* Thẻ nổi báo đang mở dữ liệu trường khác. Dùng lại đúng khuôn veTheDemo():
+   một chỗ duy nhất, theo người dùng qua mọi màn hình, không màn hình nào
+   phải tự nhớ vẽ dải cảnh báo. Màu ĐỎ chứ không xanh như thẻ demo — đây là
+   trạng thái người dùng phải thoát ra, không phải trạng thái để ở lại. */
+function veTheXemTruong(){
+  let p=$('#theXemTruong');
+  if(!dangXemTruongKhac()){ p&&p.remove(); return; }
+  if(!p){
+    p=document.createElement('div'); p.id='theXemTruong';
+    p.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;'
+      +'background:var(--do);color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;'
+      +'box-shadow:0 8px 30px rgba(200,40,40,.35);display:flex;gap:14px;align-items:center;'
+      +'max-width:92vw;flex-wrap:wrap;justify-content:center';
+    document.body.appendChild(p);
+  }
+  p.innerHTML=`Đang xem <b>${esc(KHO.truongXem.ten||'trường khác')}</b> · chỉ đọc
+    <a href="#" id="btThoatXemTruong" style="color:#FFD93E;font-weight:700">Về trường của tôi</a>`;
+  $('#btThoatXemTruong').onclick=async e=>{
+    e.preventDefault();
+    const kq=await thoatTruongXem();
+    bao(kq.thongBao, !kq.ok); chuyen('hethong');
+  };
+}
+
 function veTheDemo(){
   let p=$('#theDemo');
   if(!KHO.xemDemo){ p&&p.remove(); return; }
@@ -7877,7 +7967,12 @@ function mXep(){
   const tongCan=S.phanCong.reduce((s,p)=>s+p.soTiet,0), daXep=soTietDaXep();
   const loi=KT.vm.filter(v=>v.muc==='do');
   /* Ghi lên máy chủ chỉ có nghĩa khi lưới dựng trên chính dữ liệu của máy chủ */
-  const luuDuoc=coMayChu() && KHO.nguon==='may-chu';
+  /* ⚠️ Thêm `quyen().laQuanLy`. Trước đây điều kiện chỉ hỏi "có máy chủ và
+     dữ liệu là của máy chủ không", nên nút Lưu vẫn hiện với người KHÔNG có
+     quyền ghi — lộ ra khi chủ hệ thống mở dữ liệu trường khác ở chế độ chỉ
+     đọc. Bấm vào thì máy chủ từ chối, nhưng bày một nút chỉ để báo lỗi là
+     hứa hão. Có phép thử quét cả 12 màn hình canh chuyện này. */
+  const luuDuoc=coMayChu() && KHO.nguon==='may-chu' && quyen().laQuanLy;
   return dauTrang('Xếp thời khóa biểu','Máy xếp trước, cán bộ chỉnh sau. Nguyên tắc: một giáo viên chỉ ở một phân hiệu trong một buổi.',false)
   +dieuHuongBuoc('xep')+kheThaoTacNhanh(soTietDaXep()>0)+`
   <div class="dh"><div class="dh-duoi">
@@ -7929,7 +8024,7 @@ function mXep(){
       <div class="hang">Giáo viên đang xem <b class="${KHO.banCongBo?'xanh':'cam'}">${
         KHO.banCongBo?('phiên bản '+KHO.banCongBo):'chưa công bố bản nào'}</b></div>
       <div style="margin-top:17px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="b b-ch" id="btLuu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg>Lưu lên máy chủ</button>
+        ${quyen().laQuanLy?`<button class="b b-ch" id="btLuu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg>Lưu lên máy chủ</button>`:''}
         ${luuDuoc&&KHO.version?`<button class="b ${KHO.banCongBo===KHO.version?'b-vien':'b-vang'}" id="btCongBo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>
           ${KHO.banCongBo===KHO.version?'Rút công bố':'Công bố cho giáo viên'}</button>`:''}
@@ -10968,7 +11063,10 @@ function mChuHeThong(){
              <button class="b b-vien b-nho" data-tuchoi="${t.id}">Từ chối</button>`
           : t.trangThai==='tu_choi'
             ? `<button class="b b-vien b-nho" data-duyet="${t.id}">Duyệt lại</button>`
-            : `<span style="color:var(--chu-mo);font-size:12px">—</span>`}
+            : t.id===KHO.nguoiDung?.truongId
+              ? `<span style="color:var(--chu-mo);font-size:12px">trường của tôi</span>`
+              : `<button class="b b-vien b-nho" data-xemtruong="${t.id}"
+                   data-tentruong="${esc(t.ten)}">Mở dữ liệu</button>`}
       </td></tr>`;
   };
 
@@ -11550,6 +11648,13 @@ function noiSuKien(){
   });
   $('#btLamMoiTruong')&&($('#btLamMoiTruong').onclick=()=>{ DS_TRUONG=null; ve(); });
   $$('[data-duyet]').forEach(b=>b.onclick=()=>hopDuyetTruong(b.dataset.duyet, true));
+  $$('[data-xemtruong]').forEach(b=>b.onclick=async()=>{
+    const cu=b.textContent; b.disabled=true; b.textContent='Đang mở…';
+    const kq=await moTruongDeXem(b.dataset.xemtruong, b.dataset.tentruong);
+    b.disabled=false; b.textContent=cu;
+    bao(kq.thongBao, !kq.ok);
+    if(kq.ok){ ghiNhatKy('mo_truong_ho_tro', {truong:b.dataset.tentruong}); chuyen('dieuhanh'); }
+  });
   $$('[data-tuchoi]').forEach(b=>b.onclick=()=>hopDuyetTruong(b.dataset.tuchoi, false));
 
   /* Ô tìm kiếm trong danh sách dài — lọc TẠI CHỖ, tuyệt đối không gọi ve():

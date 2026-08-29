@@ -442,6 +442,46 @@ phép thử ở mục **17f** của `npm run soi`:
 được gõ sẵn cả chữ *Xã Quảng Châu*; dán thêm tiền tố là thanh đầu trang đọc
 ra *Xã Xã Quảng Châu*.
 
+### Chủ hệ thống xem được mọi trường — CHỈ ĐỌC *(29/8/2026 — `db/chu-he-thong-xem.sql`, ĐÃ CHẠY trên máy chủ thật cùng ngày)*
+
+Chủ dự án: *"muốn vào được tất cả các trường đăng ký sử dụng App, nhưng khi
+vào thì lại chỉ hiển thị trường TH Diễn Liên"* — và nói thêm *"có thể sửa
+luôn chứ xem cũng không cần lắm"*.
+
+**Chốt là CHỈ ĐỌC.** Lý do không phải kỹ thuật thuần: mã trường ở tầng ghi
+được **suy ra từ tài khoản** (`luu_tkb` · `ghiDuLieuNguon` · `phamViLuu`), mà
+năm trường đang lưu dữ liệu thật qua đúng đường ấy — mở nó ra là sửa xương
+sống giữa tháng khai giảng, đúng vùng CLAUDE.md dặn để nguyên cho Pha 2. Cần
+sửa tận tay một trường thì xin nhà trường **một tài khoản trong trường ấy**:
+không tốn dòng mã nào, và nhật ký ghi đúng tên người sửa.
+
+| Hàm | Việc |
+|---|---|
+| `truongDangXem()` | trường màn hình đang bày; mọi lời gọi tải đi qua đây |
+| `moTruongDeXem(id, ten)` · `thoatTruongXem()` | vùng DULIEU, không đụng DOM |
+| `veTheXemTruong()` | thẻ nổi ĐỎ, đúng khuôn `veTheDemo()` |
+
+Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục 17k):
+
+- **MỘT cờ khoá đồng loạt.** `quyen()` thêm `chiXem` → `laQuanLy` và
+  `toanTruong` cùng false. `duocXep()` · `duocSuaNguon()` chỉ hỏi hàm ấy, và
+  56 nơi khác đều đi qua nó. Đi khoá từng nút thì sớm muộn sót một cái — mà
+  cái sót ấy lại là cái ghi đè dữ liệu của một nhà trường khác.
+- ⚠️ **Phép thử quét CẢ 12 màn hình** đòi không còn nút ghi nào. Nó bắt được
+  ngay lần chạy đầu: nút *Lưu lên máy chủ* ở màn Xếp hiện **vô điều kiện** —
+  `luuDuoc` chỉ hỏi "có máy chủ không", không hỏi quyền.
+- **Thêm quy tắc đọc MỚI, không sửa quy tắc cũ.** Năm trường đang chạy đều đi
+  qua các quy tắc đọc hiện có; viết lại chúng là đặt cược cả năm trường vào
+  một lần chạy SQL. RLS gộp quy tắc permissive bằng phép HOẶC nên thêm là đủ.
+- ⚠️ **Ba bảng cố ý KHÔNG mở**: `ma_moi` (mã mời là chìa khoá vào trường — đọc
+  được là đi vòng qua chính hàng rào ghi), `bao_nghi` (chứa **lý do nghỉ** —
+  dữ liệu cá nhân nhạy cảm theo Nghị định 13/2023, không giúp gì cho việc xếp
+  lịch), `day_thay` (suy ngược ra được ai nghỉ ngày nào).
+- **Máy chủ chưa chạy tệp SQL thì nói ĐÚNG chuyện ấy.** Quy tắc đọc chưa có
+  thì PostgREST vẫn trả 200 nhưng lọc sạch mọi dòng — nhìn ra y như trường
+  chưa khai gì. `moTruongDeXem()` thấy trường rỗng trơn thì lùi về trường cũ
+  và nhắc chạy `db/chu-he-thong-xem.sql`.
+
 ### Siết quyền theo CỘT — `db/siet-quyen.sql` *(28/8/2026)*
 
 RLS của Postgres cấp quyền theo **dòng**, không theo **cột**. Nên một quy
