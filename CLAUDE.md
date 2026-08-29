@@ -1039,6 +1039,21 @@ thấy cấp dưới nổi hơn cấp trên. Nay đảo hẳn: nhãn nhóm có n
 bên trái; mục con bỏ nền, bỏ viền, chỉ còn chữ. Ngoại lệ duy nhất là mục
 **đang mở** — vẫn nổi rõ.
 
+#### Thẻ *Đã khai báo* — mỗi con số là một LỐI ĐI *(29/8/2026)*
+
+Chủ dự án khai xong dữ liệu rồi hỏi thẳng: *"chỗ này đã khai báo xong, thì
+nếu cần sửa vào đâu?"*. Tấm thẻ bày bảy con số — phân hiệu, lớp, giáo viên,
+phân công… — mà không con nào dẫn tới nơi sửa được chúng, nên người dùng phải
+tự dịch *"Dòng phân công"* ra mục nào trên thanh bên. Nay mỗi dòng mang
+`data-di` (`hangDi()`), đi chung đường `$$('[data-di]')` sẵn có.
+
+⚠️ **Ba dòng cuối cố ý KHÔNG bấm được** — tổng số tiết · nơi lưu dữ liệu ·
+người đang dùng. Chúng là số suy ra và trạng thái, không màn hình nào khai
+chúng cả; gắn lối đi cho chúng là hứa một chỗ sửa không tồn tại.
+
+⚠️ **Hai tín hiệu, không phải một**: mũi tên `›` LUÔN hiện (hover thì đậm lên
+và nền sáng). Chỉ dựa vào hover là trên điện thoại không có tín hiệu nào.
+
 #### Mở app là thấy TỪNG LỚP, và cột lớp bên trái lưới *(16/8/2026)*
 
 Chủ dự án đối chiếu với SmartScheduler 7.3 đang chạy ở trường: *"có thể điều

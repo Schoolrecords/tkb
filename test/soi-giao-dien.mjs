@@ -422,6 +422,32 @@ kt('Chỉ có ĐÚNG MỘT nút đăng nhập trong cả trang', (() => {
     .filter(b => /Đăng nhập|Đăng xuất/.test(b.textContent));
   return trong.length === 0 && !!w.document.querySelector('#btDangNhapTren');
 })());
+/* Chủ dự án khai xong rồi hỏi "nếu cần sửa vào đâu?" — thẻ Đã khai báo bày
+   bảy con số mà không con nào dẫn tới nơi sửa được chúng. */
+kt('Mỗi dòng số liệu ở thẻ Đã khai báo dẫn thẳng tới mục khai báo ra nó', (() => {
+  const di = [...w.document.querySelectorAll('#noiDung .hang[data-di]')]
+    .map(h => h.dataset.di);
+  const can = ['diemtruong', 'khunggio', 'lop', 'giaovien', 'monhoc', 'phonghoc', 'phancong'];
+  return [can.every(t => di.includes(t)), di.join(' · ')];
+})());
+kt('Số suy ra và trạng thái thì KHÔNG bấm được — không màn hình nào khai chúng', (() => {
+  const tro = [...w.document.querySelectorAll('#noiDung .hang')]
+    .filter(h => /Tổng số tiết|Nơi lưu dữ liệu|Người đang dùng/.test(h.textContent));
+  return [tro.length === 3 && tro.every(h => !h.dataset.di), tro.length + ' dòng'];
+})());
+kt('Bấm một dòng là sang đúng màn hình ấy, không phải chỉ đổi màu', (() => {
+  const h = w.document.querySelector('#noiDung .hang[data-di="giaovien"]');
+  h.onclick();
+  const sang = w.eval('S.trangHienTai') === 'giaovien';
+  w.chuyen('thongtin');
+  return sang;
+})());
+kt('Mọi mã màn hình trong thẻ đều có thật trong CHUOI_BUOC', (() => {
+  const co = new Set(w.eval('CHUOI_BUOC').map(x => x.t));
+  const hong = [...w.document.querySelectorAll('#noiDung .hang[data-di]')]
+    .map(h => h.dataset.di).filter(t => !co.has(t));
+  return [hong.length === 0, hong.join(' · ') || 'đủ'];
+})());
 kt('Thông tin nơi lưu dữ liệu vẫn còn, chỉ bỏ nút trùng',
    /Nơi lưu dữ liệu/.test(w.document.querySelector('#noiDung').textContent));
 kt('Không còn lối "đổi vai trò xem thử" ở bất cứ đâu — đăng nhập vai nào là vai đó',

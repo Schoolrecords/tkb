@@ -415,6 +415,13 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
   text-align:left;cursor:pointer;border-radius:6px;display:block;max-width:100%;overflow:hidden}
 .gv-day-nut:hover{background:var(--nav-nhat)}
 .hang b.cam{color:var(--cam)} .hang b.do{color:var(--do)} .hang b.xanh{color:var(--xanh)}
+/* Dòng bấm được: mũi tên luôn hiện để biết đi được, nền sáng khi rê chuột.
+   Một tín hiệu là không đủ — hover thì trên cảm ứng không có. */
+.hang[data-di]{cursor:pointer;margin-inline:-8px;padding-inline:8px;border-radius:9px}
+.hang[data-di] b::after{content:' ›';color:var(--chu-mo);font-weight:600}
+.hang[data-di]:hover{background:var(--nav-nhat)}
+.hang[data-di]:hover b::after{color:var(--nav)}
+.hang[data-di]:active{transform:translateY(-2px)}
 
 .canhbao{display:flex;gap:11px;align-items:flex-start;background:var(--canh-nen);border:1px solid #EDD9A6;
   border-radius:var(--r2);padding:12px 14px;margin-bottom:9px;font-size:13px}
@@ -10982,6 +10989,16 @@ function thanhKhaiBao(nut, coNhap){
 }
 
 /* ---------- 3.8a Thông tin trường ---------- */
+/* Mỗi dòng số liệu là một LỐI ĐI tới đúng mục khai báo ra con số ấy. Chủ dự
+   án khai xong rồi hỏi thẳng: "chỗ này đã khai báo xong, thì nếu cần sửa vào
+   đâu?" — tấm thẻ bày bảy con số mà không con nào dẫn tới nơi sửa được chúng,
+   nên người dùng phải tự dịch "Dòng phân công" ra mục nào trên thanh bên.
+   Ba dòng cuối (tổng tiết · nơi lưu · người đang dùng) KHÔNG bấm được: chúng
+   là số suy ra hoặc trạng thái, không có màn hình nào khai chúng cả. */
+function hangDi(di, nhan, so, mau){
+  return `<div class="hang" data-di="${di}" title="Mở mục ${esc(nhan)}">${esc(nhan)}
+    <b class="${mau||''}">${so}</b></div>`;
+}
 function mThongTin(){
   const sua=duocSuaNguon();
   const td=tienDo(KT);
@@ -11006,18 +11023,20 @@ function mThongTin(){
     <div class="the">
       <div class="the-d"><h2>Đã khai báo</h2><span class="meta">Dữ liệu nhà trường</span></div>
       <div class="the-t">
-        <div class="hang">Phân hiệu <b>${S.diemTruong.length}</b></div>
-        <div class="hang">Buổi học trong tuần <b>${buoiBat().length}</b></div>
-        <div class="hang">Lớp học <b class="${S.lop.length?'xanh':'cam'}">${S.lop.length}</b></div>
-        <div class="hang">Giáo viên <b class="${S.giaoVien.length?'xanh':'cam'}">${S.giaoVien.length}</b></div>
-        <div class="hang">Môn học <b>${(S.monHoc||[]).length}</b></div>
-        <div class="hang">Phòng chức năng <b>${(S.phong||[]).length}</b></div>
-        <div class="hang">Dòng phân công <b class="${S.phanCong.length?'xanh':'cam'}">${S.phanCong.length}</b></div>
+        ${hangDi('diemtruong','Phân hiệu',S.diemTruong.length)}
+        ${hangDi('khunggio','Buổi học trong tuần',buoiBat().length)}
+        ${hangDi('lop','Lớp học',S.lop.length,S.lop.length?'xanh':'cam')}
+        ${hangDi('giaovien','Giáo viên',S.giaoVien.length,S.giaoVien.length?'xanh':'cam')}
+        ${hangDi('monhoc','Môn học',(S.monHoc||[]).length)}
+        ${hangDi('phonghoc','Phòng chức năng',(S.phong||[]).length)}
+        ${hangDi('phancong','Dòng phân công',S.phanCong.length,S.phanCong.length?'xanh':'cam')}
         <div class="hang">Tổng số tiết mỗi tuần <b>${td.can}</b></div>
         <div class="hang">Nơi lưu dữ liệu
           <b class="${coMayChu()?'xanh':'cam'}">${coMayChu()?'Máy chủ hệ thống':'Chỉ trên máy này'}</b></div>
         <div class="hang">Người đang dùng <b>${esc(KHO.nguoiDung?.hoTen||'Chưa đăng nhập')}</b></div>
-        <div class="gy" style="margin-top:13px">Trường đã có sẵn bảng phân công trong Excel thì bấm
+        <div class="gy" style="margin-top:13px">Bấm vào một dòng ở trên là mở đúng mục khai báo ra
+          con số ấy — sửa, thêm, xoá đều ở đó.
+          Trường đã có sẵn bảng phân công trong Excel thì bấm
           <b>Nhập từ Excel</b> ngay trên các màn hình khai báo — nhanh hơn gõ tay nhiều.
           Đăng nhập và đăng xuất ở nút góc trên bên phải.</div>
       </div>
