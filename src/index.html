@@ -11613,8 +11613,28 @@ function oMaTran(g, mon){
     + `<span class="mt-t">${tiet}t</span>`;
 }
 
+/* Thứ tự hàng: CHỦ NHIỆM TRƯỚC, theo đúng thứ tự lớp 1A → 5C, rồi mới tới
+   giáo viên bộ môn xếp theo họ tên. Chủ dự án 29/8/2026: *"có cách nào mà mặc
+   định bắt đầu từ tên giáo viên chủ nhiệm lớp 1A đến lớp cuối cùng, sau đó đến
+   giáo viên bộ môn không em?"* — đúng thứ tự tờ phân công nhà trường vẫn kẻ,
+   và cũng là thứ tự người xếp rà soát: đi hết từng lớp rồi mới xét người dạy
+   liên lớp. Xếp theo tên A–Z thì cô chủ nhiệm 1A nằm giữa bảng, không ai dò
+   được lớp nào đã đủ người. */
+function thuTuHangGV(){
+  const viTri = new Map(xepTheoKhoi(S.lop).map((l,i)=>[l.id,i]));
+  return (a,b)=>{
+    const la=lopCN(a), lb=lopCN(b);
+    if(!!la !== !!lb) return la ? -1 : 1;            /* chủ nhiệm lên trước */
+    if(la && lb){
+      const d=(viTri.get(la.id) ?? 1e6)-(viTri.get(lb.id) ?? 1e6);
+      if(d) return d;
+    }
+    return a.hoTen.localeCompare(b.hoTen,'vi');
+  };
+}
+
 function bangMaTran(){
-  const dsGV=[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+  const dsGV=[...gvTrongPV()].sort(thuTuHangGV());
   const dsMon=dsMonDung();
   const sua=duocSuaNguon();
   const soLop=lopTrongPV().length;
@@ -11684,7 +11704,8 @@ function mPhanCong(){
       >${[...gvTrongPV()].length} giáo viên · ${dsMonDung().length} môn</span>
   </div>
   ${bangMaTran()}
-  <div class="gy" style="margin-top:11px">Bấm vào một ô để chọn lớp cho cặp giáo viên – môn ấy.
+  <div class="gy" style="margin-top:11px">Xếp theo <b>lớp chủ nhiệm</b> từ 1A đến lớp cuối,
+    giáo viên bộ môn ở dưới. Bấm vào một ô để chọn lớp cho cặp giáo viên – môn ấy.
     Ô ghi <b>số lớp</b> và <b>tổng tiết</b>; hàng cuối đếm mỗi môn đã có người dạy ở mấy lớp
     trên tổng ${ds.length} lớp.</div>`;
 }

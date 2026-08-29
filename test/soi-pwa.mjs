@@ -34,7 +34,18 @@ const may = http.createServer((q, d) => {
 await new Promise(r => may.listen(8780, r));
 
 let dat = 0, hong = 0;
+  /* ⚠️ CHỐT CHẶN CỦA CHÍNH BỘ SOI (29/8/2026). Nhiều phép thử trả về
+     `[đúng/sai, ghi chú]`, và quy ước cũ là nơi gọi phải thêm toán tử `...`
+     để rải thành hai đối số. Quên dấu ấy thì đối số thứ hai là một MẢNG — mảng
+     nào cũng truthy, nên phép thử XANH VĨNH VIỄN dù sản phẩm hỏng. Đã dính
+     thật và dính 17 lần trong cùng một ngày: phép thử thứ tự hàng bảng ma trận
+     vẫn xanh cả khi đã gỡ bỏ đoạn mã nó canh.
+
+     Cách chữa gốc là để CHÍNH HÀM NÀY tự rải, thay vì bắt mỗi nơi gọi nhớ ba
+     dấu chấm. Một quy ước mà người viết phải nhớ thì sớm muộn có người quên —
+     mà quên ở đây thì không ai thấy, vì hậu quả là màu xanh. */
 const kt = (ten, dieuKien, ghiChu = '') => {
+  if (Array.isArray(dieuKien)) [dieuKien, ghiChu] = [dieuKien[0], dieuKien[1] ?? ghiChu];
   if (dieuKien) { dat++; console.log(`  \x1b[32m✓\x1b[0m ${ten}${ghiChu ? ' — ' + ghiChu : ''}`); }
   else { hong++; console.log(`  \x1b[31m✗\x1b[0m ${ten}${ghiChu ? ' — ' + ghiChu : ''}`); }
 };

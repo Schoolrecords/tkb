@@ -31,7 +31,18 @@ const w = dom.window;
 w.fetch = async () => { throw new Error('không có mạng trong phép thử'); };
 
 let dat = 0, hong = 0;
+  /* ⚠️ CHỐT CHẶN CỦA CHÍNH BỘ SOI (29/8/2026). Nhiều phép thử trả về
+     `[đúng/sai, ghi chú]`, và quy ước cũ là nơi gọi phải thêm toán tử `...`
+     để rải thành hai đối số. Quên dấu ấy thì đối số thứ hai là một MẢNG — mảng
+     nào cũng truthy, nên phép thử XANH VĨNH VIỄN dù sản phẩm hỏng. Đã dính
+     thật và dính 17 lần trong cùng một ngày: phép thử thứ tự hàng bảng ma trận
+     vẫn xanh cả khi đã gỡ bỏ đoạn mã nó canh.
+
+     Cách chữa gốc là để CHÍNH HÀM NÀY tự rải, thay vì bắt mỗi nơi gọi nhớ ba
+     dấu chấm. Một quy ước mà người viết phải nhớ thì sớm muộn có người quên —
+     mà quên ở đây thì không ai thấy, vì hậu quả là màu xanh. */
 const kt = (ten, dk, ghi = '') => {
+  if (Array.isArray(dk)) [dk, ghi] = [dk[0], dk[1] ?? ghi];
   if (dk) { dat++; console.log(`  \x1b[32m✓\x1b[0m ${ten}${ghi ? ' — ' + ghi : ''}`); }
   else { hong++; console.log(`  \x1b[31m✗\x1b[0m ${ten}${ghi ? ' — ' + ghi : ''}`); }
 };
@@ -3047,6 +3058,39 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
      !!bang && bang.querySelectorAll('tbody tr').length === soGV &&
      bang.querySelectorAll('thead th.mt-mon').length === soMon,
      `${bang?.querySelectorAll('tbody tr').length} hàng × ${bang?.querySelectorAll('thead th.mt-mon').length} cột môn`);
+
+  /* ⚠️ Thứ tự hàng: CHỦ NHIỆM TRƯỚC theo đúng thứ tự lớp 1A → lớp cuối, rồi
+     mới tới giáo viên bộ môn. Chủ dự án 29/8/2026: "có cách nào mặc định bắt
+     đầu từ tên giáo viên chủ nhiệm lớp 1A đến lớp cuối cùng, sau đó đến giáo
+     viên bộ môn". Xếp theo tên A–Z thì cô chủ nhiệm 1A nằm giữa bảng, không ai
+     dò được lớp nào đã đủ người. */
+  kt('Chủ nhiệm xếp trước, theo đúng thứ tự lớp 1A → lớp cuối', (() => {
+    const cn = [...bang.querySelectorAll('tbody tr')]
+      .map(r => r.querySelector('td.mt-cn')?.textContent.trim() || '')
+      .filter(x => x && x !== '·');
+    /* ⚠️ Chỉ so với những lớp CÓ chủ nhiệm: trường 60 lớp mà mới 41 lớp có
+       người thì lấy 41 lớp đầu danh sách là so nhầm, phép thử đỏ oan. */
+    const thu = w.eval('xepTheoKhoi(S.lop)')
+      .filter(l => w.eval(`!!cnCuaLop(${JSON.stringify(l.id)})`))
+      .map(l => w.eval(`tenLopDay(${JSON.stringify(l.id)})`));
+    return [cn.length > 0 && cn.join(' | ') === thu.join(' | '), cn.slice(0, 5).join(' · ')];
+  })());
+
+  kt('Giáo viên bộ môn nằm SAU tất cả chủ nhiệm, xếp theo họ tên', (() => {
+    const hang = [...bang.querySelectorAll('tbody tr')];
+    const coCN = hang.map(r => {
+      const t = r.querySelector('td.mt-cn')?.textContent.trim() || '';
+      return !!t && t !== '·';
+    });
+    const dauBoMon = coCN.indexOf(false);
+    /* Không được xen kẽ: mọi chủ nhiệm phải đứng liền trước mọi bộ môn */
+    const xenKe = dauBoMon >= 0 && coCN.slice(dauBoMon).some(x => x);
+    const boMon = hang.slice(dauBoMon < 0 ? hang.length : dauBoMon)
+      .map(r => r.querySelector('td.mt-ten')?.textContent.trim() || '');
+    const daSap = boMon.every((t, i) => i === 0 || boMon[i - 1].localeCompare(t, 'vi') <= 0);
+    return [!xenKe && daSap && boMon.length > 0,
+            `${boMon.length} bộ môn ở cuối`];
+  })());
 
   /* ⚠️ Lớp chủ nhiệm phải ở CỘT RIÊNG, không xếp dưới họ tên. Chủ dự án
      29/8/2026: "tách giúp thầy cột GVCN lớp để cho tên các lớp không rớt xuống

@@ -764,6 +764,34 @@ Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục
   cần làm gấp — dùng đỏ ở đây là sai màu ngữ nghĩa. Nay là **cam**, giữ được sự
   khẩn trương mà không doạ người dùng.
 
+⚠️ **Thứ tự hàng: CHỦ NHIỆM TRƯỚC, theo đúng 1A → lớp cuối**, rồi mới tới giáo
+viên bộ môn xếp theo họ tên (`thuTuHangGV()`). Xếp A–Z thì cô chủ nhiệm 1A nằm
+giữa bảng, không ai dò được lớp nào đã đủ người — mà đó chính là thứ tự người
+xếp rà soát, và cũng là thứ tự tờ phân công nhà trường vẫn kẻ.
+
+### ⚠️ `kt()` TỰ RẢI mảng — bài học đắt nhất ngày 29/8/2026
+
+Nhiều phép thử trả `[đúng/sai, ghi chú]`, và quy ước cũ là **nơi gọi** phải
+thêm toán tử `...`. Quên dấu ấy thì đối số thứ hai là một MẢNG — mảng nào cũng
+truthy, nên phép thử **xanh vĩnh viễn dù sản phẩm hỏng**.
+
+Phát hiện ra vì thử ngược một đoạn vá mà phép thử vẫn xanh. Rà lại thì **17
+phép thử** đang ở tình trạng ấy, phần lớn viết trong chính ngày hôm đó — nghĩa
+là gần như mọi tính năng làm hôm ấy chỉ được canh bởi phép thử vô giá trị.
+
+Cách chữa **không phải** đi sửa 17 chỗ gọi, mà là để chính `kt()` tự rải:
+
+```js
+if (Array.isArray(dk)) [dk, ghi] = [dk[0], dk[1] ?? ghi];
+```
+
+Đã gắn vào cả **bảy** bộ soi. Một quy ước mà người viết phải nhớ thì sớm muộn
+có người quên — mà quên ở đây thì không ai thấy, vì hậu quả là màu xanh.
+
+⚠️ Lần vá đầu chọn cách "báo lỗi khi thấy mảng" rồi đi thêm `...` bằng script:
+script bọc nhầm cả những IIFE trả **boolean** (`return ['a','b'].every(…)`),
+làm cả bộ soi đổ. Bỏ luôn cách ấy — sửa ở một chỗ vẫn hơn sửa ở mười bảy chỗ.
+
 ⚠️ `locBang()` nhận **chính ô nhập** và đọc `data-loc` của nó, không nhận id
 bảng. Gọi `locBang('bMT')` là lỗi `Cannot read properties of undefined`.
 
