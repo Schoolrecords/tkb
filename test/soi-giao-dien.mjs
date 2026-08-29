@@ -381,11 +381,9 @@ kt('Không tích môn nào mà bấm Thêm thì báo, không thêm dòng rỗng'
   return ok;
 })());
 
-const iMoi = S.phanCong.findIndex(p => p.lopId === lopTrong.id);
-w.chuyen('phancong');
-w.document.querySelector(`[data-xoapc="${iMoi}"]`)?.dispatchEvent(new w.Event('click', { bubbles: true }));
-kt('Xoá dòng phân công ngay trên bảng',
-   S.phanCong.length === pcSach + banMon.length - 1);
+/* ⚠️ Phép thử "xoá dòng phân công ngay trên bảng" đã bỏ cùng bảng từng dòng
+   (29/8/2026). Nay bỏ một lớp khỏi phân công là bấm ô ma trận rồi bỏ tích lớp
+   ấy — đường đi đã có phép thử riêng ở mục 17p. */
 /* Trả bảng phân công về nguyên trạng cho các mục sau */
 w.eval(`S.phanCong = S.phanCong.filter(p=>p.lopId!==${JSON.stringify(lopTrong.id)})`);
 
@@ -1713,28 +1711,20 @@ goTim(oGV, '');
 
 w.chuyen('phancong');
 const fTim = w.document.querySelector('#fTim');
-const monMotDong = w.eval('S.phanCong')[0].mon;
-kt('Bảng phân công có ô tìm kiếm chung với hai ô lọc cũ', !!fTim);
-/* Ô này dò cả tên giáo viên lẫn môn, nên gõ "Tiếng Anh" còn ra dòng của cô
-   Ngọc Anh — đúng ý. Điều phải canh là KHÔNG SÓT: mọi dòng của môn ấy đều còn. */
-kt(`Lọc theo môn "${monMotDong}" không sót dòng nào của môn ấy`, (() => {
-  goTim(fTim, monMotDong);
-  const con = [...w.document.querySelectorAll('#bPC tbody tr')].length;
-  const can = w.eval('S.phanCong').filter(p => p.mon === monMotDong).length;
-  return can > 0 && con >= can && con < w.eval('S.phanCong').length;
+/* ⚠️ Bảng từng dòng đã BỎ HẲN ngày 29/8/2026 — chủ dự án: "bỏ phân công theo
+   dòng". Ma trận là bảng duy nhất, và ô tìm kiếm lọc TẠI CHỖ theo hàng giáo
+   viên thay vì vẽ lại như bảng cũ. */
+kt('Bảng phân công có ô tìm kiếm', !!fTim);
+kt('Gõ tên một giáo viên thì chỉ còn hàng của người ấy', (() => {
+  const ai = w.eval('[...gvTrongPV()]')[0].hoTen;
+  goTim(fTim, ai);
+  const hien = [...w.document.querySelectorAll('#bMT tbody tr')]
+    .filter(r => r.style.display !== 'none');
+  return [hien.length >= 1 && hien.length < w.eval('[...gvTrongPV()]').length,
+          `${hien.length} hàng · "${ai}"`];
 })());
-/* Gõ mã lớp — thứ không bao giờ trùng với tên người — thì lọc phải sạch tuyệt đối */
-kt(`Gõ mã lớp "${maMotLop}" thì mọi dòng còn lại đều của đúng lớp ấy`, (() => {
-  goTim(fTim, maMotLop);
-  const o = [...w.document.querySelectorAll('#bPC tbody tr')];
-  const ten = w.eval('S.lop').find(l => l.maLop === maMotLop).ten;
-  return o.length > 0 && o.every(tr => tr.children[1].textContent.trim() === ten);
-})());
-goTim(fTim, monMotDong);
-kt('Ô tóm tắt đếm lại theo bộ lọc, không giữ số cũ',
-   /^\d+ dòng · \d+ tiết$/.test(w.document.querySelector('#tomTat').textContent));
-kt('Vẽ lại bảng phân công KHÔNG cướp con trỏ đang gõ — ô tìm kiếm nằm ngoài #bPC',
-   w.document.querySelector('#fTim') === fTim && fTim.value === monMotDong);
+kt('Vẽ lại KHÔNG cướp con trỏ đang gõ — lọc tại chỗ, không dựng lại bảng',
+   w.document.querySelector('#fTim') === fTim);
 goTim(fTim, '');
 
 w.chuyen('tkbgv');
@@ -2598,17 +2588,23 @@ console.log('\n17h. Bảng Giáo viên: Gmail và cột Dạy (28/8/2026)');
   kt('Cột Dạy gom các lớp cùng bộ môn lại, không kể ra 25 dòng',
      /\+\d+ ·/.test(w.document.querySelector('#bGV').textContent),
      (w.document.querySelector('.gv-day')?.textContent || '').trim());
+  /* ⚠️ Bảng từng dòng bỏ đi thì ô chọn `#fGV` cũng mất — lối đi này phải
+     chuyển sang lọc bằng chính ô tìm kiếm của ma trận, không thì bấm cột Dạy
+     sang một bảng 35 hàng không lọc gì cả. */
   kt('Bấm vào cột Dạy thì sang màn Phân công đã lọc sẵn người ấy', (() => {
     const nut = w.document.querySelector('[data-gvpc]');
     if (!nut) return false;
-    const id = nut.dataset.gvpc;
+    const ten = w.eval(`gvId(${JSON.stringify(nut.dataset.gvpc)}).hoTen`);
     nut.click();
+    const hien = [...w.document.querySelectorAll('#bMT tbody tr')]
+      .filter(r => r.style.display !== 'none');
     const ok = w.eval('S.trangHienTai') === 'phancong' &&
-               w.document.querySelector('#fGV')?.value === id;
+               w.document.querySelector('#fTim')?.value === ten &&
+               hien.length >= 1 && hien.length < w.eval('[...gvTrongPV()]').length;
     /* Dùng MỘT LẦN rồi xoá — để lại thì lần sau mở màn Phân công vẫn bị lọc */
     const con = w.eval('S.pcGV');
     w.chuyen('giaovien');
-    return ok && !con;
+    return [ok && !con, `${hien.length} hàng · "${ten}"`];
   })());
 
   /* Hai phép soát Gmail phải GIỐNG HỆT đường nhập Excel — một lối vào lỏng
@@ -3102,16 +3098,22 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
     return [hien.length >= 1 && hien.length < soGV, `${hien.length}/${soGV} hàng`];
   })());
 
-  kt('Hai ô lọc giáo viên/lớp giấu đi ở chế độ ma trận — bày ô không làm gì là tệ hơn',
-     !w.document.querySelector('#fGV') && !w.document.querySelector('#fLop'));
+  /* ⚠️ Bảng từng dòng BỎ HẲN 29/8/2026 — chủ dự án: "bỏ phân công theo dòng".
+     Hai ô lọc và thẻ chuyển đi theo; bày một ô không làm gì thì người dùng gõ
+     vào rồi tưởng phần mềm hỏng. */
+  kt('Không còn ô lọc, thẻ chuyển hay bảng từng dòng nào sót lại',
+     !w.document.querySelector('#fGV') && !w.document.querySelector('#fLop') &&
+     !w.document.querySelector('[data-pcxem]') && !w.document.querySelector('#bPC') &&
+     typeof w.bangPC === 'undefined');
+  kt('Thanh công cụ chỉ còn MỘT nút — không còn "Thêm dòng phân công"',
+     !w.document.querySelector('#btThemPC') && !!w.document.querySelector('#btPCTheoGV'));
 
-  kt('Đổi cách xem là vẽ lại TẠI CHỖ, không rời màn hình', (() => {
-    w.document.querySelector('[data-pcxem="dong"]').onclick();
-    const ok = w.eval("S.trangHienTai") === 'phancong' && !!w.document.querySelector('#bPC');
-    return ok;
+  /* Ô môn phải có viền: bảng chỉ kẻ ngang thì 15 cột là một mảng trắng, không
+     ai đoán được ô nào bấm được. */
+  kt('Mỗi ô môn có đường kẻ dọc để nhìn ra ranh giới ô', (() => {
+    const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+    return /\.mt-o\{[^}]*border-left/.test(src);
   })());
-
-  w.eval("S.pcXem='dong'");
 }
 
 

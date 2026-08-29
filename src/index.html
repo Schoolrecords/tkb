@@ -491,7 +491,12 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
    chỗ gọi mà chẳng được thêm gì. */
 .b-vang{background:linear-gradient(135deg,#0A659F,#005391);color:#fff}
 /* Nút Lưu khi còn thay đổi treo — phải nổi hơn hẳn màu vàng thường */
-.b-do{background:linear-gradient(135deg,#B33224,#D0503F);color:#fff}
+/* Nút "Lưu ngay" khi còn thay đổi treo. Trước đây tô ĐỎ — sai màu ngữ nghĩa:
+   trong cả app đỏ nghĩa là nguy hiểm hoặc hỏng (nút Xoá, cảnh báo mức `do`),
+   mà Lưu là việc TỐT đang cần làm gấp. Chủ dự án 29/8/2026: "thay nút đỏ bằng
+   màu xanh lam hoặc da cam". Cam giữ được sự khẩn trương mà không doạ người
+   dùng — cùng màu với dải cảnh báo mức `canh`. */
+.b-do{background:linear-gradient(135deg,#C2691F,#E08A34);color:#fff}
 .chua-luu{font-size:12.5px;font-weight:700;color:var(--do);white-space:nowrap;
   background:var(--do-nen);padding:6px 11px;border-radius:20px}
 .b-nho{padding:7px 12px;font-size:12.5px}
@@ -1042,7 +1047,11 @@ tr.pa-tot td{background:var(--xanh-nen)}
 .mt-ten{left:34px;min-width:150px;box-shadow:1px 0 0 var(--ke)}
 .mt-cn{font-size:11px;color:var(--nav);font-weight:600}
 .mt-mon{min-width:74px;font-size:10px;line-height:1.25}
-.mt-o{min-width:74px;font-size:12px;line-height:1.3}
+/* ⚠️ Ô môn phải có VIỀN thật. Chủ dự án 29/8/2026: "các ô cột môn cần có
+   đường kẻ, hoặc phân ô cho rõ ràng để chọn trực tiếp" — bảng chỉ kẻ ngang thì
+   15 cột trông như một mảng trắng, không ai đoán được ô nào bấm được. */
+.mt-o{min-width:74px;font-size:12px;line-height:1.3;border-left:1px solid var(--ke-2)}
+.mt-bang th.mt-mon{border-left:1px solid var(--ke-2)}
 .mt-o.co{background:var(--nav-nhat)}
 .mt-o[data-mt]{cursor:pointer}
 .mt-o[data-mt]:hover{background:var(--nav-vien)}
@@ -1667,7 +1676,6 @@ let S = {
   dtLoc:'moi',          /* bộ lọc lịch đã phân công: hôm nay · mai · tuần · ngày · tất cả */
   dtLocNgay:'',         /* ngày cụ thể khi dtLoc === 'ngay' */
   coLuoi:'tc',          /* cỡ hiển thị lưới: gon · tc (tiêu chuẩn) · rong */
-  pcXem:'dong',         /* Bảng phân công: 'dong' từng dòng · 'matran' giáo viên × môn */
   dhXem:'',             /* Bảng điều hành đang bày cách xem nào. Để RỖNG để lần
                            đầu vẽ thì `xemMacDinh()` tự chọn theo quy mô trường:
                            nhiều lớp thì mở thẳng một lớp, ít lớp thì toàn trường */
@@ -11594,7 +11602,7 @@ function mGiaoVien(){
    câu hỏi thật của người xếp là "ai dạy môn gì" và "còn ô nào trống".
 
    Hai cách xem CÙNG một dữ liệu, đổi bằng thẻ chuyển tại chỗ; không tách màn
-   hình mới. `S.pcXem` nhớ lựa chọn. */
+   hình mới — bảng từng dòng đã bỏ hẳn ngày 29/8/2026. */
 function oMaTran(g, mon){
   const ds=S.phanCong.filter(p=>p.gvId===g.id && p.mon===mon);
   if(!ds.length) return '';
@@ -11649,16 +11657,11 @@ function mPhanCong(){
   const ds=lopTrongPV();
   return dauTrang('Bảng phân công giảng dạy','Dữ liệu nguồn của toàn bộ việc xếp thời khóa biểu.',true)+
   dieuHuongBuoc('phancong')+
-  (duocSuaNguon()?thanhKhaiBao(`<button class="b b-ch" id="btThemPC">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Thêm dòng phân công</button>
-    <button class="b b-vien" id="btPCTheoGV">Phân công nhanh cho một giáo viên</button>`)
+  /* Chỉ còn MỘT nút. "Thêm dòng phân công" là lối vào của bảng từng dòng đã
+     bỏ; giữ lại thì lại có hai cách làm cùng một việc. */
+  (duocSuaNguon()?thanhKhaiBao(`<button class="b b-ch" id="btPCTheoGV">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Phân công nhanh cho một giáo viên</button>`)
    :nhanChiXem('sửa bảng phân công')+'<div style="margin-bottom:14px"></div>')+`
-  <div class="dai-xem" style="margin-bottom:13px;justify-content:flex-start">
-    <button class="xem-nut ${S.pcXem==='matran'?'':'on'}" style="flex:0 0 auto"
-      data-pcxem="dong">Theo dòng</button>
-    <button class="xem-nut ${S.pcXem==='matran'?'on':''}" style="flex:0 0 auto"
-      data-pcxem="matran">Ma trận giáo viên × môn</button>
-  </div>
   <div class="tkb-thanh">
     <div class="loc-o" style="flex:1 1 220px;max-width:320px">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
@@ -11666,54 +11669,13 @@ function mPhanCong(){
         autocomplete="off" spellcheck="false">
       <button class="loc-x" type="button" id="fTimXoa" title="Xoá ô tìm kiếm">&times;</button>
     </div>
-    ${S.pcXem==='matran'?'':`
-    <select class="ip" id="fGV"><option value="">Tất cả giáo viên</option>
-      ${[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi')).map(g=>`<option value="${g.id}">${esc(g.hoTen)}</option>`).join('')}</select>
-    <select class="ip" id="fLop"><option value="">Tất cả lớp</option>
-      ${ds.map(l=>`<option value="${l.id}">Lớp ${esc(tenLopDay(l.id))}</option>`).join('')}</select>`}
-    <span id="tomTat" style="font-size:12.5px;color:var(--chu-mo)">${
-      S.pcXem==='matran'?`${gvTrongPV().size||[...gvTrongPV()].length} giáo viên · ${dsMonDung().length} môn`:''}</span>
+    <span id="tomTat" style="font-size:12.5px;color:var(--chu-mo)"
+      >${[...gvTrongPV()].length} giáo viên · ${dsMonDung().length} môn</span>
   </div>
-  ${S.pcXem==='matran' ? bangMaTran() : `
-  <div class="bang" style="max-height:60vh"><table class="dl" id="bPC"></table></div>
-  <div class="loc-rong" data-locrong="bPC"></div>`}
-  ${S.pcXem==='matran'?`<div class="gy" style="margin-top:11px">Bấm vào một ô để chọn lớp cho
-    cặp giáo viên – môn ấy. Ô ghi <b>số lớp</b> và <b>tổng tiết</b>; hàng cuối đếm mỗi môn đã
-    có người dạy ở mấy lớp trên tổng ${ds.length} lớp.</div>`:''}`;
-}
-/* Bảng phân công vẽ lại theo bộ lọc chứ không ẩn dòng như các bảng khác:
-   600 dòng thì dựng lại DOM rẻ hơn giữ hết trong trang rồi ẩn đi. Ô tìm kiếm
-   `#fTim` nằm NGOÀI `#bPC` nên vẽ lại không cướp con trỏ đang gõ. */
-function bangPC(){
-  const fg=$('#fGV')?.value||'', fl=$('#fLop')?.value||'', ft=$('#fTim')?.value||'';
-  const trongPV=lopTrongPV();
-  const sua=duocSuaNguon();
-  const ds=S.phanCong.map((p,i)=>({p,i}))
-    .filter(({p})=>trongPV.some(l=>l.id===p.lopId)&&(!fg||p.gvId===fg)&&(!fl||p.lopId===fl)
-      && khopLoc([gvId(p.gvId)?.hoTen, lopId(p.lopId)?.ten, lopId(p.lopId)?.maLop,
-                  dtId(S.lopDT[p.lopId])?.ten, p.mon].filter(Boolean).join(' '), ft));
-  if($('#tomTat')) $('#tomTat').textContent=`${ds.length} dòng · ${ds.reduce((s,x)=>s+x.p.soTiet,0)} tiết`;
-  $('#fTimXoa')?.parentElement.classList.toggle('co-chu', ft.length>0);
-  const rong=$('[data-locrong="bPC"]');
-  if(rong){
-    rong.classList.toggle('hien', !ds.length && S.phanCong.length>0);
-    rong.textContent='Không có dòng phân công nào khớp bộ lọc đang đặt.';
-  }
-  $('#bPC').innerHTML=`<thead><tr><th>Giáo viên</th><th>Lớp</th><th>Phân hiệu</th><th>Môn</th>
-    <th class="phai">Tiết/tuần</th><th class="phai">Chuẩn</th>${sua?'<th></th>':''}</tr></thead><tbody>
-  ${ds.map(({p,i})=>{
-    const ch=chuanMon(p.mon, lopId(p.lopId)?.khoi);
-    return `<tr><td>${esc(gvId(p.gvId)?.hoTen||'—')}</td><td><b>${esc(lopId(p.lopId)?.ten||'—')}</b></td>
-    <td><span class="tag dt d${iDT(S.lopDT[p.lopId])}">${esc(tenDT(S.lopDT[p.lopId]))}</span></td>
-    <td>${esc(p.mon)}</td>
-    <td class="phai">${sua
-      ?`<input class="ip" type="number" min="0" max="20" value="${p.soTiet}" data-pc="${i}" style="width:70px;text-align:right">`
-      :`<b>${p.soTiet}</b>`}</td>
-    <td class="phai" style="${ch&&ch!==p.soTiet?'color:var(--canh);font-weight:700':'color:var(--chu-mo)'}"
-      title="${ch?'Số tiết chuẩn theo danh mục môn học':'Chưa khai số tiết chuẩn cho môn này'}">${ch||'—'}</td>
-    ${sua?`<td class="phai"><button class="x-hang" data-xoapc="${i}" title="Xoá dòng">&times;</button></td>`:''}
-    </tr>`;}).join('')}
-  </tbody>`;
+  ${bangMaTran()}
+  <div class="gy" style="margin-top:11px">Bấm vào một ô để chọn lớp cho cặp giáo viên – môn ấy.
+    Ô ghi <b>số lớp</b> và <b>tổng tiết</b>; hàng cuối đếm mỗi môn đã có người dạy ở mấy lớp
+    trên tổng ${ds.length} lớp.</div>`;
 }
 function mKhungGio(){
   const sua=duocSuaNguon(), suc=KT.slotKhoi;
@@ -12205,28 +12167,14 @@ function noiSuKien(){
     o.dataset.loc='bMT'; o.dataset.donvi='giáo viên';
     o.oninput=()=>locBang(o);
     $('#fTimXoa').onclick=()=>{ o.value=''; locBang(o); o.focus(); };
-  }
-  if($('#bPC')){
     /* Sang đây từ cột "Dạy" của bảng Giáo viên thì lọc sẵn đúng người ấy.
+       Bảng từng dòng cũ có ô chọn riêng; ma trận lọc bằng chính ô tìm kiếm.
        Dùng MỘT LẦN rồi xoá: để lại thì lần sau mở màn Phân công vẫn bị lọc,
        mà người dùng không nhớ vì sao. */
-    if(S.pcGV){ const o=$('#fGV'); if(o) o.value=S.pcGV; S.pcGV=null; }
-    bangPC();
-    $('#fGV').onchange=bangPC; $('#fLop').onchange=bangPC;
-    $('#fTim').oninput=bangPC;
-    $('#fTimXoa').onclick=()=>{ $('#fTim').value=''; bangPC(); $('#fTim').focus(); };
-    $('#bPC').onchange=e=>{ if(e.target.dataset.pc){
-      S.phanCong[+e.target.dataset.pc].soTiet=Math.max(0,+e.target.value||0); ve(); }};
-    /* Nút xoá dòng bắt ở mức bảng: bangPC() vẽ lại nhiều lần, nối từng nút thì sót */
-    $('#bPC').onclick=e=>{
-      const n=e.target.closest('[data-xoapc]'); if(!n) return;
-      const i=+n.dataset.xoapc, p=S.phanCong[i]; if(!p) return;
-      S.phanCong.splice(i,1);
-      /* Bỏ luôn các tiết đã xếp của dòng vừa xoá, không để lưới còn tiết mồ côi */
-      const o=S.tkb[p.lopId]||{};
-      Object.keys(o).forEach(k=>{ if(o[k].gvId===p.gvId && o[k].mon===p.mon) delete o[k]; });
-      bao(`Đã xoá dòng ${p.mon} lớp ${lopId(p.lopId)?.ten||''}`); ve();
-    };
+    if(S.pcGV){
+      const g=gvId(S.pcGV); S.pcGV=null;
+      if(g){ o.value=g.hoTen; locBang(o); }
+    }
   }
   /* buổi bận — data-ban = "<mã giáo viên>|<thứ>-<buổi>" */
   $$('[data-ban]').forEach(x=>x.onchange=e=>{
@@ -12393,11 +12341,7 @@ function noiSuKien(){
   $$('[data-xoagv]').forEach(x=>x.onclick=()=>hopXoaGV(x.dataset.xoagv));
 
   /* Phân công */
-  $('#btThemPC')&&($('#btThemPC').onclick=()=>hopThemPC());
   $('#btPCTheoGV')&&($('#btPCTheoGV').onclick=hopPCTheoGV);
-  /* Đổi cách xem là vẽ lại TẠI CHỖ, không rời màn hình — cùng luật đã đặt cho
-     bốn thẻ chuyển ở Bảng điều hành ngày 3/8. */
-  $$('[data-pcxem]').forEach(b=>b.onclick=()=>{ S.pcXem=b.dataset.pcxem; ve(); });
   $$('[data-mt]').forEach(o=>o.onclick=()=>{
     const [g,m]=o.dataset.mt.split('|');
     hopPCTheoGV(g,m);

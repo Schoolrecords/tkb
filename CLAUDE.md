@@ -712,9 +712,26 @@ môn**. Bảng từng dòng của app đúng về dữ liệu nhưng sai về **
 việc** — cô Mỹ thuật dạy 25 lớp thành 25 dòng giống hệt nhau, trong khi câu hỏi
 thật của người xếp là *"ai dạy môn gì"* và *"còn ô nào trống"*.
 
-Hai cách xem **cùng một dữ liệu**, đổi bằng thẻ chuyển tại chỗ; `S.pcXem` nhớ
-lựa chọn. Không tách màn hình mới — hai nơi cùng sửa một thứ thì sớm muộn lệch
-hành vi.
+**Ma trận là bảng DUY NHẤT** — bảng từng dòng và hai thẻ chuyển đã **bỏ hẳn**
+cùng ngày, chủ dự án chốt: *"bỏ phân công theo dòng"*. Giữ cả hai thì thành hai
+nơi làm cùng một việc, mà ma trận cộng hộp *Phân công nhanh* phủ hết:
+
+| Việc của bảng cũ | Nay làm ở đâu |
+|---|---|
+| thêm một dòng | bấm ô trống → hộp, tích lớp |
+| xoá một dòng | bấm ô → **bỏ tích** lớp ấy |
+| sửa số tiết | ô *Số tiết mỗi lớp* trong hộp; mặc định lấy chuẩn theo từng khối |
+| lọc theo người | ô tìm kiếm, lọc tại chỗ |
+
+⚠️ **Điểm hụt duy nhất, nói trước để đừng ai đi tìm:** không còn cách xem *"lớp
+1A có những ai dạy môn gì"*. Câu ấy hiện trả lời gián tiếp qua cột lệch tiết ở
+bảng *Lớp học* và quy tắc R04. Cần xem trực tiếp thì làm sau, đừng dựng lại
+bảng cũ.
+
+⚠️ Bỏ bảng cũ kéo theo mất ô chọn `#fGV` — lối *"bấm cột Dạy ở bảng Giáo viên
+để xem người ấy dạy gì"* phải chuyển sang **lọc bằng chính ô tìm kiếm** (điền
+họ tên rồi `locBang`). Phép thử bắt được ngay; không có nó thì bấm cột Dạy sang
+một bảng 35 hàng không lọc gì cả.
 
 | Hàm | Việc |
 |---|---|
@@ -733,9 +750,13 @@ Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục
   mình đã phân công những đâu. Một hộp dùng chung, không viết bản thứ hai.
 - **Hàng cuối đếm độ phủ từng môn** (`41/42` lớp): chỗ duy nhất nhìn ra môn nào
   còn lớp chưa có người dạy.
-- ⚠️ **Hai ô lọc giáo viên/lớp GIẤU ĐI ở chế độ ma trận** — chúng chỉ có nghĩa
-  với bảng từng dòng. Bày một ô không làm gì thì người dùng gõ vào rồi tưởng
-  phần mềm hỏng.
+- ⚠️ **Mỗi ô môn có đường kẻ dọc** (`.mt-o{border-left}`). Bảng chỉ kẻ ngang
+  thì 15 cột trông như một mảng trắng, không ai đoán được ô nào bấm được.
+- **Thanh công cụ chỉ còn MỘT nút** — *Phân công nhanh cho một giáo viên*.
+- ⚠️ **Nút "Lưu ngay" thôi màu ĐỎ** *(29/8/2026)*. Trong cả app đỏ nghĩa là
+  nguy hiểm hoặc hỏng (nút Xoá, cảnh báo mức `do`), mà Lưu là việc **tốt** đang
+  cần làm gấp — dùng đỏ ở đây là sai màu ngữ nghĩa. Nay là **cam**, giữ được sự
+  khẩn trương mà không doạ người dùng.
 
 ⚠️ `locBang()` nhận **chính ô nhập** và đọc `data-loc` của nó, không nhận id
 bảng. Gọi `locBang('bMT')` là lỗi `Cannot read properties of undefined`.
