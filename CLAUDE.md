@@ -682,6 +682,29 @@ Ba việc chủ dự án nêu cùng lúc, cả ba đều có phép thử (`npm r
   khai một lớp là mở hộp năm lần, 25 lớp là 125 lần. Nay tích bao nhiêu môn
   cũng được, mỗi môn một dòng, số tiết lấy sẵn chuẩn CT GDPT 2018 theo khối.
 
+⚠️ **Môn ngoài chương trình của khối thì KHOÁ ô tích** *(29/8/2026)*. Chủ dự
+án: *"sửa riêng cho nút chưa khai thì nút không thể tích được, chứ lỡ giáo
+viên tích nhầm cũng không nên"*. Trước đó tích TNXH cho lớp 5 vẫn được và app
+lặng lẽ ghi 1 tiết — sai chương trình mà không ai thấy. Bốn điều của bộ này:
+
+- **Đổi lớp là đổi KHỐI**, nên `goi()` phải **bỏ tích** môn vừa thành ngoài
+  chương trình; để nguyên thì ô khoá mà vẫn tích, và nút Thêm vẫn nhận nó.
+- **Hàng rào thật nằm ở nút Thêm**, không ở thuộc tính `disabled` — nút lọc
+  lại `chuanMon(m,k)>0` ngay trước khi ghi. Cùng khuôn "kiểm xung đột chạy
+  hai lần" của dạy thay.
+- **Vẫn còn hai đường cho môn tự chọn**: khai số tiết cho khối ấy ở mục *Môn
+  học*, hoặc dùng *Phân công nhanh* (ô số tiết tự ghi). Khoá mà bịt hết đường
+  thì thành chặn nhu cầu thật — câu gợi ý cuối hộp chỉ rõ cả hai lối.
+- **Hai tín hiệu cho ô khoá**: mờ đi và đổi con trỏ. Chỉ mờ thôi thì vẫn có
+  người bấm rồi tưởng máy hỏng.
+
+⚠️ Phép thử cũ *"Một lần bấm ra ĐỦ ba dòng"* ghi cứng `TNXH` cho một lớp
+**khối 5** — tức nó đang dựa vào chính hành vi vừa bỏ. Nay chọn môn có chuẩn ở
+đúng khối của lớp. Và bản đầu của phép thử mới lấy "môn đầu tiên không bị
+khoá" nên trúng một môn hợp lệ ở cả hai khối — **xanh mà không kiểm được gì**,
+đúng bẫy đã ghi ở mục 3; nay tìm đúng môn lệch khối (TNXH) và báo rõ khi không
+tìm ra.
+
 `hopThemPC()` và `hopPCTheoGV()` **bù nhau, cố ý không gộp**:
 
 | Hộp | Một giáo viên · … |

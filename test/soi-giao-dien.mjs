@@ -272,8 +272,13 @@ const pcSach = S.phanCong.length;
 w.document.querySelector('#pcLop').value = lopTrong.id;
 w.document.querySelector('#pcLop').dispatchEvent(new w.Event('change', { bubbles: true }));
 
-const banMon = ['Tiếng Việt', 'Toán', 'TNXH'].filter(m =>
-  oMon().some(x => x.value === m));
+/* ⚠️ Phải chọn môn CÓ tiết chuẩn ở đúng khối của lớp này. Bản trước ghi cứng
+   'TNXH' — môn ấy chỉ có ở khối 1–3, mà lopTrong lại là lớp khối 5, nên phép
+   thử đang dựa vào chính hành vi chủ dự án yêu cầu bỏ (29/8/2026): cho tích
+   môn ngoài chương trình của khối rồi lặng lẽ ghi 1 tiết. */
+const banMon = oMon().map(x => x.value)
+  .filter(m => w.eval(`chuanMon(${JSON.stringify(m)}, ${lopTrong.khoi})`) > 0)
+  .slice(0, 3);
 banMon.forEach(m => {
   const o = oMon().find(x => x.value === m);
   o.checked = true;
@@ -290,7 +295,7 @@ kt('Một lần bấm ra ĐỦ ba dòng phân công, không phải mở hộp ba
 kt('Mỗi dòng lấy sẵn số tiết chuẩn CT GDPT 2018 theo khối của lớp', (() => {
   const moi = S.phanCong.filter(p => p.lopId === lopTrong.id);
   return moi.length === banMon.length && moi.every(p =>
-    p.soTiet === (w.eval(`chuanMon(${JSON.stringify(p.mon)},${lopTrong.khoi})`) || 1));
+    p.soTiet === w.eval(`chuanMon(${JSON.stringify(p.mon)},${lopTrong.khoi})`));
 })(), `khối ${lopTrong.khoi}: ` + S.phanCong.filter(p => p.lopId === lopTrong.id)
         .map(p => `${p.mon} ${p.soTiet}`).join(' · '));
 
@@ -301,6 +306,71 @@ banMon.forEach(m => { oMon().find(x => x.value === m).checked = true; });
 [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
 kt('Tích lại đúng những môn ấy thì cập nhật, không nhân đôi dòng nào',
    S.phanCong.length === pcSach + banMon.length, `${S.phanCong.length} dòng`);
+
+/* Chủ dự án 29/8/2026: "sửa riêng cho nút chưa khai thì nút không thể tích
+   được, chứ lỡ giáo viên tích nhầm cũng không nên". Môn không có tiết chuẩn ở
+   khối của lớp đang chọn (TNXH ở khối 5, LS&ĐL ở khối 1) là môn NGOÀI chương
+   trình khối ấy — trước đây tích được và app lặng lẽ ghi 1 tiết. */
+{
+  w.hopThemPC();
+  const lopK5 = S.lop.find(l => l.khoi === 5) || S.lop[S.lop.length - 1];
+  const lopK1 = S.lop.find(l => l.khoi === 1) || S.lop[0];
+  const doiLop = id => {
+    w.document.querySelector('#pcLop').value = id;
+    w.document.querySelector('#pcLop').dispatchEvent(new w.Event('change', { bubbles: true }));
+  };
+  const oCua = m => oMon().find(x => x.value === m);
+
+  doiLop(lopK5.id);
+  const khoa = oMon().filter(x => x.disabled).map(x => x.value);
+  /* Khoá đúng bằng phép soát của app: ô nào chuanMon = 0 thì disabled, và
+     KHÔNG ô nào khác bị khoá oan. */
+  const saiKhoa = oMon().filter(x =>
+    x.disabled !== (w.eval(`chuanMon(${JSON.stringify(x.value)}, ${lopK5.khoi})`) === 0));
+  kt('Môn chưa khai chuẩn cho khối này thì ô tích BỊ KHOÁ — và không khoá oan môn nào',
+     khoa.length > 0 && saiKhoa.length === 0,
+     `khoá: ${khoa.join(' · ')}${saiKhoa.length ? ' · SAI: ' + saiKhoa.map(x=>x.value).join(' ') : ''}`);
+
+  kt('Ô khoá mang dấu hiệu nhìn thấy được, không chỉ chặn ngầm',
+     oMon().filter(x => x.disabled)
+       .every(x => x.closest('.pc-m')?.classList.contains('khoa')));
+
+  /* Đổi lớp là đổi KHỐI: môn vừa tích ở khối này có thể ngoài chương trình
+     khối kia. Để nguyên dấu tích thì ô khoá mà vẫn tích, và nút Thêm nhận nó. */
+  /* ⚠️ Phải chọn môn CÓ ở khối 1 mà KHÔNG có ở khối 5 (TNXH), không thì phép
+     thử xanh mà chẳng kiểm được gì — bản đầu lấy "môn đầu tiên không bị khoá"
+     và trúng ngay một môn hợp lệ ở cả hai khối. Đúng bẫy "hai thứ tình cờ
+     bằng nhau" đã ghi ở mục 3 CLAUDE.md. */
+  const monLech = oMon().map(x => x.value).find(m =>
+    w.eval(`chuanMon(${JSON.stringify(m)}, ${lopK1.khoi})`) > 0 &&
+    w.eval(`chuanMon(${JSON.stringify(m)}, ${lopK5.khoi})`) === 0);
+  doiLop(lopK1.id);
+  if (monLech) oCua(monLech).checked = true;
+  doiLop(lopK5.id);
+  kt('Đổi lớp sang khối khác thì môn ngoài chương trình TỰ BỎ TÍCH',
+     !!monLech && oCua(monLech)?.checked === false && oCua(monLech)?.disabled === true,
+     monLech ? `${monLech}: khối ${lopK1.khoi} tích được, sang khối ${lopK5.khoi} tự bỏ`
+             : 'KHÔNG tìm ra môn lệch khối — phép thử không kiểm được gì');
+
+  kt('"Tích tất cả" chỉ tích những môn khai được', (() => {
+    w.document.querySelector('#pcTatCa').click();
+    return oMon().every(x => x.disabled ? !x.checked : x.checked);
+  })());
+
+  /* Hàng rào THẬT nằm ở nút Thêm, không phải ở thuộc tính disabled: người
+     dùng mở công cụ nhà phát triển gỡ disabled thì ô tích vẫn nằm đó. */
+  kt('Gỡ được disabled thì nút Thêm vẫn lọc lại, không ghi dòng ngoài chương trình', (() => {
+    const truoc = S.phanCong.length;
+    const o = oMon().find(x => x.disabled);
+    if (!o) return true;
+    o.disabled = false; o.checked = true;
+    oMon().forEach(x => { if (x !== o) x.checked = false; });
+    [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Thêm').click();
+    const ok = S.phanCong.length === truoc;
+    w.eval('dong()');
+    return [ok, `${truoc} → ${S.phanCong.length} dòng`];
+  })());
+}
 
 kt('Không tích môn nào mà bấm Thêm thì báo, không thêm dòng rỗng', (() => {
   w.hopThemPC();

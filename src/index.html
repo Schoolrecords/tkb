@@ -438,6 +438,12 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
    thì hộp co lại và số tiết dính ngay sau chữ — "Tiếng Việt12 tiết". */
 .pc-m-s{margin-left:auto;padding-left:8px;font-size:11.5px;color:var(--nav);white-space:nowrap}
 .pc-m-s.mo{color:var(--chu-mo);font-weight:400}
+/* Môn chưa khai số tiết chuẩn cho khối lớp đang chọn thì KHOÁ hẳn ô tích.
+   Chủ dự án: "lỡ giáo viên tích nhầm cũng không nên". Mờ đi và đổi con trỏ
+   là hai tín hiệu — chỉ mờ thôi thì vẫn có người bấm rồi tưởng máy hỏng. */
+.pc-m.khoa{opacity:.5;cursor:not-allowed;background:var(--nen)}
+.pc-m.khoa:hover{background:var(--nen)}
+.pc-m.khoa input{cursor:not-allowed}
 .gv-day{font-size:12px;line-height:1.45;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* ⚠️ `nowrap` mà thiếu `overflow:hidden` thì chữ dài không bị cắt — nó TRÀN
@@ -12936,12 +12942,16 @@ function hopThemPC(gv){
      <div class="gy" id="pcGoi"></div></div>`,
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Thêm',lam:()=>{
     const g=$('#pcGV').value, lp=$('#pcLop').value;
-    const chon=[...$('#pcMon').querySelectorAll('input:checked')].map(x=>x.value);
-    if(!chon.length) return bao('Chưa tích môn nào',true);
     const k=lopId(lp)?.khoi;
+    /* Lọc lại lần nữa ngay trước khi ghi: ô khoá là hàng rào giao diện, còn
+       đây là hàng rào thật. Cùng khuôn "kiểm xung đột chạy hai lần" của dạy
+       thay — danh sách dựng lúc mở hộp có thể đã cũ. */
+    const chon=[...$('#pcMon').querySelectorAll('input:checked')]
+      .map(x=>x.value).filter(m=>chuanMon(m,k)>0);
+    if(!chon.length) return bao('Chưa tích môn nào',true);
     let them=0, capNhat=0;
     chon.forEach(mon=>{
-      const st=chuanMon(mon,k)||1;
+      const st=chuanMon(mon,k);
       const cu=S.phanCong.find(p=>p.gvId===g&&p.lopId===lp&&p.mon===mon);
       if(cu){ cu.soTiet=st; capNhat++; }
       else { S.phanCong.push({gvId:g, lopId:lp, mon, soTiet:st}); them++; }
@@ -12963,17 +12973,29 @@ function hopThemPC(gv){
       const o=$('#pcMon').querySelector(`[data-pcs="${CSS.escape(m)}"]`);
       if(o){ o.textContent = c ? c+' tiết' : 'chưa khai'; o.classList.toggle('mo', !c); }
       const tick=$('#pcMon').querySelector(`input[value="${CSS.escape(m)}"]`);
-      if(tick?.checked){ so++; tong += c||1; }
+      if(tick){
+        /* ⚠️ Đổi lớp là đổi KHỐI, nên môn vừa tích ở khối 4 có thể thành
+           "chưa khai" ở khối 1. Bỏ tích luôn — để nguyên thì ô khoá mà vẫn
+           đang tích, và nút Thêm vẫn nhận nó. */
+        tick.disabled = !c;
+        if(!c) tick.checked = false;
+        tick.closest('.pc-m')?.classList.toggle('khoa', !c);
+        if(tick.checked){ so++; tong += c; }
+      }
     });
     $('#pcGoi').innerHTML = so
       ? `Đã tích <b>${so} môn</b> · cộng <b>${tong} tiết</b> mỗi tuần`
         + (k?` — chuẩn khối ${k} là <b>${CHUAN_KHOI[k]||'?'} tiết</b>.`:'.')
-      : 'Số tiết lấy sẵn theo chuẩn CT GDPT 2018 của khối lớp đang chọn; môn nào '
-        +'chưa khai chuẩn thì để 1 tiết, sửa lại trong bảng.';
+      : 'Số tiết lấy sẵn theo chuẩn CT GDPT 2018 của khối lớp đang chọn. Môn ghi '
+        +'<b>chưa khai</b> thì khoá — khai số tiết cho khối ấy ở mục <b>Môn học</b>, '
+        +'hoặc dùng <b>Phân công nhanh</b> để tự ghi số tiết.';
   };
   $('#pcLop').onchange=goi;
   $('#pcMon').onchange=goi;
-  $('#pcTatCa').onclick=()=>{ $$('#pcMon input').forEach(x=>x.checked=true); goi(); };
+  /* "Tích tất cả" nghĩa là tất cả những môn KHAI ĐƯỢC cho khối này — tích cả
+     môn khoá thì goi() bỏ tích ngay sau đó, người dùng thấy nút nhấp nháy vô
+     nghĩa. */
+  $('#pcTatCa').onclick=()=>{ $$('#pcMon input').forEach(x=>{ if(!x.disabled) x.checked=true; }); goi(); };
   $('#pcBoHet').onclick=()=>{ $$('#pcMon input').forEach(x=>x.checked=false); goi(); };
   goi();
 }
