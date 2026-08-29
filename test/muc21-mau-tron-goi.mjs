@@ -10,7 +10,7 @@
    được thì mọi thứ khác đều vô nghĩa.
    ================================================================== */
 
-export default function muc21({ kt, S, bangMauTronGoi,
+export default function muc21({ kt, S, bangMauTronGoi, tietCanTu, dsMonMacDinh,
                                 duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon }) {
   console.log('\n\x1b[1m21. Mẫu Excel trọn gói và đường nhập một cửa\x1b[0m');
 
@@ -112,10 +112,15 @@ export default function muc21({ kt, S, bangMauTronGoi,
     const t = m.trang.find(x => x.ten === '3_KHUNG_GIO');
     const iK = k => t.cot.findIndex(c => c.ten === 'K' + k);
     const iBat = t.cot.findIndex(c => c.ten === 'Day_hoc');
+    /* ⚠️ So với TỔNG DANH MỤC MÔN, không so hằng số CT GDPT. Khối 1–2 quy
+       định 25 tiết chính khoá, nhưng danh mục mặc định có thêm Tiếng Anh tự
+       chọn 2 tiết — khung giờ phải đủ chỗ cho những gì trường THẬT SỰ dạy,
+       đó mới là con số quyết định xếp đủ hay không. */
     [1, 2, 3, 4, 5].forEach(k => {
+      const can = tietCanTu(dsMonMacDinh(), k);
       const tong = t.hang.filter(h => h[iBat] === 'Có').reduce((s, h) => s + (+h[iK(k)] || 0), 0);
-      kt(`Khung giờ mẫu cộng ra đúng ${CHUAN_KHOI[k]} tiết cho khối ${k}`,
-         tong === CHUAN_KHOI[k], `${tong} tiết`);
+      kt(`Khung giờ mẫu đủ chỗ cho ${can} tiết của khối ${k}`,
+         tong === can, `${tong} ô · cần ${can}`);
     });
   }
 

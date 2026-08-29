@@ -52,7 +52,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN, tenDiemNgan,
   diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
   duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan, datTaiKhoanGV,
-  tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
+  tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung, tietCanTu, tietCanKhoi,
   chuanMon, laMonNang, laMonNhe, monCanPhong,
   coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
   taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
@@ -83,7 +83,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, tenDiemNgan,
         diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
-        tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung,
+        tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung, tietCanTu, tietCanKhoi,
         chuanMon, laMonNang, laMonNhe, monCanPhong,
         coBangPhong, soPhong, dangChiemPhong, chiSo, themChiSo, datDuoc, doiChoDuoc,
         taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
@@ -2882,7 +2882,8 @@ console.log('\n19. Mã giáo viên đọc được');
 /* ---------- 21. Mẫu Excel trọn gói (tách tệp riêng cho gọn) ---------- */
 {
   const muc21 = (await import('./muc21-mau-tron-goi.mjs')).default;
-  muc21({ kt, S, bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon });
+  muc21({ kt, S, bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI, chuanMon,
+          tietCanTu, dsMonMacDinh });
 
 console.log('\n22. Nhập TỪNG MỤC — mỗi màn hình một trang tính');
 const { default: muc22 } = await import('./muc22-nhap-tung-muc.mjs');

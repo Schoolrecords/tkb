@@ -712,16 +712,21 @@ tìm ra.
 | Thêm phân công | **một lớp** · nhiều môn — dành cho chủ nhiệm |
 | Phân công nhanh | một môn · **nhiều lớp** — dành cho bộ môn |
 
-### Bảng Môn học: cụm Sửa/Xoá, và hiện đủ 13 môn *(29/8/2026)*
+### Bảng Môn học: chỉ nút XOÁ, và hiện đủ 13 môn *(29/8/2026)*
 
 Chủ dự án: *"nút dấu x (màu đỏ) cần thay bằng nút sửa/xoá. Và cả trang này vẫn
 bị lấp các môn còn lại, cho hàng sát lên, cho đủ 13 + môn"*.
 
-- **Dấu `×` đỏ trần → cụm Sửa / Xoá**, đúng khuôn bảng Giáo viên hôm 28/8:
-  nút Xoá **không tô đỏ sẵn**, chỉ đỏ khi rê chuột.
-- **`hopSuaMon()` mở hộp đầy đủ**, dùng chung `oKhaiMon()` · `docKhaiMon()`
-  với hộp Thêm. Hộp Thêm cũ thiếu đúng hai ô *Ưu tiên sáng sớm* và *Tránh đầu
-  cuối buổi* mà bảng vẫn có — lại đúng chuyện đã xảy ra với hộp Thêm giáo viên.
+- **Dấu `×` đỏ trần → nút Xoá có chữ**, nút **không tô đỏ sẵn**, chỉ đỏ khi
+  rê chuột.
+- ⚠️ **KHÔNG có nút Sửa** — chủ dự án chốt: *"nút sửa thì có lẽ không cần, vì
+  có thể sửa trực tiếp và lưu lại tổng thể được"*. Đúng: mọi ô trên hàng đều
+  sửa tại chỗ, và `[data-monten]` đã đồng bộ tên môn sang phân công. Hộp
+  `hopSuaMon()` viết ra rồi **xoá hẳn** — hai lối vào cùng một thứ là thừa.
+  Nhưng nút **Xoá thì phải giữ**: môn nhà trường tự thêm (*HD Tự học*, *Kĩ
+  năng CDS*) có ngày được thay bằng môn khác.
+- **`oKhaiMon()` · `docKhaiMon()` vẫn giữ** cho hộp Thêm — nó từng thiếu đúng
+  hai ô *Ưu tiên sáng sớm* và *Tránh đầu cuối buổi* mà bảng vẫn có.
 - ⚠️ **Đổi TÊN môn thì phải đổi theo ở `phanCong` và `S.tkb`** — hai nơi ấy
   tham chiếu môn bằng chính chuỗi tên. Bỏ bước này là dòng phân công thành môn
   lạ và ô trên lưới mất màu. Có phép thử canh.
@@ -2059,6 +2064,13 @@ cột lệch tiết bảng *Lớp học* · gợi ý trong hộp *Thêm phân c�
 soát tệp Excel. Chuẩn CT GDPT **vẫn bày ra bên cạnh** (`cần 32 · CT 27`) để đối
 chiếu, chỉ thôi làm thước đo đúng–sai.
 
+⚠️ **Ô 78px không đủ chỗ cho một nhãn tự giải thích.** Bản đầu ghi
+`cần 32 / CT 27` ngay dưới tổng; chủ dự án đọc và hỏi thẳng *"chữ cần 30, cần
+32 là gì thầy chưa hiểu"*. Hai con số trần không tự nói ra chúng là gì. Nay ô
+chỉ bày **kết luận** (*đủ · thừa 2 · thiếu 3*), còn ba con số nằm ở **bảng
+dưới** có tên cột viết thành câu: *Khung giờ đang mở · Danh mục môn cộng lại ·
+CT GDPT 2018 quy định*, khối 1–2 ghi kèm *(+2 tự chọn)*.
+
 - **Chưa khai môn nào thì lùi về `CHUAN_KHOI`** — trường mới tinh vẫn được
   soát tử tế. Có phép thử canh.
 - ⚠️ **Đường nhập Excel phải gọi `tietCanTu(kho.monHoc, k)`**, không gọi bản
@@ -2074,6 +2086,11 @@ quyền vượt nó không.
 ### Những con số đã kiểm chứng, không được đoán lại
 - **Số tiết/tuần:** khối 1–2 = 27 (25 chính khoá + 2 Tiếng Anh tự chọn),
   khối 3 = 28, khối 4–5 = 30. Khớp chính xác CT GDPT 2018.
+  ⚠️ **`CHUAN_KHOI` giữ đúng con số VĂN BẢN: khối 1–2 là 25**, không phải 27
+  *(sửa 29/8/2026)*. Bản trước cộng sẵn 2 tiết Tiếng Anh — môn **tự chọn** ở
+  lớp 1–2 — nên nhãn "CT 27" nói sai quy định. Phần tự chọn nhà trường thêm
+  vào đã được `tietCanKhoi()` cộng từ danh mục môn thật, không cần nhét vào
+  hằng số của Bộ.
 - **Lưới thời gian thực tế chỉ 8 buổi/tuần:** sáng 5 ngày, chiều 3 ngày.
   Nghỉ chiều thứ Tư, chiều thứ Sáu, cả ngày thứ Bảy.
 - **Số tiết mỗi buổi KHÁC NHAU THEO KHỐI** — khối nhỏ tan sớm hơn. Đối chiếu

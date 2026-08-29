@@ -2895,11 +2895,30 @@ console.log('\n17m. Bảng Môn học — cụm Sửa/Xoá và hiện đủ môn
   w.chuyen('monhoc');
   const bang = w.document.querySelector('#bMon');
 
-  kt('Không còn dấu × trần, mỗi dòng là cụm nút Sửa / Xoá có chữ',
+  /* ⚠️ Chỉ nút XOÁ, cố ý không có nút Sửa. Chủ dự án 29/8/2026: "nút sửa thì
+     có lẽ không cần, vì có thể sửa trực tiếp và lưu lại tổng thể được" — mọi
+     ô trên hàng đều sửa tại chỗ. Nhưng nút Xoá thì phải có: môn nhà trường tự
+     thêm (HD Tự học, Kĩ năng CDS) có ngày được thay bằng môn khác. */
+  kt('Không còn dấu × trần — mỗi dòng một nút Xoá có chữ',
      !w.document.querySelector('[data-xoamon].x-hang') &&
-     w.document.querySelectorAll('[data-suamon]').length === S.monHoc.length &&
      w.document.querySelectorAll('[data-xoamon]').length === S.monHoc.length,
-     `${w.document.querySelectorAll('[data-suamon]').length} nút Sửa`);
+     `${w.document.querySelectorAll('[data-xoamon]').length} nút Xoá`);
+  kt('KHÔNG bày nút Sửa — sửa ngay trên bảng, hai lối vào cùng một thứ thì thừa',
+     w.document.querySelectorAll('[data-suamon]').length === 0 &&
+     typeof w.hopSuaMon === 'undefined');
+  kt('Sửa tên ngay trên bảng vẫn đổi theo ở bảng phân công', (() => {
+    const i = S.monHoc.findIndex(m => m.ten === 'Mỹ thuật');
+    const soPC = S.phanCong.filter(p => p.mon === 'Mỹ thuật').length;
+    const o = w.document.querySelector(`[data-monten="${i}"]`);
+    o.value = 'Mĩ thuật';
+    o.dispatchEvent(new w.Event('change', { bubbles: true }));
+    const ok = soPC > 0 && S.phanCong.filter(p => p.mon === 'Mĩ thuật').length === soPC;
+    /* trả lại tên cũ */
+    w.chuyen('monhoc');
+    const o2 = w.document.querySelector(`[data-monten="${i}"]`);
+    o2.value = 'Mỹ thuật'; o2.dispatchEvent(new w.Event('change', { bubbles: true }));
+    return [ok, `${soPC} dòng`];
+  })());
 
   /* Nút Xoá KHÔNG tô đỏ sẵn — hai nút cạnh nhau mà một cái đỏ rực thì mắt bị
      kéo về đúng cái nguy hiểm hơn. Cùng luật đã đặt cho bảng Giáo viên 28/8. */
@@ -2933,29 +2952,6 @@ console.log('\n17n. Hộp khai môn — một bộ ô cho cả Thêm lẫn Sửa
      [1,2,3,4,5].every(k => !!w.document.querySelector(`[data-tmc="${k}"]`)),
      oCan.filter(x => !w.document.querySelector(x)).join(' ') || 'đủ 5 ô + 5 khối');
   w.eval('dong()');
-
-  const i = S.monHoc.findIndex(m => m.ten === 'Mỹ thuật');
-  w.hopSuaMon(i);
-  kt('Hộp Sửa điền sẵn đúng giá trị đang có, dùng chung một bộ ô với Thêm',
-     w.document.querySelector('#tmTen').value === 'Mỹ thuật' &&
-     w.document.querySelector('#tmNhe').checked === !!S.monHoc[i].nhe &&
-     w.document.querySelector('#tmMau').value === S.monHoc[i].mau);
-
-  /* ⚠️ Bảng phân công và lưới đã xếp tham chiếu môn bằng chính CHUỖI TÊN.
-     Đổi tên mà không đổi theo là dòng phân công thành môn lạ, ô trên lưới
-     mất màu. */
-  const soPC = S.phanCong.filter(p => p.mon === 'Mỹ thuật').length;
-  w.document.querySelector('#tmTen').value = 'Mĩ thuật';
-  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Lưu').click();
-  kt('Đổi tên môn thì bảng phân công đổi theo, không bỏ lại dòng môn lạ',
-     soPC > 0 && S.phanCong.filter(p => p.mon === 'Mĩ thuật').length === soPC &&
-     S.phanCong.filter(p => p.mon === 'Mỹ thuật').length === 0,
-     `${soPC} dòng`);
-
-  /* Trả lại tên cũ cho các mục sau */
-  w.hopSuaMon(i);
-  w.document.querySelector('#tmTen').value = 'Mỹ thuật';
-  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Lưu').click();
 
   kt('Trùng tên với môn đã có thì BỊ CHẶN', (() => {
     w.hopThemMon();
@@ -2992,10 +2988,16 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
   kt('Khung 9 buổi khớp 32 tiết thì KHÔNG còn báo "thừa ô"',
      !/thừa \d+ ô/.test(chu) && /khớp đúng danh mục môn/.test(chu),
      (chu.match(/(thừa \d+ ô[^.]*|khớp đúng danh mục môn)/) || [''])[0]);
-  kt('Và nói rõ trường có dạy thêm môn ngoài Chương trình GDPT 2018',
-     /ngoài Chương trình GDPT 2018/.test(chu));
-  kt('Dòng tổng vẫn bày mốc CT GDPT bên cạnh để đối chiếu, chỉ thôi làm thước đo',
-     /CT 27/.test(chu) && /cần 32/.test(chu));
+  /* ⚠️ Ba con số phải nói rõ NGHĨA. Bản trước ghi "cần 32 / CT 27" ngay dưới
+     tổng, chủ dự án đọc và hỏi "chữ cần 30, cần 32 là gì thầy chưa hiểu" — ô
+     rộng 78px không đủ chỗ cho một cái nhãn tự giải thích. Nay ô chỉ bày KẾT
+     LUẬN (đủ · thừa 2 · thiếu 3), còn ba con số nằm ở bảng dưới, có tên cột
+     viết thành câu. */
+  kt('Ô tổng chỉ bày kết luận, không bày con số trần không rõ nghĩa',
+     /đủ/.test(chu) && !/cần 32/.test(chu));
+  kt('Bảng dưới nói rõ nghĩa từng con số, kèm phần tự chọn vượt mốc CT',
+     /Khung giờ đang mở/.test(chu) && /Danh mục môn cộng lại/.test(chu) &&
+     /CT GDPT 2018 quy định/.test(chu) && /tự chọn/.test(chu));
 
   /* Thiếu chỗ thật thì vẫn phải báo — bỏ mốc cứng không có nghĩa là bỏ luôn
      phép soát. */
@@ -3007,8 +3009,13 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
 
   /* Trường chưa khai môn nào thì lùi về mốc CT GDPT — đường lui phải còn */
   w.eval('S.monHoc = []');
-  kt('Chưa khai môn nào thì lùi về chuẩn CT GDPT 2018',
-     w.eval('tietCanKhoi(1)') === 27 && w.eval('tietCanKhoi(5)') === 30);
+  /* ⚠️ Khối 1–2 là **25**, không phải 27. Bản trước cộng sẵn 2 tiết Tiếng Anh
+     — môn TỰ CHỌN ở lớp 1–2, không nằm trong số tiết Thông tư 32/2018 quy
+     định. Chủ dự án chỉ đúng chỗ này. */
+  kt('Chưa khai môn nào thì lùi về chuẩn CT GDPT 2018 (khối 1–2 là 25 tiết chính khoá)',
+     w.eval('tietCanKhoi(1)') === 25 && w.eval('tietCanKhoi(3)') === 28 &&
+     w.eval('tietCanKhoi(5)') === 30,
+     `K1 ${w.eval('tietCanKhoi(1)')} · K3 ${w.eval('tietCanKhoi(3)')} · K5 ${w.eval('tietCanKhoi(5)')}`);
 
   w.eval(`S.monHoc = ${monGoc}; S.khungGio = ${kgGoc}`);
   w.chuyen('khunggio');
