@@ -260,6 +260,24 @@ const taiMau = async ma => {
   return TEP.wb.xlsx.writeBuffer();
 };
 
+/* Xoá SẠCH một cột khỏi tệp — đúng hình dạng tệp Tiểu học Thần Lĩnh 1 gửi
+   lên: cột `Ma_GV` có tên cột nhưng không dòng nào điền. Không tái hiện được
+   chuyện đó thì phép thử xanh trong khi app hỏng. */
+const xoaCotTrongMau = async (buf, trang, ten) => {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf);
+  const ws = wb.getWorksheet(trang);
+  let dCot = 0, cot = [];
+  for (let r = 1; r <= Math.min(8, ws.rowCount); r++) {
+    const v = ws.getRow(r).values.slice(1).map(x => String(x ?? '').trim().replace(/\s*\*$/, ''));
+    if (v.filter(x => /^[A-Za-z][A-Za-z0-9_]*$/.test(x)).length >= 2) { dCot = r; cot = v; break; }
+  }
+  const i = cot.indexOf(ten);
+  if (i < 0) throw new Error(`Trang ${trang} không có cột ${ten}`);
+  for (let r = dCot + 1; r <= ws.rowCount; r++) ws.getRow(r).getCell(i + 1).value = null;
+  return wb.xlsx.writeBuffer();
+};
+
 /* Đẩy tệp vào đúng ô chọn tệp rồi bấm nút xác nhận của hộp thoại */
 const nhapTep = async (ma, buf) => {
   w.eval(`S.trangHienTai=${JSON.stringify(ma)}`);
@@ -392,6 +410,60 @@ kt('Phòng và buổi bận nhập được',
      (hopLoi.match(/[^.]*dòng[^.]*/) || [''])[0].trim().slice(0, 100));
   w.eval('dong()');
 }
+/* --- Tiểu học Thần Lĩnh 1 (29/8/2026): cột Ma_GV để TRỐNG cả cột ---------
+   Nhà trường gõ danh sách 24 thầy cô vào đúng mẫu, bỏ trống cột mã vì mã là
+   thứ máy tự đặt. App báo "Tệp này không có trang tính nào máy đọc được" —
+   trang đúng tên, chín cột đúng, chỉ vì phép nhận diện dò theo DỮ LIỆU đã
+   điền mà cột khoá thì trống. */
+{
+  const goc = await taiMau('giaovien');
+  const buf = await xoaCotTrongMau(
+    await dienVaoMau(goc, 'GIAO_VIEN',
+      [{ Ho_ten: 'Thái Thị Mai Lan', Gmail: 'mailan@gmail.com', Chu_nhiem: '1A_TT' },
+       { Ho_ten: 'Phạm Thị Trầm',    Gmail: 'tram@gmail.com' }]),
+    'GIAO_VIEN', 'Ma_GV');
+  const truoc = S.giaoVien.length;
+  const kq = await nhapTep('giaovien', buf);
+  kt('Cột Ma_GV trống cả cột vẫn NHẬN ĐÚNG trang, không đổ tại tệp',
+     !/không có trang tính nào/.test(kq.chu || ''), (kq.chu || '').slice(0, 80));
+  kt('Máy tự đặt mã từ họ tên, đúng dạng tên gọi đứng trước',
+     S.giaoVien.length === truoc + 2 &&
+     !!S.giaoVien.find(g => g.hoTen === 'Thái Thị Mai Lan' && g.maGV === 'Lan_TTM'),
+     S.giaoVien.slice(-2).map(g => g.maGV).join(' · '));
+  kt('Chủ nhiệm và Gmail vẫn vào đúng chỗ',
+     S.giaoVien.find(g => g.hoTen === 'Thái Thị Mai Lan')?.email === 'mailan@gmail.com' &&
+     !!S.giaoVien.find(g => g.hoTen === 'Thái Thị Mai Lan')?.cn);
+
+  /* ⚠️ Nhập LẠI đúng tệp ấy không được đẻ thêm lứa mới — đúng sự cố 105 hồ sơ
+     ngày 2/8, nay tái hiện được qua đường mã tự đặt. */
+  const truoc2 = S.giaoVien.length;
+  await nhapTep('giaovien', buf);
+  kt('Nhập lại chính tệp ấy KHÔNG nhân đôi — dò người cũ theo họ tên đủ',
+     S.giaoVien.length === truoc2, `${truoc2} → ${S.giaoVien.length} giáo viên`);
+}
+
+/* --- Gõ nhầm hậu tố mã lớp: chỉ đúng chỗ, đừng bảo đi tạo lớp mới ------
+   Thần Lĩnh gõ `1A_CN` trong khi mã thật là `1A_ND` — 21 dòng cùng một lỗi,
+   mà câu cũ khuyên "vào mục Lớp học thêm lớp này trước", tức đẩy người dùng
+   đi tạo thêm 15 lớp trùng. */
+{
+  const buf = await dienVaoMau(await taiMau('giaovien'), 'GIAO_VIEN',
+    [{ Ho_ten: 'Cô Gõ Nhầm', Chu_nhiem: '1A_CN' }]);
+  await nhapTep('giaovien', buf);
+  const chu = w.document.querySelector('#hopN')?.textContent || '';
+  kt('Mã lớp sai hậu tố thì GỢI Ý mã đúng, không xui đi tạo lớp mới',
+     /1A_TT/.test(chu) && !/thêm lớp này trước/.test(chu),
+     (chu.match(/chưa khai lớp[^.]*/) || [''])[0].slice(0, 100));
+  w.eval('dong()');
+
+  /* Tên lớp trần cũng phải nhận — nhà trường quen gọi "1A" hơn là "1A_TT" */
+  const buf2 = await dienVaoMau(await taiMau('giaovien'), 'GIAO_VIEN',
+    [{ Ho_ten: 'Cô Tên Lớp', Chu_nhiem: '1A' }]);
+  await nhapTep('giaovien', buf2);
+  kt('Ghi TÊN LỚP thay cho mã cũng nhận, khi tên ấy chỉ một lớp mang',
+     !!S.giaoVien.find(g => g.hoTen === 'Cô Tên Lớp')?.cn);
+}
+
 
 console.log('\n3. Không có lỗi chạy nào trong suốt hai lối khai báo');
 kt('Không lỗi JavaScript nào', loiChay.length === 0,

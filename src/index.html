@@ -4577,6 +4577,11 @@ function bangTuMaTran(a){
   if(dong < 0) return null;
   const cot = (a[dong]||[]).map(o => String(o??'').trim().replace(/\s*\*$/,''));
   const r = [];
+  /* Nhớ luôn TÊN CỘT của tệp. Từng dòng chỉ mang khoá cho ô ĐÃ ĐIỀN, nên
+     một cột trống suốt (trường mới chưa có mã giáo viên) biến mất hoàn toàn
+     khỏi dữ liệu — nơi gọi nhìn vào đó thì kết luận "đây không phải trang
+     GIAO_VIEN". Tên cột mới là thứ nói trang này là trang gì. */
+  Object.defineProperty(r, '__cot', {value: cot.filter(Boolean), enumerable: false});
   for(let i=dong+1;i<a.length;i++){
     const h = a[i]||[];
     if(h.every(oTrongXL)) continue;                    /* dòng trống hẳn */
@@ -5115,6 +5120,37 @@ const laCoXL = v => {
   return t === '' || t === 'co' || t === 'x' || t === '1' || t === 'true';
 };
 
+/* Tra lớp theo ô người dùng gõ vào cột Ma_lop hoặc Chu_nhiem.
+
+   Ba mức, theo đúng thứ tự chắc chắn giảm dần:
+   1. đúng MÃ — chuyện thường;
+   2. đúng TÊN LỚP và tên ấy chỉ một lớp mang — nhà trường quen gọi "1A" hơn
+      là "1A_ND", và app đã nhận tên lớp ở mẫu ma trận nên nhận ở đây là nhất
+      quán. Tên trùng giữa các phân hiệu thì KHÔNG đoán, bắt ghi mã;
+   3. không ra gì thì GỢI Ý mã gần nhất. Tiểu học Thần Lĩnh 1 (29/8/2026) gõ
+      `1A_CN` trong khi mã thật là `1A_ND`: hai mươi mốt dòng cùng một lỗi, mà
+      câu báo cũ chỉ nói "vào mục Lớp học thêm lớp này trước" — dẫn người dùng
+      đi tạo thêm 15 lớp trùng, đúng hướng ngược với việc cần làm. */
+function timLopNhap(kho, ma){
+  const m=String(ma||'').trim(), b=x=>String(x||'').trim().toLowerCase();
+  const maCua=l=>l.maLop||l.id;
+  const theoMa=kho.lop.find(l=>b(maCua(l))===b(m));
+  if(theoMa) return {lop:theoMa};
+  const theoTen=kho.lop.filter(l=>b(l.ten)===b(m));
+  if(theoTen.length===1) return {lop:theoTen[0]};
+  if(theoTen.length>1) return {loi:`có ${theoTen.length} lớp cùng tên "${m}" ở các phân hiệu `
+    +`khác nhau — ghi mã lớp (${theoTen.map(maCua).join(', ')})`};
+  const dau=b(m.split('_')[0]);
+  const gan=dau ? kho.lop.filter(l=>b(l.ten)===dau || b(maCua(l).split('_')[0])===dau) : [];
+  if(gan.length===1) return {loi:`chưa khai lớp mã "${m}" — có phải lớp ${gan[0].ten} `
+    +`không? Ghi "${gan[0].ten}" hoặc "${maCua(gan[0])}"`};
+  /* Nhiều lớp cùng tên ấy — sau sáp nhập là chuyện thường. Không đoán, nhưng
+     bày sẵn các mã để người dùng chọn, đừng bắt họ mở trang DANH_MUC dò tay. */
+  if(gan.length) return {loi:`chưa khai lớp mã "${m}" — có ${gan.length} lớp tên `
+    +`${gan[0].ten}, ghi đúng mã: ${gan.map(maCua).join(', ')}`};
+  return {loi:`chưa khai lớp mã "${m}" — vào mục Lớp học thêm lớp này trước`};
+}
+
 const MUC_NHAP = {
 
   diemtruong:{
@@ -5253,7 +5289,7 @@ const MUC_NHAP = {
         +'Gmail điền sẵn thì thầy cô đăng nhập bằng Google là vào thẳng, không cần mã mời.',
     duThua:120,
     cot:[{ten:'TT',        rong:6,  khoa:{kieu:'so', tu:1, den:999}},
-         {ten:'Ma_GV',     rong:20, khoa:{kieu:'chu', toiDa:40, batBuoc:true}},
+         {ten:'Ma_GV',     rong:20, khoa:{kieu:'chu', toiDa:40}},
          {ten:'Ho_ten',    rong:30, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
          {ten:'Gmail',     rong:30, khoa:{kieu:'chu', toiDa:120}},
          {ten:'Dien_thoai',rong:16, khoa:{kieu:'chu', toiDa:20}},
@@ -5269,10 +5305,31 @@ const MUC_NHAP = {
           [3,'Chi_LT','Lê Thị Chi','','','','',DINH_MUC,'']],
     doc(co, kho, loi, canh){
       let them=0, capNhat=0;
+      /* Mã giáo viên là thứ MÁY ĐẶT ĐƯỢC (`maGVTu()`), nên bắt nhà trường gõ
+         tay 35 mã là bắt làm hộ việc của máy — và họ gõ thì ra mã mỗi người
+         một kiểu. Bỏ trống ô ấy thì tự đặt từ họ tên, đúng dạng mọi đường
+         khai hồ sơ mới vẫn dùng.
+         ⚠️ Nhưng nhập lại LẦN HAI cùng tệp ấy mà lại sinh mã mới thì thành
+         nhân đôi cả danh sách — đúng sự cố 105 hồ sơ ngày 2/8. Nên dò người
+         cũ theo HỌ TÊN ĐỦ; hai người trùng cả họ tên thì máy không đoán thay
+         được, bắt ghi Ma_GV. */
+      const chuanTen = t => String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
+      const daCoMa = new Set(kho.giaoVien.map(g=>g.maGV||g.id).filter(Boolean));
+      const datMa = hoTen => {
+        const g0=maGVTu(hoTen); let m=g0, i=1;
+        while(daCoMa.has(m)) m=g0+'_'+(++i);
+        daCoMa.add(m); return m;
+      };
       co.forEach(r=>{
-        const ma=String(r.Ma_GV??'').trim(), ten=String(r.Ho_ten??'').trim();
-        if(!ma) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ma_GV'});
+        let ma=String(r.Ma_GV??'').trim();
+        const ten=String(r.Ho_ten??'').trim();
         if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ho_ten'});
+        if(!ma){
+          const trung=kho.giaoVien.filter(g=>chuanTen(g.hoTen)===chuanTen(ten));
+          if(trung.length>1) return void loi.push({t:this.trang, d:r.__dong,
+            v:`có ${trung.length} người tên "${ten}" — ghi Ma_GV vào để máy biết sửa hồ sơ nào`});
+          ma = trung.length ? (trung[0].maGV||trung[0].id) : datMa(ten);
+        }
         const mail=String(r.Gmail??r.Email??'').trim().toLowerCase();
         if(mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail))
           return void loi.push({t:this.trang, d:r.__dong,
@@ -5297,10 +5354,9 @@ const MUC_NHAP = {
         }
         const maCN=String(r.Chu_nhiem??'').trim();
         if(maCN){
-          const l=kho.lop.find(x=>(x.maLop||x.id)===maCN);
-          if(!l) loi.push({t:this.trang, d:r.__dong,
-            v:`chưa khai lớp mã "${maCN}" — vào mục Lớp học thêm lớp này trước`});
-          else { kho.giaoVien.forEach(x=>{ if(x.cn===l.id) x.cn=''; }); g.cn=l.id; }
+          const tim=timLopNhap(kho, maCN);
+          if(!tim.lop) loi.push({t:this.trang, d:r.__dong, v:tim.loi});
+          else { kho.giaoVien.forEach(x=>{ if(x.cn===tim.lop.id) x.cn=''; }); g.cn=tim.lop.id; }
         }
         if(cu) capNhat++; else { kho.giaoVien.push(g); them++; }
       });
@@ -5369,11 +5425,11 @@ const MUC_NHAP = {
         const maG=String(r.Ma_GV??'').trim(), maL=String(r.Ma_lop??'').trim();
         const mon=String(r.Mon??'').trim();
         const g=kho.giaoVien.find(x=>(x.maGV||x.id)===maG);
-        const l=kho.lop.find(x=>(x.maLop||x.id)===maL);
+        const tim=timLopNhap(kho, maL);
+        const l=tim.lop;
         if(!g) return void loi.push({t:this.trang, d:r.__dong,
           v:`chưa khai giáo viên mã "${maG}" — vào mục Giáo viên thêm người này trước`});
-        if(!l) return void loi.push({t:this.trang, d:r.__dong,
-          v:`chưa khai lớp mã "${maL}" — vào mục Lớp học thêm lớp này trước`});
+        if(!l) return void loi.push({t:this.trang, d:r.__dong, v:tim.loi});
         if(!mon) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu tên môn'});
         /* So_tiet bỏ trống thì lấy tiết chuẩn theo khối — lý do trường "chỉ
            có bảng phân công, không biết số tiết" vẫn nhập được. */
@@ -13742,6 +13798,9 @@ function moTaCotNhap(c){
   if(k.kieu==='so') return `Số từ ${k.tu} đến ${k.den}`
     + (c.ten==='So_tiet' ? ' — bỏ trống thì máy lấy tiết chuẩn CT GDPT 2018 theo khối' : '');
   if(c.ten==='Gmail') return 'Địa chỉ Gmail của thầy cô — có rồi thì đăng nhập bằng Google là vào thẳng';
+  if(c.ten==='Ma_GV')   /* tới được đây thì chỉ còn cột Ma_GV của trang GIAO_VIEN:
+                           hai mục kia khai kiểu 'chon' nên đã trả về ở trên */
+    return 'Bỏ trống thì máy tự đặt mã từ họ tên. Sửa hồ sơ đã có thì ghi đúng mã cũ';
   return `Chữ, tối đa ${k.toiDa||60} ký tự`;
 }
 
@@ -13749,7 +13808,14 @@ function moTaCotNhap(c){
    cũng mang tên trang `PHAN_CONG`: nó có Ma_GV nhưng KHÔNG có Ma_lop, còn
    mẫu từng dòng thì có cả hai. Dò theo CỘT chứ không theo tên trang. */
 function hopTrangMuc(hang, m){
-  const k=new Set((hang||[]).slice(0,50).flatMap(r=>Object.keys(r)));
+  /* ⚠️ Dò theo TÊN CỘT khi có, không theo dữ liệu đã điền. Tệp của Tiểu học
+     Thần Lĩnh 1 (29/8/2026) đúng trang `GIAO_VIEN`, đúng chín cột, 35 dòng
+     họ tên — nhưng cột `Ma_GV` để trống cả cột vì mã là thứ máy tự đặt. Dò
+     theo dữ liệu thì `Ma_GV` không có mặt, app kết luận sai và báo *"Tệp này
+     không có trang tính nào máy đọc được"* trong khi người dùng cầm đúng tệp
+     mẫu vừa tải về. */
+  const k=new Set(hang?.__cot?.length ? hang.__cot
+    : (hang||[]).slice(0,50).flatMap(r=>Object.keys(r)));
   return m.khoaDong.every(c=>k.has(c));
 }
 
@@ -13776,7 +13842,11 @@ $('#tep').onchange=async e=>{
        nên thử tên mới trước rồi mới tới tên cũ — tệp đã tải về từ bản trước
        vẫn phải nhập được. */
     const hMuc = m ? (doc(m.trang) || (m.trangCu||[]).map(x=>doc(x)).find(Boolean) || null) : null;
-    if(m && hMuc && hopTrangMuc(hMuc, m)){
+    /* ⚠️ Phải đòi có DÒNG, không chỉ đòi hợp trang. Từ khi hopTrangMuc() dò
+       theo tên cột, một mẫu tải về chưa điền gì cũng "hợp trang" — rơi vào
+       đây thì người dùng nhận một hộp xác nhận nhập 0 dòng thay vì câu nói
+       thẳng "trang này chưa có dòng nào đã điền". */
+    if(m && hMuc?.length && hopTrangMuc(hMuc, m)){
       kqMuc=duLieuTuMuc(S.trangHienTai, hMuc);
       if(kqMuc.soLoi) return hopLoiNhap(kqMuc, null);
       return hopXacNhanNhapMuc(kqMuc);

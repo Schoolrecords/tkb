@@ -1441,6 +1441,37 @@ thì không. Nay `docTepMuc()` gọi thẳng `bangTuMaTran()`, hàm thật của
 rơi xuống câu *"không có trang tính nào máy đọc được"* — người dùng đang
 cầm đúng tệp mẫu, chỉ là chưa gõ gì vào.
 
+#### Cột khoá để TRỐNG cả cột vẫn phải nhận ra trang *(29/8/2026)*
+
+Tiểu học Thần Lĩnh 1 gõ 24 thầy cô vào đúng mẫu `GIAO_VIEN`, đủ chín cột, và
+nhận về **"Tệp này không có trang tính nào máy đọc được"**. Gốc: `bangTuMaTran()`
+chỉ gán khoá cho ô **đã điền**, nên cột `Ma_GV` trống suốt biến mất khỏi dữ
+liệu; `hopTrangMuc()` dò theo dữ liệu ấy rồi kết luận "không phải trang này".
+Nay `bangTuMaTran()` nhớ luôn **danh sách tên cột** (`__cot`, không liệt kê) và
+`hopTrangMuc()` dò theo tên cột. Tên cột mới là thứ nói trang này là trang gì.
+
+⚠️ Kèm theo: nhánh chính phải đòi **có dòng** (`hMuc?.length`), không thì mẫu
+tải về chưa điền gì cũng "hợp trang" và người dùng nhận hộp xác nhận nhập 0
+dòng thay vì câu nói thẳng *"chưa có dòng nào đã điền"*.
+
+**`Ma_GV` bỏ trống thì MÁY TỰ ĐẶT.** Mã giáo viên là thứ `maGVTu()` sinh được;
+bắt nhà trường gõ tay 24 mã là bắt làm hộ việc của máy, và họ gõ thì mỗi người
+một kiểu. ⚠️ Nhưng nhập **lại** đúng tệp ấy mà sinh mã mới là nhân đôi cả danh
+sách — đúng sự cố 105 hồ sơ ngày 2/8. Nên dò người cũ theo **họ tên đủ**; hai
+người trùng cả họ tên thì không đoán thay, bắt ghi `Ma_GV`.
+
+**`timLopNhap()` — một chỗ duy nhất tra lớp** cho cả cột `Chu_nhiem` lẫn
+`Ma_lop`. Ba mức chắc chắn giảm dần: đúng mã → đúng **tên lớp** khi tên ấy chỉ
+một lớp mang (nhà trường quen gọi *1A* hơn *1A_ND*) → **gợi ý mã gần nhất**.
+Thần Lĩnh gõ `1A_CN` trong khi mã thật là `1A_ND`: hai mươi mốt dòng cùng một
+lỗi, mà câu cũ khuyên *"vào mục Lớp học thêm lớp này trước"* — đẩy người dùng
+đi tạo thêm 15 lớp trùng, đúng hướng ngược với việc cần làm.
+
+⚠️ **Phép thử đầu tiên xanh oan lần nữa**: bộ soi điền vào mẫu mà mẫu thì
+**sinh sẵn** các giáo viên đang có kèm mã, nên cột `Ma_GV` không hề trống. Bỏ
+vá đi vẫn xanh. Phải có `xoaCotTrongMau()` xoá sạch cột ấy mới tái hiện được
+tệp thật. Cùng một bài học ba lần trong một tuần: **thử ngược mọi vá**.
+
 #### `npm run soi-nhap` — bộ soi thứ năm, đi đường của TRƯỜNG MỚI *(29/8/2026)*
 
 Ba bộ soi cũ mỗi bộ nhìn một mảnh: `npm test` chạy hàm thuần, `npm run soi`
