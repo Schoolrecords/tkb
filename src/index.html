@@ -5982,6 +5982,28 @@ function timLopNhap(kho, ma){
   const m=String(ma||'').trim(), b=x=>String(x||'').trim().toLowerCase();
   const maCua=l=>l.maLop||l.id;
   const theoMa=kho.lop.find(l=>b(maCua(l))===b(m));
+  /* ⚠️ MÂU THUẪN MÃ ↔ TÊN — đã ăn thật ở Vinh Hưng 1 ngày 30/8/2026.
+     Trường tạo lớp bằng dãy mặc định (A…H, có F) rồi SỬA TÊN tay thành
+     A B C D E G H I, nên mã và tên lệch nhau một bậc: lớp mã `1G` mang tên
+     `1H`, lớp mã `1H` mang tên `1I`.
+
+     Tệp Excel ghi "1H": tra theo mã thì trúng lớp mã 1H — mà lớp ấy TÊN LÀ
+     1I. Tệp ghi "1I": không có mã nào, tra theo tên thì cũng ra đúng lớp ấy.
+     Hai dòng phân công của hai giáo viên khác nhau cùng đổ vào một lớp, còn
+     lớp tên 1G thì không ai dạy. Trên màn hình chỉ thấy "mấy lần lớp I" —
+     không ai đoán ra vì sao.
+
+     Nên: một chuỗi khớp mã của lớp này mà lại là TÊN của lớp khác thì DỪNG,
+     không đoán. Cùng luật đã đặt cho họ tên giáo viên trùng nhau. */
+  /* ⚠️ Chỉ là mâu thuẫn khi lớp trúng theo mã lại MANG TÊN KHÁC. Lớp mã
+     `1A` tên `1A` thì tra theo mã là chính xác nhất, kể cả khi một lớp
+     khác cũng tên `1A` (hai phân hiệu — chuyện thường sau sáp nhập). Bản
+     vá đầu quên vế ấy và bắt oan ngay bộ soi nhập liệu. */
+  const nhamTen = b(theoMa?.ten)===b(m) ? null
+                : kho.lop.find(l=>b(l.ten)===b(m) && l!==theoMa);
+  if(theoMa && nhamTen) return {loi:`"${m}" vừa là MÃ của lớp tên "${theoMa.ten}", `
+    +`vừa là TÊN của lớp mã "${maCua(nhamTen)}" — mã lớp đang lệch với tên lớp. `
+    +`Vào mục Lớp học bấm "Đặt lại mã lớp" rồi tải mẫu mới về điền.`};
   if(theoMa) return {lop:theoMa};
   const theoTen=kho.lop.filter(l=>b(l.ten)===b(m));
   if(theoTen.length===1) return {lop:theoTen[0]};

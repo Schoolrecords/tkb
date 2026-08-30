@@ -64,7 +64,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
-  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, gvId, lopId };`;
+  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -96,7 +96,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
-        datCoDinh, gomLyDoCoDinh, oTuanLop } = taoUngDung(documentGia);
+        datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
 let dat = 0, hong = 0;
@@ -2932,6 +2932,69 @@ console.log('\n18f. Cố định môn vào giờ trước khi xếp');
       gom.map(x => `${x.n} lớp ${x.vi}`).join(' · ')]);
 
   sach();
+}
+
+console.log('\n18g. Mã lớp lệch tên lớp — không đoán bừa');
+{
+  /* ⚠️ ĐÃ ĂN THẬT ở Vinh Hưng 1 ngày 30/8/2026. Trường tạo lớp bằng dãy chữ
+     cái mặc định (A…H, có F) rồi SỬA TÊN tay thành A B C D E G H I, nên mã
+     và tên lệch nhau đúng một bậc: lớp mã `1G` mang tên `1H`, lớp mã `1H`
+     mang tên `1I`.
+
+     Tệp Excel ghi "1H" → tra theo MÃ thì trúng lớp mã 1H, mà lớp ấy tên là
+     1I. Tệp ghi "1I" → không mã nào khớp, tra theo TÊN cũng ra đúng lớp ấy.
+     Hai giáo viên khác nhau cùng đổ vào một lớp, còn lớp tên 1G không ai
+     dạy. Màn hình chỉ thấy "mấy lần lớp I" — không ai đoán ra vì sao. */
+  const khoLech = { lop: [
+    { id: 'x1', maLop: '1F', ten: '1G', khoi: 1 },
+    { id: 'x2', maLop: '1G', ten: '1H', khoi: 1 },
+    { id: 'x3', maLop: '1H', ten: '1I', khoi: 1 },
+  ]};
+
+  kt('Chuỗi vừa là mã lớp này vừa là tên lớp kia thì DỪNG, không đoán', (() => {
+    const r = timLopNhap(khoLech, '1H');
+    return [!r.lop && /lệch/.test(r.loi || ''), r.loi || `đã gán vào lớp tên ${r.lop?.ten}`];
+  })());
+
+  kt('Câu lỗi chỉ đúng đường chữa, không bắt người dùng tự mò', (() => {
+    const r = timLopNhap(khoLech, '1G');
+    return [/Đặt lại mã lớp/.test(r.loi || ''), (r.loi || '').slice(0, 90)];
+  })());
+
+  /* Chuỗi chỉ khớp TÊN, không trùng mã của ai — vẫn phải nhận bình thường.
+     Nhà trường quen gọi "1A" hơn "1A_ND", đó là cả lý do có mức tra theo tên. */
+  kt('Chỉ khớp tên, không đụng mã ai thì vẫn nhận', (() => {
+    const r = timLopNhap(khoLech, '1I');
+    return [r.lop?.maLop === '1H', r.lop ? `→ lớp mã ${r.lop.maLop}` : r.loi];
+  })());
+
+  /* Trường bình thường — mã và tên trùng nhau — phải chạy y như cũ. */
+  kt('Mã trùng tên như mọi trường bình thường thì không báo gì', (() => {
+    const kho = { lop: [{ id: 'a', maLop: '1A', ten: '1A', khoi: 1 },
+                        { id: 'b', maLop: '1B', ten: '1B', khoi: 1 }] };
+    const r = timLopNhap(kho, '1A');
+    return [r.lop?.id === 'a' && !r.loi, r.lop ? 'nhận đúng 1A' : r.loi];
+  })());
+
+  /* ⚠️ BẢN VÁ ĐẦU BẮT OAN ở đúng cảnh này, và bộ soi nhập liệu bắt được
+     ngay: lớp mã `1A` mang tên `1A` thì tra theo mã là CHÍNH XÁC NHẤT, kể
+     cả khi một lớp khác cũng tên `1A`. Mâu thuẫn chỉ có khi lớp trúng theo
+     mã lại mang tên khác. Thêm hàng rào thì phải soi cả chiều bắt oan. */
+  kt('Mã trùng tên chính nó thì nhận, dù lớp khác cũng mang tên ấy', (() => {
+    const kho = { lop: [{ id: 'p', maLop: '1A', ten: '1A', khoi: 1 },
+                        { id: 'q', maLop: '1A_TT', ten: '1A', khoi: 1 }] };
+    const r = timLopNhap(kho, '1A');
+    return [r.lop?.id === 'p' && !r.loi, r.lop ? `→ lớp mã ${r.lop.maLop}` : r.loi];
+  })());
+
+  /* Hai phân hiệu cùng có lớp tên 1A là chuyện thường sau sáp nhập — mã khác
+     nhau nên không mâu thuẫn, và tra theo mã vẫn phải trúng. */
+  kt('Hai phân hiệu cùng tên lớp nhưng khác mã thì không nhầm là lệch', (() => {
+    const kho = { lop: [{ id: 'a', maLop: '1A_DL', ten: '1A', khoi: 1 },
+                        { id: 'b', maLop: '1A_DD', ten: '1A', khoi: 1 }] };
+    const r = timLopNhap(kho, '1A_DD');
+    return [r.lop?.id === 'b' && !r.loi, r.lop ? 'nhận đúng 1A_DD' : r.loi];
+  })());
 }
 
 console.log('\n19. Mã giáo viên đọc được');
