@@ -64,7 +64,8 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
-  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi, gvId, lopId };`;
+  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi,
+  thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -96,7 +97,8 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
-        datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap, dienGiaiLoi } = taoUngDung(documentGia);
+        datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap, dienGiaiLoi,
+        thuTuHangGV, lopCN } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
 let dat = 0, hong = 0;
@@ -3120,6 +3122,56 @@ console.log('\n18h. Dịch lỗi máy chủ — đừng gộp ba chuyện làm m
     const b = dienGiaiLoi(new Error(
       'new row violates row-level security policy for table "lop"'));
     return [/không có quyền/.test(a) && /không có quyền/.test(b), a.slice(0, 60)];
+  })());
+}
+
+console.log('\n18i. Thứ tự đọc danh sách giáo viên');
+{
+  /* Chủ dự án đề xuất 31/8/2026: "danh sách giáo viên nên sắp xếp theo lớp
+     chủ nhiệm trước, sau đó đến giáo viên bộ môn giống như phân công, và
+     mẫu tải về cũng xếp theo thứ tự này."
+
+     Trước đó bảng Giáo viên sắp theo số tiết giảm dần, còn bảng Phân công
+     sắp theo lớp chủ nhiệm — hai bảng bày CÙNG một danh sách theo hai thứ
+     tự khác nhau, và tệp Excel tải về lại theo thứ tự thứ ba. */
+  const xep = thuTuHangGV();
+  const ds = [...S.giaoVien].sort(xep);
+
+  kt('Chủ nhiệm đứng trước, bộ môn đứng sau — không xen kẽ', (() => {
+    const laCN = ds.map(g => !!lopCN(g));
+    const cat = laCN.indexOf(false);
+    return [cat < 0 || !laCN.slice(cat).includes(true),
+            `${laCN.filter(Boolean).length} chủ nhiệm rồi tới ${laCN.length - laCN.filter(Boolean).length} bộ môn`];
+  })());
+
+  kt('Chủ nhiệm xếp theo thứ tự lớp: 1A 1B 1C… rồi mới sang khối 2', (() => {
+    const lop = ds.map(g => lopCN(g)).filter(Boolean).map(l => l.ten);
+    const dung = xepTheoKhoi(S.lop.filter(l => S.giaoVien.some(g => lopCN(g)?.id === l.id)))
+                   .map(l => l.ten);
+    return [String(lop) === String(dung), lop.slice(0, 8).join(' ') + '…'];
+  })());
+
+  kt('Giáo viên bộ môn xếp theo họ tên', (() => {
+    const bm = ds.filter(g => !lopCN(g)).map(g => g.hoTen);
+    const sap = [...bm].sort((x, y) => x.localeCompare(y, 'vi'));
+    return [String(bm) === String(sap), bm.slice(0, 3).join(' · ') || '(không có ai)'];
+  })());
+
+  /* ⚠️ Mẫu Excel phải theo ĐÚNG thứ tự ấy — tệp tải về xếp khác thứ tự người
+     dùng vừa nhìn trên màn hình là bắt họ dò lại từ đầu. */
+  kt('Mẫu Excel giáo viên xếp cùng thứ tự với bảng trên màn hình', (() => {
+    const hang = MUC_NHAP.giaovien.hang();
+    const ten = hang.map(h => h[2]);
+    return [String(ten) === String(ds.map(g => g.hoTen)), ten.slice(0, 3).join(' · ')];
+  })());
+
+  kt('Mẫu ma trận cũng xếp cùng thứ tự ấy', (() => {
+    /* bangMauMaTran() trả {mt, lop, dsMon, …}; `mt` là mảng dòng, dòng đầu
+       là tên cột, cột thứ ba là họ tên. */
+    const { mt } = bangMauMaTran();
+    const ten = mt.slice(1).map(r => r[2]).filter(Boolean);
+    return [ten.length > 0 && String(ten) === String(ds.map(g => g.hoTen)),
+            ten.slice(0, 3).join(' · ')];
   })());
 }
 

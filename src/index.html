@@ -6193,7 +6193,7 @@ const MUC_NHAP = {
          {ten:'Chu_nhiem', rong:16, khoa:{kieu:'chon', nguon:'DM_Ma_lop'}},
          {ten:'Dinh_muc',  rong:11, khoa:{kieu:'so', tu:1, den:30}},
          {ten:'Ghi_chu',   rong:34, khoa:{kieu:'chu', toiDa:200}}],
-    hang:()=>S.giaoVien.map((g,i)=>[i+1, g.maGV||g.id, g.hoTen, g.email||'',
+    hang:()=>[...S.giaoVien].sort(thuTuHangGV()).map((g,i)=>[i+1, g.maGV||g.id, g.hoTen, g.email||'',
       g.dienThoai||'', dtId(g.dtChinh)?.ten||'',
       g.cn?(lopId(g.cn)?.maLop||g.cn):'', g.dinhMuc||DINH_MUC, g.ghiChu||'']),
     viDu:[[1,'An_NT','Nguyễn Thị An','','','','',DINH_MUC,''],
@@ -7450,6 +7450,27 @@ const khoiDangCo = ds => [...new Set((ds||lopTrongPV()).map(khoiCuaLop))].sort((
 const xepTheoKhoi = ds => [...ds].sort((a,b)=>
   (khoiCuaLop(a)-khoiCuaLop(b)) || a.ten.localeCompare(b.ten,'vi'));
 
+/* Thứ tự đọc danh sách giáo viên: CHỦ NHIỆM trước, xếp theo lớp; bộ môn sau,
+   xếp theo họ tên. Đúng cách nhà trường vẫn đọc, và là thứ tự bảng Phân công
+   dùng từ đầu.
+
+   ⚠️ Nằm ở vùng LOGIC chứ không phải vùng giao diện: bảng trên màn hình, mẫu
+   Excel giáo viên và mẫu ma trận đều cần — ba nơi tự sắp lấy thì sớm muộn
+   lệch nhau, mà lệch ở đây nghĩa là tệp tải về xếp khác thứ tự người dùng
+   vừa nhìn, bắt họ dò lại từ đầu. */
+function thuTuHangGV(){
+  const viTri = new Map(xepTheoKhoi(S.lop).map((l,i)=>[l.id,i]));
+  return (a,b)=>{
+    const la=lopCN(a), lb=lopCN(b);
+    if(!!la !== !!lb) return la ? -1 : 1;            /* chủ nhiệm lên trước */
+    if(la && lb){
+      const d=(viTri.get(la.id) ?? 1e6)-(viTri.get(lb.id) ?? 1e6);
+      if(d) return d;
+    }
+    return a.hoTen.localeCompare(b.hoTen,'vi');
+  };
+}
+
 /* Lưới TOÀN TRƯỜNG — mỗi cột một lớp, xếp theo khối, thêm một dòng ghi khối
    ở trên đầu. Đây là tờ dán bảng tin ngày khai giảng: nhìn một lần thấy hết.
    Khác `luoiTheoLop` ở chỗ có thứ tự khối và dòng nhãn khối. */
@@ -7538,7 +7559,10 @@ function bangMauMaTran(){
      dấu x. Trước đây thiếu phân công là cả bảng rơi về bốn cái tên bịa. */
   {
     const maCuaLop=id=>lopId(id)?.maLop||id;
-    S.giaoVien.forEach((g,i)=>{
+    /* Cùng thứ tự với bảng trên màn hình: chủ nhiệm theo lớp trước, bộ môn
+       sau. Tệp tải về mà xếp khác thứ tự người dùng vừa nhìn là bắt họ dò
+       lại từ đầu. */
+    [...S.giaoVien].sort(thuTuHangGV()).forEach((g,i)=>{
       /* bộ lớp của từng môn; bộ xuất hiện nhiều môn nhất làm Lop_day */
       const theoMon={};
       S.phanCong.filter(p=>p.gvId===g.id).forEach(p=>{
@@ -12776,7 +12800,12 @@ function mDiemTruong(){
 }
 function mGiaoVien(){
   const trong=new Set(gvTrongPV().map(g=>g.id));
-  const ds=KT.gv.filter(x=>trong.has(x.g.id)).sort((a,b)=>b.tong-a.tong);
+  /* Sắp theo LỚP CHỦ NHIỆM trước, rồi mới tới bộ môn — đúng thứ tự bảng
+     Phân công đang dùng, và đúng cách nhà trường vẫn đọc danh sách. Chủ dự
+     án đề xuất 31/8/2026: trước đó sắp theo số tiết giảm dần nên hai bảng
+     bày cùng một danh sách theo hai thứ tự khác nhau. */
+  const xepGV=thuTuHangGV();
+  const ds=KT.gv.filter(x=>trong.has(x.g.id)).sort((a,b)=>xepGV(a.g,b.g));
   return dauTrang('Giáo viên',
     S.phamVi?`${ds.length} giáo viên có tiết tại ${esc(dtId(S.phamVi)?.ten||'')}. Số tiết và số buổi tính trên cả tuần.`
       :'Số tiết được phân công và số buổi phải có mặt trong tuần của từng người.',true)+
@@ -12895,18 +12924,6 @@ function oMaTran(g, mon){
    và cũng là thứ tự người xếp rà soát: đi hết từng lớp rồi mới xét người dạy
    liên lớp. Xếp theo tên A–Z thì cô chủ nhiệm 1A nằm giữa bảng, không ai dò
    được lớp nào đã đủ người. */
-function thuTuHangGV(){
-  const viTri = new Map(xepTheoKhoi(S.lop).map((l,i)=>[l.id,i]));
-  return (a,b)=>{
-    const la=lopCN(a), lb=lopCN(b);
-    if(!!la !== !!lb) return la ? -1 : 1;            /* chủ nhiệm lên trước */
-    if(la && lb){
-      const d=(viTri.get(la.id) ?? 1e6)-(viTri.get(lb.id) ?? 1e6);
-      if(d) return d;
-    }
-    return a.hoTen.localeCompare(b.hoTen,'vi');
-  };
-}
 
 function bangMaTran(){
   const dsGV=[...gvTrongPV()].sort(thuTuHangGV());
