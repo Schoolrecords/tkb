@@ -64,7 +64,12 @@ async function chup(ten, { rong = 1400, cao = 900, lam }) {
 }
 
 const di  = t => p => p.evaluate(x => window.chuyen(x), t);
-const xep = p => p.evaluate(() => { window.KQ_XEP = window.xepTuDong(); window.ve(); });
+/* ⚠️ `KQ_XEP` khai bằng `let` nên KHÔNG nằm trên window — gán
+   `window.KQ_XEP` là tạo một biến KHÁC, còn màn hình Xếp vẫn đọc bản cũ
+   mà lúc khởi động app đã tự xếp. Bấy lâu không lộ ra vì cả hai đều là
+   710/710; chỉ khi dựng cảnh THIẾU tiết mới thấy ảnh chụp ghi 710 trong
+   khi huy hiệu bên trái đã báo 18 tiết kẹt. Gán thẳng vào biến thật. */
+const xep = p => p.evaluate(() => { KQ_XEP = xepTuDong(); ve(); });
 
 console.log('Đang chụp:');
 await chup('01-bang-dieu-hanh',      { lam: di('dieuhanh') });
@@ -165,6 +170,22 @@ await chup('36-dt-ai-ranh', { rong: 390, cao: 900, lam: async p => {
   await xep(p); await di('airanh')(p); } });
 await chup('37-dt-loc-giao-vien', { rong: 390, cao: 900, lam: async p => {
   await xep(p); await di('giaovien')(p); } });
+
+/* Vì sao còn tiết chưa xếp (30/8/2026). Trường thật xếp trọn 710/710 nên
+   phải DỰNG cảnh thiếu tiết, không thì ảnh chụp ra màn hình "xếp trọn vẹn"
+   và cả tính năng này không bao giờ lộ ra trên ảnh. */
+await chup('38-vi-sao-chua-xep', { cao: 1100, lam: async p => {
+  await p.evaluate(() => {
+    /* Cô Mỹ thuật dạy cả 25 lớp — cho bận gần hết tuần là chắc chắn kẹt */
+    const mt = S.phanCong.find(x => x.mon === 'Mỹ thuật');
+    S.gvNghi[mt.gvId] = buoiBat().slice(0, 6).map(k => `${k.thu}-${k.buoi}`);
+    const dd = S.phanCong.find(x => x.mon === 'Đạo Đức' && x.gvId !== mt.gvId);
+    if (dd) S.gvNghi[dd.gvId] = buoiBat().slice(0, 3).map(k => `${k.thu}-${k.buoi}`);
+    KQ_XEP = xepTuDong();
+    ve();
+  });
+  await di('xep')(p);
+} });
 
 /* Trường CHƯA khai gì — thanh tiến trình phải chỉ rõ từng việc còn thiếu */
 await chup('13-truong-moi-chua-co-gi', { lam: p => p.evaluate(() => {

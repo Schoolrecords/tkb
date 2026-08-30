@@ -3835,6 +3835,136 @@ function nhomCungRanh(khoa, dsIdGV, dsLop){
   return kq.ranh.length===bo.size;
 }
 
+/* ==================================================================
+   VÌ SAO CÒN TIẾT CHƯA XẾP — và phải làm gì (30/8/2026)
+
+   Học từ chức năng *Tinh chỉnh TKB tự động* của SmartScheduler: khi
+   không xếp đủ 100%, họ chỉ ra ràng buộc nào đang mâu thuẫn thay vì để
+   người dùng tự mò. FAQ của họ có tới 9 câu chỉ xoay quanh chuyện này.
+
+   App mình vốn dừng ở con số: *"Còn 2 tiết không tìm được ô trống hợp
+   lệ"*. Đúng nhưng vô dụng — người xếp đọc xong vẫn không biết làm gì.
+   Hàm này nói tiếp vế thứ hai: **vướng ai, vướng ở đâu, gỡ thế nào, và
+   gỡ ra thì được thêm mấy ô.**
+
+   Cách làm: duyệt MỌI ô của lớp, gọi lại chính `datDuoc()` — hàm quyết
+   định thật của thuật toán — rồi gom lý do và lấy cái chặn nhiều ô nhất.
+   Cố ý KHÔNG viết lại điều kiện: hai nguồn sự thật thì sớm muộn lệch, mà
+   lệch ở đây nghĩa là chỉ sai đường cho người đang bí.
+   ================================================================== */
+
+/* ⚠️ `datDuoc()` trả CÂU CHỮ tiếng Việt (nó còn dùng cho chỉnh tay, nơi
+   câu ấy hiện thẳng lên màn hình). Bảng dưới đây gom câu về nhóm để đếm.
+   Đây là chỗ duy nhất phụ thuộc vào lời văn của `datDuoc()`, nên có phép
+   thử đòi MỌI câu hàm ấy trả ra đều rơi vào một nhóm — sửa câu chữ mà
+   quên sửa đây là bộ soi đỏ ngay, không âm thầm rơi hết vào "khác". */
+const NHOM_CHAN = [
+  {ma:'lopKin', hop:l=>l.startsWith('Lớp đã có tiết'),
+   ten:'lớp đã kín lưới', di:'khunggio'},
+  {ma:'gvBan', hop:l=>l.startsWith('Giáo viên đang dạy lớp'),
+   ten:'giáo viên đang dạy lớp khác', di:'phancong'},
+  {ma:'gvNghi', hop:l=>l.startsWith('Giáo viên đã đăng ký'),
+   ten:'giáo viên đã đăng ký buổi bận', di:'buoiban'},
+  {ma:'khacDT', hop:l=>l.startsWith('Giáo viên đang dạy ở'),
+   ten:'giáo viên đang ở phân hiệu khác', di:'phancong'},
+  {ma:'khongPhong', hop:l=>l.includes('không có phòng'),
+   ten:'phân hiệu chưa có phòng chức năng', di:'phonghoc'},
+  {ma:'phongKin', hop:l=>l.startsWith('Phòng'),
+   ten:'phòng chức năng đã kín', di:'phonghoc'}
+];
+
+function viSaoChuaXep(c, cs){
+  const gv=gvId(c.gvId), lop=lopId(c.lopId);
+  if(!gv||!lop) return null;
+  const chiSoDung = cs || chiSo();
+  const oLop=oTuanLop(c.lopId);
+  const dem={}; let doiCho=0;
+  oLop.forEach(x=>{
+    const l=datDuoc(x,c.lopId,c.gvId,chiSoDung,c.mon);
+    if(!l){ doiCho++; return; }                 /* ô này lẽ ra đặt được */
+    const n=NHOM_CHAN.find(k=>k.hop(l));
+    const ma=n?n.ma:'khac';
+    dem[ma]=(dem[ma]||0)+1;
+  });
+  /* Lý do chặn NHIỀU ô nhất là thứ đáng gỡ trước. Bỏ qua `lopKin` khi còn
+     lý do khác: "lớp đã có tiết" đúng ở gần hết các ô nhưng nó chỉ là hệ
+     quả của việc lưới đã đầy, không phải nguyên nhân người dùng gỡ được. */
+  const xep=Object.entries(dem).sort((a,b)=>b[1]-a[1]);
+  const chinh=xep.find(([m])=>m!=='lopKin') || xep[0];
+  if(!chinh) return null;
+  const [ma,so]=chinh;
+  const nhom=NHOM_CHAN.find(k=>k.ma===ma);
+  const oTrong=oLop.length-(dem.lopKin||0);
+
+  /* Câu hành động: nói CHUYỆN GÌ, rồi LÀM GÌ, kèm gỡ ra được mấy ô.
+     Không nói "vi phạm ràng buộc R0x" — người dùng là hiệu trưởng. */
+  const ten=gv.hoTen, tl=tenLopDay(c.lopId);
+  const tongTiet=S.phanCong.filter(p=>p.gvId===c.gvId).reduce((s,p)=>s+p.soTiet,0);
+  const kho = {
+    lopKin: {
+      viec:`Lớp ${tl} đã kín cả ${oLop.length} ô mỗi tuần`,
+      lam:`Mở thêm ô cho khối ${lop.khoi} ở mục Khối và khung giờ, hoặc bớt tiết của một môn khác trong lớp này.`,
+      di:'khunggio'},
+    gvBan: {
+      viec:`${ten} kín lịch — ${so}/${oTrong} ô còn trống của lớp ${tl} đều trùng tiết đang dạy ở lớp khác`,
+      lam:`${ten} đang nhận ${tongTiet} tiết. Chia bớt một lớp cho người khác ở mục Phân công chuyên môn.`,
+      di:'phancong'},
+    gvNghi: {
+      viec:`${ten} đã đăng ký buổi bận — ${so}/${oTrong} ô còn trống của lớp ${tl} rơi đúng vào buổi ấy`,
+      lam:`Bỏ bớt một buổi bận của ${ten} ở mục Buổi bận là mở lại được những ô này.`,
+      di:'buoiban'},
+    khacDT: {
+      viec:`${ten} đang phải có mặt ở phân hiệu khác trong ${so}/${oTrong} ô còn trống của lớp ${tl}`,
+      lam:`Một giáo viên một buổi chỉ ở được một phân hiệu. Gom các lớp của ${ten} về cùng phân hiệu, hoặc đổi người dạy lớp ${tl}.`,
+      di:'phancong'},
+    khongPhong: {
+      viec:`Phân hiệu của lớp ${tl} chưa có phòng cho môn ${c.mon}`,
+      lam:`Khai phòng ở mục Phòng học, hoặc bỏ yêu cầu phòng của môn ${c.mon} ở mục Môn học.`,
+      di:'phonghoc'},
+    phongKin: {
+      viec:`Phòng cho môn ${c.mon} đã kín ở ${so}/${oTrong} ô còn trống của lớp ${tl}`,
+      lam:`Thêm một phòng nữa ở mục Phòng học — quy tắc R12 tính sẵn số phòng còn thiếu.`,
+      di:'phonghoc'},
+    khac: {
+      viec:`Không còn ô nào hợp lệ cho ${ten} · ${c.mon} · lớp ${tl}`,
+      lam:`Xem mục Kiểm tra khả thi để biết vướng mắc nào đang chặn.`,
+      di:'kiemtra'}
+  }[ma] || null;
+  if(!kho) return null;
+  return {...kho, ma, so, oTrong, tongO:oLop.length, doiCho,
+          nhomTen:nhom?nhom.ten:'chưa rõ'};
+}
+
+/* Gộp các trường hợp chưa xếp thành danh sách việc cần làm, gom theo
+   cùng một cách gỡ. Ba người cùng vướng "bỏ bớt buổi bận" là MỘT việc,
+   không phải ba — đúng bài học gom lỗi nhập liệu ngày 28/8. */
+function viecGoBiXep(dsChuaXep){
+  if(!dsChuaXep?.length) return [];
+  const cs=chiSo();
+  const theoMa={};
+  dsChuaXep.forEach(c=>{
+    const v=viSaoChuaXep(c,cs);
+    if(!v) return;
+    (theoMa[v.ma]=theoMa[v.ma]||[]).push({...v, c});
+  });
+  return Object.values(theoMa)
+    .map(ds=>{
+      const tiet=ds.reduce((s,x)=>s+(x.c.con||0),0);
+      /* ⚠️ Gom xong thì TIÊU ĐỀ phải nói chuyện của cả cụm. Để nguyên câu
+         của trường hợp đầu — "1/1 ô còn trống của lớp 2A" — trong khi bên
+         dưới ghi "còn 11 trường hợp nữa" là bắt người đọc tự cộng, và con
+         số 1 ở đầu câu làm việc này trông nhỏ hơn thực tế mười lần. */
+      const bo=new Set(ds.map(x=>x.c.gvId));
+      const lop=new Set(ds.map(x=>x.c.lopId));
+      const viec = ds.length===1 ? ds[0].viec
+        : bo.size===1
+          ? `${gvId([...bo][0])?.hoTen||''} — ${ds[0].nhomTen}, kẹt ${tiet} tiết ở ${lop.size} lớp`
+          : `${bo.size} giáo viên cùng vướng "${ds[0].nhomTen}" — kẹt ${tiet} tiết ở ${lop.size} lớp`;
+      return {...ds[0], viec, soTruongHop:ds.length, tiet, ds};
+    })
+    .sort((a,b)=>b.tiet-a.tiet);
+}
+
 /*#endregion LOGIC*/
 
 /*#region DULIEU*/
@@ -8676,12 +8806,27 @@ function ketQuaXep(){
   ${k.toiUu?.doi?`<div class="gy" style="margin-top:10px">Xếp đủ tiết xong, máy còn đổi chỗ ${k.toiUu.doi} lần
     (${k.toiUu.vong} lượt rà) để bớt tiết trống kẹp giữa buổi, kéo Toán và Tiếng Việt về buổi sáng,
     và giảm số lần thầy cô phải chạy sang phân hiệu khác. Số tiết không đổi.</div>`:''}
-  ${k.chuaXep.length?`<div style="margin-top:16px">
-    ${k.chuaXep.slice(0,5).map(c=>`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
-      <b>${esc(gvId(c.gvId)?.hoTen)} · ${esc(c.mon)} · lớp ${esc(tenLopDay(c.lopId))}</b>
-      <div class="cb-g">Còn ${c.con} tiết không tìm được ô trống hợp lệ.</div></div></div>`).join('')}
-    ${k.chuaXep.length>5?`<div class="gy">…và ${k.chuaXep.length-5} trường hợp khác.</div>`:''}
-    </div>`
+  ${k.chuaXep.length?(()=>{
+    /* ⚠️ Trước 30/8/2026 chỗ này chỉ ghi "Còn N tiết không tìm được ô trống
+       hợp lệ" rồi dừng — đúng nhưng người xếp đọc xong vẫn không biết làm gì.
+       Nay nói tiếp: vướng ai, gỡ thế nào, gỡ ra được mấy ô, và bấm sang thẳng
+       màn hình sửa được. Gom theo CÁCH GỠ nên ba người cùng vướng một kiểu
+       chỉ hiện một khối. */
+    const viec=viecGoBiXep(k.chuaXep);
+    if(!viec.length) return '';
+    return `<div style="margin-top:16px">
+      <div class="gy" style="margin-bottom:9px">Máy đã dò hết mọi ô của các lớp ấy.
+        Đây là chỗ vướng và cách gỡ — xếp theo số tiết gỡ được nhiều nhất:</div>
+      ${viec.map(v=>`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
+        <b>${esc(v.viec)}</b>
+        <div class="cb-g">${esc(v.lam)}
+          ${v.soTruongHop>1?`<br><span style="color:var(--chu-mo)">Gồm:
+            ${esc(v.ds.slice(0,4).map(x=>`${x.c.mon} lớp ${tenLopDay(x.c.lopId)}`).join(' · '))}${v.ds.length>4?` …và ${v.ds.length-4} lớp nữa`:''}</span>`:''}
+        </div>
+        <div style="margin-top:9px"><button class="b b-vien b-nho" data-di="${esc(v.di)}">Đi sửa chỗ này</button></div>
+      </div></div>`).join('')}
+      </div>`;
+  })()
   :`<div class="canhbao ok" style="margin-top:16px"><div class="cb-ic">✓</div><div class="cb-t">
       <b>Xếp trọn vẹn toàn bộ tiết</b><div class="cb-g">Không có xung đột giáo viên, lớp hay phân hiệu.</div></div></div>`}
   <div style="margin-top:14px"><button class="b b-ch" data-di="tkblop">Xem thời khóa biểu</button></div>`;

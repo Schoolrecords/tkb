@@ -1606,6 +1606,58 @@ mục 3 — và lần này em tự bắt bằng cách đọc lại chính câu �
 6/6 đều làm phép thử đỏ. Bài học ba lần trong một tuần nay thành thói quen —
 vá xong thì phá thử, không thì không biết phép thử có canh gì không.
 
+#### Vì sao còn tiết chưa xếp — và phải làm gì *(30/8/2026)*
+
+Học từ *Tinh chỉnh TKB tự động* của SmartScheduler: không xếp đủ 100% thì họ
+chỉ ra ràng buộc nào đang mâu thuẫn, thay vì để người dùng tự mò (FAQ của họ
+có 9 câu chỉ xoay quanh chuyện ấy). App mình vốn dừng ở con số — *"Còn 2 tiết
+không tìm được ô trống hợp lệ"* — đúng nhưng người xếp đọc xong vẫn không biết
+làm gì. Đây là **nửa A** của việc chẩn đoán: chỉ ĐỌC lưới, không chạy lại
+thuật toán, nên an toàn ngang đợt 1.
+
+| Hàm | Việc |
+|---|---|
+| `NHOM_CHAN` | gom câu lý do của `datDuoc()` về sáu nhóm |
+| `viSaoChuaXep(c, cs)` | một trường hợp: vướng gì · gỡ thế nào · gỡ ra mấy ô |
+| `viecGoBiXep(ds)` | gom theo CÁCH GỠ, sắp theo số tiết gỡ được |
+
+Bốn điều bắt buộc, cả bốn có phép thử (`npm test` mục **18d**):
+
+- **Dùng lại chính `datDuoc()`**, không viết lại điều kiện. Hai nguồn sự thật
+  thì sớm muộn lệch, mà lệch ở đây nghĩa là chỉ sai đường cho người đang bí.
+- ⚠️ **`NHOM_CHAN` là chỗ DUY NHẤT phụ thuộc vào lời văn của `datDuoc()`.**
+  Sửa một chữ trong hàm ấy mà quên sửa bảng thì mọi lý do lặng lẽ rơi vào
+  *"khác"*. Phép thử đòi **gặp đủ cả sáu nhóm** và không câu nào lọt.
+- **Bỏ qua `lopKin` khi còn lý do khác.** *"Lớp đã có tiết"* đúng ở gần hết
+  các ô nhưng nó là **hệ quả** của lưới đã đầy, không phải nguyên nhân người
+  dùng gỡ được.
+- **Gom theo cách gỡ, và tiêu đề phải nói chuyện của cả cụm.** Mười hai trường
+  hợp cùng vướng buổi bận là MỘT việc. Để nguyên câu của trường hợp đầu —
+  *"1/1 ô còn trống của lớp 2A"* — trong khi bên dưới ghi *"còn 11 trường hợp
+  nữa"* là bắt người đọc tự cộng, và con số 1 ở đầu câu làm việc này trông nhỏ
+  hơn thực tế mười lần. Nay: *"Đinh Thị Nhã — giáo viên đã đăng ký buổi bận,
+  kẹt 11 tiết ở 11 lớp"*.
+- **Không phóng đại.** Số ô đếm được trên lưới đã đầy là **cận dưới**, nên câu
+  chữ ghi `${so}/${oTrong} ô còn trống`, không ghi *"sẽ mở ra tới N ô"*.
+
+⚠️ **Hai phép thử đầu tiên lại XANH OAN** — lần thứ ba trong hai ngày:
+- *"Mọi câu lý do rơi vào một nhóm"* quét trên lưới **đã xếp đầy**, nên
+  `datDuoc()` dừng ngay ở nhánh đầu và 5.832 câu nó soi thật ra là **một câu
+  lặp lại**. Đổi câu chữ của bốn nhánh dưới mà phép thử vẫn xanh. Nay dựng
+  lưới TRỐNG rồi quét (41.325 câu) và **đòi gặp đủ 6/6 nhóm**.
+- *"Việc gỡ nhiều tiết nhất đứng trước"* dựng cảnh chỉ ra **một** việc, mà một
+  phần tử thì thứ tự nào cũng đúng — đảo chiều `sort` vẫn xanh. Nay ép ra hai
+  nhóm khác nhau (một cô bận cả tuần + một cô chạy hai phân hiệu).
+
+Đã thử ngược **4/4**, cả bốn đều làm phép thử đỏ.
+
+⚠️ **`KQ_XEP` khai bằng `let` nên KHÔNG nằm trên `window`** *(lộ ra 30/8/2026)*.
+`docs/anh-giao-dien/chup.mjs` gán `window.KQ_XEP = xepTuDong()` — tức tạo một
+biến KHÁC, còn màn hình Xếp vẫn đọc bản cũ mà `khoiDong()` đã tự xếp lúc vào
+chế độ demo. Bấy lâu không lộ vì cả hai đều là 710/710; chỉ khi dựng cảnh
+THIẾU tiết mới thấy ảnh chụp ghi *710 tiết · 0 chưa xếp* trong khi huy hiệu
+thanh bên đã báo **18**. Nay gán thẳng `KQ_XEP = xepTuDong()`.
+
 Ảnh chụp 13 màn hình: **`docs/anh-giao-dien/`**, chụp lại bằng
 `node docs/anh-giao-dien/chup.mjs` (Chrome thật, không tải thêm trình duyệt).
 Khác `npm run soi` ở chỗ đó chạy trình duyệt giả để **kiểm** lỗi, còn tệp này

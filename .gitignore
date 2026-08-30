@@ -17,3 +17,11 @@ desktop.ini
 # thoại thật của giáo viên (dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP),
 # mà kho này là kho CÔNG KHAI. Mẫu và bộ kiểm thử không cần tới chúng.
 /*.xlsx
+
+# Ảnh chụp màn hình chủ dự án gửi để trao đổi trong lúc làm việc. Cùng lý do
+# với tệp Excel ở trên: ảnh chụp app đang chạy thật thường có họ tên giáo
+# viên trên lưới, mà kho này công khai. Ảnh giao diện CHÍNH THỨC thì nằm ở
+# docs/anh-giao-dien/ và do chup.mjs sinh ra từ bộ dữ liệu hư cấu.
+/*.jpg
+/*.jpeg
+/*.png

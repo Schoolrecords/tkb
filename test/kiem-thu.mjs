@@ -62,7 +62,8 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
   MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
-  luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi };`;
+  luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
+  viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -2451,6 +2452,144 @@ console.log('\n18c. Lớp còn thiếu tiết MÔN NÀO');
   kt('Câu chữ đọc được ngay: "Tiếng Anh 1, Âm nhạc 1"',
      u.chuThieuMon([{mon:'Tiếng Anh',thieu:1},{mon:'Âm nhạc',thieu:1}])
        === 'Tiếng Anh 1, Âm nhạc 1');
+}
+
+console.log('\n18d. Vì sao còn tiết chưa xếp — và phải làm gì');
+{
+  /* ⚠️ Trường thật xếp trọn 710/710 nên `chuaXep` LUÔN RỖNG — mã chẩn đoán
+     không chạy lần nào nếu chỉ dựa vào bộ dữ liệu vàng. Phải dựng đúng từng
+     cảnh thiếu tiết, mỗi cảnh một nguyên nhân khác nhau. */
+
+  /* Cảnh 1: giáo viên bộ môn đăng ký bận gần hết tuần */
+  kt('Vướng BUỔI BẬN thì chỉ đúng mục Buổi bận, và nói gỡ ra được mấy ô',
+     ...((() => {
+    const u = taoUngDung(documentGia);
+    /* Cô Mỹ thuật dạy cả 25 lớp — bận gần hết tuần là chắc chắn thiếu chỗ */
+    const mt = u.S.phanCong.find(p => p.mon === 'Mỹ thuật');
+    u.S.gvNghi[mt.gvId] = u.buoiBat().slice(0, 7).map(k => `${k.thu}-${k.buoi}`);
+    const k = u.xepTuDong(0);
+    if (!k.chuaXep.length) return [false, 'dựng cảnh hỏng: vẫn xếp đủ'];
+    const v = u.viecGoBiXep(k.chuaXep);
+    const bn = v.find(x => x.ma === 'gvNghi');
+    return [!!bn && bn.di === 'buoiban' && bn.so > 0 && /Buổi bận/.test(bn.lam),
+            bn ? `${bn.viec} → ${bn.lam}`.slice(0, 110) : 'không nhận ra buổi bận'];
+  })()));
+
+  /* Cảnh 2: khung giờ bị bóp nhỏ hơn số tiết phải xếp */
+  kt('Lưới lớp không đủ ô thì chỉ sang Khối và khung giờ', ...((() => {
+    const u = taoUngDung(documentGia);
+    /* Cắt mỗi buổi còn 2 tiết — tổng ô tụt hẳn dưới số tiết cần */
+    u.S.khungGio.forEach(k => { [1,2,3,4,5].forEach(x => k.tietKhoi[x] = 2); });
+    u.chuanKhungGio();
+    const k = u.xepTuDong(0);
+    if (!k.chuaXep.length) return [false, 'dựng cảnh hỏng: vẫn xếp đủ'];
+    const v = u.viecGoBiXep(k.chuaXep);
+    return [v.some(x => x.di === 'khunggio' || x.ma === 'lopKin'),
+            v[0] ? `${v[0].viec}`.slice(0, 100) : 'không có việc nào'];
+  })()));
+
+  /* ⚠️ Phép thử QUAN TRỌNG NHẤT của mục này. Bảng NHOM_CHAN gom câu chữ
+     của `datDuoc()` về nhóm — đó là chỗ DUY NHẤT phụ thuộc vào lời văn của
+     hàm ấy. Sửa một chữ trong `datDuoc()` mà quên sửa bảng thì mọi lý do
+     lặng lẽ rơi vào "khác", và người dùng nhận một câu vô nghĩa thay vì
+     đường đi. Phép thử này đi hết mọi cảnh chặn và đòi không câu nào lọt. */
+  kt('MỌI câu lý do của datDuoc() đều rơi vào một nhóm, không câu nào lọt',
+     ...((() => {
+    const u = taoUngDung(documentGia);
+    /* ⚠️ Bản đầu của phép thử này quét trên lưới ĐÃ XẾP ĐẦY, nên `datDuoc()`
+       dừng ngay ở dòng đầu — "Lớp đã có tiết khác" — và 5832 câu nó soi được
+       thật ra chỉ là một câu lặp lại. Đổi câu chữ của bốn nhánh dưới mà phép
+       thử vẫn xanh. Nay dựng lưới TRỐNG để mọi nhánh lộ ra, và đòi ĐỦ SÁU
+       nhóm cùng xuất hiện — không nhóm nào được im lặng. */
+    u.S.diemTruong.push({ id:'dt2', ten:'Phân hiệu Thử', phongTin:false });
+    u.S.lop.slice(0, 5).forEach(l => { u.S.lopDT[l.id] = 'dt2'; });
+    u.S.phong = [{ id:'p1', dtId:u.S.diemTruong[0].id, ten:'Phòng máy', mon:'Tin học' }];
+    u.xepTuDong(0);
+    /* Chụp bảng tra của lưới ĐÃ xếp (để còn "giáo viên đang dạy lớp…" và
+       "đang dạy ở phân hiệu khác"), rồi mới dọn lưới đi để nhánh "lớp đã có
+       tiết" thôi che mất năm nhánh sau. */
+    const cs = u.chiSo();
+    u.S.lop.forEach(l => { u.S.tkb[l.id] = {}; });
+    const gvBan = u.S.giaoVien.find(g => cs.gvBan[g.id]);
+    u.S.gvNghi[u.S.giaoVien[0].id] = u.buoiBat().map(k => `${k.thu}-${k.buoi}`);
+
+    const cauLa = new Set(), thay = new Set();
+    let tong = 0;
+    u.S.lop.forEach(l => {
+      u.oTuanLop(l.id).forEach(o => {
+        u.S.giaoVien.forEach(g => {
+          ['Toán', 'Tin học'].forEach(m => {
+            const ly = u.datDuoc(o, l.id, g.id, cs, m);
+            if (!ly) return;
+            tong++;
+            const n = u.NHOM_CHAN.find(x => x.hop(ly));
+            if (n) thay.add(n.ma); else cauLa.add(ly.slice(0, 60));
+          });
+        });
+      });
+    });
+    /* Nhánh "lớp đã có tiết" chỉ lộ khi lưới còn nguyên — soi riêng một ô */
+    u.xepTuDong(0);
+    const oCo = u.oTuanLop(u.S.lop[0].id).find(o => u.S.tkb[u.S.lop[0].id][o.khoa]);
+    const lyLop = oCo ? u.datDuoc(oCo, u.S.lop[0].id, u.S.giaoVien[1].id, u.chiSo(), 'Toán') : '';
+    const nLop = u.NHOM_CHAN.find(x => x.hop(lyLop || ''));
+    if (nLop) thay.add(nLop.ma); else if (lyLop) cauLa.add(lyLop.slice(0, 60));
+
+    const thieu = u.NHOM_CHAN.map(n => n.ma).filter(m => !thay.has(m));
+    return [cauLa.size === 0 && thieu.length === 0 && tong > 100,
+            `soi ${tong} câu · gặp đủ ${thay.size}/${u.NHOM_CHAN.length} nhóm`
+            + (thieu.length ? ` — CHƯA KIỂM: ${thieu.join(', ')}` : '')
+            + (cauLa.size ? ` — LỌT: ${[...cauLa].join(' | ')}` : '')];
+  })()));
+
+  /* Gom theo CÁCH GỠ: ba người cùng vướng một kiểu là MỘT việc, không phải ba */
+  kt('Nhiều trường hợp cùng cách gỡ thì gom làm MỘT việc', ...((() => {
+    const u = taoUngDung(documentGia);
+    u.S.khungGio.forEach(k => { [1,2,3,4,5].forEach(x => k.tietKhoi[x] = 2); });
+    u.chuanKhungGio();
+    const k = u.xepTuDong(0);
+    const v = u.viecGoBiXep(k.chuaXep);
+    const tongTH = v.reduce((s, x) => s + x.soTruongHop, 0);
+    return [v.length > 0 && v.length < k.chuaXep.length && tongTH === k.chuaXep.length,
+            `${k.chuaXep.length} trường hợp gom còn ${v.length} việc`];
+  })()));
+
+  /* Sắp theo số tiết gỡ được — việc gỡ được nhiều tiết nhất đứng trước.
+     ⚠️ Bản đầu dựng cảnh chỉ ra MỘT việc, mà một phần tử thì thứ tự nào
+     cũng đúng: đảo chiều `sort` phép thử vẫn xanh. Nay ép ra ÍT NHẤT HAI
+     việc khác nhau (vừa bóp khung giờ vừa cho một cô bận cả tuần) và đòi
+     đúng thứ tự giảm dần. */
+  kt('Việc gỡ được NHIỀU TIẾT nhất đứng trước', ...((() => {
+    const u = taoUngDung(documentGia);
+    /* ⚠️ Bóp khung giờ làm MỌI lớp kín, nên mọi trường hợp đều rơi vào một
+       nhóm "lớp đã kín lưới" — vẫn chỉ một việc. Phải dựng hai nguyên nhân
+       THUỘC HAI NHÓM khác nhau mà lớp vẫn còn ô trống: một cô bận cả tuần
+       (gvNghi) và một cô phải chạy hai phân hiệu (khacDT). */
+    u.S.diemTruong.push({ id:'dt2', ten:'Phân hiệu Thử', phongTin:false });
+    u.S.lop.slice(0, 8).forEach(l => { u.S.lopDT[l.id] = 'dt2'; });
+    const mt = u.S.phanCong.find(p => p.mon === 'Mỹ thuật');
+    const dd = u.S.phanCong.find(p => p.mon === 'Đạo Đức' && p.gvId !== mt.gvId);
+    u.S.gvNghi[mt.gvId] = u.buoiBat().slice(0, 6).map(k => `${k.thu}-${k.buoi}`);
+    if (dd) u.S.gvNghi[dd.gvId] = u.buoiBat().slice(0, 3).map(k => `${k.thu}-${k.buoi}`);
+    const v = u.viecGoBiXep(u.xepTuDong(0).chuaXep);
+    const dungThuTu = v.every((x, i) => i === 0 || v[i-1].tiet >= x.tiet);
+    return [v.length >= 2 && dungThuTu,
+            v.map(x => `${x.nhomTen}:${x.tiet}t`).join(' · ').slice(0, 110)];
+  })()));
+
+  kt('Xếp đủ thì KHÔNG bày việc nào — đừng báo tin về thứ chưa xảy ra',
+     ...((() => {
+    const u = taoUngDung(documentGia);
+    const k = u.xepTuDong(0);
+    return [k.chuaXep.length === 0 && u.viecGoBiXep(k.chuaXep).length === 0,
+            `${k.daXep}/${k.tongCan} tiết`];
+  })()));
+
+  kt('Danh sách rỗng hay hỏng dữ liệu thì trả rỗng, không nổ', ...((() => {
+    const u = taoUngDung(documentGia);
+    return [u.viecGoBiXep([]).length === 0 && u.viecGoBiXep(null).length === 0
+      && u.viSaoChuaXep({ gvId:'khong-co', lopId:'khong-co', mon:'Toán', con:1 }) === null];
+  })()));
 }
 
 console.log('\n19. Mã giáo viên đọc được');
