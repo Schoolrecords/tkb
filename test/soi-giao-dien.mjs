@@ -3643,6 +3643,69 @@ console.log('\n17q. Số hiệu và ngày thực hiện của văn bản thời 
   })());
 }
 
+console.log('\n17v. Đổi tên phân hiệu ngay trên thẻ');
+{
+  w.chuyen('diemtruong');
+  const nutSua = w.document.querySelector('[data-suadt]');
+  kt('Thẻ phân hiệu có nút sửa tên', !!nutSua);
+  if (nutSua) {
+    const idDT = nutSua.dataset.suadt;
+    const dSua = S.diemTruong.find(x => x.id === idDT);
+    const tenCu = dSua.ten;
+    const lopCu = S.lop.filter(l => S.lopDT[l.id] === idDT).map(l => l.id).sort();
+    const maCu = S.lop.filter(l => S.lopDT[l.id] === idDT).map(l => l.maLop).sort();
+    const nutLuu = () => [...w.document.querySelectorAll('#hopC button')]
+                          .find(b => b.textContent === 'Lưu');
+
+    /* Không cho trùng tên phân hiệu khác: đường ghi lên máy chủ dò theo TÊN
+       (bảng diem_truong không có ràng buộc duy nhất), nên hai phân hiệu cùng
+       tên là lớp bên này gán nhầm sang bên kia. */
+    const dKhac = S.diemTruong.find(x => x.id !== idDT);
+    if (dKhac) {
+      nutSua.dispatchEvent(new w.Event('click', { bubbles: true }));
+      w.document.querySelector('#dtTenS').value = dKhac.ten.toUpperCase();
+      nutLuu().click();
+      kt('Trùng tên phân hiệu khác thì từ chối, không đổi gì',
+         dSua.ten === tenCu, `vẫn là "${dSua.ten}"`);
+      w.eval('dong()');
+    }
+
+    /* Bỏ trống cũng phải từ chối — tên là thứ người dùng nhận ra phân hiệu. */
+    w.chuyen('diemtruong');
+    w.document.querySelector(`[data-suadt="${idDT}"]`)
+     .dispatchEvent(new w.Event('click', { bubbles: true }));
+    w.document.querySelector('#dtTenS').value = '   ';
+    nutLuu().click();
+    kt('Bỏ trống tên thì từ chối', dSua.ten === tenCu);
+    w.eval('dong()');
+
+    const tenMoi = 'Phân hiệu ' + tenCu.replace(/^\s*(Phân\s+hiệu|Điểm\s+trường)\s*/i, '') + ' 2';
+    w.chuyen('diemtruong');
+    w.document.querySelector(`[data-suadt="${idDT}"]`)
+     .dispatchEvent(new w.Event('click', { bubbles: true }));
+    w.document.querySelector('#dtTenS').value = tenMoi;
+    nutLuu().click();
+    kt('Đổi được tên phân hiệu', dSua.ten === tenMoi, `${tenCu} → ${dSua.ten}`);
+
+    /* ⚠️ Điều quan trọng nhất: đổi tên KHÔNG đụng id, không đụng mã lớp.
+       Mã lớp đã in ra giấy và đã gõ vào cột Ma_lop của tệp Excel nhà trường;
+       còn id là thứ mọi bảng khác tham chiếu tới. */
+    kt('Đổi tên giữ nguyên id phân hiệu — mọi tham chiếu còn nguyên',
+       S.diemTruong.filter(x => x.id === idDT).length === 1);
+    kt('Lớp vẫn nằm đúng phân hiệu ấy, mã lớp không đổi theo', (() => {
+      const lop = S.lop.filter(l => S.lopDT[l.id] === idDT);
+      return [String(lop.map(l => l.id).sort()) === String(lopCu)
+              && String(lop.map(l => l.maLop).sort()) === String(maCu),
+              `${lop.length} lớp`];
+    })());
+    kt('Tên mới hiện ngay trên thẻ',
+       w.document.querySelector('.dt-luoi').textContent.includes(tenMoi));
+
+    /* Trả lại tên cũ để các phép thử sau không lệch */
+    dSua.ten = tenCu;
+  }
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');

@@ -1435,3 +1435,49 @@ Ba điều đáng nhớ khi sửa bộ soi này:
 
 **Số đo:** `npm test` 451 · `npm run soi` 426 · `npm run soi-mau` 81 ·
 `npm run soi-nhap` 50 · `npm run soat` 0 lỗi.
+
+---
+
+## 30/8/2026 — Đổi tên phân hiệu: có đường ghi, thiếu cái nút
+
+Chủ dự án nhìn màn *Phân hiệu* và hỏi thẳng: *"sửa phân hiệu 'Điểm trường
+Diễn Liên' thành 'Phân hiệu Diễn Liên' phải làm sao em? Phải chăng có nút sửa
+ở đâu đó?"* — không, chưa có. Thẻ phân hiệu chỉ có ô tích *Có phòng Tin học*
+và nút **×**.
+
+⚠️ **Chuyện đáng nói là đường lui duy nhất còn lại: xoá rồi thêm lại.** Đó là
+một cái bẫy đặt đúng chỗ người dùng bí:
+
+- Trong app, `data-xoadt` **dồn hết lớp** của phân hiệu ấy sang phân hiệu còn
+  lại — 25 lớp Diễn Liên đổ sang Diễn Đồng, không hỏi một câu.
+- Trên máy chủ, phân hiệu thêm lại mang **UUID mới**. `giao_vien.diem_truong_id`
+  có FK nên bị set null — cả phân hiệu mất nhãn; `nguoi_dung.diem_truong_id`
+  **không có FK** nên treo vào một UUID đã xoá, và PHT phụ trách phân hiệu ấy
+  bấm Lưu sẽ được máy chủ báo *ok* với phạm vi rỗng: không ghi được lớp nào,
+  không có lỗi nào hiện ra.
+
+Phần khó thì `ghiDuLieuNguon()` đã làm sẵn từ trước — dòng đã có trên máy chủ
+(id là UUID) mà đổi tên thì nó **`suaHang()` đúng dòng ấy**, không tạo-mới-rồi-
+xoá-cũ, và sửa không được thì lùi về đường tạo mới. Thiếu đúng một cái nút.
+
+| Hàm | Việc |
+|---|---|
+| `hopSuaDT(id)` | hộp đổi tên + ô tích phòng Tin của một phân hiệu đã có |
+| `data-suadt` | nút **Sửa** trên thẻ, cạnh nút × |
+
+Ba điều bắt buộc, cả ba có phép thử (`npm run soi` mục **17v**):
+
+- **Đổi tên KHÔNG đụng `id`, KHÔNG đụng mã lớp.** `1A_DL` đã in ra giấy và đã
+  nằm trong cột `Ma_lop` của tệp Excel nhà trường; `tienToDT()` vốn cắt cả hai
+  tiền tố *Phân hiệu* / *Điểm trường* nên tên đổi mà viết tắt vẫn là `DL`.
+  Hộp thoại nói thẳng điều đó, đừng để người dùng ngại bấm.
+- ⚠️ **Không cho trùng tên phân hiệu khác.** Bảng `diem_truong` không có ràng
+  buộc duy nhất nên `ghiDuLieuNguon()` dò theo **TÊN** (`maDT[d.ten]`) — hai
+  phân hiệu cùng tên là lớp bên này gán nhầm sang bên kia lúc lưu. So bằng
+  `khongDau().toLowerCase()`: *"PHÂN HIỆU DIỄN ĐỒNG"* và *"Phân hiệu Diễn Đồng"*
+  là một.
+- **Nút Sửa hiện cả khi trường chỉ có MỘT phân hiệu**, khác nút × (nút xoá ẩn
+  đi khi còn một). Trường không sáp nhập vẫn có quyền gọi đúng tên nơi mình dạy.
+
+Đã thử ngược cả hai vá (bỏ nút · bỏ phép kiểm trùng tên): cả hai đều làm phép
+thử đỏ. `npm run soi` 523 đạt · `npm test` 477 · `npm run soi-nhap` 60, 0 hỏng.

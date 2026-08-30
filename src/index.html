@@ -12482,7 +12482,9 @@ function mDiemTruong(){
     const ti=S.phanCong.filter(p=>S.lopDT[p.lopId]===d.id).reduce((s,p)=>s+p.soTiet,0);
     return `<div class="dt-the d${iDT(d.id)}">
       <div class="dt-t"><span class="cham"></span>${esc(d.ten)}
-        ${sua&&S.diemTruong.length>1?`<button class="x" data-xoadt="${d.id}" style="margin-left:auto;font-size:19px">&times;</button>`:''}</div>
+        ${sua?`<button class="x" data-suadt="${d.id}" title="Đổi tên phân hiệu"
+          style="margin-left:auto;font-size:15px">Sửa</button>`:''}
+        ${sua&&S.diemTruong.length>1?`<button class="x" data-xoadt="${d.id}" style="${S.diemTruong.length>1?'margin-left:0;':''}font-size:19px">&times;</button>`:''}</div>
       <div class="dt-s"><div>Lớp<b>${lp.length}</b></div><div>Giáo viên<b>${gv.size}</b></div><div>Tiết/tuần<b>${ti}</b></div></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:11px;cursor:${sua?'pointer':'default'}">
         <input type="checkbox" data-tin="${d.id}" ${d.phongTin?'checked':''} ${sua?'':'disabled'}> Có phòng Tin học</label>
@@ -13193,6 +13195,7 @@ function noiSuKien(){
     k.tietKhoi[+khoi]=Math.max(0,Math.min(8,+e.target.value||0));
     chuanKhungGio(); ve();});
   $$('[data-tin]').forEach(x=>x.onchange=e=>{dtId(x.dataset.tin).phongTin=e.target.checked;ve();});
+  $$('[data-suadt]').forEach(x=>x.onclick=()=>hopSuaDT(x.dataset.suadt));
   $$('[data-xoadt]').forEach(x=>x.onclick=()=>{
     if(S.diemTruong.length<=1)return;
     const con=S.diemTruong.find(d=>d.id!==x.dataset.xoadt);
@@ -13773,6 +13776,31 @@ function hopThemDT(){ hop('Thêm phân hiệu',
     const t=$('#dtTen').value.trim(); if(!t) return bao('Nhập tên phân hiệu',true);
     S.diemTruong.push({id:'dt'+Date.now(),ten:t,phongTin:$('#dtTin').checked});
     dong(); bao('Đã thêm '+t); ve();}}]);
+}
+/* Đổi tên một phân hiệu đã có.
+   Trước đây muốn sửa tên chỉ còn cách xoá rồi thêm lại — mà xoá thì mọi lớp
+   của phân hiệu ấy bị dồn sang phân hiệu còn lại, và trên máy chủ thì
+   giao_vien.diem_truong_id lẫn nguoi_dung.diem_truong_id treo vào một UUID
+   đã mất. Đường ghi (`ghiDuLieuNguon`) vốn đã biết SỬA đúng dòng cũ theo id
+   khi tên đổi; chỗ thiếu chỉ là cái nút.
+   ⚠️ Không cho trùng tên phân hiệu khác: bảng `diem_truong` không có ràng
+   buộc duy nhất nên đường ghi dò theo TÊN — hai phân hiệu cùng tên là lớp
+   của bên này gán nhầm sang bên kia. */
+function hopSuaDT(id){
+  const d=dtId(id); if(!d) return;
+  hop('Sửa phân hiệu',
+  `<div class="on-l"><label>Tên phân hiệu</label>
+    <input class="ip" id="dtTenS" value="${esc(d.ten)}" style="width:100%">
+    <div class="gy">Mã lớp đã đặt <b>không</b> đổi theo — chỉ tên hiển thị đổi.</div></div>
+   <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px">
+     <input type="checkbox" id="dtTinS" ${d.phongTin?'checked':''}> Phân hiệu này có phòng Tin học</label>`,
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Lưu',lam:()=>{
+    const t=$('#dtTenS').value.trim();
+    if(!t) return bao('Nhập tên phân hiệu',true);
+    if(S.diemTruong.some(x=>x.id!==id && khongDau(x.ten).toLowerCase()===khongDau(t).toLowerCase()))
+      return bao('Đã có phân hiệu tên này',true);
+    const cu=d.ten; d.ten=t; d.phongTin=$('#dtTinS').checked;
+    dong(); bao(cu===t?'Đã lưu':`Đã đổi tên thành ${t} — nhớ bấm Lưu lên máy chủ`); ve();}}]);
 }
 function hopGanLop(){ hop('Phân bổ lớp về phân hiệu',
   `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:14px">Việc này quyết định giáo viên nào phải di chuyển giữa các phân hiệu.</p>
