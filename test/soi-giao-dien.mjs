@@ -2801,6 +2801,68 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
   kt('Không một màn hình nào còn nút ghi khi đang xem trường khác',
      lot.length === 0, lot.slice(0, 4).join(' | ') || `quét ${MAN.length} màn hình`);
 
+  /* ---------- BẬT CHẾ ĐỘ SỬA (30/8/2026) ----------
+     Chủ dự án: "tại sao Hệ thống của mình mà không thể quản trị được? …
+     nếu có thể vào từng trường với chức năng như quản trị của trường đó
+     thì vẫn tốt chứ sao?" Đúng — ông vốn có toàn quyền qua SQL Editor,
+     nên khoá trong app chỉ đẩy ông sang đường nguy hiểm hơn. */
+  kt('Mở trường khác thì MẶC ĐỊNH vẫn chỉ đọc, không tự cho sửa',
+     w.eval('dangSuaTruongKhac()') === false && w.eval('quyen()').chiXem === true);
+
+  kt('Bật chế độ sửa thì quyền ghi trở lại đủ, cùng một cờ',
+     (() => {
+       const kq = w.eval('batSuaTruongXem(true)');
+       return [kq.ok === true && w.eval('quyen()').chiXem === false
+               && w.eval('duocSuaNguon()') === true && w.eval('duocXep()') === true
+               && w.eval('quyen()').laQuanLy === true,
+               kq.thongBao];
+     })());
+
+  /* Thẻ nổi phải nói rõ ĐANG SỬA — dải đỏ quen mắt sau vài phút, mà cái
+     cần tránh là quên mất mình đang đứng trong trường bạn. */
+  /* Nhãn trạng thái phải đổi, còn chữ "chỉ đọc" trên NÚT thì vẫn đúng —
+     nó là lối thoát về chế độ cũ. Soi đúng nhãn, đừng soi cả thẻ. */
+  kt('Thẻ nổi đổi hẳn sang "ĐANG SỬA" và đổi màu', (() => {
+    w.chuyen('dieuhanh');
+    const the = w.document.querySelector('#theXemTruong');
+    const t = (the?.textContent || '').replace(/\s+/g, ' ').trim();
+    return [/ĐANG SỬA/.test(t) && !/· chỉ đọc/.test(t) && /Thần Lĩnh 1/.test(t)
+            && /7A1FA2|122, ?31, ?162/.test(the?.getAttribute('style') || ''),
+            t.slice(0, 70)];
+  })());
+
+  kt('Tắt lại thì trở về chỉ đọc ngay',
+     (() => {
+       w.eval('batSuaTruongXem(false)');
+       return [w.eval('quyen()').chiXem === true && w.eval('duocSuaNguon()') === false,
+               'đã tắt'];
+     })());
+
+  /* ⚠️ Không phải chủ hệ thống thì tuyệt đối không bật được — nếu không thì
+     một phó hiệu trưởng lọt vào chế độ xem là sửa được trường bạn. */
+  kt('Người KHÔNG phải chủ hệ thống không bật được chế độ sửa', (() => {
+    w.eval('KHO.nguoiDung.chuHeThong = false');
+    const kq = w.eval('batSuaTruongXem(true)');
+    w.eval('KHO.nguoiDung.chuHeThong = true');
+    return [kq.ok === false && w.eval('dangSuaTruongKhac()') === false, kq.thongBao];
+  })());
+
+  /* Về trường mình mà cờ còn bật thì lần sau mở một trường khác đã ở sẵn
+     trạng thái ghi được — đúng thứ cờ này sinh ra để tránh.
+
+     ⚠️ Bản đầu của phép thử này XANH OAN: nó tự gán `KHO.suaTruongXem =
+     false` rồi mới kiểm, tức là tự làm hộ app đúng cái việc app phải làm —
+     gỡ dòng ấy khỏi `thoatTruongXem()` vẫn xanh. Đúng bẫy đã ghi trong
+     CLAUDE.md. Nay soi thẳng THÂN HÀM, vì gọi thật thì nó `await
+     taiDuLieu()` và cần máy chủ. */
+  kt('thoatTruongXem() tự tắt cờ sửa, không để lại trạng thái ghi được', (() => {
+    const ma = readFileSync(join(goc, 'src/index.html'), 'utf8');
+    const i = ma.indexOf('async function thoatTruongXem(){');
+    const t = i < 0 ? '' : ma.slice(i, i + 700);
+    return [/KHO\.suaTruongXem\s*=\s*false/.test(t),
+            t.split('\n').find(d => /suaTruongXem/.test(d))?.trim() || 'không thấy dòng nào tắt cờ'];
+  })());
+
 /* ⚠️ Ranh giới ĐỌC / GHI của chế độ xem trường khác. Đây là chỗ dễ sai nhất
    của cả tính năng: đường ĐỌC phải theo trường đang xem (không thì mở trường
    bạn mà nhật ký lại hiện của trường mình), còn đường GHI phải giữ nguyên
@@ -2819,11 +2881,35 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
   kt('Mọi đường ĐỌC lấy dữ liệu theo trường đang xem', hongDoc.length === 0,
      hongDoc.join(' | ') || `${DOC.length} hàm`);
 
-  const GHI = ['async function congBoTKB(', 'async function taoMaMoi(',
-               'function ghiNhatKy(', 'async function datTaiKhoanGV('];
-  const hongGhi = GHI.filter(f => than(f) && /truongDangXem\(\)/.test(than(f)));
-  kt('Đường GHI vẫn khoá vào trường của tài khoản, không đi theo trường đang xem',
-     hongGhi.length === 0, hongGhi.join(' | ') || `${GHI.length} hàm`);
+  /* ⚠️ LUẬT NÀY ĐỔI NGÀY 30/8/2026. Trước đó mọi đường ghi khoá cứng vào
+     trường của tài khoản — "an toàn kép" cho chế độ chỉ đọc. Chủ dự án bác
+     lại, và bác đúng: ông vốn có toàn quyền qua SQL Editor của chính dự án
+     mình, nên khoá trong app không bảo vệ dữ liệu khỏi ai, chỉ đẩy ông sang
+     đường SQL tay vốn nguy hiểm hơn hẳn.
+
+     Nay đường ghi đi theo TRƯỜNG ĐANG XEM. Hàng rào chuyển về đúng chỗ của
+     nó: quy tắc RLS `*_ghi_cht` ở máy chủ (db/chu-he-thong-sua.sql), cộng
+     một cú bấm bật có chủ ý ở giao diện. */
+  const GHI_THEO_XEM = ['async function congBoTKB(', 'function ghiNhatKy(',
+                        'async function soHieuKeTiep(', 'async function luuBuoiBan('];
+  const hongGhi = GHI_THEO_XEM.filter(f => than(f) && !/truongDangXem\(\)/.test(than(f)));
+  kt('Đường ghi sửa-hộ đi theo trường đang xem, không ghi đè trường của mình',
+     hongGhi.length === 0, hongGhi.join(' | ') || `${GHI_THEO_XEM.length} hàm`);
+
+  /* Ba bảng cố ý KHÔNG mở cho chế độ hỗ trợ — ma_moi (chìa khoá vào trường),
+     bao_nghi và day_thay (chứa lý do nghỉ, dữ liệu cá nhân). Chúng phải chặn
+     TUYỆT ĐỐI khi đang xem trường khác, chứ không nới theo cờ bật sửa: nới
+     mà vẫn ghi bằng trường của tài khoản là ghi nhầm sang trường mình. */
+  const KHOA_HAN = ['async function luuDayThay(', 'async function xoaDayThay(',
+                    'async function guiBaoNghi(', 'async function huyBaoNghi(',
+                    'async function danhDauXuLy('];
+  const hongKhoa = KHOA_HAN.filter(f => than(f) && !/if\(dangXemTruongKhac\(\)\) return LOI_CHI_XEM\(\)/.test(than(f)));
+  kt('Bảng dạy thay và báo nghỉ chặn tuyệt đối, không nới theo cờ bật sửa',
+     hongKhoa.length === 0, hongKhoa.join(' | ') || `${KHOA_HAN.length} hàm`);
+
+  /* Và mã mời thì vẫn khoá vào trường của tài khoản. */
+  kt('Mã mời vẫn khoá vào trường của tài khoản',
+     /KHO\.nguoiDung\.truongId/.test(than('async function taoMaMoi(')));
 }
 
   kt('Thẻ nổi đỏ báo rõ đang xem trường nào, kèm lối thoát', (() => {

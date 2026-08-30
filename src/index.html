@@ -4189,6 +4189,16 @@ let KHO = {
    đọc thẳng KHO.nguoiDung.truongId nữa. */
 const truongDangXem = () => KHO.truongXem?.id || KHO.nguoiDung?.truongId || '';
 const dangXemTruongKhac = () => !!KHO.truongXem;
+/* Chủ hệ thống mở trường khác thì MẶC ĐỊNH chỉ đọc; muốn sửa phải bấm bật
+   có chủ ý (thẻ nổi dưới màn hình).
+
+   ⚠️ Vì sao vẫn giữ hai mức thay vì cho sửa thẳng: rủi ro thật của chế độ
+   này KHÔNG phải quyền — chủ hệ thống vốn có toàn quyền qua SQL Editor của
+   chính dự án mình — mà là GHI NHẦM TRƯỜNG. Vào xem Vinh Hưng, quên mất,
+   rồi bấm Lưu tưởng đang ở trường mình. Một cú bấm bật là đủ để không bao
+   giờ nhầm nữa. */
+const dangSuaTruongKhac = () => dangXemTruongKhac() && !!KHO.suaTruongXem;
+const chiDocTruongXem   = () => dangXemTruongKhac() && !KHO.suaTruongXem;
 
 const TEN_NGUON = {
   'may-chu':'Máy chủ hệ thống',
@@ -4705,8 +4715,21 @@ async function moTruongDeXem(id, ten){
   }
 }
 
+/* Bật hoặc tắt chế độ sửa trường đang xem. Vùng DULIEU không đụng DOM —
+   chỉ trả {ok, thongBao} để màn hình tự hiện. */
+function batSuaTruongXem(bat){
+  if(!dangXemTruongKhac()) return {ok:false, thongBao:'Không ở chế độ xem trường khác.'};
+  if(!laChuHeThong()) return {ok:false, thongBao:'Chỉ chủ hệ thống mới sửa được trường khác.'};
+  KHO.suaTruongXem = !!bat;
+  return {ok:true, thongBao: bat
+    ? `Đã bật chế độ sửa cho ${KHO.truongXem.ten||'trường này'}. Mọi thay đổi ghi vào trường ấy, nhật ký mang tên thầy.`
+    : 'Đã trở lại chế độ chỉ đọc.'};
+}
 async function thoatTruongXem(){
-  KHO.truongXem = null;
+  /* Tắt luôn chế độ sửa: về trường mình mà cờ còn bật thì lần sau mở một
+     trường khác đã ở sẵn trạng thái ghi được — đúng thứ cờ này sinh ra để
+     tránh. */
+  KHO.truongXem = null; KHO.suaTruongXem = false;
   const kq = await taiDuLieu();
   return {ok:kq.ok!==false, thongBao:'Đã về trường của mình.'};
 }
@@ -5178,15 +5201,19 @@ async function luuTKB(tkb, version, ghiChu, phamVi){
     thongBao:'Chưa nối máy chủ nên chưa lưu được. Kết quả vẫn còn nguyên trên màn hình.'};
   /* Cùng khuôn chốt chặn của ghiDuLieuNguon(): máy chủ vốn đã từ chối, đây
      chỉ là để câu báo nói đúng chuyện gì đang xảy ra. */
-  if(dangXemTruongKhac()) return {ok:false, version:KHO.version,
-    thongBao:`Đang xem ${KHO.truongXem.ten||'trường khác'} ở chế độ chỉ đọc — không lưu được.`};
+  if(chiDocTruongXem()) return {ok:false, version:KHO.version,
+    thongBao:`Đang xem ${KHO.truongXem.ten||'trường khác'} ở chế độ chỉ đọc — không lưu được. `
+      +'Bấm “Bật chế độ sửa” ở dải dưới màn hình nếu muốn sửa hộ trường này.'};
   /* Đăng nhập được nhưng đang chạy dữ liệu mẫu — thường là do trường trên máy
      chủ chưa nhập lớp. Lưới lúc này dựng trên mã lớp và mã giáo viên của bộ
      mẫu, ghi lên máy chủ sẽ thành một phiên bản rác: tải về không khớp ô nào. */
   if(KHO.nguon !== 'may-chu') return {ok:false, version:KHO.version,
     thongBao:'Đang chạy bằng dữ liệu mẫu nên chưa lưu được — thời khóa biểu này dựng trên lớp và giáo viên mẫu, không phải của trường. Nhập dữ liệu trường lên máy chủ, tải lại rồi xếp lại.'};
   const v = Number.isFinite(+version) ? +version : KHO.version;
-  const than = {p_truong:KHO.nguoiDung.truongId, p_version:v,
+  /* Theo TRƯỜNG ĐANG XEM, không phải trường của tài khoản — xem ghi chú dài
+     ở `ghiDuLieuNguon()`. `luu_tkb()` chạy security invoker nên RLS vẫn là
+     hàng rào thật: không phải chủ hệ thống thì máy chủ từ chối. */
+  const than = {p_truong:truongDangXem(), p_version:v,
                 p_du_lieu:tkb, p_ghi_chu:ghiChu||null};
   const goi = keo => goiAPI('/rest/v1/rpc/luu_tkb', {method:'POST',
     body:JSON.stringify(keo ? {...than, p_pham_vi:phamVi} : than)});
@@ -5248,7 +5275,7 @@ async function lichSuPhienBan(gioiHan=20){
    ⚠️ KHÔNG lấy `version`: con số ấy nhảy mỗi lần bấm Lưu, một mùa xếp lên tới
    sáu chục. Số hiệu là số lần BAN HÀNH, nhà trường ra vài bản một năm. */
 async function soHieuKeTiep(){
-  const t=KHO.nguoiDung.truongId;
+  const t=truongDangXem();
   try{
     const ds=await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}`
       +'&so_hieu=not.is.null&select=so_hieu&order=so_hieu.desc&limit=1');
@@ -5259,7 +5286,7 @@ async function soHieuKeTiep(){
 async function congBoTKB(version, bat=true, vb=null){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
   if(!duocLuu()) return {ok:false, thongBao:'Thầy cô chỉ xem, không công bố được.'};
-  const t=KHO.nguoiDung.truongId;
+  const t=truongDangXem();
   try{
     /* Tắt các bản đang công bố. Đổi 0 dòng ở đây là chuyện thường — chưa
        công bố bản nào — nên không kiểm số dòng ở bước này. */
@@ -6408,10 +6435,16 @@ async function ghiDuLieuNguon(dl, baoBuoc){
   /* Máy chủ đã từ chối sẵn (quy tắc ghi vẫn bó theo truong_cua_toi), nhưng
      chặn ngay ở đây thì người dùng nhận một câu rõ ràng thay vì một lỗi
      quyền khó hiểu — và không có lệnh nửa vời nào kịp chạy. */
-  if(dangXemTruongKhac()) return {ok:false,
+  if(chiDocTruongXem()) return {ok:false,
     thongBao:`Đang xem ${KHO.truongXem.ten||'trường khác'} ở chế độ chỉ đọc — không ghi được. `
-      +'Thoát về trường của mình rồi thao tác.'};
-  const t=KHO.nguoiDung.truongId;
+      +'Bấm “Bật chế độ sửa” ở dải dưới màn hình nếu muốn sửa hộ trường này.'};
+  /* ⚠️ ĐÂY LÀ DÒNG QUYẾT ĐỊNH GHI VÀO TRƯỜNG NÀO. Trước 30/8/2026 nó luôn
+     là trường của chính người đăng nhập — an toàn kép cho chế độ chỉ đọc.
+     Nay chủ hệ thống sửa hộ được, nên phải đi theo TRƯỜNG ĐANG XEM; nếu
+     không thì bấm Lưu ở trường bạn lại ghi đè dữ liệu trường mình, mất cả
+     hai bên cùng lúc. `truongDangXem()` trả về đúng trường của mình khi
+     không mở trường nào khác, nên mọi người dùng thường không đổi gì. */
+  const t=truongDangXem();
   const gop=(bang, hang, khoa)=>goiAPI(`/rest/v1/${bang}?on_conflict=${khoa}`,
     {method:'POST', body:JSON.stringify(hang),
      headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});
@@ -6767,10 +6800,13 @@ const LOI_CHI_XEM = () => ({ok:false,
 async function luuBuoiBan(gvNghi){
   if(!coMayChu()) return {ok:false,
     thongBao:'Chưa nối máy chủ nên chưa lưu được. Đánh dấu vẫn còn trên màn hình.'};
-  if(dangXemTruongKhac()) return LOI_CHI_XEM();
+  if(chiDocTruongXem()) return LOI_CHI_XEM();
   if(KHO.nguon!=='may-chu') return {ok:false,
     thongBao:'Đang chạy dữ liệu mẫu nên chưa lưu được — mã giáo viên không phải của trường.'};
-  const t=KHO.nguoiDung.truongId;
+  /* Buổi bận là dữ liệu NGUỒN để xếp lịch, nằm trong tám bảng chủ hệ thống
+     sửa hộ được — nên đi theo trường đang xem. Khác hẳn day_thay và bao_nghi
+     ngay dưới đây: hai bảng ấy cố ý KHÔNG mở, chúng chứa lý do nghỉ. */
+  const t=truongDangXem();
   const hang=[];
   Object.entries(gvNghi||{}).forEach(([gv,ds])=>(ds||[]).forEach(kb=>{
     const [thu,buoi]=String(kb).split('-');
@@ -7008,7 +7044,11 @@ async function taiNhatKy(gioiHan=100){
 function ghiNhatKy(hanhDong, duLieuCu){
   if(!coMayChu()) return Promise.resolve(false);
   return goiAPI('/rest/v1/nhat_ky', {method:'POST', body:JSON.stringify({
-    truong_id:KHO.nguoiDung.truongId, nguoi_dung_id:KHO.nguoiDung.id,
+    /* Nhật ký ghi vào TRƯỜNG ĐANG SỬA, dưới tên người đang đăng nhập —
+       p_nk_ghi_cht vẫn đòi nguoi_dung_id = auth.uid() nên không mạo danh
+       được ai. Ghi vào trường mình thì sau này không ai tra ra đã sửa gì
+       cho trường bạn. */
+    truong_id:truongDangXem(), nguoi_dung_id:KHO.nguoiDung.id,
     hanh_dong:hanhDong, du_lieu_cu:duLieuCu||null
   })}).then(()=>true).catch(()=>false);
 }
@@ -7099,7 +7139,7 @@ function quyen(){
      56 nơi khác đều đi qua nó — khoá một chỗ, tắt đồng loạt. Đi khoá từng
      nút thì sớm muộn sót một cái, mà cái sót ấy lại là cái ghi đè dữ liệu
      của một nhà trường khác. */
-  const chiXem = dangXemTruongKhac();
+  const chiXem = chiDocTruongXem();
   return {
     vaiTro:n.vaiTro||'qt', gvId:n.gvId||null,
     diemTruongId: boHep?dt:'',
@@ -7973,13 +8013,28 @@ function veTheXemTruong(){
       +'max-width:92vw;flex-wrap:wrap;justify-content:center';
     document.body.appendChild(p);
   }
-  p.innerHTML=`Đang xem <b>${esc(KHO.truongXem.ten||'trường khác')}</b> · chỉ đọc
+  const dangSua=dangSuaTruongKhac();
+  /* Đang SỬA thì thẻ đổi hẳn màu và chữ. Dải đỏ ai cũng quen mắt sau vài
+     phút; màu tím + chữ "ĐANG SỬA" là thứ còn đập vào mắt đúng lúc cần —
+     và cái cần tránh ở đây là quên mất mình đang đứng trong trường bạn. */
+  p.style.background = dangSua ? '#7A1FA2' : 'var(--do)';
+  p.style.boxShadow  = dangSua ? '0 8px 30px rgba(122,31,162,.4)'
+                               : '0 8px 30px rgba(200,40,40,.35)';
+  p.innerHTML=`${dangSua?'✏️ <b>ĐANG SỬA</b>':'Đang xem'}
+    <b>${esc(KHO.truongXem.ten||'trường khác')}</b>${dangSua?'':' · chỉ đọc'}
+    ${laChuHeThong()?`<a href="#" id="btSuaTruongXem" style="color:#FFD93E;font-weight:700">${
+      dangSua?'Trở lại chỉ đọc':'Bật chế độ sửa'}</a>`:''}
     <a href="#" id="btThoatXemTruong" style="color:#FFD93E;font-weight:700">Về trường của tôi</a>`;
   $('#btThoatXemTruong').onclick=async e=>{
     e.preventDefault();
     const kq=await thoatTruongXem();
     bao(kq.thongBao, !kq.ok); chuyen('hethong');
   };
+  $('#btSuaTruongXem')&&($('#btSuaTruongXem').onclick=e=>{
+    e.preventDefault();
+    const kq=batSuaTruongXem(!dangSuaTruongKhac());
+    bao(kq.thongBao, !kq.ok); ve();
+  });
 }
 
 function veTheDemo(){
