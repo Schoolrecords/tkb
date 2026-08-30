@@ -1460,6 +1460,38 @@ kt('Dãy ngắn hơn số lớp thì sinh đúng số chữ có, không lặp l�
           `${ds.length} lớp: ${ds.map(l => l.ten).join(' ')}`];
 })());
 
+/* ---------- TIẾN ĐỘ KHI GHI LÊN MÁY CHỦ (30/8/2026) ----------
+   Nút "Đang lưu…" đứng im 8–10 giây thì người dùng tưởng máy treo — đường
+   ghi gọi máy chủ 16–19 lần nối đuôi nhau, trong khi đường TẢI gọi 14 truy
+   vấn cùng lúc nên chỉ tốn một vòng. Gộp song song để sau khai giảng; trước
+   mắt cho thấy máy đang chạy tới đâu. */
+kt('Báo đủ chín bước, đúng thứ tự, không nhảy cóc',
+   await (async () => {
+     const buoc = [];
+     await MC.ghiDuLieuNguon({ ...tep, phanCong: [] },
+       (i, tong, ten) => buoc.push({ i, tong, ten }));
+     const dungThuTu = buoc.every((b, k) => b.i === k + 1 && b.tong === buoc.length);
+     return [buoc.length === 9 && dungThuTu && buoc[0].ten === 'Phân hiệu'
+             && buoc[8].ten === 'Dọn dẹp',
+             `${buoc.length} bước: ${buoc.map(b => b.ten).join(' → ')}`];
+   })());
+
+/* ⚠️ Vùng DULIEU không đụng DOM — nó chỉ gọi hàm được truyền vào. Hàm ấy nổ
+   thì cũng KHÔNG được làm hỏng lần ghi: người dùng mất dữ liệu vì một cái
+   nhãn là đổi ngang giá quá đắt. */
+kt('Hàm báo bước nổ thì lần ghi vẫn trót lọt',
+   await (async () => {
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [] },
+       () => { throw new Error('nhãn hỏng'); });
+     return [r.ok === true, r.thongBao];
+   })());
+
+kt('Không truyền hàm báo bước thì chạy y như cũ',
+   await (async () => {
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [] });
+     return [r.ok === true, r.thongBao];
+   })());
+
 /* ---------- Thông tin trường: tên, năm học, địa bàn ----------
    Bảng `truong` bật RLS nhưng suốt từ đầu chỉ có quy tắc SELECT. Lệnh sửa vì
    thế đổi 0 dòng rồi trả 204 — phần mềm báo "đã lưu", người dùng tải lại trang

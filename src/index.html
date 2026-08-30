@@ -6327,7 +6327,17 @@ function napMucVaoS(kq){
    Giáo viên và lớp dò theo khoá tự nhiên (ma_gv, ten) nên GIỮ NGUYÊN mã UUID
    — nhờ vậy các phiên bản thời khóa biểu đã lưu vẫn đọc được sau khi nhập lại.
    Riêng phân công thì xoá sạch rồi ghi lại, vì đó mới là thứ thay đổi mỗi kỳ. */
-async function ghiDuLieuNguon(dl){
+/* Tên chín bước của đường ghi — dùng cho nhãn "Đang ghi… 4/9 · Lớp học".
+   ⚠️ Đây CHỈ là nhãn, không phải chỗ đổi thứ tự. Thứ tự các bước bên dưới có
+   chỗ cố ý: phân hiệu phải xoá SAU khi lớp đã trỏ sang nơi khác, không thì
+   `on delete restrict` chặn thẳng. */
+const BUOC_GHI = ['Phân hiệu', 'Khung giờ', 'Giáo viên', 'Lớp học',
+                  'Phân công', 'Thông tin trường', 'Môn học và phòng',
+                  'Buổi bận', 'Dọn dẹp'];
+/* ⚠️ Vùng DULIEU không đụng DOM — nhận một hàm báo bước rồi thôi, màn hình
+   tự lo phần hiển thị. Cùng luật đã đặt cho `{ok, thongBao}`. */
+async function ghiDuLieuNguon(dl, baoBuoc){
+  const buoc = i => { try{ baoBuoc?.(i+1, BUOC_GHI.length, BUOC_GHI[i]); }catch(e){} };
   if(!coMayChu()) return {ok:false,
     thongBao:'Chưa nối máy chủ nên chưa ghi lên được. Đăng nhập rồi nhập lại.'};
   /* Máy chủ đã từ chối sẵn (quy tắc ghi vẫn bó theo truong_cua_toi), nhưng
@@ -6341,6 +6351,7 @@ async function ghiDuLieuNguon(dl){
     {method:'POST', body:JSON.stringify(hang),
      headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});
   try{
+    buoc(0);
     /* 1. Phân hiệu — bảng này không có ràng buộc duy nhất nên tự dò theo tên */
     const dtCu=await goiAPI(`/rest/v1/diem_truong?truong_id=eq.${t}&select=id,ten`);
     const maDT={}; (dtCu||[]).forEach(d=>maDT[d.ten]=d.id);
@@ -6370,6 +6381,7 @@ async function ghiDuLieuNguon(dl){
       (moi||[]).forEach(d=>maDT[d.ten]=d.id);
     }
 
+    buoc(1);
     /* 2. Khung giờ */
     await gop('khung_gio', dl.khungGio.map(k=>({
       truong_id:t, thu:k.thu, buoi:k.buoi, so_tiet:k.tiet,
@@ -6447,6 +6459,7 @@ async function ghiDuLieuNguon(dl){
         return gop('giao_vien', gon, khoa);
       }
     };
+    buoc(2);
     const gvDaCo=dl.giaoVien.filter(g=>laUUID(g.id));
     const gvMoiKhai=dl.giaoVien.filter(g=>!laUUID(g.id));
     if(gvDaCo.length)
@@ -6477,6 +6490,7 @@ async function ghiDuLieuNguon(dl){
          · Lớp đã có trên máy chủ (id là UUID thật) → upsert theo `id`,
            sửa đúng dòng cũ dù mã có đổi.
          · Lớp mới khai trong app (id do app tự đặt) → upsert theo mã như cũ. */
+    buoc(3);
     const daCoTrenSv=dl.lop.filter(l=>laUUID(l.id));
     const lopMoiKhai=dl.lop.filter(l=>!laUUID(l.id));
     if(daCoTrenSv.length)
@@ -6486,6 +6500,7 @@ async function ghiDuLieuNguon(dl){
     const lopSv=await goiAPI(`/rest/v1/lop?truong_id=eq.${t}&select=id,ma_lop,ten,diem_truong_id`);
     const maLop={}; (lopSv||[]).forEach(l=>maLop[l.ma_lop]=l.id);
 
+    buoc(4);
     /* 5. Phân công: thay mới hoàn toàn */
     await goiAPI(`/rest/v1/phan_cong?truong_id=eq.${t}`,
       {method:'DELETE', headers:{Prefer:'return=minimal'}});
@@ -6506,6 +6521,7 @@ async function ghiDuLieuNguon(dl){
        · `.catch(()=>{})` nuốt sạch mọi lỗi, còn 0 dòng đổi thì PostgREST vốn
          đã im lặng — cộng lại thành "báo đã lưu mà chẳng lưu gì". Nay đếm số
          dòng và mang lời cảnh báo về cho màn hình. */
+    buoc(5);
     let loiTruong = '';
     if(dl.tenTruong){
       const than = {ten:dl.tenTruong, xa:dl.xa||null, tinh:dl.tinh||null};
@@ -6521,6 +6537,7 @@ async function ghiDuLieuNguon(dl){
        lệnh) thì máy chủ mất sạch danh mục — im lặng lúc ấy là "báo đã lưu
        mà chẳng lưu gì", lần tải sau app lùi về danh mục mặc định và các môn
        tự chọn nhà trường thêm biến mất không dấu vết. */
+    buoc(6);
     let loiDanhMuc='';
     const thieuBang=e=>/does not exist|404|relation/i.test(String(e?.message||''))||e?.ma===404;
     if(dl.monHoc?.length){
@@ -6552,6 +6569,7 @@ async function ghiDuLieuNguon(dl){
 
     /* 6b. Buổi bận — chỉ mẫu ma trận mới mang theo (cột Buoi_ban). Có thì
        thay mới như phân công; tệp 3 trang không có nên không đụng gì cả. */
+    buoc(7);
     const dsNghi=Object.entries(dl.gvNghi||{});
     if(dsNghi.length){
       await goiAPI(`/rest/v1/gv_nghi?truong_id=eq.${t}`,
@@ -6588,6 +6606,7 @@ async function ghiDuLieuNguon(dl){
        nên xoá một hồ sơ là kéo theo cả lịch dạy thay và hồ sơ báo nghỉ của
        người ấy — với người thật đang dùng phần mềm thì đó là mất dữ liệu,
        không phải dọn rác. Giữ lại và báo ra. */
+    buoc(8);
     let gvChuaXoa=[];
     const gvBo=(dl.gvDaXoa||[]).filter(x=>laUUID(x.id));
     if(gvBo.length){
@@ -14422,13 +14441,20 @@ function hopPCTheoGV(gvSan, monSan){
 /* Ghi toàn bộ dữ liệu nguồn đang có trên màn hình lên máy chủ.
    Đi qua đúng `ghiDuLieuNguon()` mà nút Nhập Excel vẫn dùng — một đường ghi
    duy nhất, nên không có hai lối vào lệch nhau. */
+/* Nút "Đang lưu…" đứng im 8–10 giây thì người dùng tưởng máy treo — đường
+   ghi phải gọi máy chủ 16–19 lần nối đuôi nhau (đường TẢI thì gọi 14 truy
+   vấn CÙNG LÚC nên chỉ tốn một vòng). Gộp song song là việc để sau khai
+   giảng; trước mắt cho người dùng thấy máy đang chạy tới đâu. */
+const nhanBuoc = (b, dau='Đang lưu') => (i, tong, ten) => {
+  if(b) b.textContent = `${dau}… ${i}/${tong} · ${ten}`;
+};
 async function luuNguonLenMayChu(e){
   if(!duocSuaNguon()) return bao('Chỉ người phụ trách toàn trường mới sửa được dữ liệu nguồn',true);
   if(!coMayChu()) return hopMayChu();
   if(!S.lop.length) return bao('Chưa có lớp nào để lưu',true);
   const b=e?.currentTarget, cu=b?.innerHTML;
   if(b){ b.disabled=true; b.textContent='Đang lưu…'; }
-  const kq=await ghiDuLieuNguon(S);
+  const kq=await ghiDuLieuNguon(S, nhanBuoc(b));
   if(b){ b.disabled=false; b.innerHTML=cu; }
   if(kq.ok) chotVanTay();          /* ghi xong thì coi như không còn thay đổi treo */
   /* Lưu được lớp và giáo viên nhưng KHÔNG lưu được thông tin trường thì vẫn
@@ -15470,7 +15496,7 @@ function hopXacNhanNhapMuc(kq){
        napMucVaoS(kq);
        dong();
        if(lenMayChu){
-         const g=await ghiDuLieuNguon(S);
+         const g=await ghiDuLieuNguon(S, nhanBuoc(b, 'Đang nhập'));
          if(g.ok) chotVanTay();
          bao(g.ok?`Đã nhập ${kq.ten}: thêm ${kq.them}, cập nhật ${kq.capNhat}. ${g.thongBao}`
                  :g.thongBao, !g.ok);
@@ -15558,8 +15584,9 @@ function hopXacNhanNhap(dl, tim){
          return hopSauKhiNhap(`Đã nhập ${tom} vào máy này.`);
        }
        b.disabled=true; b.textContent='Đang ghi lên máy chủ…';
-       const kq=await ghiDuLieuNguon(dl);
+       const kq=await ghiDuLieuNguon(dl, nhanBuoc(b, 'Đang ghi'));
        if(!kq.ok){ b.disabled=false; b.textContent=cu; return bao(kq.thongBao,true); }
+       b.textContent='Đang tải lại dữ liệu…';
        const t=await taiDuLieu();
        KQ_XEP=null;
        const thua=[...(kq.lopThua||[]).map(x=>'lớp '+x), ...(kq.gvThua||[]).map(x=>'GV '+x)];
