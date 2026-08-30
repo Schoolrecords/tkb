@@ -42,9 +42,16 @@ begin
     raise exception 'Có % tên lớp bị trùng — không đặt mã theo tên được. Sửa tên lớp trước.', n_trung;
   end if;
 
-  update lop set ma_lop = btrim(ten)
+  -- ⚠️ PHẢI ĐI QUA MÃ TẠM. Mã đang lệch một bậc theo dây chuyền: lớp tên
+  --    `2G` mang mã `2F`, lớp tên `2H` mang mã `2G`. Đổi thẳng thì dòng đầu
+  --    `2F → 2G` đụng ngay cái `2G` chưa kịp đổi — ràng buộc unique kiểm
+  --    TỪNG DÒNG, không đợi hết lệnh. Đã ăn thật lần chạy đầu:
+  --    *duplicate key ... (truong_id, ma_lop)=(…, 2G) already exists*.
+  update lop set ma_lop = '~' || id::text
    where truong_id = v_t and ma_lop is distinct from btrim(ten);
   get diagnostics n = row_count;
+  update lop set ma_lop = btrim(ten)
+   where truong_id = v_t and ma_lop like '~%';
   raise notice 'Đã sửa % mã lớp về đúng tên lớp.', n;
 end $$;
 

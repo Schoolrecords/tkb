@@ -4322,8 +4322,29 @@ function dienGiaiLoi(e){
     return 'Tài khoản chưa xác nhận email. Mở hộp thư và bấm liên kết xác nhận.';
   if(/JWT expired|token is expired/i.test(m))
     return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại rồi lưu tiếp.';
-  if(/permission denied|row-level security|violates/i.test(m))
+  /* ⚠️ ĐỪNG GỘP `violates` VÀO CÂU "KHÔNG CÓ QUYỀN". Postgres dùng đúng chữ
+     ấy cho ba chuyện khác hẳn nhau — thiếu quyền, trùng mã, và trỏ vào một
+     dòng đã xoá — nên gộp lại là đổi một lỗi dữ liệu thành một lỗi quyền.
+
+     Đã trả giá thật ngày 31/8/2026: Vinh Hưng 1 bấm Lưu, nhận *"Tài khoản
+     không có quyền làm việc này"*, cả buổi đi soi quy tắc RLS, thêm hẳn một
+     tệp SQL mở quyền — trong khi lỗi thật là `duplicate key value violates
+     unique constraint "ux_lop_truong_ma"`: mã lớp trong máy trùng với mã một
+     lớp khác trên máy chủ. Câu báo sai hướng còn tốn thời gian hơn không có
+     câu báo nào. */
+  if(/permission denied|row-level security/i.test(m))
     return 'Tài khoản không có quyền làm việc này. Chỉ cán bộ quản lý mới sửa được dữ liệu.';
+  if(/duplicate key value violates unique constraint/i.test(m)){
+    const chiTiet = m.match(/Key \(([^)]*)\)=\(([^)]*)\)/i);
+    return 'Trùng mã: trên hệ thống đã có dòng khác mang đúng mã này'
+      + (chiTiet?` (${chiTiet[2]})`:'')
+      + '. Sửa lại mã cho khác đi rồi lưu lại — mã lớp và mã giáo viên phải là duy nhất trong trường.';
+  }
+  if(/violates foreign key constraint/i.test(m))
+    return 'Có dòng đang trỏ tới một mục đã bị xoá (lớp, giáo viên hoặc phân hiệu). '
+      + 'Tải lại trang để lấy dữ liệu mới nhất rồi thao tác lại.';
+  if(/violates (check|not-null) constraint/i.test(m))
+    return 'Có ô bắt buộc còn trống hoặc mang giá trị không hợp lệ. Kiểm lại dòng vừa sửa rồi lưu lại.';
   /* Cơ sở dữ liệu dựng trước một bản nâng cấp nào đó thì thiếu hẳn một cột.
      PostgREST báo bằng tiếng Anh và tên cột kỹ thuật — dịch sang việc phải làm. */
   const thieuCot = m.match(/Could not find the '([^']+)' column of '([^']+)'/i);

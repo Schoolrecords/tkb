@@ -64,7 +64,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
-  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, gvId, lopId };`;
+  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -96,7 +96,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
-        datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap } = taoUngDung(documentGia);
+        datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap, dienGiaiLoi } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
 let dat = 0, hong = 0;
@@ -3076,6 +3076,50 @@ console.log('\n18g. Mã lớp lệch tên lớp — không đoán bừa');
                         { id: 'b', maLop: '1A_DD', ten: '1A', khoi: 1 }] };
     const r = timLopNhap(kho, '1A_DD');
     return [r.lop?.id === 'b' && !r.loi, r.lop ? 'nhận đúng 1A_DD' : r.loi];
+  })());
+}
+
+console.log('\n18h. Dịch lỗi máy chủ — đừng gộp ba chuyện làm một');
+{
+  /* ⚠️ ĐÃ TRẢ GIÁ THẬT 31/8/2026. Vinh Hưng 1 bấm Lưu và nhận "Tài khoản
+     không có quyền làm việc này" — cả buổi đi soi quy tắc RLS, thêm hẳn một
+     tệp SQL mở quyền ghi cho chủ hệ thống, chạy đủ bộ kiểm quy tắc... trong
+     khi lỗi thật là TRÙNG MÃ LỚP. Gốc: một regex bắt luôn chữ `violates`,
+     mà Postgres dùng đúng chữ ấy cho ba chuyện khác hẳn nhau.
+
+     Câu báo sai hướng còn tốn thời gian hơn không có câu báo nào. */
+
+  kt('Trùng mã KHÔNG bị dịch thành lỗi quyền', (() => {
+    const t = dienGiaiLoi(new Error(
+      'duplicate key value violates unique constraint "ux_lop_truong_ma"'));
+    return [/[Tt]rùng mã/.test(t) && !/không có quyền/.test(t), t.slice(0, 80)];
+  })());
+
+  kt('Câu báo trùng mã chỉ rõ giá trị nào đang đụng', (() => {
+    const t = dienGiaiLoi(new Error(
+      'duplicate key value violates unique constraint "ux_lop_truong_ma" '
+      + 'DETAIL: Key (truong_id, ma_lop)=(a7d83f20-20f3-4863-8fee-041aa558d718, 2G) already exists.'));
+    return [/2G/.test(t), t.slice(0, 110)];
+  })());
+
+  kt('Trỏ vào dòng đã xoá KHÔNG bị dịch thành lỗi quyền', (() => {
+    const t = dienGiaiLoi(new Error(
+      'insert or update on table "lop" violates foreign key constraint "lop_gvcn_id_fkey"'));
+    return [/đã bị xoá/.test(t) && !/không có quyền/.test(t), t.slice(0, 80)];
+  })());
+
+  kt('Ô bắt buộc bỏ trống KHÔNG bị dịch thành lỗi quyền', (() => {
+    const t = dienGiaiLoi(new Error(
+      'null value in column "ten" violates not-null constraint'));
+    return [!/không có quyền/.test(t) && /bắt buộc/.test(t), t.slice(0, 80)];
+  })());
+
+  /* Nhưng lỗi quyền THẬT thì vẫn phải nói đúng là lỗi quyền. */
+  kt('Lỗi quyền thật vẫn được gọi đúng tên', (() => {
+    const a = dienGiaiLoi(new Error('permission denied for table lop'));
+    const b = dienGiaiLoi(new Error(
+      'new row violates row-level security policy for table "lop"'));
+    return [/không có quyền/.test(a) && /không có quyền/.test(b), a.slice(0, 60)];
   })());
 }
 
