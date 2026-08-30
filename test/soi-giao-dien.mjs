@@ -1690,7 +1690,14 @@ w.chuyen('lop');
 const oLop = w.document.querySelector('[data-loc="bLop"]');
 kt('Màn hình Lớp học có ô tìm kiếm kèm số đếm',
    !!oLop && /^\d+ lớp$/.test(w.document.querySelector('[data-locdem="bLop"]').textContent));
-const maMotLop = hangHien('bLop')[0].dataset.loctu.split(' ')[0];
+/* ⚠️ Phải chọn một mã KHÔNG là chuỗi con của mã nào khác. Bản cũ lấy đại mã
+   đầu bảng, và điều đó chỉ đúng chừng nào mọi mã đều mang hậu tố phân hiệu.
+   Từ 30/8/2026 trường một phân hiệu dùng mã trần (`1A`), nên khi bộ soi đã
+   tạo thêm phân hiệu thứ hai thì gõ "1A" khớp luôn cả `1A_DD` — lọc chạy
+   đúng, chỉ phép thử chọn nhầm dữ liệu. */
+const maCacLop = hangHien('bLop').map(h => h.dataset.loctu.split(' ')[0]);
+const maMotLop = maCacLop.find(m => maCacLop.filter(x => x.includes(m)).length === 1)
+                 || maCacLop[0];
 goTim(oLop, maMotLop);
 kt(`Gõ mã lớp "${maMotLop}" thì chỉ còn đúng dòng lớp ấy`, hangHien('bLop').length === 1);
 kt('Số đếm đổi thành dạng "còn / tổng" và được tô đậm',

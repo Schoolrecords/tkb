@@ -1178,6 +1178,31 @@ console.log('\n10a. Đặt lại mã lớp do máy chủ tự sinh');
   kt('Chạy lại lần nữa thì không còn gì để đổi', u.datLaiMaLop(true) === 0);
   kt('Mã mới không trùng nhau — hai phân hiệu cùng có lớp 2A vẫn phân biệt được',
      new Set(u.S.lop.map(l => l.maLop)).size === 3);
+
+  /* ⚠️ TRƯỜNG MỘT PHÂN HIỆU THÌ MÃ TRẦN, KHÔNG HẬU TỐ (30/8/2026).
+     Vinh Hưng 1 có mã lệch tên (lớp mã `1F` mang tên `1G`…) nên phải bấm
+     *Đặt lại mã lớp*. Nhưng hàm cũ luôn gắn hậu tố phân hiệu, mà phân hiệu
+     duy nhất của họ tên "Điểm trường chính" → mã thành `1A_C`: đổi cả 40
+     lớp, kể cả 25 lớp đang đúng, để lấy về một hậu tố vô nghĩa. Hậu tố sinh
+     ra để phân biệt ba phân hiệu cùng có lớp "1A" — một phân hiệu thì không
+     có gì để phân biệt. `sinhLop()` vốn đã làm đúng, hàm này thì chưa. */
+  {
+    const v = taoUngDung(documentGia);
+    v.S.diemTruong = [{ id: 'd1', ten: 'Điểm trường chính', phongTin: true }];
+    v.S.lop = [{ id: 'a', maLop: '1E', ten: '1E', khoi: 1 },
+               { id: 'b', maLop: '1F', ten: '1G', khoi: 1 },
+               { id: 'c', maLop: '1G', ten: '1H', khoi: 1 },
+               { id: 'd', maLop: '1H', ten: '1I', khoi: 1 }];
+    v.S.lopDT = { a: 'd1', b: 'd1', c: 'd1', d: 'd1' };
+    const n = v.datLaiMaLop(true);
+    kt('Trường một phân hiệu: đặt lại mã KHÔNG gắn hậu tố vô nghĩa',
+       [v.S.lop.map(l => l.maLop).join(' ') === '1E 1G 1H 1I',
+        `${n} lớp đổi · ${v.S.lop.map(l => l.maLop).join(' ')}`]);
+    kt('Lớp đang đúng thì không bị đụng tới',
+       [n === 3, `chỉ 3 lớp lệch được sửa, không phải cả 4`]);
+    kt('Mã sau khi đặt lại khớp đúng tên lớp — hết cảnh mã lệch tên',
+       v.S.lop.every(l => l.maLop === l.ten));
+  }
 }
 
 /* ---------- 10b. Mẫu ma trận một trang ---------- */

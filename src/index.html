@@ -3087,7 +3087,22 @@ function tienToDT(ten){
 /* Mã lớp: TÊN LỚP trước, viết tắt phân hiệu sau — `1A_DL`, `1A_DĐ`.
    Tên lớp đứng trước vì đó là thứ người dùng tìm; sắp theo mã cũng ra
    đúng thứ tự lớp. Chọn dấu `_` để không lẫn với gạch nối trong tên. */
-const maLopTu = (ten, dtTen) => String(ten||'').replace(/\s+/g,'')+'_'+tienToDT(dtTen);
+/* ⚠️ Trường MỘT phân hiệu thì mã trần, không hậu tố. `sinhLop()` vốn đã làm
+   đúng (tiền tố rỗng thì không thêm gì), nhưng hàm này thì không — nên nút
+   *Đặt lại mã lớp* ở Vinh Hưng 1 sẽ biến `1A` thành `1A_C`, lấy chữ "chính"
+   của "Điểm trường chính" làm hậu tố: đổi cả 40 lớp, kể cả 25 lớp đang
+   đúng, để lấy về một mã vô nghĩa. Hậu tố sinh ra để phân biệt ba phân hiệu
+   cùng có lớp "1A"; một phân hiệu thì không có gì để phân biệt.
+   Lộ ra 30/8/2026 khi chữa mã lệch tên cho Vinh Hưng 1. */
+const maLopTu = (ten, dtTen) => {
+  const t = String(ten||'').replace(/\s+/g,'');
+  const h = String(dtTen||'').trim() ? tienToDT(dtTen) : '';
+  return h ? t+'_'+h : t;
+};
+/* Mã đúng của một lớp, theo đúng luật trên. Ba nơi cùng cần nên gom lại —
+   viết tay ba lần thì sớm muộn một nơi quên vế "một phân hiệu". */
+const maLopChuan = l =>
+  maLopTu(l.ten, S.diemTruong.length>1 ? dtId(S.lopDT[l.id])?.ten : '');
 /* Chuẩn hoá mã lớp NGAY KHI NẠP DỮ LIỆU — không đợi người dùng bấm nút.
    Cơ sở dữ liệu dựng trước khi có cột `ma_lop` để trống ô đó, và phần mềm
    từng bày mã UUID 36 ký tự ra bảng Lớp học lẫn tệp Excel xuất ra. Mã lớp
@@ -3100,12 +3115,12 @@ const chuanMaLop = () => datLaiMaLop();
    không nói được lớp đó ở phân hiệu nào.
    Chỉ đụng `maLop` — mọi tham chiếu khác đi bằng `id` nên không xê dịch gì. */
 function datLaiMaLop(tatCa){
-  const can = l => tatCa ? maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten)!==l.maLop : maXauXi(l);
+  const can = l => tatCa ? maLopChuan(l)!==l.maLop : maXauXi(l);
   const daCo=new Set(S.lop.filter(l=>!can(l)).map(l=>l.maLop).filter(Boolean));
   let doi=0;
   S.lop.forEach(l=>{
     if(!can(l)) return;
-    const goc=maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten);
+    const goc=maLopChuan(l);
     let m=goc, i=1;
     while(daCo.has(m)) m=goc+'_'+(++i);
     daCo.add(m); l.maLop=m; doi++;
@@ -13494,7 +13509,7 @@ function noiSuKien(){
   $('#btSinhLop')&&($('#btSinhLop').onclick=hopSinhLop);
   $('#btThemLop')&&($('#btThemLop').onclick=hopThemLop);
   $('#btDatLaiMa')&&($('#btDatLaiMa').onclick=()=>{
-    const moiCua=l=>maLopTu(l.ten, dtId(S.lopDT[l.id])?.ten);
+    const moiCua=l=>maLopChuan(l);
     const doi=S.lop.filter(l=>moiCua(l)!==l.maLop);
     hop('Đặt lại mã lớp',
       !doi.length
