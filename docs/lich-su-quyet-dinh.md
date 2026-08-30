@@ -1756,3 +1756,53 @@ theo phiên bản thời khóa biểu như mọi tiết ghim tay khác.
 Đã thử ngược **3/3** (bỏ cờ ghim · bỏ giới hạn số tiết · bỏ `datDuoc`): cả ba
 đều làm phép thử đỏ đúng chỗ. `npm test` 501 · `npm run soi` 523 ·
 `npm run soi-nhap` 60 · `npm run kiemdinh` 22, tất cả 0 hỏng.
+
+---
+
+## 31/8/2026 — Bỏ nút "Bật chế độ sửa": tài khoản tổng phải làm được việc
+
+Chủ dự án, sau khi bấm nhầm nút và bị đẩy về chế độ chỉ đọc: *"Bỏ hẳn nút vớ
+vẩn này đi. Tài khoản tổng mà không làm gì được."*
+
+Bản làm hôm 30/8 bắt chủ hệ thống bấm **Bật chế độ sửa** trước khi ghi được
+vào trường khác. Lý do đưa ra khi ấy: chống ghi nhầm trường. Nhưng nó sai ở
+chỗ **đặt hàng rào lên người đã có quyền**: chủ hệ thống vốn sửa được mọi thứ
+qua SQL Editor, nên cái nút không ngăn được gì — chỉ thêm một bước phải nhớ,
+và một cú bấm nhầm là mất trạng thái đang làm dở.
+
+Nay: chủ hệ thống mở trường nào là **sửa được ngay** trường ấy.
+
+| Bỏ | Giữ |
+|---|---|
+| `KHO.suaTruongXem`, `batSuaTruongXem()`, nút bật/tắt trên thẻ | dải nổi **tím** ghi *"✏️ ĐANG SỬA — <tên trường>"* |
+| | người KHÔNG phải chủ hệ thống thì vẫn **chỉ đọc**, cùng một cờ |
+| | ba bảng cố ý không mở: `ma_moi` · `bao_nghi` · `day_thay` |
+
+`dangSuaTruongKhac()` nay hỏi thẳng `laChuHeThong()`, không đọc cờ nào nữa.
+Cảnh báo nhầm trường dồn hết vào dải nổi — chỗ nhắc đúng lúc mà không cản
+đường, khác hẳn một cái nút chặn ngang.
+
+⚠️ **Bài học rộng hơn: hàng rào đặt lên người đã có quyền thì không phải hàng
+rào.** Nó chỉ đổi đường đi — và đường vòng (SQL tay) thường nguy hiểm hơn
+đường thẳng (giao diện có kiểm ràng buộc, có nhật ký). Trước khi thêm một
+bước xác nhận, hỏi: bước này ngăn được ai? Nếu câu trả lời là "không ngăn
+được ai, chỉ nhắc" thì nó phải là **lời nhắc**, đừng làm thành **cái khoá**.
+
+### Câu lỗi khi ghi hỏng nay kèm TÊN BƯỚC
+
+`ghiDuLieuNguon()` chạm chín nhóm bảng. Khi máy chủ từ chối, câu *"Tài khoản
+không có quyền làm việc này"* trơ trọi khiến cả người dùng lẫn người sửa mã
+phải mò từng bảng — đã mất một buổi vì đúng chuyện ấy ở Vinh Hưng 1. Biến
+`buocHienTai` vốn đã có sẵn cho thanh tiến độ, chỉ việc mang vào câu lỗi:
+*"Hỏng ở bước Lớp học. Tài khoản không có quyền…"*
+
+### ⚠️ Một lần suýt xoá nhầm 76 phép thử
+
+Sửa cụm phép thử của mục 17k bằng cách cắt chuỗi theo hai mốc, mốc cuối chọn
+hụt nên đoạn cắt nuốt luôn phần sau: `npm run soi` từ 531 tụt xuống **455**
+mà vẫn báo *0 hỏng* — vì phép thử bị xoá thì không đỏ, nó biến mất.
+
+Đã khôi phục bằng `git checkout` rồi làm lại với **van an toàn**: đoạn cắt
+phải ngắn hơn 4.000 ký tự, không thì dừng. **Con số "đạt" tụt xuống cũng là
+một tín hiệu hỏng**, ngang với dòng đỏ — bộ soi mất phép thử thì im lặng,
+đúng thứ nguy hiểm nhất.
