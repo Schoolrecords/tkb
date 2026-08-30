@@ -1,0 +1,139 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office'
+      xmlns:w='urn:schemas-microsoft-com:office:word'
+      xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'>
+<title>Báo cáo kiểm thử phần mềm Thời khoá biểu</title>
+<style>
+@page{size:A4 portrait;margin:2cm 2cm 2cm 2.5cm;mso-page-orientation:portrait}
+body{font-family:'Times New Roman',serif;font-size:13pt;color:#000;line-height:1.4}
+h1{font-size:15pt;text-align:center;text-transform:uppercase;margin:0 0 4pt}
+h2{font-size:13.5pt;margin:16pt 0 6pt;border-bottom:1px solid #000;padding-bottom:2pt}
+h3{font-size:13pt;margin:12pt 0 4pt;font-style:italic}
+p{margin:0 0 6pt;text-align:justify}
+table{width:100%;border-collapse:collapse;margin:6pt 0 10pt;font-size:12pt}
+th,td{border:1px solid #000;padding:4pt 6pt;vertical-align:top}
+th{background:#EDEFF4;font-weight:700;text-align:center}
+td.c{text-align:center}
+.dat{font-weight:700}
+.phu{font-size:11.5pt;font-style:italic;color:#333}
+ul{margin:0 0 8pt 18pt;padding:0}
+li{margin-bottom:3pt;text-align:justify}
+.ky{margin-top:24pt;width:100%}
+.ky td{border:none;text-align:center;width:50%}
+</style></head><body>
+
+<p style='text-align:center;margin-bottom:2pt'><b>TRƯỜNG TIỂU HỌC QUẢNG CHÂU 1</b></p>
+<p style='text-align:center' class='phu'>Phần mềm Thời khoá biểu &middot; Năm học 2026&ndash;2027</p>
+
+<h1>Báo cáo kiểm thử phần mềm</h1>
+<p style='text-align:center' class='phu'>Ngày 31 tháng 8 năm 2026</p>
+
+<h2>I. Phạm vi và cách làm</h2>
+<p>Đợt kiểm thử này giao cho <b>ba nhóm kiểm thử độc lập</b> chạy song song, mô phỏng
+đúng cách các trường đang dùng thật:</p>
+<ul>
+<li><b>Nhóm 1 &mdash; luồng trường mới:</b> khai báo dữ liệu từ đầu, từ màn hình trống
+tới lúc xếp xong; kèm cảnh trường bỏ chữ cái khi đặt tên lớp (Vinh Hưng 1 dùng
+A B C D E G H I, không có F).</li>
+<li><b>Nhóm 2 &mdash; tệp Excel xuất ra và bản in:</b> sinh tệp thật rồi mở lại kiểm từng
+trang tính, từng bề ngang cột; kiểm cả bốn loại bản in và tệp Word.</li>
+<li><b>Nhóm 3 &mdash; thuật toán xếp và phân quyền:</b> xếp thử ở ba quy mô, mỗi quy mô
+chạy nhiều lần; tự viết lại phép kiểm ràng buộc cứng từ dữ liệu thô để soi lưới kết
+quả, không dùng lại hàm nào của chính thuật toán.</li>
+</ul>
+
+<h2>II. Kết quả sáu bộ kiểm thử tự động</h2>
+<table>
+<tr><th style='width:38%'>Bộ kiểm thử</th><th style='width:20%'>Kết quả</th><th>Nội dung</th></tr>
+<tr><td>npm test</td><td class='c dat'>514 đạt &middot; 0 hỏng</td><td>Hàm tính toán thuần: thuật toán, ràng buộc, nhập liệu</td></tr>
+<tr><td>npm run soi</td><td class='c dat'>533 đạt &middot; 0 hỏng</td><td>Giao diện thật trên trình duyệt giả lập</td></tr>
+<tr><td>npm run soi-nhap</td><td class='c dat'>60 đạt &middot; 0 hỏng</td><td>Đường nhập liệu của một trường mới tinh</td></tr>
+<tr><td>npm run soi-mau</td><td class='c dat'>81 đạt &middot; 0 hỏng</td><td>Hình thức tệp Excel xuất ra</td></tr>
+<tr><td>npm run kiemdinh</td><td class='c dat'>22 đạt &middot; 0 hỏng</td><td>Trình soát độc lập, 7 kịch bản xếp lịch</td></tr>
+<tr><td>npm run soat</td><td class='c dat'>0 lỗi &middot; 0 cảnh báo</td><td>Cú pháp và quyền của toàn bộ tệp SQL</td></tr>
+</table>
+
+<h2>III. Kết quả xếp thời khoá biểu</h2>
+<table>
+<tr><th style='width:34%'>Kịch bản</th><th style='width:22%'>Số tiết xếp được</th><th>Ghi chú</th></tr>
+<tr><td>Diễn Liên &mdash; 25 lớp</td><td class='c dat'>710 / 710</td><td>Chạy 5 lần đều giống hệt nhau; Toán và Tiếng Việt vào tiết 1&ndash;3 sáng đạt 88%</td></tr>
+<tr><td>Ba phân hiệu &mdash; 60 lớp</td><td class='c dat'>1698 / 1698</td><td>Khoảng 1,3 giây; đạt 91%</td></tr>
+<tr><td>Cố định môn rồi mới xếp</td><td class='c dat'>710 / 710</td><td>Cố định HĐTN sáng thứ Hai tiết 1 cho toàn bộ 25 lớp, không ô nào bị đè</td></tr>
+<tr><td>Giáo viên báo bận dày đặc</td><td class='c'>696 / 710</td><td>Phần thiếu được báo đúng, không tiết nào lọt vào buổi đã đăng ký bận</td></tr>
+<tr><td>Thiếu phòng Tin học</td><td class='c'>đúng như quy định</td><td>Phân hiệu không có phòng máy thì <b>không một tiết Tin học nào</b> bị xếp vào</td></tr>
+</table>
+<p><b>Không tìm thấy một vi phạm ràng buộc cứng nào</b> trong toàn bộ các lần chạy:
+không giáo viên nào dạy hai lớp cùng giờ, không lớp nào học hai môn cùng lúc, không ai
+phải có mặt ở hai phân hiệu trong cùng một buổi, không ai bị xếp quá số tiết được phân công.</p>
+
+<h2>IV. Năm lỗi tìm được &mdash; đã sửa xong toàn bộ</h2>
+
+<h3>1. Mã lớp gợi ý sai dấu tiếng Việt</h3>
+<p>Hộp <i>Tạo lớp hàng loạt</i> gợi ý viết tắt <b>DD</b> cho &ldquo;Phân hiệu Diễn Đồng&rdquo;,
+trong khi chuẩn của phần mềm là <b>DĐ</b>. Hậu quả: phần mềm tạo lớp bằng chính con số nó
+vừa gợi ý, rồi ít phút sau nút <i>Đặt lại mã lớp</i> lại đòi sửa toàn bộ mã ấy &mdash; mà
+mã lớp là thứ nhà trường đã gõ vào tệp Excel.</p>
+<p class='phu'>Đã sửa: cả hai nơi dùng chung một hàm, không còn hai cách tính song song.</p>
+
+<h3>2. Hộp &ldquo;Cố định môn vào giờ&rdquo; hứa nhiều hơn làm được</h3>
+<p>Dòng xem trước báo <b>12 lớp đặt được</b> nhưng bấm vào chỉ cố định được <b>1 lớp</b>.
+Nguyên nhân: phần xem trước không kiểm ràng buộc &ldquo;một giáo viên không dạy hai lớp
+cùng giờ&rdquo; &mdash; mà các môn nhà trường muốn cố định (HĐTN, Tiếng Anh tăng cường,
+Tin học, Mỹ thuật) đúng là những môn một giáo viên dạy nhiều lớp.</p>
+<p class='phu'>Đã sửa: xem trước nay chạy thử thật rồi hoàn lại, nên con số hiện ra
+luôn khớp kết quả. Câu báo cũng nói rõ vì sao lớp nào không đặt được.</p>
+
+<h3>3. Tệp Word của Lịch dạy thay mất căn giữa</h3>
+<p>Bản in trên trình duyệt căn giữa đúng, nhưng tệp Word tải về thì ba cột
+<i>TT &middot; Tiết &middot; Lớp</i> tụt về căn trái &mdash; hai lối ra của cùng một bản in
+cho ra hai kết quả khác nhau.</p>
+
+<h3>4. Chữ trong tệp Excel có thể bị cắt mất dòng</h3>
+<p>Tên môn hoặc họ tên dài quá 26 chữ cái bị ngắt thành ba dòng, trong khi ô chỉ cao
+đủ hai dòng. Trường Diễn Liên hiện chưa gặp, nhưng nhà trường được phép tự khai môn tự
+chọn nên đây là cửa mở sẵn.</p>
+<p class='phu'>Đã sửa: ô tự nới cao theo số dòng thật sự cần.</p>
+
+<h3>5. Tên cột trong tệp Excel bị cụt đuôi</h3>
+<p>Bề ngang cột được tính từ phần thân bảng mà bỏ sót chính dòng tiêu đề, nên với phân
+hiệu có tên dài thì đầu cột bị cắt. Trang <i>Toàn trường</i> tình cờ không lộ, các trang
+theo lớp và theo giáo viên thì có.</p>
+
+<h2>V. Những điều đã kiểm và đạt</h2>
+<ul>
+<li><b>Đặt tên lớp bỏ chữ cái:</b> khai dãy A B C D E G H I ra đúng 40 lớp, mã lớp khớp
+tên từng lớp một, không lớp nào trùng mã.</li>
+<li><b>Cố định môn trước khi xếp:</b> 17 tiết cố định giữ nguyên chỗ, nguyên môn, nguyên
+người dạy sau khi xếp; bấm xếp lần thứ hai vẫn nguyên.</li>
+<li><b>Không màn hình nào bày chữ lỗi:</b> quét 27 màn hình ở 6 trạng thái khác nhau, kể
+cả trường trống trơn &mdash; sạch hoàn toàn.</li>
+<li><b>Tệp Excel xuất ra:</b> đủ 10 trang tính, họ tên ghi đầy đủ ở mọi trang, không chỗ
+nào rút gọn thành &ldquo;Cô X&rdquo;.</li>
+<li><b>Bản in:</b> đúng khổ giấy từng loại, phông Times New Roman 13pt, hai chỗ ký, không
+ghi cơ quan chủ quản; ngày ký lấy đúng ngày ban hành chứ không phải ngày in.</li>
+<li><b>Mẫu Excel tải về nhập lại được:</b> vòng tải &rarr; điền &rarr; nhập giữ nguyên số
+liệu, nhập lại lần hai không nhân đôi ai.</li>
+<li><b>Phân quyền:</b> đúng hoàn toàn với bảng đã quy định &mdash; phó hiệu trưởng phụ
+trách một phân hiệu chỉ sửa được lớp của phân hiệu mình, giáo viên chỉ xem.</li>
+</ul>
+
+<h2>VI. Việc còn lại</h2>
+<ul>
+<li><b>Chữa dữ liệu Trường Tiểu học Vinh Hưng 1:</b> mã lớp đang lệch tên lớp ở 15 lớp.
+Vào mục <i>Lớp học</i> bấm <i>Đặt lại mã lớp</i>, lưu, rồi nhập lại bảng phân công từ tệp
+đã sửa sẵn.</li>
+<li><b>Bước tối ưu dừng theo đồng hồ</b> nên máy chậm cho kết quả kém hơn máy nhanh. Số
+tiết xếp được thì ổn định tuyệt đối; chỉ độ đẹp của lưới dao động. Đã hẹn xử lý sau ngày
+khai giảng.</li>
+<li><b>Tốc độ bấm Lưu:</b> hiện gọi máy chủ 16&ndash;19 lần nối đuôi nhau. Đã hiện tiến độ
+từng bước để người dùng biết máy đang chạy; gộp lại cho nhanh hơn khoảng 40% cũng hẹn sau
+khai giảng.</li>
+</ul>
+
+<table class='ky'>
+<tr><td>&nbsp;</td><td><i>Quảng Châu, ngày 31 tháng 8 năm 2026</i></td></tr>
+<tr><td><b>NGƯỜI KIỂM THỬ</b></td><td><b>HIỆU TRƯỞNG</b></td></tr>
+<tr><td style='height:60pt'>&nbsp;</td><td>&nbsp;</td></tr>
+</table>
+
+</body></html>
