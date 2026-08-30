@@ -77,19 +77,17 @@ cập dữ liệu qua một tầng 4–6 hàm để Pha 2 chỉ cần viết l�
 | Logo | PNG 96px nhúng base64 trong trang | giữ được single-file, ~21 KB |
 | Font | Be Vietnam Pro (Google Fonts) | hỗ trợ dấu tiếng Việt tốt |
 
-**Hai thư viện Excel KHÔNG nằm trong `<head>`** *(16/8/2026)*. Chúng nặng
-507 KB và trước đây tải ở **mọi** lần mở app, trong khi giáo viên — nhóm
-đông nhất, mở app mỗi sáng — không bao giờ nhập hay xuất Excel. Nay
-`napThuVien(url)` nạp khi thật sự cần; mọi nơi dùng đi qua
-`await sanSangExcelJS()` / `await sanSangXLSX()`. Đo được: **736 KB → 229 KB
-mỗi lần mở**, giảm 69%.
+**Hai thư viện Excel KHÔNG nằm trong `<head>`** *(16/8/2026)* — giáo viên,
+nhóm đông nhất, không bao giờ nhập hay xuất Excel. `napThuVien(url)` nạp khi
+thật sự cần; mọi nơi dùng đi qua `await sanSangExcelJS()` / `await sanSangXLSX()`.
+Đo được **736 KB → 229 KB mỗi lần mở**.
 
 ⚠️ Thẻ script nạp động **phải khai `crossOrigin='anonymous'`**. Thiếu nó thì
 trình duyệt tải ở chế độ no-cors, phản hồi "mờ" không vào được kho Service
 Worker, và lần bấm sau vẫn tải lại 240 KB — sửa xong mà không được gì. Có
-phép thử ở `soi-pwa` canh. `sw.js` cũng lấy **kho trước** cho địa chỉ CDN có
-ghim phiên bản và phông chữ (chúng không bao giờ đổi nội dung); trang chính
-thì giữ **mạng trước** để không ai kẹt lại ở bản cũ.
+phép thử ở `soi-pwa` canh. `sw.js` lấy **kho trước** cho địa chỉ CDN có ghim
+phiên bản và phông chữ (chúng không bao giờ đổi nội dung); trang chính giữ
+**mạng trước** để không ai kẹt lại ở bản cũ.
 
 **Không dùng Google Sheets làm CSDL** — không cô lập được dữ liệu giữa các
 trường, và hai phó hiệu trưởng lưu cùng lúc sẽ ghi đè nhau.
@@ -269,25 +267,11 @@ mỗi tháng ở quy mô 300 trường. Cả hai đều vừa gói miễn phí.
 
 #### Sao lưu hằng đêm — `.github/workflows/sao-luu.yml` *(18/8/2026, CHẠY THẬT từ 25/8/2026)*
 
-Gói miễn phí của Supabase **không có sao lưu tự động**. Đây là rủi ro nặng
-hơn cả chuyện vượt hạn dung lượng: vượt hạn thì còn biết trước mà xử lý,
-mất dữ liệu thì không. Lịch chạy 1 giờ sáng, `pg_dump` schema `public` →
-gzip → **mã hoá AES-256** → cất làm tệp đính kèm, giữ 90 ngày. Bản đầu
-tiên (25/8/2026) đã tải về và mở thử bằng `npm run soi-sao-luu`: đủ 15
-bảng, 386 dòng — khớp dữ liệu thật của Diễn Liên.
-
-⚠️ Ba bẫy đã trả giá khi khai `DB_URL` lần đầu (25/8/2026), cả ba đều
-làm workflow đỏ mà tệp SQL không có lỗi nào:
-- **`DB_URL` phải là Session pooler** (`aws-0-ap-southeast-1.pooler.supabase.com`,
-  user `postgres.<ref>`, cổng 5432), KHÔNG phải đường nối thẳng
-  `db.<ref>.supabase.co` — địa chỉ ấy trên gói miễn phí **chỉ có IPv6**,
-  mà máy chạy GitHub Actions chỉ nói IPv4: nối là hỏng từ bước quay số.
-- **Mật khẩu chứa ký tự đặc biệt phải mã hoá URL** — `@` viết thành `%40`,
-  không thì dấu `@` trong mật khẩu bị đọc thành dấu ngăn với tên máy chủ.
-- **`pg_dump` bản 16 cài sẵn của máy chạy THẮNG trên PATH** dù đã cài
-  `postgresql-client-17` — lỗi `server version mismatch` (máy chủ 17.6).
-  Bước kết xuất phải `export PATH=/usr/lib/postgresql/17/bin:$PATH` và in
-  `pg_dump --version` vào log để lần sau nhìn ra ngay.
+Gói miễn phí của Supabase **không có sao lưu tự động** — rủi ro nặng hơn cả
+chuyện vượt hạn dung lượng: vượt hạn thì còn biết trước mà xử lý, mất dữ liệu
+thì không. Lịch chạy 1 giờ sáng, `pg_dump` schema `public` → gzip → **mã hoá
+AES-256** → cất làm tệp đính kèm, giữ 90 ngày. Mở thử bản dump bằng
+`npm run soi-sao-luu`.
 
 ⚠️ **Bắt buộc mã hoá.** Bản dump chứa họ tên và email toàn bộ giáo viên —
 dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP — mà tệp đính kèm của một kho
@@ -298,6 +282,12 @@ và `BACKUP_KEY`; **mất khoá là không giải mã được**.
 đổ giữa chừng mà vẫn thoát mã 0 khi chuỗi kết nối sai cổng — sao lưu hỏng
 mà báo thành công là thứ nguy hiểm nhất: yên tâm suốt nhiều tháng rồi mới
 biết.
+
+⚠️ Khai lại `DB_URL` thì đọc `docs/lich-su-quyet-dinh.md` mục **25/8/2026**
+trước — ba bẫy đã trả giá (phải là **Session pooler**, không phải đường nối
+thẳng vốn chỉ có IPv6 · mật khẩu phải **mã hoá URL** · `pg_dump` bản 16 của
+máy chạy **thắng trên PATH**), cả ba đều làm workflow đỏ mà tệp SQL không
+có lỗi nào.
 
 
 Ba thứ cần nhớ khi sửa vùng này:
@@ -356,16 +346,10 @@ vẫn bị hỏi mật khẩu, có phép thử canh.
 
 ### Duyệt đăng ký trường — vai CHỦ HỆ THỐNG *(24/8/2026 — `db/duyet-truong.sql`)*
 
-Chủ dự án hỏi *"các trường đăng ký thầy có nhận được không?"*. Không —
-và có **ba** lý do tách bạch, cả ba đều phải sửa:
-
-1. `dang_ky_truong()` chỉ ghi vào cơ sở dữ liệu rồi dừng. Không gửi thư,
-   không ghi `nhat_ky`, không webhook. Cả kho mã không có một dòng `smtp`.
-2. Quy tắc `p_truong_doc` chỉ cho đọc trường của **chính mình** — đúng
-   thiết kế cô lập dữ liệu, nhưng cũng nghĩa là không màn hình nào bày ra
-   danh sách toàn hệ thống.
-3. Chưa có vai nào đứng **ngoài** một trường. Vai cao nhất là `quan_tri`
-   — quản trị của *một* trường.
+Trường đăng ký xong thì chủ dự án **không hề nhận được gì** — `dang_ky_truong()`
+chỉ ghi vào cơ sở dữ liệu rồi dừng (không thư, không `nhat_ky`, không webhook),
+quy tắc `p_truong_doc` chỉ cho đọc trường của **chính mình**, và chưa có vai
+nào đứng **ngoài** một trường.
 
 Nay: đăng ký là **gửi đơn**; phải được duyệt và **cấp mã trường 5 chữ số**
 mới dùng được. Cửa vẫn mở cho ai cũng gửi được đơn — chủ dự án chốt thế.
@@ -419,23 +403,20 @@ nhìn phát biết đang cầm mã gì.
 
 #### Màn hình chờ duyệt — vá bốn chỗ *(28/8/2026)*
 
-Chủ dự án gửi ảnh chụp chính màn hình này. Bốn chỗ hỏng, cả bốn đều có
-phép thử ở mục **17f** của `npm run soi`:
+Bốn chỗ hỏng đã vá, đều có phép thử ở mục **17f** của `npm run soi`. Ba luật
+rút ra:
 
 - ⚠️ **`.the` cố ý KHÔNG mang padding** — mọi màn hình khác bọc nội dung
-  trong `.the-t`. `mChoDuyet()` đặt thẳng `.hang` làm con của `.the` nên
-  giá trị căn phải dính sát vạch viền trên máy tính và **tràn hẳn ra ngoài
-  thẻ** trên điện thoại: `chungtrt@nghean.edu.vn` bị cắt cụt. Dựng thẻ mới
-  thì nhớ lớp bọc ấy.
-- **Thanh đầu trang bày tên TRƯỜNG MẪU.** Trường chờ duyệt chưa tải được
-  dữ liệu của mình nên `S` đang giữ bộ mẫu — người dùng thấy *TRƯỜNG TIỂU
-  HỌC MỚI* ngay phía trên tấm thẻ ghi tên trường thật trong đơn của họ.
-  Nay lấy từ `KHO.nguoiDung.tenTruong`, dòng dưới ghi trạng thái đơn.
-- **Chuông và kính lúp im hẳn.** Huy hiệu đỏ *4* là số cảnh báo của bộ dữ
-  liệu mẫu — con số vô nghĩa với trường chưa có dữ liệu nào của mình.
+  trong `.the-t`. Đặt thẳng `.hang` làm con của `.the` thì giá trị căn phải
+  dính sát vạch viền trên máy tính và **tràn hẳn ra ngoài thẻ** trên điện
+  thoại. Dựng thẻ mới thì nhớ lớp bọc ấy.
+- **Trường chưa tải được dữ liệu của mình thì `S` đang giữ BỘ MẪU** — tên
+  trường, huy hiệu chuông, số cảnh báo đều là của bộ mẫu, vô nghĩa với họ.
+  Màn hình cho vai ấy phải lấy tên từ `KHO.nguoiDung.tenTruong`, và giấu
+  chuông với kính lúp.
 - **Nhóm menu duy nhất còn hiện phải TỰ BUNG.** `dungMenu()` chỉ mở
-  `NHOM_MAC_DINH` (ĐIỀU HÀNH), mà vai này bị giấu hết mục — thanh bên còn
-  mỗi nhãn *HỆ THỐNG* đóng im, bấm mãi không ra gì. Nay không nhóm mở nào
+  `NHOM_MAC_DINH` (ĐIỀU HÀNH); vai bị giấu hết mục trong nhóm ấy thì thanh
+  bên còn mỗi một nhãn đóng im, bấm mãi không ra gì. Nay không nhóm mở nào
   còn mục thì bung nhóm đầu tiên còn thấy được.
 
 **`diaBan('Xã', S.xa)` thay cho `'Xã '+S.xa`.** Trường tự khai nên ô Xã hay
@@ -509,11 +490,9 @@ Supabase là phép thử vẫn xanh trong khi app mất hẳn đường gọi m�
 `taoWorkerXep()` dựng Worker từ một **Blob URL** — cách duy nhất chạy vùng
 LOGIC trong luồng riêng mà vẫn giữ quy ước một tệp. Khai `worker-src 'self'`
 trơn thì trình duyệt chặn, nút *Xếp kỹ* **lặng lẽ rơi về luồng chính** và treo
-giao diện mấy phút. Không một lỗi nào hiện ra, và `npm test` · `npm run soi` ·
-`npm run soi-nhap` · `npm run soi-mau` đều xanh — chúng gọi thẳng hàm thuần.
-Chỉ `node test/soi-worker.mjs` bắt được, mà bộ ấy **không nằm trong danh sách
-chạy thường**. Bài học: thêm một hàng rào (CSP) thì phải chạy **cả tám** bộ
-soi, không chỉ bốn bộ quen tay.
+giao diện mấy phút. Không một lỗi nào hiện ra, và bốn bộ soi quen tay đều xanh
+— chúng gọi thẳng hàm thuần; chỉ `node test/soi-worker.mjs` bắt được. Bài học:
+thêm một hàng rào (CSP) thì phải chạy **cả tám** bộ soi.
 
 **`db/siet-dang-ky-va-nhat-ky.sql`** *(ĐÃ CHẠY trên máy chủ thật 29/8/2026)* —
 hai việc còn lại:
@@ -606,11 +585,10 @@ thử cho đường lui ấy. Đừng "dọn" cho nhất quán.
 
 ### Gmail của giáo viên — vào trường KHÔNG cần mã mời *(28/8/2026 — `db/gmail-giao-vien.sql`, ĐÃ CHẠY trên máy chủ thật cùng ngày)*
 
-Đề xuất của chủ dự án: *"tại nút Giáo viên cần có thêm cột gmail để khỏi phải
-mời nữa"*. Phát quyền cho 35 thầy cô trước đây là **bốn bước mỗi người** —
-tạo mã 6 chữ cái → gửi Zalo → thầy cô đăng nhập Google → gõ mã — và mã thì
-hết hạn. Nay nhà trường khai sẵn Gmail ngay trong bảng Giáo viên; thầy cô bấm
-*Đăng nhập bằng Google* bằng đúng địa chỉ ấy là vào thẳng lịch của mình.
+Phát quyền bằng mã mời là **bốn bước mỗi người** (tạo mã → gửi Zalo → thầy cô
+đăng nhập Google → gõ mã) và mã thì hết hạn. Nay nhà trường khai sẵn Gmail ngay
+trong bảng Giáo viên; thầy cô bấm *Đăng nhập bằng Google* bằng đúng địa chỉ ấy
+là vào thẳng lịch của mình.
 
 ⚠️ **VÌ SAO PHẢI LÀ RPC, KHÔNG PHẢI TẠO SẴN `nguoi_dung`.** `nguoi_dung.id`
 **chính là** `auth.uid()` do GoTrue cấp lúc đăng nhập lần đầu. Một Gmail chưa
@@ -1001,14 +979,8 @@ chỉ còn nhãn nhóm + tên màn hình + hai nút ‹ trước / tiếp theo �
 quét cả 12 màn hình, không cho chữ `Bước <số>` nào lọt ra.
 
 **Nhãn nhóm NỔI KHỐI — tấm nền + vạch vàng** *(chốt 23/8/2026 sau bốn lần
-đổi)*. Chép lại cả đường đi để đừng ai quay vòng thêm lần nữa:
-
-| Bản | Cách làm | Vì sao đổi |
-|---|---|---|
-| đầu | 10px màu `--nav-mo` nhạt | *"các mục lớn thì bị nuốt"* — thứ bậc lộn ngược |
-| 3/8 | nhãn thành **tấm khối** có nền + vạch vàng, mục con bỏ nền | đạt, giữ suốt hai tuần |
-| 23/8 sáng | nhãn **vàng kem** phẳng, theo ảnh mẫu | năm nhóm cùng đóng thì thanh bên chỉ còn năm dòng chữ mảnh trên một mảng xanh trống |
-| 23/8 chốt | **quay lại tấm khối**, chủ dự án yêu cầu thẳng | |
+đổi; đường đi đầy đủ ở `docs/lich-su-quyet-dinh.md`)*. Đã thử nhãn phẳng theo
+ảnh mẫu và phải quay lại.
 
 ⚠️ Điều quyết định là **TRẠNG THÁI ĐÓNG**. Bày mở sẵn thì nhãn phẳng trông
 nhẹ nhõm — đó là dáng trong ảnh mẫu, và ảnh mẫu chụp đúng lúc nhóm đang mở
@@ -1040,25 +1012,20 @@ Ba mức hiện mục, gộp trong `thayDuocMuc(t)`:
 `MUC_GIAO_VIEN` (5 mục) · `MUC_TOAN_TRUONG` (người dùng · sao lưu · phiên bản,
 chỉ hiệu trưởng và PHT chuyên môn) · còn lại mọi quản lý đều thấy.
 
-**Đáy thanh bên chỉ còn thẻ tài khoản** *(1/8/2026)*. Ba nút cũ đã chuyển tới
-nơi thực sự dùng chúng — thanh bên là chỗ điều hướng, không phải chỗ chứa mọi
-việc lặt vặt:
+**Đáy thanh bên chỉ còn thẻ tài khoản** *(1/8/2026)*. Nút *Nhập dữ liệu Excel*
+đã về thanh công cụ của từng màn hình khai báo, *Máy chủ dữ liệu* về thẻ *Công
+cụ quản trị* — thanh bên là chỗ điều hướng, không phải chỗ chứa việc lặt vặt.
+Tình trạng máy chủ báo bằng chấm xanh trên thẻ tài khoản.
 
-| Nút cũ | Chỗ ở mới | Vì sao |
-|---|---|---|
-| Nhập dữ liệu Excel | thanh công cụ của **từng màn hình Bước 1** | đang ở màn hình Lớp học mà muốn nhập lớp thì bấm luôn tại đó |
-| Máy chủ dữ liệu | Bước 1 · Thông tin trường, thẻ *Công cụ quản trị* | việc cài đặt, làm vài lần |
-| Đổi vai trò xem thử | **bỏ hẳn** *(1/8/2026)* | đăng nhập vai nào là vai đó; muốn xem vai khác thì đăng xuất rồi đăng nhập lại. Một lối vào, không có cửa sau |
-| — | chấm xanh trên thẻ tài khoản | vẫn báo tình trạng máy chủ, không tốn một dòng nào |
+⚠️ **Nút *Đổi vai trò xem thử* bỏ hẳn, đừng dựng lại.** Đăng nhập vai nào là
+vai đó; muốn xem vai khác thì đăng xuất rồi đăng nhập lại. Một lối vào, không
+có cửa sau.
 
 #### Trên điện thoại: NGĂN KÉO, không phải dải ngang *(sửa 2/8/2026)*
 
-Bản trước thu thanh bên thành **dải cuộn ngang dán đỉnh màn hình**. Sai từ
-gốc, và chủ dự án nói đúng một câu là ra: *"dải điều hướng có ai sắp xếp
-chạy ngang phía trên bao giờ đâu"*. Ba cái sai:
-- Bắt người dùng **vuốt ngang** mới tìm được mục — không phần mềm nào làm vậy.
-- Nhãn nhóm phải **xoay dọc** mới vừa chỗ, đọc rất khó.
-- Dải ấy ăn mất một khoảng cao ở **mọi** màn hình, kể cả khi không dùng tới.
+⚠️ **Đừng quay lại dải cuộn ngang dán đỉnh màn hình.** Đã làm và đã bỏ: bắt
+vuốt ngang mới tìm được mục, nhãn nhóm phải xoay dọc mới vừa chỗ, và dải ấy
+ăn mất một khoảng cao ở **mọi** màn hình kể cả khi không dùng tới.
 
 Nay là **ngăn kéo trượt từ trái** (`body.mo-menu`), mở bằng nút ☰ ở thanh
 trên: giữ nguyên menu dọc y như máy tính, kể cả logo và thẻ tài khoản, nhãn
@@ -1089,17 +1056,14 @@ người dùng qua mọi màn hình; thẻ kia bỏ hẳn, hai dòng thông tin 
 liệu* · *Người đang dùng* gộp xuống cuối thẻ **Đã khai báo**. Có phép thử đếm:
 trong `#noiDung` không được còn nút đăng nhập nào.
 
-**Logo** nhúng base64 ngay trong trang (`.hieu-bt img`) và làm luôn favicon.
-Ảnh gốc 1254px/1,3 MB thu về **96px/16 KB** trước khi mã hoá — nhét nguyên ảnh
-gốc là tệp HTML phình thêm 1,8 MB cho một hình 52px. **Nhúng đúng MỘT lần**
-*(24/8/2026)*: thẻ `<link rel="icon">` không mang `href` tĩnh, một dòng đầu
-script gán nó từ chính `.hieu-bt img`. Bản 64px nhúng riêng trước đó là 11 KB
-base64 — thứ gzip không nén được — cho cùng một hình.
+**Logo** nhúng base64 ngay trong trang (`.hieu-bt img`), ảnh gốc thu về
+**96px/16 KB** trước khi mã hoá, và **nhúng đúng MỘT lần** *(24/8/2026)*: thẻ
+`<link rel="icon">` không mang `href` tĩnh, một dòng đầu script gán nó từ
+chính `.hieu-bt img`.
 
-**Chỉ còn MỘT logo, ở đầu thanh bên** *(16/8/2026)*. Bản trước bày thêm một
-cái nữa ở thanh đầu trang (`.thanh-bt`), tức là cùng một hình, hai lần, cách
-nhau vài chục pixel trên cùng một màn hình. Nay thanh đầu trang mở đầu thẳng
-bằng tên trường. Có phép thử canh không cho nó quay lại.
+⚠️ **Chỉ còn MỘT logo, ở đầu thanh bên** *(16/8/2026)* — bản trước bày thêm
+một cái nữa ở thanh đầu trang, cùng một hình hai lần cách nhau vài chục pixel.
+Có phép thử canh không cho nó quay lại.
 
 `thanhKhaiBao(nut, coNhap)` dựng thanh công cụ dùng chung. Truyền `coNhap=false`
 cho **Thông tin trường · Môn học · Phòng học** — tệp Excel không chứa ba thứ đó,
@@ -1176,10 +1140,9 @@ bằng `id`. `sinhLop()` và `taoDuLieuThu()` dùng cùng dạng.
 
 #### Mã GIÁO VIÊN cũng phải là mã NGƯỜI đọc được *(3/8/2026)*
 
-Y hệt chuyện mã lớp hôm 2/8, và cùng một gốc: lỗi upsert `ma_gv: g.id` đã ghi
-UUID 36 ký tự của máy chủ vào cột `ma_gv`. Lỗi đã vá nên không đẻ thêm hồ sơ
-trùng, nhưng **dữ liệu để lại thì vẫn xấu** — mà `ma_gv` chính là thứ người
-dùng đọc trong bảng Giáo viên và gõ vào cột `Ma_GV` của tệp Excel.
+Y hệt chuyện mã lớp hôm 2/8, cùng một gốc: lỗi upsert `ma_gv: g.id` đã ghi UUID
+36 ký tự vào cột `ma_gv` — mà đó chính là thứ người dùng đọc trong bảng Giáo
+viên và gõ vào cột `Ma_GV` của tệp Excel.
 
 Dạng mã do đó chốt là **`<tên gọi>_<viết tắt họ và đệm>`** — `Oanh_NT`,
 `Hương_PT`, `Chung_TT`. Tên gọi đứng trước vì ba lý do: đó là thứ nhà trường
@@ -1196,15 +1159,12 @@ trước. **Giữ nguyên dấu** — *Thùy* và *Thủy* bỏ dấu đều th�
 | `chuanMaGV()` | chạy tự động lúc nạp, **chỉ chữa mã xấu** |
 | `maGVMoi(hoTen)` | mã cho hồ sơ VỪA KHAI — mọi đường tạo giáo viên mới đi qua đây |
 
-⚠️ **Mã phải đúng NGAY LÚC KHAI, không phải chữa sau** *(29/8/2026)*. Chủ dự
-án hỏi đúng chỗ: *"tại sao lại đổi như thế này mà không quy định mã GV mới
-ngay từ đầu?"*. Hai đường tạo hồ sơ mới — hộp *Thêm giáo viên* và
-`taoDuLieuThu()` — vẫn sinh mã slug `gv_cao_thi_minh_khue` rồi trông chờ nút
-*Đặt lại mã giáo viên* dọn hộ, nên **trường mới tinh cũng gặp hộp thoại dọn
-dẹp ấy** dù chẳng có dữ liệu cũ nào. Nay cả hai gọi `maGVMoi()`. Nút Đặt lại
-giữ nguyên nhưng lui về đúng vai: chữa **dữ liệu cũ** (UUID máy chủ để lại
-sau sự cố upsert 2/8, mã slug các bản trước sinh, mã trường tự gõ vào Excel).
-Có phép thử canh cả hai đường (`npm test` mục 19 · `npm run soi` mục 8).
+⚠️ **Mã phải đúng NGAY LÚC KHAI, không phải chữa sau** *(29/8/2026)*. Mọi đường
+tạo hồ sơ mới — hộp *Thêm giáo viên*, `taoDuLieuThu()` — phải gọi `maGVMoi()`;
+sinh mã slug rồi trông chờ nút *Đặt lại mã giáo viên* dọn hộ thì **trường mới
+tinh cũng gặp hộp thoại dọn dẹp** dù chẳng có dữ liệu cũ nào. Nút Đặt lại chỉ
+còn đúng vai chữa **dữ liệu cũ**. Có phép thử canh cả hai đường (`npm test`
+mục 19 · `npm run soi` mục 8).
 
 Ba điều bắt buộc:
 
@@ -1255,13 +1215,11 @@ thì **xoá hẳn mã**, đừng dùng `hidden`.
 **Nút Xuất và in cùng màu với bốn thẻ chuyển**, phân biệt bằng **biểu tượng
 máy in** chứ không bằng màu — màu vàng cũ hét to hơn cả bốn thẻ chính.
 
-**Băng rôn navy đã BỎ HẲN, và thẻ lưới KHÔNG có dòng tiêu đề** *(3/8/2026)*.
-Cả hai chỉ lặp lại thứ đã nói ở chỗ khác — tên trường có sẵn ở thanh trên
-cùng, số lớp và phiên bản có ở dải chỉ số và khối Việc cần xử lý — mà ăn mất
-gần 200px chiều cao **ngay trên lưới**. Mục tiêu chủ dự án nêu thẳng: *"tạo
-cho TKB không gian rộng hơn"*.
+⚠️ **Băng rôn navy đã BỎ HẲN, và thẻ lưới KHÔNG có dòng tiêu đề** *(3/8/2026)*
+— cả hai chỉ lặp lại thứ đã nói ở thanh trên cùng và dải chỉ số, mà ăn mất gần
+200px chiều cao **ngay trên lưới**. Đừng dựng lại.
 
-Nút **Xuất và in** dời lên **ngang hàng với bốn thẻ chuyển** (`.xem-xuat`,
+Nút **Xuất và in** nằm **ngang hàng với bốn thẻ chuyển** (`.xem-xuat`,
 `flex:0 0 auto` để không giãn theo). Nhãn số liệu thu thành `.dai-phu .meta`
 nằm cuối hàng dải chọn.
 
@@ -1270,17 +1228,10 @@ sau khi khối *Việc cần xử lý* lùi xuống dưới lưới. Không có 
 `daiViecGap()` trả rỗng — không tốn một pixel nào. Đừng gỡ nó khi dọn giao
 diện: gỡ là hiệu trưởng mở app lên không còn chỗ nào báo cô A đang nghỉ.
 
-**Màu nút trên nền trắng: cùng một hệ navy, khác nhau độ đậm** *(3/8/2026)*.
-Thẻ chuyển và nút phân hiệu trước đây nền trắng viền mảnh — chủ dự án:
-*"nhìn màu trắng không rõ"*. Nay chưa chọn là `--nav-nhat` nổi khối, đang
-chọn là `--nav` đậm hơn. Hai tín hiệu (màu đậm nhạt + đổ bóng), không chỉ một.
-
-**Thanh bên: nhãn nhóm nổi khối, mục con giảm nhẹ** *(sửa lần hai 3/8/2026)*.
-Lần đầu mới làm chữ nhãn nhóm đậm và sáng hơn, nhưng **mục con vẫn là những
-tấm thẻ có nền và viền** còn nhãn nhóm thì trong suốt — nhìn tổng thể vẫn
-thấy cấp dưới nổi hơn cấp trên. Nay đảo hẳn: nhãn nhóm có nền + vạch vàng
-bên trái; mục con bỏ nền, bỏ viền, chỉ còn chữ. Ngoại lệ duy nhất là mục
-**đang mở** — vẫn nổi rõ.
+**Màu nút trên nền trắng: cùng một hệ, khác nhau độ đậm.** Chưa chọn là
+`--nav-nhat` nổi khối, đang chọn là `--nav` đậm hơn — hai tín hiệu (màu đậm
+nhạt + đổ bóng), không chỉ một. Nền trắng viền mảnh đã thử và bị chê
+*"nhìn màu trắng không rõ"*.
 
 #### Thẻ *Đã khai báo* — mỗi con số là một LỐI ĐI *(29/8/2026)*
 
@@ -1298,9 +1249,6 @@ chúng cả; gắn lối đi cho chúng là hứa một chỗ sửa không tồn
 và nền sáng). Chỉ dựa vào hover là trên điện thoại không có tín hiệu nào.
 
 #### Mở app là thấy TỪNG LỚP, và cột lớp bên trái lưới *(16/8/2026)*
-
-Chủ dự án đối chiếu với SmartScheduler 7.3 đang chạy ở trường: *"có thể điều
-chỉnh để xem từng lớp thay vì cho hiển thị ra màn hình cả trường?"*
 
 - **`xemMacDinh(ds)`** chọn cách xem cho lần vẽ đầu: trên `NGUONG_LOP_TOAN_TRUONG
   = 12` lớp thì mở thẳng thẻ *Theo lớp*, dưới ngưỡng giữ lưới toàn trường.
@@ -1325,31 +1273,30 @@ chỉnh để xem từng lớp thay vì cho hiển thị ra màn hình cả trư
   đi tìm ai. Hiện ở thẻ cạnh nút *Mở để chỉnh tay*, thanh màn *Theo lớp*, và
   `title` từng nút trong cột lớp.
 
-**Bốn cách xem là THẺ CHUYỂN TẠI CHỖ, không phải nút rời trang** *(3/8/2026)*.
-Trước đó chúng là `data-di`: bấm *Theo lớp* là rời Bảng điều hành, và **không
-có đường quay lại để bấm thẻ thứ hai**. Chủ dự án nói đúng: *"bấm nút nào thì
-hiển thị thời khóa biểu nút đó và không biến mất, muốn quay lại bấm nút khác
-không có"*. Nay đổi `S.dhXem` rồi vẽ lại đúng khối ấy — xem `kheSanPhamHTML()`.
+⚠️ **Bốn cách xem là THẺ CHUYỂN TẠI CHỖ, không phải nút rời trang** *(3/8/2026)*.
+Làm bằng `data-di` thì bấm *Theo lớp* là rời Bảng điều hành và **không có đường
+quay lại để bấm thẻ thứ hai**. Nay đổi `S.dhXem` rồi vẽ lại đúng khối ấy — xem
+`kheSanPhamHTML()`.
 
 Lưới trong Bảng điều hành **CHỈ ĐỌC**: không kéo thả, không chạm sửa. Màn hình
 *Theo lớp* mới là chỗ chỉnh tay; hai nơi cùng sửa một thứ thì sớm muộn lệch
 hành vi. Hai hàm dựng lưới tuần dùng chung: `luoiTuanLop(id)` · `luoiTuanGV(id)`,
 cùng khung `luoiTuanKhung(oNoi)`.
 
-**Ba thứ đã chuyển khỏi Bảng điều hành:**
+**Ba thứ đã chuyển khỏi Bảng điều hành** — nó là chỗ NHÌN thời khóa biểu,
+không phải bảng nút bấm: cụm sáu nút thao tác nhanh về màn *Xếp thời khóa
+biểu*, bốn thẻ số liệu `.ts` thu thành dải `.dai-so` trên lưới, ô tìm kiếm
+chung thành nút kính lúp trên **thanh đầu trang**.
 
-| Cái gì | Đi đâu | Vì sao |
-|---|---|---|
-| Tiêu đề + phạm vi + ô tìm kiếm chung | ô tìm kiếm → nút kính lúp trên **thanh đầu trang** *(3/8/2026, trước đó ở mục Giáo viên)* | đặt trong mục Giáo viên thì nó nằm sát ô lọc bảng — hai ô giống hệt nhau về hình thức, khác hẳn hành vi, người dùng gõ nhầm ô là tưởng phần mềm hỏng. Tìm kiếm toàn cục thì chỗ của nó là thanh đầu trang, theo người dùng đi mọi màn. Giấu với vai giáo viên và khi chưa đăng nhập |
-| Cụm sáu nút thao tác nhanh | màn hình **Xếp thời khóa biểu** | Bảng điều hành là chỗ NHÌN thời khóa biểu, không phải bảng nút bấm |
-| Bốn thẻ số liệu `.ts` | thành dải `.dai-so` **trên** lưới | bốn hộp cao 102px rời nhau chiếm gần một màn hình để nói bốn con số |
+⚠️ **Ô tìm kiếm toàn cục KHÔNG được đặt trong mục Giáo viên** — ở đó nó nằm sát
+ô lọc bảng, hai ô giống hệt nhau về hình thức mà khác hẳn hành vi, người dùng
+gõ nhầm ô là tưởng phần mềm hỏng. Chỗ của nó là thanh đầu trang, theo người
+dùng đi mọi màn; giấu với vai giáo viên và khi chưa đăng nhập.
 
-**Việc cần xử lý lùi xuống SAU lưới.** Ngày 2/8 nó được đặt lên đầu vì "thứ
-duy nhất có hạn giờ trong ngày". Đúng — nhưng phần lớn thời gian nó là một
-hộp xanh *"Hôm nay không có giáo viên báo nghỉ"*, tức là chiếm chỗ đẹp nhất
-để nói rằng **không có gì xảy ra**.
-
-**Cái giá phải trả, và cách trả:** việc gấp vẫn phải đập vào mắt ở đầu trang.
+**Việc cần xử lý lùi xuống SAU lưới** — phần lớn thời gian nó là một hộp xanh
+*"Hôm nay không có giáo viên báo nghỉ"*, tức chiếm chỗ đẹp nhất để nói rằng
+**không có gì xảy ra**. Cái giá phải trả: việc gấp vẫn phải đập vào mắt ở đầu
+trang.
 Nên khi có giáo viên báo nghỉ chưa xử lý, `bangRon()` gắn thêm **một dòng đỏ
 dán liền dưới băng rôn** (`.br-gap`) — bấm được, nhảy thẳng tới Dạy thay. Một
 dòng thay cho cả một khối, và **không thêm hộp rời nào** vì nó dính vào băng
@@ -1870,15 +1817,10 @@ trình đọc ấy — bỏ nó đi là đường lui còn đó mà không ai ca
 
 #### Tệp mẫu tải về phải NHẬP LẠI ĐƯỢC *(29/8/2026)*
 
-Chủ dự án tải mẫu *Giáo viên* về, chọn lại đúng tệp ấy, và nhận
-**"Tệp này không có trang tính nào máy đọc được"** — trong khi trang tính
-tên đúng là `GIAO_VIEN`. Hai thứ đánh nhau:
-
-- Mẫu mở đầu bằng **dải tiêu đề gộp ô + một dòng nhắc việc**, nên tên cột
-  nằm ở **dòng 3**; `sheet_to_json()` của SheetJS mặc định lấy **dòng đầu**
-  làm tên cột, ra `{"GIÁO VIÊN": …}`.
-- Cột bắt buộc mang **dấu sao** cho người điền dễ nhìn (`Ma_GV *`) — ngay
-  cả khi bỏ đúng hai dòng thì khoá vẫn không khớp.
+Mẫu mở đầu bằng **dải tiêu đề gộp ô + một dòng nhắc việc** nên tên cột nằm ở
+**dòng 3**, và cột bắt buộc mang **dấu sao** (`Ma_GV *`). `sheet_to_json()` của
+SheetJS lấy dòng đầu làm tên cột, nên chọn lại đúng tệp mẫu vừa tải về thì nhận
+*"Tệp này không có trang tính nào máy đọc được"*.
 
 `bangTuMaTran(a)` (vùng DULIEU) nhận diện dòng tên cột bằng **chính dạng
 của tên** — chữ không dấu kiểu `Ma_GV`, `Ho_ten`, tối thiểu hai ô khớp —
@@ -1887,12 +1829,11 @@ rồi bỏ dấu sao và gán `__dong` là **số dòng Excel thật**. Tệp m�
 số 0, hành vi y như cũ; không dò ra gì thì `doc()` lùi về `sheet_to_json`
 như trước.
 
-⚠️ **Phép thử tự làm hộ app đúng cái việc app không làm.** `npm run soi-mau`
-đã có sẵn cụm *"VÒNG TRÒN QUA TỆP THẬT"* từ 28/8 — nó sinh tệp, đọc lại,
-đổ ngược qua `duLieuTuMuc()` và **xanh suốt**. Vì hàm đọc của nó **chép tay**
-`getRow(3)` và `replace(/ \*$/, '')`: nó biết cách bỏ dòng tiêu đề, còn app
-thì không. Nay `docTepMuc()` gọi thẳng `bangTuMaTran()`, hàm thật của app —
-đã thử ngược: bỏ phép dò thì **25 phép thử đỏ ngay**.
+⚠️ **Phép thử tự làm hộ app đúng cái việc app không làm.** Cụm *"VÒNG TRÒN QUA
+TỆP THẬT"* của `npm run soi-mau` xanh suốt trong khi app hỏng, vì hàm đọc của
+bộ soi **chép tay** `getRow(3)` và phép bỏ dấu sao: nó biết cách bỏ dòng tiêu
+đề, còn app thì không. Bộ soi phải gọi thẳng hàm thật của app (`docTepMuc()` →
+`bangTuMaTran()`); đã thử ngược, bỏ phép dò là **25 phép thử đỏ ngay**.
 
 ⚠️ Trang đúng tên mà **chưa điền dòng nào** thì báo đúng chuyện ấy, đừng để
 rơi xuống câu *"không có trang tính nào máy đọc được"* — người dùng đang
@@ -1900,11 +1841,10 @@ cầm đúng tệp mẫu, chỉ là chưa gõ gì vào.
 
 #### Cột khoá để TRỐNG cả cột vẫn phải nhận ra trang *(29/8/2026)*
 
-Tiểu học Thần Lĩnh 1 gõ 24 thầy cô vào đúng mẫu `GIAO_VIEN`, đủ chín cột, và
-nhận về **"Tệp này không có trang tính nào máy đọc được"**. Gốc: `bangTuMaTran()`
-chỉ gán khoá cho ô **đã điền**, nên cột `Ma_GV` trống suốt biến mất khỏi dữ
-liệu; `hopTrangMuc()` dò theo dữ liệu ấy rồi kết luận "không phải trang này".
-Nay `bangTuMaTran()` nhớ luôn **danh sách tên cột** (`__cot`, không liệt kê) và
+Gõ 24 thầy cô vào đúng mẫu `GIAO_VIEN` mà vẫn nhận *"không có trang tính nào
+máy đọc được"*: `bangTuMaTran()` chỉ gán khoá cho ô **đã điền**, nên cột `Ma_GV`
+trống suốt biến mất khỏi dữ liệu và `hopTrangMuc()` kết luận "không phải trang
+này". Nay `bangTuMaTran()` nhớ luôn **danh sách tên cột** (`__cot`) và
 `hopTrangMuc()` dò theo tên cột. Tên cột mới là thứ nói trang này là trang gì.
 
 ⚠️ Kèm theo: nhánh chính phải đòi **có dòng** (`hMuc?.length`), không thì mẫu
@@ -1920,21 +1860,21 @@ người trùng cả họ tên thì không đoán thay, bắt ghi `Ma_GV`.
 **`timLopNhap()` — một chỗ duy nhất tra lớp** cho cả cột `Chu_nhiem` lẫn
 `Ma_lop`. Ba mức chắc chắn giảm dần: đúng mã → đúng **tên lớp** khi tên ấy chỉ
 một lớp mang (nhà trường quen gọi *1A* hơn *1A_ND*) → **gợi ý mã gần nhất**.
-Thần Lĩnh gõ `1A_CN` trong khi mã thật là `1A_ND`: hai mươi mốt dòng cùng một
-lỗi, mà câu cũ khuyên *"vào mục Lớp học thêm lớp này trước"* — đẩy người dùng
-đi tạo thêm 15 lớp trùng, đúng hướng ngược với việc cần làm.
+⚠️ Gõ sai một chữ trong mã lớp là **cả tệp cùng một lỗi**, mà câu cũ khuyên
+*"vào mục Lớp học thêm lớp này trước"* — đẩy người dùng đi tạo thêm 15 lớp
+trùng, đúng hướng ngược với việc cần làm.
 
 ⚠️ **Phép thử đầu tiên xanh oan lần nữa**: bộ soi điền vào mẫu mà mẫu thì
-**sinh sẵn** các giáo viên đang có kèm mã, nên cột `Ma_GV` không hề trống. Bỏ
-vá đi vẫn xanh. Phải có `xoaCotTrongMau()` xoá sạch cột ấy mới tái hiện được
-tệp thật. Cùng một bài học ba lần trong một tuần: **thử ngược mọi vá**.
+**sinh sẵn** các giáo viên đang có kèm mã, nên cột `Ma_GV` không hề trống — bỏ
+vá đi vẫn xanh. Phải có `xoaCotTrongMau()` mới tái hiện được tệp thật. Cùng một
+bài học ba lần trong một tuần: **thử ngược mọi vá**.
 
 #### `npm run soi-nhap` — bộ soi thứ năm, đi đường của TRƯỜNG MỚI *(29/8/2026)*
 
 Ba bộ soi cũ mỗi bộ nhìn một mảnh: `npm test` chạy hàm thuần, `npm run soi`
 vẽ màn hình của trường **đã có 25 lớp**, `npm run soi-mau` soi hình thức tệp
-`.xlsx`. Không bộ nào đi hết đường một trường **mới tinh** — đúng đường Tiểu
-học Quảng Châu 1 đang đi, và đúng chỗ ba lỗi ngày 29/8 nằm.
+`.xlsx`. Không bộ nào đi hết đường một trường **mới tinh** — đúng chỗ cả ba
+lỗi nhập liệu ngày 29/8 nằm.
 
 `test/soi-nhap-lieu.mjs` dựng trường TRẮNG rồi đi trọn hai lối: **gõ tay**
 (bấm thật vào chín hộp thoại khai báo) và **Excel** (tải mẫu, gõ dữ liệu vào
@@ -1957,14 +1897,11 @@ sai ngay tại chỗ hướng dẫn**, mà mã lớp chính là thứ họ phả
 
 #### "199 chỗ chưa đúng" — dòng trống không phải lỗi *(28/8/2026)*
 
-Soi lại danh sách chủ dự án gửi thì **phần lớn 199 chỗ ấy không phải lỗi của
-người điền**. Hai gốc rễ:
+**Phần lớn 199 chỗ ấy không phải lỗi của người điền.** Hai gốc rễ:
 
-- **Dòng chưa điền bị đếm là lỗi.** Mẫu đặt khoá dư ra vài trăm dòng để người
-  dùng gõ thêm; chỉ cần chạm vào một ô rồi xoá là Excel giữ lại một dòng
-  rỗng, và bộ soát cũ bắt luôn **bốn lỗi một dòng** — *thiếu Ma_GV* · *thiếu
-  Ma_lop* · *thiếu tên môn* · *So_tiet phải lớn hơn 0*. Ảnh chụp có đúng dấu
-  vết ấy: `6_PHAN_CONG dòng 2: … môn "" … khối ?`.
+- **Dòng chưa điền bị đếm là lỗi.** Chạm vào một ô rồi xoá là Excel giữ lại
+  một dòng rỗng, và bộ soát cũ bắt luôn **bốn lỗi một dòng** — thiếu `Ma_GV` ·
+  thiếu `Ma_lop` · thiếu tên môn · `So_tiet` phải lớn hơn 0.
 - **Cùng một vấn đề lặp lại N lần.** Năm dòng *thiếu Ten_diem_truong* là năm
   câu y hệt nhau; mắt phải tự gom lấy mới hiểu ra chuyện gì.
 
@@ -1989,11 +1926,10 @@ không bị gom nhầm thành một, còn hai dòng sai **giống nhau** thì go
 
 #### Ô lưới trong tệp .xlsx xuất ra: HAI DÒNG *(24/8/2026)*
 
-Chủ dự án gửi ảnh chụp trang `TOAN_TRUONG`: chữ chồng đè lên nhau, cả bảng
-không đọc nổi. Gốc là hai quy tắc đúng riêng lẻ nhưng đánh nhau khi gặp:
-`thanBangXL()` khoá cứng `height:19` cho **mọi** bảng, còn `trangLuoi()` bật
-`wrapText` cho ô có tiết. Chữ xuống hai dòng trong ô cao một dòng thì Excel
-vẫn vẽ ra — tràn đè xuống hàng dưới.
+Chữ chồng đè lên nhau, cả bảng không đọc nổi. Gốc là hai quy tắc đúng riêng lẻ
+nhưng đánh nhau khi gặp: `thanBangXL()` khoá cứng `height:19` cho **mọi** bảng,
+còn `trangLuoi()` bật `wrapText` cho ô có tiết. Chữ xuống hai dòng trong ô cao
+một dòng thì Excel vẫn vẽ ra — tràn đè xuống hàng dưới.
 
 Bốn thứ đã sửa, tất cả nằm trong `trangLuoi()`:
 
@@ -2520,11 +2456,11 @@ quyền vượt nó không.
 
 ### Ngôn ngữ thiết kế — hệ XANH DƯƠNG *(đổi 24/8/2026 theo mẫu chủ dự án gửi)*
 
-Hệ màu đã đổi **hai lần**: navy (AVATAR) → xanh lá (16/8) → **xanh dương
-(24/8)**. **Tên biến giữ nguyên qua cả ba lần** (`--nav` nay là xanh dương
-đậm) vì chúng nói đúng VAI TRÒ — màu của thanh điều hướng và của mọi hành
-động chính — chứ không nói tên màu. Đổi tên thì phải sửa hàng trăm chỗ mà
-chẳng được thêm gì; giữ nguyên thì lần đổi thứ ba này chỉ là một bảng ánh xạ.
+Hệ màu đã đổi hai lần: navy → xanh lá (16/8) → **xanh dương (24/8)**. ⚠️ **Tên
+biến giữ nguyên qua cả ba lần** (`--nav` nay là xanh dương đậm) vì chúng nói
+đúng VAI TRÒ — màu của thanh điều hướng và của mọi hành động chính — chứ không
+nói tên màu. Nhờ vậy đổi hệ màu chỉ là một bảng ánh xạ, không phải sửa hàng
+trăm chỗ.
 
 **Sáu mã gốc chủ dự án chốt** — mọi thứ khác suy ra từ đây:
 
@@ -2583,50 +2519,36 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
   cho nền có chất liệu, không đủ để đọc ra hoa văn. Nó nằm chung khai báo
   `background` với dải chuyển màu chứ không phải một thuộc tính riêng, nên
   đổi dải màu là lúc dễ quét mất nó nhất. Có phép thử canh.
-  ⚠️ Cụm lá vẽ ngày 16/8 đã **xoá hẳn 23/8**: đối chiếu ảnh mẫu thì ở đó
-  không có gì, và trên màn hình thật nó là thứ bắt mắt nhất trong cả thanh
-  bên — một hoạ tiết nền mà nặng hơn mọi mục điều hướng nằm trên nó. Đã
-  thử nước lưng chừng là hạ `opacity` xuống .3, chủ dự án nhận ra ngay:
-  *"lá này đâu có, em vẫn giữ?"*. **Bỏ một khối trang trí thì xoá hẳn mã
-  của nó** — làm mờ chỉ là để lại đúng vấn đề ấy ở mức nhạt hơn.
+  ⚠️ **Cụm lá trang trí đã xoá hẳn 23/8, đừng vẽ lại** — trên màn hình thật
+  nó là thứ bắt mắt nhất trong cả thanh bên, một hoạ tiết nền mà nặng hơn mọi
+  mục điều hướng nằm trên nó. Đã thử nước lưng chừng là hạ `opacity`, bị nhận
+  ra ngay: **bỏ một khối trang trí thì xoá hẳn mã của nó**.
   ⚠️ Đừng hạ bề ngang xuống nữa: 238px đã thử và làm gãy dòng cả ba chỗ chữ
   dài nhất — tên sản phẩm ở đầu thanh, nhãn nhóm *Tra cứu thời khóa biểu*,
   và vai trò trong thẻ tài khoản.
 - Nền `#F4F9FC`, thẻ trắng bo `14px`, viền `#C9E2F0`, đổ bóng rất nhẹ.
-  ⚠️ Đây là **đảo lại** quyết định ngày 16/8 ("nền gần trắng quá thì thẻ
-  trắng không tách ra khỏi nó"). Đảo được vì mẫu mới chuyển việc phân tách
-  sang **VIỀN**: nền nhạt hẳn nhưng viền thẻ đậm và rõ. Hai cách đều đúng,
-  nhưng phải chọn một — nền nhạt mà viền cũng nhạt thì lại thành mảng phẳng
-  y như bản 16/8 đã chê.
-- **Thanh đầu trang là THẺ TRẮNG có phong cảnh** (trời, mây, chim, đồi,
-  cây) ở nửa phải, không còn là khối navy đậm. Chữ vì thế là chữ thường,
-  không phải chữ trắng. Mép trái hình phải tan dần bằng một lớp gradient
-  trắng phủ lên — thiếu nó là lộ một vạch dọc cắt ngang thanh.
-  **Giữa tranh là NGÔI TRƯỜNG** *(23/8/2026)* — hai cánh nhà, khối giữa có
-  đồng hồ và cột cờ, thân kem mái cam đất. Nó đứng ở `x 140–310` của
-  `viewBox` 600 đơn vị, và chỗ ấy là chỗ duy nhất đặt được: lệch trái thì
-  rơi vào vùng mặt nạ còn đang tan mờ (hết mờ ở 126), lệch phải thì cụm nút
-  *Đăng nhập · tìm · chuông* che mất mái. Canh chỗ theo nhãn **"Đăng nhập"**
-  — nhãn dài nhất nút ấy từng mang, nên mọi trạng thái khác đều dư chỗ.
-  ⚠️ **To ra thì DÀI RA HAI BÊN, đừng cao thêm.** Bản đầu vẽ rộng 130 đơn vị,
-  đặt cạnh mấy tán cây thì đọc ra một cái nhà nhỏ ven đồi chứ không ra ngôi
-  trường — chủ dự án nhận ra ngay khi đối chiếu với ảnh mẫu. Nay rộng 170 mà
-  giữ nguyên chiều cao: thanh đầu trang chỉ cao chừng 76px, và `viewBox` cắt
-  theo mép **dưới** (`xMaxYMax slice`) nên cao thêm là cụt mái.
+  ⚠️ Nền nhạt thì **viền phải đậm và rõ** — việc phân tách dồn hết sang viền.
+  Nền nhạt mà viền cũng nhạt thì cả trang thành một mảng phẳng, đã chê một lần.
+- **Thanh đầu trang là THẺ TRẮNG có phong cảnh** (trời, mây, chim, đồi, cây,
+  giữa tranh là **ngôi trường**) ở nửa phải, không còn là khối navy đậm. Chữ
+  vì thế là chữ thường, không phải chữ trắng. ⚠️ Mép trái hình phải tan dần
+  bằng một lớp gradient trắng phủ lên — thiếu nó là lộ một vạch dọc cắt ngang
+  thanh. Ngôi trường đứng ở `x 140–310` của `viewBox` 600 đơn vị, chỗ duy nhất
+  đặt được: lệch trái thì rơi vào vùng mặt nạ còn đang tan mờ (hết mờ ở 126),
+  lệch phải thì cụm nút *Đăng nhập · tìm · chuông* che mất mái — canh theo nhãn
+  **"Đăng nhập"**, nhãn dài nhất nút ấy từng mang.
+  ⚠️ **To ra thì DÀI RA HAI BÊN, đừng cao thêm**: thanh đầu trang chỉ cao chừng
+  76px và `viewBox` cắt theo mép **dưới** (`xMaxYMax slice`) nên cao thêm là cụt mái.
 - **Ba nút góc phải thanh đầu cùng một dáng: tròn, nền trắng viền nhạt**
-  *(23/8/2026)*. Trước đó tìm kiếm và chuông là hai khối xanh đặc, nặng
-  ngang cụm chữ tên trường trong khi việc của chúng chỉ là hai lối phụ — và
-  nút tài khoản sáng kẹp giữa hai khối tối thì ba nút không đọc ra một cụm.
-- **Nút chưa chọn NỔI KHỐI: nền xanh sáng + viền + đổ bóng** *(chốt
-  23/8/2026)*. Đã thử cả hai chiều trong cùng một ngày: bản sáng để nút nền
-  trắng viền mảnh cho đúng ảnh mẫu, nhưng trên màn hình thật cả dải bốn nút
-  chỉ còn bốn khung viền nhạt — không nhìn ra chỗ bấm được. Chủ dự án yêu
-  cầu thẳng là nút phải nổi khối như trước. Nay **ba tín hiệu** cho nút chưa
-  chọn (nền riêng · viền · đổ bóng), và nút đang chọn hơn nữa bằng nền đậm
-  chữ trắng cộng bóng sâu hơn. Áp cho cả `.xem-nut`, `.dt-nut`, `.cl-n`.
-  `.the-luoi` vẫn **trong suốt**: bên trong nó đã có khung trắng riêng của
-  cột lớp + lưới, thêm một tấm trắng nữa là trắng lồng trắng. Nút nổi được
-  là nhờ **chính nó**, không nhờ tấm nền phía sau.
+  *(23/8/2026)* — chúng là ba lối phụ, để hai khối xanh đặc thì nặng ngang cụm
+  chữ tên trường và ba nút không đọc ra một cụm.
+- ⚠️ **Nút chưa chọn phải NỔI KHỐI: nền xanh sáng + viền + đổ bóng** *(chốt
+  23/8/2026)*. Đã thử nền trắng viền mảnh theo ảnh mẫu và phải quay lại — trên
+  màn hình thật cả dải bốn nút chỉ còn bốn khung viền nhạt, không nhìn ra chỗ
+  bấm được. **Ba tín hiệu** cho nút chưa chọn, nút đang chọn hơn nữa bằng nền
+  đậm chữ trắng cộng bóng sâu hơn. Áp cho cả `.xem-nut`, `.dt-nut`, `.cl-n`.
+  `.the-luoi` vẫn **trong suốt**: bên trong nó đã có khung trắng riêng của cột
+  lớp + lưới, thêm một tấm trắng nữa là trắng lồng trắng.
 - `.b-vang` nay là **xanh dương đậm** chứ không còn màu vàng. Vàng chỉ còn ở
   logo, vạch đánh dấu mục đang mở và ô biểu tượng *Cảnh báo*.
 - Ba thẻ dưới Bảng điều hành mang **ô biểu tượng vuông bo tròn** (`.the-ic`)
@@ -2634,9 +2556,8 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
   vàng = cảnh báo.
 - Mỗi môn học một màu riêng (nền pastel + viền trái đậm, suy từ `--mc` bằng
   `color-mix`), mỗi phân hiệu một màu riêng.
-- **MỖI MÔN MỘT BIỂU TƯỢNG** *(23/8/2026 — `IC_MON` · `icMon()`)*. Đảo lại
-  quyết định "chốt bỏ icon" cũ: ảnh mẫu chủ dự án gửi có icon ở mọi ô, và khi
-  hỏi lại thì chốt là thêm. Ba điều của bộ này:
+- **MỖI MÔN MỘT BIỂU TƯỢNG** *(23/8/2026 — `IC_MON` · `icMon()`)*. Ba điều
+  của bộ này:
   - **Tra theo LỚP MÀU** (`m-tv`, `m-toan`…), không theo tên môn. Trường tự
     khai thêm môn thì chỉ chọn màu, không ai đi khai một hình vẽ — môn mới vì
     thế mượn luôn hình của màu mình chọn.
@@ -2648,40 +2569,32 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
     trang trí thì thông tin thắng.
   ⚠️ `.o-mon` phải có `padding-right` — thiếu là "Tiếng Việt" chạy thẳng vào
   dưới hình ở đúng những ô hẹp nhất.
-- **Màu môn là PASTEL NGẢ XÁM, không phải màu nguyên pha trắng**
-  *(làm lại 23/8/2026)*. Đây là chỗ đọc sai ảnh mẫu lâu nhất. Bảng cũ lấy
-  màu nguyên rực của bộ màu web — xanh `#2563EB`, cam `#E08A16`, đỏ
-  `#E0484F` — rồi pha trắng cho nhạt. **Pha trắng chỉ hạ độ SÁNG, không hạ
-  độ BÃO HOÀ**, nên ô nào cũng vẫn là một mảng màu tươi; ba mươi ô cạnh
-  nhau thành một bảng bảy sắc và chủ dự án nhận xét *"còn tệ hơn bản cũ"*.
-  Ảnh mẫu thì dịu: đào, be, mint, hồng phấn, lavender — màu đã ngả xám sẵn
-  từ gốc. Nay `--mc` là màu ĐẤT, bão hoà thấp (`#4A7FB5`, `#C77B45`,
-  `#3E9A72`…); nền và viền vẫn suy ra bằng `color-mix` như cũ nên đổi màu
-  gốc là cả lưới đổi theo. Thêm môn mới thì lấy màu cùng họ, và **kiểm bằng
-  mắt ở cỡ ô thật**, không nhìn ô màu to trong bảng chọn.
-- **Ô tiết** *(23/8/2026)*: nền `24%` màu môn, viền `40%`, tên môn 12.5px,
-  ô cao 48px. Bản nhạt trước đó đọc được trên
-  màn hình văn phòng nhưng nhoè hẳn khi chiếu máy chiếu phòng họp hội đồng —
-  chỗ tấm thời khóa biểu hay bị đem ra soi nhất. Nền đậm lên thì **tên giáo
-  viên cũng phải đổi** từ xám trung tính sang màu môn pha đen, không thì nó
-  chìm vào chính cái nền ấy.
+- ⚠️ **Màu môn là PASTEL NGẢ XÁM, không phải màu nguyên pha trắng**
+  *(làm lại 23/8/2026)*. **Pha trắng chỉ hạ độ SÁNG, không hạ độ BÃO HOÀ**,
+  nên ô nào cũng vẫn là một mảng màu tươi và ba mươi ô cạnh nhau thành một
+  bảng bảy sắc. `--mc` phải là màu ĐẤT, bão hoà thấp (`#4A7FB5`, `#C77B45`,
+  `#3E9A72`…); nền và viền suy ra bằng `color-mix` nên đổi màu gốc là cả lưới
+  đổi theo. Thêm môn mới thì lấy màu cùng họ, và **kiểm bằng mắt ở cỡ ô thật**,
+  không nhìn ô màu to trong bảng chọn.
+- **Ô tiết** *(23/8/2026)*: nền `24%` màu môn, viền `40%`, tên môn 12.5px, ô
+  cao 48px. Bản nhạt hơn nhoè hẳn khi chiếu máy chiếu phòng họp hội đồng — chỗ
+  tấm thời khóa biểu hay bị đem ra soi nhất. ⚠️ Nền đậm lên thì **tên giáo viên
+  cũng phải đổi** từ xám trung tính sang màu môn pha đen, không thì nó chìm vào
+  chính cái nền ấy.
 - Lịch cá nhân (`.tiet-ca`, màn *Thời khóa biểu của tôi*) đi **cùng một mức
   đậm và cùng bộ icon** với ô tiết của lưới. Hai chỗ vẽ cùng một thứ — một
   tiết học — mà để lệch thì thầy cô mở lịch mình lại thấy nhạt hơn lúc xem
   theo lớp, đúng cái màn hình nhóm đông nhất mở mỗi sáng, thường là ngoài
   sân dưới nắng.
 - **Cột lớp và lưới là MỘT KHỐI LIỀN, không phải hai mảng rời** *(23/8/2026 —
-  `.cl-boc`)*. Trước đó cột lớp nằm trần trên nền trang còn lưới là thẻ trắng
-  có viền riêng: hai thứ luôn dùng cùng nhau mà nhìn ra hai vật thể, đúng kiểu
-  "giao diện rời rạc" đã chê ngày 3/8. Nay khung trắng bao cả hai, ngăn nhau
-  bằng một vạch dọc mảnh — cột lớp đọc ra là **cột đầu của bảng**, không phải
-  một cái hộp đứng cạnh bảng. `.luoi-boc` bên trong **phải bỏ viền, bo góc và
-  đổ bóng của chính nó**: hai lớp viền chồng nhau là ra đường kẻ đôi mờ ở cả
-  bốn cạnh.
+  `.cl-boc`)*. Khung trắng bao cả hai, ngăn nhau bằng một vạch dọc mảnh — cột
+  lớp đọc ra là **cột đầu của bảng**, không phải một cái hộp đứng cạnh bảng.
+  ⚠️ `.luoi-boc` bên trong **phải bỏ viền, bo góc và đổ bóng của chính nó**:
+  hai lớp viền chồng nhau là ra đường kẻ đôi mờ ở cả bốn cạnh.
   ⚠️ Trên điện thoại cột nằm NGANG nên vạch ngăn phải đổi sang cạnh **dưới**.
   Để nguyên `border-right` là một vạch dọc chạy giữa dải nút, không ngăn gì cả.
-- `manifest.webmanifest` và thẻ `theme-color` phải đổi theo (`#0F5132`),
-  không thì thanh trạng thái điện thoại còn navy trong khi app đã xanh.
+- `manifest.webmanifest` và thẻ `theme-color` phải đổi theo (nay là `#005391`),
+  không thì thanh trạng thái điện thoại còn màu cũ trong khi app đã đổi.
 
 ---
 
@@ -2697,14 +2610,12 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
 
 - [ ] **Kèm Tiểu học Châu Đình khai báo dữ liệu** *(25/8/2026 — trường
       ngoài đầu tiên, mã 74334, quản trị `c1chaudinh.qh@nghean.edu.vn`)*.
-      Đường nhanh nhất: tải *Mẫu trọn gói Excel* về điền rồi nhập một cửa.
+      Đường nhanh nhất: **nhập từng mục** — mỗi màn hình khai báo có nút *Tải
+      mẫu về điền* của riêng nó, làm theo thứ tự Phân hiệu → Lớp → Giáo viên →
+      Phân công. *(Mẫu trọn gói đã bỏ hẳn 28/8/2026, đừng chỉ đường tới nó.)*
       Nhật ký ngày vào hệ thống (bốn chỗ vấp, đã vá cả bốn) ở
       `docs/lich-su-quyet-dinh.md`. Quy tắc rút ra: **trường đăng ký bằng
       Gmail CỦA NHÀ TRƯỜNG**, không dùng Gmail cá nhân.
-- [x] ~~**Ba việc bảo mật**~~ — xong 29/8/2026: thẻ CSP, chống đơn đăng ký
-      rác, siết `p_nk_ghi`. Cả hai tệp SQL đã chạy trên máy chủ thật cùng
-      ngày (`db/chu-he-thong-xem.sql` · `db/siet-dang-ky-va-nhat-ky.sql`).
-      Chi tiết ở mục 3.
 - [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi
