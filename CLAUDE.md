@@ -2661,6 +2661,51 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
         và một màn hình soi lại; không nên nằm trên đường tới ngày khai giảng.
 - [ ] Dọn hồ sơ giáo viên và lớp thừa của bộ dữ liệu thử trên máy chủ thật
       *(2/8/2026)*. Chạy `db/soi-tai-khoan-gv.sql` để biết còn sót gì.
+- [ ] **Buổi học quá nặng môn cơ bản — và tinh chỉnh tay an toàn**
+      *(chủ dự án nêu 30/8/2026, đã ĐO, chốt để SAU KHAI GIẢNG)*.
+      Câu hỏi ban đầu là *"không xếp 2 môn Toán và Tiếng Việt cạnh nhau,
+      hoặc không xếp 3 tiết Tiếng Việt liền nhau"*. Đo trên trường thật:
+
+      | Đo | Kết quả |
+      |---|---|
+      | Chuỗi 3 tiết **cùng một môn** liền nhau | **0** — `diemLop()` đã phạt 25 điểm, đang sạch |
+      | Cặp Toán–TV đứng cạnh nhau | 115 cặp |
+      | Toán + TV chiếm bao nhiêu tổng ô | **330/710 = 46%**; riêng lớp 1 là **15/27 = 56%** |
+      | Chuỗi **4 tiết nặng liền một mạch** | **24 lượt** (3 tiết: 50 · 2 tiết: 34) |
+
+      ⚠️ **Cấm Toán–TV kề nhau là BẤT KHẢ THI, đừng thử.** Hai môn chiếm
+      46% số ô toàn trường và 56% ở lớp 1 — muốn không bao giờ kề nhau thì
+      phải dưới 50%. Và nó chống lại mục tiêu đang đạt: vùng vàng 375 chỗ
+      cho 330 tiết nặng, ép xen kẽ thì chỉ còn **250 chỗ, thiếu 80** — Toán
+      và Tiếng Việt bị đẩy xuống chiều, phá đúng thành quả 88% của ba đợt
+      tối ưu ngày 3/8.
+
+      **Thứ đáng sửa là 24 buổi có 4 tiết nặng LIỀN MỘT MẠCH** — cả buổi
+      sáng không một tiết Âm nhạc, Mỹ thuật hay Thể dục xen vào. Mức đúng
+      là **giới hạn chuỗi tiết nặng ≤ 3**, không phải ≤ 2: lớp 1 có 15 tiết
+      nặng trên 5 buổi sáng 4 tiết, nên ≤ 3 xếp được còn ≤ 2 thì không.
+
+      ⚠️ **Phải là điểm phạt MỀM, không phải ràng buộc cứng** — chủ dự án
+      dặn thẳng: *"không phải vì vậy mà bắt buộc cứng, sau xếp nhà trường
+      còn tinh chỉnh"*. Ví dụ ông nêu: cô A đưa Toán lên tiết 1, đẩy GDTC
+      xuống tiết 4; hoặc cố ý xếp **2 tiết Tiếng Việt liền nhau để dạy một
+      bài đọc liên thông**. Đặt cứng là chặn mất những việc đúng nghiệp vụ ấy.
+
+      ⚠️ **Cách làm an toàn khi tới lúc: thêm khoản phạt sau một CỜ, mặc
+      định TẮT.** Cùng dữ liệu, cờ tắt thì lưới phải giống hệt từng ô — có
+      phép thử canh. Nhờ vậy trường đang chạy không chịu rủi ro nào, đúng
+      khuôn "luôn có đường lui". Đo `npm run kiemdinh` ở CẢ HAI chế độ.
+
+      **Phần KHÔNG đụng thuật toán, làm trước được:** chủ dự án nói rõ ranh
+      giới của việc chỉnh tay — *"miễn sao không chạm với các môn chuyên do
+      GV Âm nhạc, Mỹ thuật, Tin học hay Tiếng Anh dạy vào lớp đó"*. Đổi chỗ
+      hai tiết mà **cả hai đều của chính chủ nhiệm** thì không ảnh hưởng ai
+      ngoài lớp; đụng tiết của giáo viên bộ môn thì kéo theo lịch của họ ở
+      các lớp khác. `kiemTraChuyen()` đã chặn đủ ràng buộc cứng, nhưng màn
+      chỉnh tay mới có **hai** mức tín hiệu (xanh = đặt được · mờ = vướng).
+      Cần mức thứ ba: **đổi được nhưng chạm giáo viên chuyên** — nhắc rõ
+      tên, không cấm. Việc này chỉ đọc lưới, an toàn ngang đợt 1.
+
 - [ ] **Bước tối ưu đang dừng theo ĐỒNG HỒ nên chất lượng phụ thuộc máy**
       *(đo 16/8/2026, chủ dự án chốt để SAU KHAI GIẢNG mới làm — không đụng
       thuật toán trong lúc đang chạy thật cho Diễn Liên)*. `toiUuHoanDoi()`

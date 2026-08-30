@@ -227,6 +227,11 @@ An toàn tuyệt đối với năm trường đang chạy thật.
 4. Chọn ưu tiên khi tối ưu + phạt theo số NGÀY đến trường (★★ mục 4)
 5. Giới hạn số môn/buổi (★★ mục 5)
 6. Cố định tiết nghỉ cho phòng (★ mục 7)
+7. **Bớt buổi 4 tiết nặng liền một mạch** — xem chi tiết và số đo ở mục 9
+   của `CLAUDE.md`. Tóm tắt: cấm Toán–TV kề nhau là bất khả thi (hai môn
+   chiếm 46% số ô, lớp 1 là 56%); thứ đáng sửa là **24 buổi có 4 tiết nặng
+   liền mạch**, giới hạn chuỗi ≤ 3. Phải là điểm phạt **mềm** và nằm sau
+   một **cờ mặc định TẮT** — nhà trường còn chỉnh tay sau khi xếp.
 
 Gộp chung đợt với việc *"dừng tối ưu theo số phép thử thay vì theo đồng hồ"* đã
 nằm trong danh sách — cùng vùng mã, cùng cần `npm run kiemdinh` đo trước/sau.
