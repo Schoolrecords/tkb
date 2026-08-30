@@ -3115,10 +3115,21 @@ const maGVMoi = hoTen => {
   return m;
 };
 
-function sinhLop(khoi, so, tienTo, dt){
-  const r=[], n=Math.max(0,Math.min(26,+so||0));
+/* Dãy chữ cái đặt tên lớp — nhà trường tự khai được.
+   ⚠️ Vinh Hưng 1 đặt lớp A B C D E **G** H I, không dùng chữ F, mà hộp Tạo
+   lớp hàng loạt cứ sinh ra 1F. Sửa tay từng lớp thì tên đổi mà `maLop` giữ
+   nguyên `1F_VH` — tên và mã lệch nhau ngay từ lúc khai. Chuẩn hoá: chỉ giữ
+   A–Z, viết hoa, bỏ trùng; rỗng thì lùi về bảng chữ cái đủ. */
+const chuLopTu = t => {
+  const d=[...String(t||'').toUpperCase().replace(/[^A-Z]/g,'')]
+            .filter((c,i,a)=>a.indexOf(c)===i).join('');
+  return d || CHU_LOP;
+};
+function sinhLop(khoi, so, tienTo, dt, chu){
+  const bo=chuLopTu(chu);
+  const r=[], n=Math.max(0,Math.min(bo.length,+so||0));
   for(let i=0;i<n;i++){
-    const ten=khoi+CHU_LOP[i];
+    const ten=khoi+bo[i];
     /* Tên lớp trước, viết tắt phân hiệu sau: 1A_DL — xem maLopTu() */
     const ma=ten+(tienTo?'_'+tienTo.trim():'');
     r.push({id:'lop_'+khongDau(ma).replace(/-+/g,'_'), maLop:ma, ten, khoi:+khoi, dtId:dt});
@@ -6442,7 +6453,7 @@ async function ghiDuLieuNguon(dl){
       await gopGV(gvDaCo.map(g=>({id:g.id, ...hangGV(g)})), 'id');
     if(gvMoiKhai.length)
       await gopGV(gvMoiKhai.map(hangGV), 'truong_id,ma_gv');
-    const gvSv=await goiAPI(`/rest/v1/giao_vien?truong_id=eq.${t}&select=id,ma_gv`);
+    const gvSv=await goiAPI(`/rest/v1/giao_vien?truong_id=eq.${t}&select=id,ma_gv,nguoi_dung_id`);
     const svTheoMa={}; (gvSv||[]).forEach(g=>svTheoMa[g.ma_gv]=g.id);
     /* Bản đồ id-trong-app → id-trên-máy-chủ. Trước đây tra thẳng bằng bảng
        ma_gv→id vì hai thứ ấy tình cờ trùng nhau; nay mã giữ nguyên nên phải
@@ -6562,6 +6573,36 @@ async function ghiDuLieuNguon(dl){
     const lopThua=(lopSv||[]).filter(l=>!maTepLop.has(l.ma_lop)).map(l=>l.ten);
     const gvThua=(gvSv||[]).filter(g=>!maTrongTep.has(g.ma_gv)).map(g=>g.ma_gv);
 
+    /* ---------- GIÁO VIÊN ĐÃ XOÁ THÌ XOÁ THẬT (30/8/2026) ----------
+       Vinh Hưng 1 xoá mấy hồ sơ thừa (những người không có Gmail), bấm Lưu,
+       "một lúc sau lại mọc lại". Gốc y hệt lỗi phân hiệu cùng ngày: hàm này
+       chỉ biết THÊM và CẬP NHẬT, không có đường xoá nào — `gvThua` chỉ đếm
+       rồi báo. Xoá trong app vì thế chỉ sống tới lần tải lại kế tiếp.
+
+       Nhưng KHÔNG được quay sang xoá mọi hồ sơ tệp không nhắc tới: đó đúng
+       là cái bẫy vừa làm mất phân hiệu Diễn Thái. Chỉ xoá người dùng ĐÃ BẤM
+       XOÁ trong phiên này (`S.gvDaXoa`).
+
+       ⚠️ Và không xoá người ĐANG CÓ TÀI KHOẢN. `phan_cong`, `gv_nghi`,
+       `bao_nghi`, `day_thay` đều khai `on delete cascade` theo giáo viên,
+       nên xoá một hồ sơ là kéo theo cả lịch dạy thay và hồ sơ báo nghỉ của
+       người ấy — với người thật đang dùng phần mềm thì đó là mất dữ liệu,
+       không phải dọn rác. Giữ lại và báo ra. */
+    let gvChuaXoa=[];
+    const gvBo=(dl.gvDaXoa||[]).filter(x=>laUUID(x.id));
+    if(gvBo.length){
+      const coTK=new Set((gvSv||[]).filter(g=>g.nguoi_dung_id).map(g=>g.id));
+      const xongGV=new Set();
+      for(const x of gvBo){
+        if(coTK.has(x.id)){ gvChuaXoa.push(x.hoTen); continue; }
+        try{ await goiAPI(`/rest/v1/giao_vien?id=eq.${x.id}`,
+               {method:'DELETE', headers:{Prefer:'return=minimal'}});
+             xongGV.add(x.id); }
+        catch(e){ gvChuaXoa.push(x.hoTen); }
+      }
+      if(xongGV.size) S.gvDaXoa=(S.gvDaXoa||[]).filter(x=>!xongGV.has(x.id));
+    }
+
     /* ---------- PHÂN HIỆU ĐÃ XOÁ THÌ XOÁ THẬT (28/8/2026) ----------
        Chủ dự án xoá một phân hiệu thừa, bấm Lưu, mở lại vẫn thấy đủ bốn.
        Gốc: bước 1 chỉ biết THÊM cái chưa có, không bao giờ bỏ cái không còn —
@@ -6614,12 +6655,13 @@ async function ghiDuLieuNguon(dl){
     ghiNhatKy('nhap_du_lieu_nguon',
       {lop:dl.lop.length, giaoVien:dl.giaoVien.length, phanCong:hangPC.length,
        diemTruong:dl.diemTruong.length, dtXoa:dtBo.map(d=>d.ten)});
-    return {ok:true, lopThua, gvThua, loiTruong:(loiTruong+(loiTruong&&loiDanhMuc?' ':'')+loiDanhMuc).trim(), dtChuaXoa, dtLa,
+    return {ok:true, lopThua, gvThua, loiTruong:(loiTruong+(loiTruong&&loiDanhMuc?' ':'')+loiDanhMuc).trim(), dtChuaXoa, dtLa, gvChuaXoa,
       chiTiet:{diemTruong:Object.keys(maDT).length, khungGio:dl.khungGio.length,
                giaoVien:dl.giaoVien.length, lop:dl.lop.length, phanCong:hangPC.length},
       thongBao:`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${hangPC.length} dòng phân công.`
         + (dtChuaXoa.length?` ⚠️ Chưa xoá được ${dtChuaXoa.join(', ')} — trên máy chủ còn lớp học ở đó.`:'')
         + (dtLa.length?` Hệ thống còn ${dtLa.join(', ')} mà máy này chưa có — giữ nguyên, tải lại để thấy.`:'')
+        + (gvChuaXoa.length?` ⚠️ Chưa xoá được ${gvChuaXoa.join(', ')} — thầy cô này đang có tài khoản đăng nhập.`:'')
         + (loiTruong?` ⚠️ ${loiTruong}`:'')
         + (loiDanhMuc?` ⚠️ ${loiDanhMuc.trim()}`:'')};
   }catch(e){
@@ -13919,6 +13961,11 @@ function hopSinhLop(){
      <input class="ip" id="slTien" value="${esc(goiYTienTo(dsDT[0]?.ten||''))}" style="width:100%">
      <div class="gy">Mã lớp sẽ là <b id="slVD">1A_DL</b>. Ba phân hiệu cùng có lớp tên "1A" thì
        mã khác nhau nên máy vẫn phân biệt được. Để trống nếu trường chỉ có một điểm.</div></div>
+   <div class="on-l"><label>Chữ cái đặt tên lớp</label>
+     <input class="ip" id="slChu" value="${esc(CHU_LOP)}" style="width:100%;letter-spacing:.12em">
+     <div class="gy">Máy lấy lần lượt từ trái sang: lớp đầu là <b>1A</b>, lớp hai là <b>1B</b>…
+       Trường không dùng chữ nào thì <b>xoá chữ ấy đi</b> — bỏ F thì dãy thành
+       <i>ABCDEGHI…</i> và máy sinh 1A · 1B · 1C · 1D · 1E · <b>1G</b>.</div></div>
    <div class="on-l"><label>Số lớp mỗi khối</label>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
        ${[1,2,3,4,5].map(k=>`<div style="text-align:center">
@@ -13928,11 +13975,15 @@ function hopSinhLop(){
      </div></div>`,
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Tạo lớp',lam:()=>{
     const dt=$('#slDT').value, tien=$('#slTien').value.trim();
+    const chu=chuLopTu($('#slChu').value);
     const daCo=new Set(S.lop.map(l=>l.maLop||l.id));
-    let them=0;
+    let them=0, thieuChu=0;
     [1,2,3,4,5].forEach(k=>{
       const n=+$(`[data-sl="${k}"]`).value||0;
-      sinhLop(k, n, tien, dt).forEach(l=>{
+      /* Khai 8 lớp mà dãy chỉ có 6 chữ thì máy sinh được 6 — nói ra, đừng
+         lặng lẽ tạo thiếu rồi để người dùng tự đếm mới biết. */
+      if(n>chu.length) thieuChu=Math.max(thieuChu, n-chu.length);
+      sinhLop(k, n, tien, dt, chu).forEach(l=>{
         /* Trùng tên trong CÙNG phân hiệu là nhầm lẫn thật, bỏ qua dòng đó */
         if(S.lop.some(x=>x.ten===l.ten && S.lopDT[x.id]===dt)) return;
         const ma=maChuaDung(l.maLop, daCo); daCo.add(ma);
@@ -13943,6 +13994,7 @@ function hopSinhLop(){
     });
     dong();
     bao(them?`Đã tạo ${them} lớp. Bước tiếp theo: chọn giáo viên chủ nhiệm cho từng lớp.`
+              +(thieuChu?` ⚠️ Dãy chữ cái chỉ có ${chu.length} chữ nên có khối thiếu ${thieuChu} lớp — thêm chữ vào dãy rồi tạo tiếp.`:'')
             :'Chưa tạo lớp nào — điền số lớp mỗi khối rồi bấm lại.', !them);
     ve();
   }}]);
@@ -14114,14 +14166,23 @@ function hopXoaGV(id){
      <b>Xoá kèm ${pc} dòng phân công${cn?` và bỏ chủ nhiệm lớp ${esc(cn.ten)}`:''}</b>
      <div class="cb-g">Các tiết thầy cô này đang dạy trên lưới cũng bị gỡ.
        ${cn?'Nhớ chọn chủ nhiệm mới cho lớp đó ở mục Lớp học.':''}</div></div></div>`
-    :'<div class="gy" style="margin-top:9px">Thầy cô này chưa có phân công nào.</div>'}`,
+    :'<div class="gy" style="margin-top:9px">Thầy cô này chưa có phân công nào.</div>'}
+   ${g.nguoiDungId?`<div class="canhbao do" style="margin-top:11px"><div class="cb-ic">!</div><div class="cb-t">
+     <b>Thầy cô này đang có tài khoản đăng nhập</b>
+     <div class="cb-g">Xoá hồ sơ là cắt luôn đường vào phần mềm của một người thật.
+       Hệ thống sẽ GIỮ LẠI hồ sơ trên máy chủ và báo lại khi thầy bấm Lưu.</div></div></div>`:''}`,
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Xoá',lam:()=>{
+    /* Ghi lại ĐÚNG người vừa bấm xoá. Trước bản vá 30/8/2026, xoá ở đây chỉ
+       là xoá khỏi bộ nhớ trình duyệt: `ghiDuLieuNguon()` không có đường xoá
+       giáo viên nào, nên bấm Lưu xong tải lại là hồ sơ MỌC LẠI. Đúng khuôn
+       lỗi phân hiệu cùng ngày. */
+    S.gvDaXoa=[...(S.gvDaXoa||[]), {id:g.id, maGV:g.maGV||'', hoTen:g.hoTen}];
     S.giaoVien=S.giaoVien.filter(x=>x.id!==id);
     S.phanCong=S.phanCong.filter(p=>p.gvId!==id);
     Object.values(S.tkb).forEach(o=>Object.keys(o).forEach(k=>{ if(o[k].gvId===id) delete o[k]; }));
     delete S.gvNghi[id];
     if(S.gvXem===id) S.gvXem=null;
-    dong(); bao('Đã xoá '+g.hoTen); ve();
+    dong(); bao('Đã xoá '+g.hoTen+(coMayChu()?' — bấm Lưu để xoá hẳn trên hệ thống':'')); ve();
   }}]);
 }
 

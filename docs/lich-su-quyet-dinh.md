@@ -1617,3 +1617,77 @@ Ba câu SQL để lại: `db/soi-phan-hieu.sql` (bản đủ, nhiều câu) ·
 `db/soi-phan-hieu-gon.sql` (**một câu** — SQL Editor của Supabase chỉ bày kết
 quả của một câu, chạy tệp nhiều câu thì bốn bảng đầu không nhìn thấy được) ·
 `db/soi-truong-trung.sql` (trường nào, tài khoản nào trỏ vào đâu).
+
+---
+
+## 30/8/2026 — Vinh Hưng 1: hai lỗi và một bẫy trong chính bộ soi
+
+### a) Xoá giáo viên xong "một lúc sau lại mọc lại"
+
+Chủ dự án dọn mấy hồ sơ thừa (những người không có Gmail), bấm Lưu, mở lại
+thấy đủ như cũ. **Gốc y hệt lỗi phân hiệu cùng ngày**: `ghiDuLieuNguon()`
+chỉ biết THÊM và CẬP NHẬT — `gvThua` đếm rồi báo chứ không xoá. Xoá trong
+app vì thế chỉ sống tới lần tải lại kế tiếp.
+
+Nhưng cách chữa **không phải** quay sang xoá mọi hồ sơ tệp không nhắc tới —
+đó đúng là cái bẫy vừa làm mất phân hiệu Diễn Thái sáng cùng ngày. Dùng lại
+đúng khuôn đã vá: `S.gvDaXoa` ghi người đã bấm ×, và chỉ xoá đúng họ.
+
+⚠️ **Không xoá người ĐANG CÓ TÀI KHOẢN.** `phan_cong`, `gv_nghi`, `bao_nghi`,
+`day_thay` đều khai `on delete cascade` theo giáo viên — xoá một hồ sơ là kéo
+theo cả lịch dạy thay và hồ sơ báo nghỉ của người ấy. Với người thật đang
+dùng phần mềm thì đó là mất dữ liệu, không phải dọn rác. Giữ lại, và **nói
+ra** trong câu báo. Hộp Xoá cũng cảnh báo ngay lúc bấm.
+
+⚠️ Chỉ xoá hồ sơ có id UUID. Hồ sơ vừa khai trong app chưa từng lên máy chủ
+thì không có gì để xoá, mà gửi id app lên cột uuid là Postgres từ chối **cả
+lệnh** — đúng sự cố Quảng Châu 1 ngày 29/8.
+
+### b) Tên lớp: trường không dùng chữ F, máy cứ sinh 1F
+
+Vinh Hưng 1 đặt lớp A B C D E **G** H I. Hộp *Tạo lớp hàng loạt* ghi cứng
+`CHU_LOP = 'ABCDEF…'` nên sinh ra 1F. Sửa tay từng lớp thì tên đổi mà `maLop`
+giữ nguyên `1F_VH` — **tên và mã lệch nhau ngay từ lúc khai**, mà mã lớp
+chính là thứ nhà trường phải gõ vào cột `Ma_lop` của tệp Excel.
+
+Nay hộp có ô **Chữ cái đặt tên lớp**, mặc định đủ 26 chữ; trường xoá chữ nào
+thì máy bỏ chữ ấy. `sinhLop()` nhận thêm tham số `chu` — **không truyền thì
+hành vi y hệt như cũ**, có phép thử canh. `chuLopTu()` chuẩn hoá: chỉ giữ
+A–Z, viết hoa, bỏ trùng; xoá sạch thì lùi về bảng chữ cái đủ chứ không sinh
+ra lớp không tên.
+
+Khai 8 lớp mà dãy chỉ còn 3 chữ thì sinh được 3 — và **nói ra**, đừng lặng
+lẽ tạo thiếu rồi để người dùng tự đếm mới biết.
+
+### c) ⚠️ Bẫy trong bộ soi: id máy chủ giả KHÔNG đúng dạng UUID
+
+Hai phép thử xoá giáo viên đỏ ngay lần chạy đầu, mà mã sản phẩm thì đúng.
+Bộ giả lập máy chủ đặt id là `'gv-uuid-0'` cho gọn mắt — nhưng ứng dụng phân
+nhánh bằng `laUUID()`: *"đã có trên máy chủ"* hay *"mới khai trong app"*. Với
+id sai dạng thì **mọi nhánh ấy đi nhầm đường**, và những phép thử đi qua
+chúng không kiểm được gì cả.
+
+Nay `UUID_GV(i)` · `UUID_LOP(i)` sinh id đúng dạng. Đây là họ hàng gần của
+bài học đã ghi hai lần trong tuần — *phép thử so hai thứ tình cờ bằng nhau*
+— nhưng ở chiều ngược lại: **hai thứ tình cờ KHÔNG bằng nhau vì dữ liệu giả
+sai dạng**.
+
+Đã thử ngược cả ba vá (bỏ chốt tài khoản · bỏ khối xoá · bỏ tham số dãy chữ):
+cả ba đều làm phép thử đỏ đúng chỗ. `npm test` 490 · `npm run soi` 523 ·
+`npm run soi-nhap` 60, 0 hỏng.
+
+### d) Vì sao bấm Lưu lâu — đã ĐO BẰNG MÃ, chưa đo bằng đồng hồ
+
+Chủ dự án hỏi sao ghi lên máy chủ lâu. Đếm trong `ghiDuLieuNguon()`:
+**16–19 lời gọi nối đuôi nhau**, không một `Promise.all` nào — trong khi
+đường TẢI dùng `Promise.all` cho cả 14 truy vấn nên chỉ tốn một vòng mạng.
+Ở mạng ~0,5 giây một vòng là 8–10 giây.
+
+Bốn nhóm **không phụ thuộc gì nhau** và gộp song song được: khung giờ ·
+thông tin trường · danh mục môn · bảng phòng — bớt 6 lời gọi, nhanh hơn
+chừng 40%. Chuỗi giáo viên → đọc lại mã → lớp → đọc lại mã → phân công thì
+**bắt buộc tuần tự**.
+
+**Chưa làm** — còn 6 ngày tới khai giảng, và thứ tự các lệnh ghi có chỗ cố ý
+(phân hiệu phải xoá *sau* khi lớp đã trỏ sang nơi khác). Để sau khai giảng,
+cùng đợt với việc dừng bước tối ưu theo số phép thử thay vì theo đồng hồ.

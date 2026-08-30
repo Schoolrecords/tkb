@@ -325,6 +325,14 @@ console.log('\n6. Nói chuyện với máy chủ (máy chủ giả)');
 /* Máy chủ giả: đủ để kiểm chứng đường đi của bốn hàm, không cần mạng.
    Trên máy chủ đang có phiên bản 3. */
 let veHienHanh = 'VE1', soLanRPC = 0, daLamMoiVe = false;
+/* ⚠️ Id máy chủ giả phải ĐÚNG DẠNG UUID. Bản đầu đặt 'gv-uuid-0' cho gọn
+   mắt, nhưng ứng dụng phân nhánh bằng `laUUID()` — "đã có trên máy chủ" hay
+   "mới khai trong app" — nên với id sai dạng thì mọi nhánh ấy đi nhầm đường
+   và phép thử không kiểm được gì. Lộ ra ngày 30/8/2026 khi viết phép thử
+   xoá giáo viên: hàm bỏ qua đúng cái hồ sơ đáng lẽ phải xoá. */
+const UUID_GV  = i => 'a1a1a1a1-0000-4000-8000-' + String(i).padStart(12, '0');
+const UUID_LOP = i => 'b2b2b2b2-0000-4000-8000-' + String(i).padStart(12, '0');
+
 /* Ghi lại mọi thứ máy chủ giả nhận được, để phép thử soi lại đúng sai */
 const GHI = { diemTruong: [], khungGio: null, giaoVien: null, lop: null, phanCong: null,
               xoaPhanCong: 0, congBo: [], gvNghi: null, xoaNghi: 0, nhatKy: [],
@@ -375,6 +383,11 @@ async function mangGia(url, opt = {}) {
       than.map(h => ({ khoa: (url.match(/on_conflict=([^&]*)/) || [])[1] || '', hang: h })));
     return dap(null, 201);
   }
+  if (opt.method === 'DELETE' && co('/giao_vien')) {
+    const id = (url.match(/id=eq\.([^&]*)/) || [])[1] || '';
+    GHI.xoaGV = (GHI.xoaGV || []).concat(id);
+    return dap(null, 204);
+  }
   if (opt.method === 'DELETE' && co('/diem_truong')) {
     const id = (url.match(/id=eq\.([^&]*)/) || [])[1] || '';
     GHI.xoaDT = (GHI.xoaDT || []).concat(id);
@@ -386,9 +399,11 @@ async function mangGia(url, opt = {}) {
   /* Đọc lại sau khi ghi, để tầng dữ liệu lấy mã UUID mà nối phân công */
   if (co('/diem_truong?') && co('select=id,ten')) return dap(GHI.diemTruong);
   if (co('/giao_vien?') && co('select=id,ma_gv'))
-    return dap((GHI.giaoVien || []).map((g, i) => ({ id: 'gv-uuid-' + i, ma_gv: g.ma_gv })));
+    return dap((GHI.giaoVien || []).map((g, i) => ({ id: UUID_GV(i), ma_gv: g.ma_gv,
+      /* Ai đang có tài khoản đăng nhập — hồ sơ ấy không được xoá */
+      nguoi_dung_id: (GHI.gvCoTaiKhoan || []).includes(UUID_GV(i)) ? 'u-' + i : null })));
   if (co('/lop?') && co('select=id,ma_lop'))
-    return dap((GHI.lop || []).map((l, i) => ({ id: 'lop-uuid-' + i, ma_lop: l.ma_lop, ten: l.ten })));
+    return dap((GHI.lop || []).map((l, i) => ({ id: UUID_LOP(i), ma_lop: l.ma_lop, ten: l.ten })));
 
   if (opt.method === 'DELETE' && co('/gv_nghi')) { GHI.xoaNghi++; return dap(null, 204); }
   if (opt.method === 'POST' && co('/gv_nghi')) { GHI.gvNghi = than; return dap(null, 201); }
@@ -1271,11 +1286,11 @@ kt('Giáo viên ghi bằng ma_gv — khoá tự nhiên giữ nguyên mã UUID kh
    GHI.giaoVien[1].dinh_muc === 20);
 kt('Lớp nối đúng chủ nhiệm và đúng phân hiệu',
    GHI.lop.length === 2 &&
-   GHI.lop.find(l => l.ten === '1A').gvcn_id === 'gv-uuid-0' &&
+   GHI.lop.find(l => l.ten === '1A').gvcn_id === UUID_GV(0) &&
    GHI.lop.find(l => l.ten === '1A').diem_truong_id !== GHI.lop.find(l => l.ten === '2B').diem_truong_id);
 kt('Phân công xoá sạch rồi ghi lại, mọi dòng nối đúng mã',
    GHI.xoaPhanCong === 1 && GHI.phanCong.length === 3 &&
-   GHI.phanCong.every(p => /^gv-uuid-/.test(p.giao_vien_id) && /^lop-uuid-/.test(p.lop_id)),
+   GHI.phanCong.every(p => /^a1a1a1a1-/.test(p.giao_vien_id) && /^b2b2b2b2-/.test(p.lop_id)),
    `xoá ${GHI.xoaPhanCong} lần · ghi ${GHI.phanCong.length} dòng`);
 kt('Tổng số tiết ghi lên đúng bằng tệp Excel',
    GHI.phanCong.reduce((s, p) => s + p.so_tiet, 0) === tep.tongTiet,
@@ -1355,6 +1370,95 @@ kt('Xoá được cả khi trong tay chỉ có id app, không có UUID máy ch�
              && !GHI.diemTruong.some(d => d.ten === 'Phân hiệu Tạm'),
              `xoá ${GHI.xoaDT.length} dòng`];
    })());
+
+/* ---------- GIÁO VIÊN ĐÃ XOÁ THÌ XOÁ THẬT (30/8/2026) ----------
+   ⚠️ Vinh Hưng 1 xoá mấy hồ sơ thừa, bấm Lưu, "một lúc sau lại mọc lại".
+   Gốc y hệt lỗi phân hiệu cùng ngày: hàm ghi chỉ biết THÊM và CẬP NHẬT,
+   `gvThua` chỉ đếm rồi báo — xoá trong app sống tới lần tải lại kế tiếp.
+
+   Nhưng KHÔNG được quay sang xoá mọi hồ sơ tệp không nhắc tới: đó đúng là
+   cái bẫy vừa làm mất phân hiệu Diễn Thái. Chỉ xoá người ĐÃ BẤM XOÁ. */
+kt('Không bấm xoá thì KHÔNG xoá hồ sơ giáo viên nào',
+   await (async () => {
+     GHI.xoaGV = [];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [] });
+     return [r.ok && GHI.xoaGV.length === 0, `xoá ${GHI.xoaGV.length} hồ sơ`];
+   })());
+
+kt('Bấm xoá thì máy chủ xoá thật',
+   await (async () => {
+     GHI.xoaGV = [];
+     const g = (GHI.giaoVien || [])[0];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       gvDaXoa: [{ id: UUID_GV(0), maGV: g?.ma_gv || '', hoTen: 'Cô Thừa' }] });
+     return [r.ok && GHI.xoaGV.includes(UUID_GV(0)), `xoá ${GHI.xoaGV.length} hồ sơ`];
+   })());
+
+/* ⚠️ `phan_cong`, `gv_nghi`, `bao_nghi`, `day_thay` đều `on delete cascade`
+   theo giáo viên — xoá một hồ sơ đang có người dùng là cắt đường vào phần
+   mềm của họ VÀ xoá cả lịch dạy thay, hồ sơ báo nghỉ. Giữ lại và báo ra. */
+kt('Thầy cô đang có tài khoản thì GIỮ LẠI, và nói ra',
+   await (async () => {
+     GHI.xoaGV = [];
+     GHI.gvCoTaiKhoan = [UUID_GV(1)];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       gvDaXoa: [{ id: UUID_GV(1), maGV: '', hoTen: 'Cô Đang Dùng' }] });
+     GHI.gvCoTaiKhoan = [];
+     return [r.ok && GHI.xoaGV.length === 0
+             && (r.gvChuaXoa || []).includes('Cô Đang Dùng')
+             && /Cô Đang Dùng/.test(r.thongBao),
+             (r.gvChuaXoa || []).join(', ') || 'không giữ lại ai'];
+   })());
+
+/* Hồ sơ khai trong app mà chưa bấm Lưu bao giờ thì trên máy chủ chưa có gì
+   để xoá — id còn là id app, gửi lên là Postgres từ chối cả lệnh. */
+kt('Hồ sơ chưa từng lên máy chủ thì bỏ qua, không gửi lệnh xoá nào',
+   await (async () => {
+     GHI.xoaGV = [];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       gvDaXoa: [{ id: 'gv_moi_khai', maGV: 'GVX', hoTen: 'Cô Chưa Lưu' }] });
+     return [r.ok && GHI.xoaGV.length === 0, `xoá ${GHI.xoaGV.length} hồ sơ`];
+   })());
+
+/* ---------- DÃY CHỮ CÁI ĐẶT TÊN LỚP ----------
+   ⚠️ Vinh Hưng 1 đặt lớp A B C D E **G** H I — không dùng chữ F, mà máy cứ
+   sinh 1F. Sửa tay từng lớp thì tên đổi mà `maLop` giữ nguyên `1F_VH`: tên
+   và mã lệch nhau ngay từ lúc khai. */
+kt('Không truyền dãy chữ thì hành vi Y HỆT như cũ', (() => {
+  const a = sinhLop(1, 4, 'VH', 'dt1').map(l => l.ten).join(' ');
+  return [a === '1A 1B 1C 1D', a];
+})());
+
+kt('Khai dãy bỏ chữ F thì lớp thứ sáu là 1G, không phải 1F', (() => {
+  const ds = sinhLop(1, 8, 'VH', 'dt1', 'ABCDEGHI');
+  return [ds.map(l => l.ten).join(' ') === '1A 1B 1C 1D 1E 1G 1H 1I',
+          ds.map(l => l.ten).join(' ')];
+})());
+
+/* Mã lớp phải đi theo tên, không thì bảng Lớp học bày "1G" mà tệp Excel
+   nhận "1F_VH" — đúng cái lệch mà bản vá này sinh ra để chặn. */
+kt('Mã lớp đi theo tên mới, không lệch', (() => {
+  const l = sinhLop(1, 6, 'VH', 'dt1', 'ABCDEGHI')[5];
+  return [l.ten === '1G' && l.maLop === '1G_VH', `${l.ten} → ${l.maLop}`];
+})());
+
+kt('Dãy gõ lộn xộn thì tự chuẩn hoá: hoa hết, bỏ trùng, bỏ ký tự lạ', (() => {
+  const ds = sinhLop(2, 4, '', 'dt1', ' a,b b-C d! ');
+  return [ds.map(l => l.ten).join(' ') === '2A 2B 2C 2D', ds.map(l => l.ten).join(' ')];
+})());
+
+kt('Xoá sạch dãy thì lùi về bảng chữ cái đủ, không sinh ra lớp không tên', (() => {
+  const ds = sinhLop(3, 3, '', 'dt1', '   ');
+  return [ds.map(l => l.ten).join(' ') === '3A 3B 3C', ds.map(l => l.ten).join(' ')];
+})());
+
+/* Khai 8 lớp mà dãy chỉ có 3 chữ thì sinh được 3 — màn hình phải nói ra,
+   đừng lặng lẽ tạo thiếu rồi để người dùng tự đếm mới biết. */
+kt('Dãy ngắn hơn số lớp thì sinh đúng số chữ có, không lặp lại chữ', (() => {
+  const ds = sinhLop(4, 8, '', 'dt1', 'ABC');
+  return [ds.length === 3 && new Set(ds.map(l => l.ten)).size === 3,
+          `${ds.length} lớp: ${ds.map(l => l.ten).join(' ')}`];
+})());
 
 /* ---------- Thông tin trường: tên, năm học, địa bàn ----------
    Bảng `truong` bật RLS nhưng suốt từ đầu chỉ có quy tắc SELECT. Lệnh sửa vì
@@ -1500,7 +1604,7 @@ kt('Bỏ hết đánh dấu cũng được ghi nhận, không sót dòng cũ tr�
 const ghiBan = await MC.ghiDuLieuNguon({ ...tep, gvNghi: { GV01: ['2-S', '5-C'] } });
 kt('Nhập ma trận thì buổi bận trong tệp cũng lên máy chủ, nối đúng UUID',
    ghiBan.ok === true && GHI.xoaNghi === 3 && GHI.gvNghi.length === 2 &&
-   GHI.gvNghi.every(n => n.giao_vien_id === 'gv-uuid-0') &&
+   GHI.gvNghi.every(n => n.giao_vien_id === UUID_GV(0)) &&
    GHI.gvNghi.some(n => n.thu === 2 && n.buoi === 'S'));
 kt('Tệp 3 trang không có buổi bận thì không đụng gì tới bảng gv_nghi', await (async () => {
   const truoc = GHI.xoaNghi;
