@@ -64,7 +64,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
-  laGVLienLop, chamGVKhac, gvId, lopId };`;
+  laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -95,7 +95,8 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
   bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
         MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
-        luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi } = taoUngDung(documentGia);
+        luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
+        datCoDinh, gomLyDoCoDinh, oTuanLop } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
 let dat = 0, hong = 0;
@@ -2850,6 +2851,87 @@ console.log('\n18e. Mức tín hiệu thứ ba khi chỉnh tay — chạm giáo 
     return [!trong || u.chamGVKhac(lop.id, trong.khoa) === null,
             trong ? 'có ô trống để soi' : 'lớp kín, bỏ qua'];
   })()));
+}
+
+console.log('\n18f. Cố định môn vào giờ trước khi xếp');
+{
+  /* Chủ dự án: "Có môn cần được cố định TRƯỚC khi xếp tự động … HĐTN phải
+     luôn đầu tuần thứ Hai tiết 1. Tiếng Anh tăng cường do trường phối hợp
+     trung tâm phải dạy cố định chiều thứ Năm." Quy trình ông vẫn làm: cố
+     định vài môn → Xếp → ưng chỗ nào thì ghim → Xếp lại cho tối ưu. */
+  const sach = () => { S.lop.forEach(l => S.tkb[l.id] = {}); };
+
+  sach();
+  const dsHDTN = S.lop.filter(l => S.phanCong.some(p => p.lopId === l.id && p.mon === 'HDTN'))
+                      .map(l => l.id);
+  const r1 = datCoDinh(dsHDTN, 'HDTN', '2-S-0');
+  kt('Cố định HĐTN thứ Hai tiết 1 cho mọi lớp có môn ấy',
+     [r1.dat.length === dsHDTN.length && r1.bo.length === 0,
+      `${r1.dat.length}/${dsHDTN.length} lớp`]);
+
+  kt('Tiết cố định mang dấu ghim — chính là thứ xepTuDong() giữ nguyên',
+     dsHDTN.every(id => S.tkb[id]['2-S-0']?.ghim === true
+                     && S.tkb[id]['2-S-0'].mon === 'HDTN'));
+
+  /* ⚠️ Đây là điều quan trọng nhất: "không có môn khác chen vào khi xếp
+     tự động". Xếp xong phải còn nguyên từng ô, cả môn lẫn người dạy. */
+  const truoc = Object.fromEntries(dsHDTN.map(id => [id, { ...S.tkb[id]['2-S-0'] }]));
+  const kq = xepTuDong();
+  kt('Xếp tự động KHÔNG đè lên ô đã cố định',
+     [dsHDTN.every(id => {
+        const o = S.tkb[id]['2-S-0'];
+        return o && o.mon === truoc[id].mon && o.gvId === truoc[id].gvId && o.ghim;
+      }), `${kq.daXep}/${kq.tongCan} tiết`]);
+
+  kt('Cố định xong vẫn xếp trọn vẹn, không mất tiết nào',
+     [kq.daXep === kq.tongCan, `${kq.daXep}/${kq.tongCan}`]);
+
+  /* Lớp không học môn ấy thì bỏ qua và NÓI RÕ — đừng lặng lẽ tạo ra một
+     tiết mà bảng phân công không hề có. */
+  sach();
+  const monHiem = 'Tin học';
+  const dsTat = S.lop.map(l => l.id);
+  const r2 = datCoDinh(dsTat, monHiem, '3-S-1');
+  kt('Lớp không học môn ấy thì bỏ qua, kèm lý do đọc được',
+     [r2.bo.some(x => /không học môn/.test(x.vi))
+      && r2.dat.every(id => S.phanCong.some(p => p.mon === monHiem)),
+      `${r2.dat.length} đặt · ${r2.bo.length} bỏ`]);
+
+  /* ⚠️ Ràng buộc cứng số 1 vẫn nguyên hiệu lực: một giáo viên không dạy hai
+     lớp cùng giờ. Cô Mỹ thuật dạy hàng chục lớp — cố định cả loạt vào MỘT ô
+     thì chỉ một lớp đặt được, phần còn lại phải bị từ chối chứ không được
+     đặt bừa rồi để lưới sai. */
+  sach();
+  const gvNhieu = S.giaoVien
+    .map(g => ({ g, ds: S.phanCong.filter(p => p.gvId === g.id && p.mon === 'Mỹ thuật') }))
+    .sort((a, b) => b.ds.length - a.ds.length)[0];
+  if (gvNhieu && gvNhieu.ds.length > 2) {
+    const r3 = datCoDinh(gvNhieu.ds.map(p => p.lopId), 'Mỹ thuật', '3-S-2');
+    kt('Một giáo viên không bị cố định vào hai lớp cùng một ô',
+       [r3.dat.length === 1 && r3.bo.every(x => /Giáo viên đang dạy/.test(x.vi)),
+        `${r3.dat.length} đặt · ${r3.bo.length} bỏ vì trùng giờ giáo viên`]);
+  }
+
+  /* Môn hai tiết mà cố định ba ô là tự tay tạo ra tiết thừa. */
+  sach();
+  const lopH = dsHDTN[0];
+  const soTietH = S.phanCong.find(p => p.lopId === lopH && p.mon === 'HDTN').soTiet;
+  const oTrong = oTuanLop(lopH).map(o => o.khoa);
+  let datDuocBaoNhieu = 0;
+  for (const k of oTrong.slice(0, soTietH + 3))
+    datDuocBaoNhieu += datCoDinh([lopH], 'HDTN', k).dat.length;
+  kt('Không cố định quá số tiết đã phân công',
+     [datDuocBaoNhieu === soTietH, `${datDuocBaoNhieu} tiết / phân công ${soTietH}`]);
+
+  /* Gom lý do: mười lớp cùng vướng một chuyện là MỘT dòng, không phải mười. */
+  const gom = gomLyDoCoDinh([{ lop: '1A', vi: 'không học môn này' },
+                             { lop: '1B', vi: 'không học môn này' },
+                             { lop: '2A', vi: 'khối 2 không học giờ này' }]);
+  kt('Gom lý do bỏ qua, nhiều lớp cùng một chuyện gộp thành một dòng',
+     [gom.length === 2 && gom[0].n === 2 && gom[0].vi === 'không học môn này',
+      gom.map(x => `${x.n} lớp ${x.vi}`).join(' · ')]);
+
+  sach();
 }
 
 console.log('\n19. Mã giáo viên đọc được');

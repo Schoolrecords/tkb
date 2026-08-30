@@ -2041,6 +2041,71 @@ function datDuoc(o,lp,gv,cs,mon){
   return null;
 }
 
+/* ==================================================================
+   CỐ ĐỊNH MỘT MÔN VÀO ĐÚNG MỘT Ô GIỜ  (30/8/2026)
+   ------------------------------------------------------------------
+   Chủ dự án: *"Có môn cần được cố định TRƯỚC khi xếp tự động … HĐTN phải
+   luôn đầu tuần thứ Hai tiết 1. Tiếng Anh tăng cường do trường phối hợp
+   trung tâm phải dạy cố định chiều thứ Năm."*
+
+   Quy trình ông vẫn làm trên phần mềm cũ: cố định vài môn → bấm Xếp tự
+   động → xem kết quả, tiết nào ưng thì ghim lại → bấm Xếp lại cho máy tối
+   ưu phần còn lại. App đã có ba bước sau; đây là bước ĐẦU còn thiếu.
+
+   ⚠️ KHÔNG đụng một dòng nào của thuật toán. Cơ chế ghim (`ghim:true`) vốn
+   đã được `xepTuDong()` giữ nguyên và `laGhim()` loại khỏi bước hoán đổi —
+   nên "cố định trước khi xếp" chỉ là ĐẶT SẴN các tiết ghim ấy. Nhà trường
+   không khai gì thì mọi thứ chạy y như trước.
+
+   ⚠️ Dùng lại `datDuoc()` chứ không viết lại điều kiện: hai nguồn sự thật
+   thì sớm muộn lệch, mà lệch ở đây nghĩa là cố định ra một lưới sai ràng
+   buộc cứng. Cùng bài học đã ghi cho `viSaoChuaXep()`.
+
+   Trả về {dat, bo} — KHÔNG đụng DOM, để `npm test` gọi thẳng. */
+function datCoDinh(dsLop, mon, khoa){
+  const dat=[], bo=[];
+  const them=(l,vi)=>bo.push({lop:l, vi});
+  for(const id of (dsLop||[])){
+    const l=lopId(id);
+    if(!l){ them(id,'không tìm thấy lớp'); continue; }
+    const ten=tenLopDay(id);
+    /* Ô có nằm trong khung giờ của KHỐI ấy không — khối 1 tan sau tiết 4
+       nên "chiều thứ Năm tiết 3" không tồn tại với các em. */
+    const o=oTuanLop(id).find(x=>x.khoa===khoa);
+    if(!o){ them(ten,`khối ${l.khoi} không học giờ này`); continue; }
+    const pc=S.phanCong.find(x=>x.lopId===id && x.mon===mon);
+    if(!pc){ them(ten,`lớp không học môn ${mon}`); continue; }
+    /* Đã cố định đủ số tiết của môn ấy thì thôi — cố định tiết thứ ba của
+       một môn chỉ có hai tiết là tự tay tạo ra tiết thừa. */
+    const daGhim=Object.values(S.tkb[id]||{}).filter(t=>t.mon===mon && t.ghim).length;
+    if(daGhim>=pc.soTiet){ them(ten,`đã cố định đủ ${pc.soTiet} tiết ${mon}`); continue; }
+    const dangCo=S.tkb[id]?.[khoa];
+    if(dangCo?.ghim){
+      them(ten, dangCo.mon===mon?'đã cố định sẵn':`ô này đang cố định ${dangCo.mon}`);
+      continue;
+    }
+    /* Tiết CHƯA ghim thì nhường chỗ — nó sẽ được xếp lại ở lần Xếp sau.
+       Tạm gỡ ra rồi mới hỏi `datDuoc()`, không thì hàm ấy trả về đúng câu
+       "Lớp đã có tiết khác" cho chính cái tiết mình đang định thay. */
+    if(dangCo) delete S.tkb[id][khoa];
+    const li=datDuoc(o, id, pc.gvId, chiSo(), mon);
+    if(li){ if(dangCo) S.tkb[id][khoa]=dangCo; them(ten, li); continue; }
+    S.tkb[id][khoa]={gvId:pc.gvId, mon, ghim:true};
+    dat.push(ten);
+  }
+  return {dat, bo};
+}
+
+/* Gom lý do bỏ qua để câu báo không dài bằng danh sách lớp: mười lớp cùng
+   vướng một chuyện là MỘT dòng. Cùng bài học của `dienGiaiLoiNhap()`. */
+function gomLyDoCoDinh(bo){
+  const theo={};
+  (bo||[]).forEach(x=>{ (theo[x.vi]=theo[x.vi]||[]).push(x.lop); });
+  return Object.entries(theo)
+    .sort((a,b)=>b[1].length-a[1].length)
+    .map(([vi,ds])=>({vi, ds, n:ds.length}));
+}
+
 /* Điểm ưu tiên — càng thấp càng nên chọn */
 function diemO(o,lp,mon,gv,cs){
   let d=0;
@@ -8875,6 +8940,7 @@ function mXep(){
         ${duocXep()?`<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="b b-vang" id="btXep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>Xếp nhanh</button>
           <button class="b b-ch" id="btXepKy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Xếp kỹ — tìm nhiều phương án</button>
+          <button class="b b-vien" id="btCoDinh">Cố định môn vào giờ</button>
           <button class="b b-vien" id="btXoaTKB">Xoá kết quả</button>
         </div>
         <div class="gy" style="margin-top:12px"><b>Xếp nhanh</b> cho một phương án dùng được trong khoảng một giây.
@@ -11944,7 +12010,15 @@ const HD_ND = {
           <li>Tinh chỉnh: đổi chỗ hàng trăm lần để kéo Toán và Tiếng Việt về buổi sáng, bớt tiết trống kẹp giữa buổi, giảm số lần thầy cô phải chạy sang phân hiệu khác.</li>
         </ol>
         <p>Máy tự ghim sẵn <b>chào cờ</b> sáng thứ Hai tiết 1 và <b>sinh hoạt lớp</b> tiết cuối sáng thứ Sáu
-          của từng khối. Tiết nào không xếp được sẽ liệt kê rõ thiếu ở đâu.</p>`},
+          của từng khối. Tiết nào không xếp được sẽ liệt kê rõ thiếu ở đâu.</p>
+        <p><b>Môn phải học đúng một giờ nhất định</b> — Tiếng Anh tăng cường do trung tâm về dạy chiều
+          thứ Năm chẳng hạn — thì bấm <b>Cố định môn vào giờ</b> <i>trước khi</i> xếp: chọn môn, chọn
+          thứ · buổi · tiết, rồi tích những lớp áp dụng. Máy đặt sẵn các tiết ấy, đánh dấu 📌, và khi
+          xếp tự động sẽ xếp mọi môn khác quanh chúng chứ không bao giờ đè lên.</p>
+        <p>Hộp ấy nói ngay lớp nào <b>không</b> đặt được và vì sao: lớp không học môn đó, khối ấy
+          không có giờ đó, hoặc thầy cô đang dạy lớp khác cùng giờ. Cách làm quen thuộc:
+          cố định vài môn → <b>Xếp</b> → xem kết quả, tiết nào ưng thì bấm giữ để <b>ghim</b> →
+          <b>Xếp</b> lại cho máy tối ưu phần còn lại.</p>`},
       {t:'Chỉnh tay — chạm hoặc kéo thả', n:`
         <p>Vào <b>Theo lớp</b>. Có hai cách, dùng cách nào cũng được:</p>
         <div class="hd-buoc">
@@ -13583,6 +13657,7 @@ function noiSuKien(){
         : [{ten:'Đóng',lam:dong}]);
   });
   $('#btChuyenTK')&&($('#btChuyenTK').onclick=hopChuyenTaiKhoan);
+  $('#btCoDinh')&&($('#btCoDinh').onclick=hopCoDinhMon);
   $('#btThemDT')&&($('#btThemDT').onclick=hopThemDT);
   $('#btGanLop')&&($('#btGanLop').onclick=hopGanLop);
   $('#btTaoThu')&&($('#btTaoThu').onclick=hopTaoThu);
@@ -14173,6 +14248,111 @@ function hopSuaGV(id){
     if(v.lopCN) datCN(v.lopCN, g.id); else g.cn='';
     dong(); bao(`Đã lưu hồ sơ ${v.hoTen}`); ve();
   }}]);
+}
+
+/* Hộp "Cố định môn vào giờ" — dựng theo đúng hộp *Xếp môn học* của phần mềm
+   nhà trường đang dùng: chọn môn · thứ · buổi · tiết, rồi tích những lớp áp
+   dụng. Giữ nguyên hình dạng ấy là để người xếp không phải học lại thao tác.
+
+   Khác một điểm có chủ ý: phần mềm kia đặt xong mới biết trúng trật, còn
+   hộp này nói NGAY lớp nào không đặt được và vì sao. */
+function hopCoDinhMon(){
+  if(!S.lop.length) return bao('Chưa có lớp nào — khai ở mục Lớp học trước.',true);
+  if(!S.phanCong.length) return bao('Chưa có phân công nào — khai ở mục Phân công chuyên môn trước.',true);
+  const dsMon=dsMonDung();
+  const dsL=xepTheoKhoi(S.lop);
+  const buoi=buoiBat();
+  const thu=[...new Set(buoi.map(k=>k.thu))].sort();
+  hop('Cố định môn vào giờ',
+  `<p style="font-size:13px;color:var(--chu-mo);margin-bottom:13px">Đặt trước một môn vào đúng ô giờ,
+     rồi mới bấm <b>Xếp</b>. Máy sẽ xếp mọi môn khác quanh những tiết này và không bao giờ đè lên chúng.</p>
+   <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+     <div class="on-l" style="margin:0"><label>Môn học</label>
+       <select class="ip" id="cdMon" style="width:100%">
+         ${dsMon.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')}</select></div>
+     <div class="on-l" style="margin:0"><label>Thứ</label>
+       <select class="ip" id="cdThu" style="width:100%">
+         ${thu.map(t=>`<option value="${t}">Thứ ${t}</option>`).join('')}</select></div>
+     <div class="on-l" style="margin:0"><label>Buổi</label>
+       <select class="ip" id="cdBuoi" style="width:100%">
+         <option value="S">Buổi sáng</option><option value="C">Buổi chiều</option></select></div>
+     <div class="on-l" style="margin:0"><label>Tiết</label>
+       <select class="ip" id="cdTiet" style="width:100%"></select></div>
+   </div>
+   <div class="on-l"><label>Áp dụng cho lớp nào</label>
+     <div style="margin-bottom:7px">
+       <button class="b b-vien" id="cdHet" style="padding:5px 11px;font-size:12px">Chọn tất cả</button>
+       <button class="b b-vien" id="cdBo" style="padding:5px 11px;font-size:12px">Bỏ chọn hết</button>
+       ${[1,2,3,4,5].filter(k=>S.lop.some(l=>l.khoi===k)).map(k=>
+         `<button class="b b-vien" data-cdk="${k}" style="padding:5px 11px;font-size:12px">Khối ${k}</button>`).join('')}
+     </div>
+     <div class="bang" style="max-height:34vh"><table class="dl"><tbody>
+       ${dsL.map(l=>`<tr><td style="width:34px"><input type="checkbox" data-cd="${l.id}" data-khoi="${l.khoi}"></td>
+         <td><b>${esc(tenLopDay(l.id))}</b></td>
+         <td style="color:var(--chu-mo);font-size:12px" data-cdtt="${l.id}"></td></tr>`).join('')}
+     </tbody></table></div></div>
+   <div id="cdXem" class="gy"></div>`,
+  [{ten:'Huỷ',phu:1,lam:dong},{ten:'Cố định',lam:()=>{
+    const ds=[...document.querySelectorAll('[data-cd]:checked')].map(x=>x.dataset.cd);
+    if(!ds.length) return bao('Chưa chọn lớp nào',true);
+    const mon=$('#cdMon').value, khoa=khoaCoDinh();
+    luuLui(`cố định ${mon}`);
+    const kq=datCoDinh(ds, mon, khoa);
+    dong();
+    KQ_XEP=null;
+    const gom=gomLyDoCoDinh(kq.bo);
+    bao(kq.dat.length
+      ? `Đã cố định ${mon} cho ${kq.dat.length} lớp.`
+        + (gom.length?` Bỏ qua ${kq.bo.length} lớp: ${gom.map(g=>`${g.n} lớp ${g.vi}`).join(' · ')}.`:'')
+        + ' Bấm Xếp để máy xếp phần còn lại.'
+      : `Không cố định được lớp nào: ${gom.map(g=>`${g.n} lớp ${g.vi}`).join(' · ')}.`,
+      !kq.dat.length);
+    ve();
+  }}]);
+
+  /* Số tiết mỗi buổi KHÁC NHAU THEO KHỐI, nên danh sách tiết phải dựng theo
+     buổi đang chọn và lấy khối NHIỀU tiết nhất — lớp nào không có giờ ấy thì
+     `datCoDinh()` nói rõ, chứ đừng giấu luôn lựa chọn. */
+  const veTiet=()=>{
+    const t=+$('#cdThu').value, b=$('#cdBuoi').value;
+    const k=buoi.find(x=>x.thu===t && x.buoi===b);
+    const n=k?Math.max(...[1,2,3,4,5].map(x=>soTietBuoi(k,x))):0;
+    $('#cdTiet').innerHTML = n
+      ? [...Array(n)].map((_,i)=>`<option value="${i}">Tiết ${i+1}</option>`).join('')
+      : '<option value="">— buổi này nghỉ —</option>';
+  };
+  const khoaCoDinh=()=>`${$('#cdThu').value}-${$('#cdBuoi').value}-${$('#cdTiet').value||0}`;
+  /* Xem trước ngay bên cạnh từng lớp: đặt được hay vướng gì. Người dùng thấy
+     TRƯỚC khi bấm, chứ không phải bấm xong mới biết hỏng. */
+  const xemTruoc=()=>{
+    const mon=$('#cdMon').value, khoa=khoaCoDinh();
+    let duoc=0, vuong=0;
+    dsL.forEach(l=>{
+      const o=document.querySelector(`[data-cdtt="${l.id}"]`); if(!o) return;
+      const thu2=oTuanLop(l.id).find(x=>x.khoa===khoa);
+      const pc=S.phanCong.find(x=>x.lopId===l.id && x.mon===mon);
+      let t='';
+      if(!pc) t='không học môn này';
+      else if(!thu2) t=`khối ${l.khoi} không học giờ này`;
+      else { const dc=S.tkb[l.id]?.[khoa]; if(dc?.ghim) t=`đang cố định ${dc.mon}`; }
+      o.textContent=t; o.style.color=t?'var(--cam)':'var(--chu-mo)';
+      const ip=document.querySelector(`[data-cd="${l.id}"]`);
+      if(ip){ ip.disabled=!!t; if(t) ip.checked=false; }
+      if(t) vuong++; else duoc++;
+    });
+    $('#cdXem').innerHTML = `<b>${duoc}</b> lớp đặt được`
+      + (vuong?` · <b>${vuong}</b> lớp không (xem cột ghi chú)`:'')
+      + '. Tiết đã cố định mang dấu 📌 và không bị xếp lại.';
+  };
+  const moi=()=>{ veTiet(); xemTruoc(); };
+  ['#cdThu','#cdBuoi'].forEach(x=>$(x).onchange=moi);
+  ['#cdMon','#cdTiet'].forEach(x=>$(x).onchange=xemTruoc);
+  $('#cdHet').onclick=()=>{ $$('[data-cd]').forEach(x=>{ if(!x.disabled) x.checked=true; }); };
+  $('#cdBo').onclick=()=>{ $$('[data-cd]').forEach(x=>x.checked=false); };
+  $$('[data-cdk]').forEach(b=>b.onclick=()=>{
+    $$('[data-cd]').forEach(x=>{ if(!x.disabled && x.dataset.khoi===b.dataset.cdk) x.checked=true; });
+  });
+  moi();
 }
 
 function hopXoaGV(id){

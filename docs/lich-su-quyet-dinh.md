@@ -1691,3 +1691,68 @@ chừng 40%. Chuỗi giáo viên → đọc lại mã → lớp → đọc lại
 **Chưa làm** — còn 6 ngày tới khai giảng, và thứ tự các lệnh ghi có chỗ cố ý
 (phân hiệu phải xoá *sau* khi lớp đã trỏ sang nơi khác). Để sau khai giảng,
 cùng đợt với việc dừng bước tối ưu theo số phép thử thay vì theo đồng hồ.
+
+---
+
+## 30/8/2026 — Cố định môn vào giờ TRƯỚC khi xếp
+
+Chủ dự án: *"Có môn cần được cố định trước khi xếp thời khóa biểu tự động …
+môn HĐTN phải luôn đầu tuần ngày thứ 2 ở tiết 1. Môn Tiếng Anh tăng cường do
+trường phối hợp trung tâm phải dạy cố định chiều thứ 5 … Vậy còn lại chạy
+theo thuật toán."*
+
+Ông gửi kèm hai ảnh chụp hộp *Xếp môn học* của phần mềm đang dùng: chọn **môn**
+· **buổi** · **thứ** · **tiết cụ thể**, tích ô **Cố định**, rồi tích danh sách
+lớp áp dụng — ảnh thứ hai chỉ tích khối 4 và 5 cho môn TATC chiều thứ Năm
+tiết 3.
+
+⚠️ **Hai ảnh ấy bác một giả định sai của em.** Em đã định làm "bó vùng" —
+*môn này chỉ được xếp đâu đó trong chiều thứ Năm* — vì nghĩ giáo viên trung
+tâm không dạy được nhiều lớp cùng lúc. Nhưng họ ghim **đúng một ô**, và mười
+lớp khối 4–5 cùng học một giờ là chuyện bình thường: trung tâm cử đủ người
+đến. Suýt nữa làm một tính năng phức tạp hơn mà không đúng việc.
+
+Quy trình chủ dự án vẫn làm: **cố định vài môn → Xếp → xem kết quả, tiết nào
+ưng thì ghim → Xếp lại cho tối ưu phần còn lại.** App đã có ba bước sau từ
+1/8/2026; đây là bước ĐẦU còn thiếu.
+
+| Hàm | Việc |
+|---|---|
+| `datCoDinh(dsLop, mon, khoa)` | vùng LOGIC — đặt sẵn tiết ghim, trả `{dat, bo}` |
+| `gomLyDoCoDinh(bo)` | gom lý do bỏ qua theo nhóm |
+| `hopCoDinhMon()` | hộp thoại, dựng theo đúng hình dạng hộp của phần mềm cũ |
+
+Sáu điều bắt buộc, cả sáu có phép thử (`npm test` mục **18f**):
+
+- ⚠️ **KHÔNG đụng một dòng nào của thuật toán.** Cơ chế ghim (`ghim:true`)
+  vốn đã được `xepTuDong()` giữ nguyên và `laGhim()` loại khỏi bước hoán đổi
+  — nên "cố định trước khi xếp" chỉ là **đặt sẵn các tiết ghim ấy**. Nhà
+  trường không khai gì thì mọi thứ chạy y như trước, và `npm run kiemdinh`
+  vẫn 22/22. Đo lại trên dữ liệu thật: cố định HĐTN cho cả 25 lớp rồi xếp
+  vẫn **710/710 tiết**.
+- **Dùng lại `datDuoc()`**, không viết lại điều kiện. Hai nguồn sự thật thì
+  sớm muộn lệch — mà lệch ở đây nghĩa là cố định ra một lưới sai ràng buộc
+  cứng. Cùng bài học đã ghi cho `viSaoChuaXep()`.
+- ⚠️ **Ràng buộc cứng vẫn nguyên hiệu lực.** Cố định Mỹ thuật cho cả 25 lớp
+  vào MỘT ô thì chỉ 1 lớp đặt được, 24 lớp bị từ chối với đúng câu *"Giáo
+  viên đang dạy lớp …"*. Đặt bừa rồi để lưới sai là thứ tuyệt đối không được.
+- **Tiết CHƯA ghim thì nhường chỗ, tiết ĐÃ ghim thì không.** Ô đang có môn
+  khác mà chưa ghim thì gỡ ra (lần Xếp sau tự xếp lại nó); đang cố định môn
+  khác thì báo, không im lặng đè lên quyết định trước của người dùng.
+  ⚠️ Phải gỡ ô **trước** khi hỏi `datDuoc()`, không thì hàm ấy trả về đúng
+  câu *"Lớp đã có tiết khác"* cho chính cái tiết mình đang định thay.
+- **Không cố định quá số tiết đã phân công** — cố định tiết thứ ba của một
+  môn chỉ có hai tiết là tự tay tạo ra tiết thừa.
+- **Hộp nói TRƯỚC, không để bấm xong mới biết hỏng.** Mỗi dòng lớp có ghi chú
+  vì sao không đặt được và ô tích bị khoá; dải dưới đếm *"18 lớp đặt được · 7
+  lớp không"*. Đây là chỗ cố ý khác phần mềm cũ. Câu báo sau khi đặt thì
+  **gom theo lý do** — mười lớp cùng vướng một chuyện là một dòng, đúng bài
+  học `dienGiaiLoiNhap()`.
+
+**Không thêm bảng máy chủ nào.** Tiết cố định nằm trong `S.tkb` với cờ `ghim`,
+mà `dongGoiTKB()` · `docTKB()` vốn đã giữ cờ ấy qua mỗi lần lưu — nên nó đi
+theo phiên bản thời khóa biểu như mọi tiết ghim tay khác.
+
+Đã thử ngược **3/3** (bỏ cờ ghim · bỏ giới hạn số tiết · bỏ `datDuoc`): cả ba
+đều làm phép thử đỏ đúng chỗ. `npm test` 501 · `npm run soi` 523 ·
+`npm run soi-nhap` 60 · `npm run kiemdinh` 22, tất cả 0 hỏng.
