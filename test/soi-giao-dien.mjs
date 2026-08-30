@@ -2787,10 +2787,12 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
      w.eval('duocSuaNguon()') === true && w.eval('duocXep()') === true);
 
   dat('t-khac', 'Trường Tiểu học Thần Lĩnh 1');
-  kt('Mở trường khác thì MỌI quyền ghi tắt cùng lúc, chỉ sửa một chỗ trong quyen()',
-     w.eval('quyen()').chiXem === true &&
-     w.eval('duocSuaNguon()') === false && w.eval('duocXep()') === false &&
-     w.eval('quyen()').laQuanLy === false);
+  kt('Người thường mở trường khác thì MỌI quyền ghi tắt cùng lúc', (() => {
+    w.eval('KHO.nguoiDung.chuHeThong = false');
+    const r = w.eval('quyen()').chiXem === true && w.eval('duocSuaNguon()') === false
+              && w.eval('duocXep()') === false && w.eval('quyen()').laQuanLy === false;
+    return [r, 'một cờ khoá đồng loạt'];
+  })());
 
   /* Phép thử đáng giá nhất: quét CẢ 12 màn hình khai báo và điều hành, đòi
      không còn một nút ghi nào. Cùng khuôn phép thử "không màn hình nào lọt
@@ -2805,69 +2807,43 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
       if (NUT_GHI.test(b.textContent.trim())) lot.push(`${t}: ${b.textContent.trim()}`);
     });
   }
-  kt('Không một màn hình nào còn nút ghi khi đang xem trường khác',
+  kt('Người thường xem trường khác: không màn hình nào còn nút ghi',
      lot.length === 0, lot.slice(0, 4).join(' | ') || `quét ${MAN.length} màn hình`);
+  w.eval('KHO.nguoiDung.chuHeThong = true');
 
-  /* ---------- BẬT CHẾ ĐỘ SỬA (30/8/2026) ----------
-     Chủ dự án: "tại sao Hệ thống của mình mà không thể quản trị được? …
-     nếu có thể vào từng trường với chức năng như quản trị của trường đó
-     thì vẫn tốt chứ sao?" Đúng — ông vốn có toàn quyền qua SQL Editor,
-     nên khoá trong app chỉ đẩy ông sang đường nguy hiểm hơn. */
-  kt('Mở trường khác thì MẶC ĐỊNH vẫn chỉ đọc, không tự cho sửa',
-     w.eval('dangSuaTruongKhac()') === false && w.eval('quyen()').chiXem === true);
+  /* ---------- CHỦ HỆ THỐNG SỬA ĐƯỢC NGAY (31/8/2026) ----------
+     Bản đầu bắt bấm "Bật chế độ sửa" cho chắc tay. Chủ dự án bác thẳng:
+     "Tài khoản tổng mà không làm gì được." Đúng — một cái nút chỉ để mở
+     khoá thứ mình đã có quyền là phiền, không phải an toàn. */
+  kt('Chủ hệ thống mở trường khác là SỬA ĐƯỢC NGAY, không phải bấm bật gì',
+     w.eval('dangSuaTruongKhac()') === true && w.eval('quyen()').chiXem === false
+     && w.eval('duocSuaNguon()') === true && w.eval('duocXep()') === true
+     && w.eval('quyen()').laQuanLy === true);
 
-  kt('Bật chế độ sửa thì quyền ghi trở lại đủ, cùng một cờ',
-     (() => {
-       const kq = w.eval('batSuaTruongXem(true)');
-       return [kq.ok === true && w.eval('quyen()').chiXem === false
-               && w.eval('duocSuaNguon()') === true && w.eval('duocXep()') === true
-               && w.eval('quyen()').laQuanLy === true,
-               kq.thongBao];
-     })());
+  kt('Không còn hàm bật/tắt chế độ sửa trong mã',
+     w.eval('typeof batSuaTruongXem') === 'undefined');
 
-  /* Thẻ nổi phải nói rõ ĐANG SỬA — dải đỏ quen mắt sau vài phút, mà cái
-     cần tránh là quên mất mình đang đứng trong trường bạn. */
-  /* Nhãn trạng thái phải đổi, còn chữ "chỉ đọc" trên NÚT thì vẫn đúng —
-     nó là lối thoát về chế độ cũ. Soi đúng nhãn, đừng soi cả thẻ. */
-  kt('Thẻ nổi đổi hẳn sang "ĐANG SỬA" và đổi màu', (() => {
+  /* Thẻ nổi là toàn bộ phần cảnh báo còn lại: nói rõ đang đứng ở trường nào,
+     và nói rõ đang SỬA chứ không phải xem. */
+  kt('Thẻ nổi báo ĐANG SỬA, chỉ còn một lối thoát', (() => {
     w.chuyen('dieuhanh');
     const the = w.document.querySelector('#theXemTruong');
     const t = (the?.textContent || '').replace(/\s+/g, ' ').trim();
-    return [/ĐANG SỬA/.test(t) && !/· chỉ đọc/.test(t) && /Thần Lĩnh 1/.test(t)
+    return [/ĐANG SỬA/.test(t) && /Thần Lĩnh 1/.test(t)
+            && !the.querySelector('#btSuaTruongXem')
+            && !!the.querySelector('#btThoatXemTruong')
             && /7A1FA2|122, ?31, ?162/.test(the?.getAttribute('style') || ''),
             t.slice(0, 70)];
   })());
 
-  kt('Tắt lại thì trở về chỉ đọc ngay',
-     (() => {
-       w.eval('batSuaTruongXem(false)');
-       return [w.eval('quyen()').chiXem === true && w.eval('duocSuaNguon()') === false,
-               'đã tắt'];
-     })());
-
-  /* ⚠️ Không phải chủ hệ thống thì tuyệt đối không bật được — nếu không thì
-     một phó hiệu trưởng lọt vào chế độ xem là sửa được trường bạn. */
-  kt('Người KHÔNG phải chủ hệ thống không bật được chế độ sửa', (() => {
+  /* ⚠️ Người KHÔNG phải chủ hệ thống lọt vào chế độ xem thì vẫn CHỈ ĐỌC —
+     cùng một cờ, không có đường thứ hai. */
+  kt('Người thường xem trường khác thì vẫn chỉ đọc', (() => {
     w.eval('KHO.nguoiDung.chuHeThong = false');
-    const kq = w.eval('batSuaTruongXem(true)');
+    const r = w.eval('quyen()').chiXem === true && w.eval('duocSuaNguon()') === false
+              && w.eval('dangSuaTruongKhac()') === false;
     w.eval('KHO.nguoiDung.chuHeThong = true');
-    return [kq.ok === false && w.eval('dangSuaTruongKhac()') === false, kq.thongBao];
-  })());
-
-  /* Về trường mình mà cờ còn bật thì lần sau mở một trường khác đã ở sẵn
-     trạng thái ghi được — đúng thứ cờ này sinh ra để tránh.
-
-     ⚠️ Bản đầu của phép thử này XANH OAN: nó tự gán `KHO.suaTruongXem =
-     false` rồi mới kiểm, tức là tự làm hộ app đúng cái việc app phải làm —
-     gỡ dòng ấy khỏi `thoatTruongXem()` vẫn xanh. Đúng bẫy đã ghi trong
-     CLAUDE.md. Nay soi thẳng THÂN HÀM, vì gọi thật thì nó `await
-     taiDuLieu()` và cần máy chủ. */
-  kt('thoatTruongXem() tự tắt cờ sửa, không để lại trạng thái ghi được', (() => {
-    const ma = readFileSync(join(goc, 'src/index.html'), 'utf8');
-    const i = ma.indexOf('async function thoatTruongXem(){');
-    const t = i < 0 ? '' : ma.slice(i, i + 700);
-    return [/KHO\.suaTruongXem\s*=\s*false/.test(t),
-            t.split('\n').find(d => /suaTruongXem/.test(d))?.trim() || 'không thấy dòng nào tắt cờ'];
+    return [r, 'chiXem = true'];
   })());
 
 /* ⚠️ Ranh giới ĐỌC / GHI của chế độ xem trường khác. Đây là chỗ dễ sai nhất
@@ -2919,11 +2895,16 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
      /KHO\.nguoiDung\.truongId/.test(than('async function taoMaMoi(')));
 }
 
-  kt('Thẻ nổi đỏ báo rõ đang xem trường nào, kèm lối thoát', (() => {
+  /* Với NGƯỜI THƯỜNG thẻ vẫn đỏ và vẫn ghi "chỉ đọc" — chủ hệ thống thì
+     thấy dải tím "ĐANG SỬA", đã có phép thử riêng ở trên. */
+  kt('Người thường: thẻ nổi đỏ báo rõ đang xem trường nào, kèm lối thoát', (() => {
+    w.eval('KHO.nguoiDung.chuHeThong = false');
     w.chuyen('dieuhanh');
     const the = w.document.querySelector('#theXemTruong');
-    return [!!the && /Thần Lĩnh 1/.test(the.textContent) && /chỉ đọc/.test(the.textContent) &&
-            !!the.querySelector('#btThoatXemTruong'), the?.textContent.trim().slice(0, 60)];
+    const r = [!!the && /Thần Lĩnh 1/.test(the.textContent) && /chỉ đọc/.test(the.textContent) &&
+               !!the.querySelector('#btThoatXemTruong'), the?.textContent.trim().slice(0, 60)];
+    w.eval('KHO.nguoiDung.chuHeThong = true');
+    return r;
   })());
 
   kt('Vẫn quay về được danh sách trường — không tự nhốt mình trong trường khác',
