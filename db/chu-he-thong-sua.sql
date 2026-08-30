@@ -128,7 +128,14 @@ create policy p_nk_ghi_cht on nhat_ky for insert
 -- ------------------------------------------------------------
 
 -- ------------------------------------------------------------
--- 6. Kiểm lại: phải thấy đủ 12 quy tắc mới
+-- 6. Kiểm lại
+--
+--    Tệp NÀY thêm 11 quy tắc GHI: 8 bảng dữ liệu nguồn + tkb_phien_ban
+--    + truong (chỉ update) + nhat_ky (chỉ insert).
+--
+--    ⚠️ Câu dưới đếm CẢ quy tắc đọc của db/chu-he-thong-xem.sql (10 cái),
+--    nên tổng đúng là 21 chứ không phải 11. Đếm nhầm chỗ này thì tưởng
+--    chạy thiếu rồi chạy lại — không hỏng gì, chỉ mất công.
 -- ------------------------------------------------------------
 select tablename, policyname, cmd
 from pg_policies
