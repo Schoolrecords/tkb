@@ -555,6 +555,26 @@ table.tkb tr:last-child td{border-bottom:none}
 .o-hop{border-color:var(--xanh)!important;background:var(--xanh-nen)!important}
 .o-trong.o-hop{border-style:solid}
 .o-cam{opacity:.38}
+/* Mức tín hiệu thứ BA (30/8/2026): đổi được nhưng chạm tiết của giáo viên
+   dạy nhiều lớp. Vàng — cùng hệ với `.tag.canh`, nghĩa là "coi chừng", KHÔNG
+   phải đỏ: đỏ trong cả app nghĩa là hỏng hoặc nguy hiểm, mà phép đổi này
+   hoàn toàn hợp lệ, nhà trường vẫn làm được nếu thấy cần. */
+.o-cham{border-color:var(--canh)!important;background:var(--canh-nen)!important}
+.o-trong.o-cham{border-style:dashed}
+/* Chú giải ba màu, chỉ hiện khi đang cầm một tiết.
+   ⚠️ KHÔNG dùng flex cho phần chữ. Mức giữa là một câu dài có <b> ở giữa
+   ("… — vẫn đổi được, chỉ là lịch của họ ở lớp khác sẽ đổi theo"); để nó
+   làm flex item thì trên điện thoại câu ấy bị xé thành ba cột chồng nhau,
+   đọc không ra. Ô màu là `inline-block` trôi cùng dòng chữ, còn mỗi mức
+   xuống dòng riêng ở màn hẹp. Ảnh chụp Chrome thật bắt được lỗi này —
+   `npm run soi` chỉ đọc textContent nên không thấy. */
+.chu-mau{line-height:1.55}
+.chu-mau .cm{display:inline;margin-right:14px}
+.cm-o{display:inline-block;width:11px;height:11px;border-radius:4px;
+  border:1.5px solid;vertical-align:-1px;margin-right:5px}
+.cm-hop{border-color:var(--xanh);background:var(--xanh-nen)}
+.cm-cham{border-color:var(--canh);background:var(--canh-nen)}
+.cm-cam{border-color:var(--ke);background:var(--the);opacity:.45}
 .o-ghim{position:absolute;top:2px;right:3px;font-size:10.5px;line-height:1;padding:1px 2px;
   background:none;border:none;cursor:pointer;filter:saturate(.9)}
 button.o-ghim:hover{transform:scale(1.2)}
@@ -1259,6 +1279,10 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
 @media(max-width:1120px){.cot2{grid-template-columns:1fr}.tuan{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){
   .boc{grid-template-columns:1fr}
+  /* Chú giải ba màu: mỗi mức một dòng riêng. Xếp ngang như trên máy tính
+     thì ba câu dính nhau thành một khối chữ, mắt không tách ra được đâu là
+     mức nào — mà đây đúng là màn hình PHT phân hiệu chỉnh tay hằng ngày. */
+  .chu-mau .cm{display:block;margin:3px 0 0}
   /* ===== THANH BÊN THÀNH NGĂN KÉO =====
      Trước đây thu thành dải cuộn NGANG dán đỉnh màn hình. Sai từ gốc: không
      phần mềm nào bắt người dùng vuốt ngang để tìm mục, nhãn nhóm phải xoay
@@ -3833,6 +3857,50 @@ function nhomCungRanh(khoa, dsIdGV, dsLop){
   const bo=new Set(dsIdGV);
   const kq=aiRanh(khoa, S.giaoVien.filter(g=>bo.has(g.id)), dsLop);
   return kq.ranh.length===bo.size;
+}
+
+/* ==================================================================
+   TIẾT CỦA GIÁO VIÊN LIÊN LỚP — mức tín hiệu thứ ba khi chỉnh tay
+   (30/8/2026)
+
+   Chủ dự án nói đúng ranh giới của việc chỉnh tay sau khi xếp:
+   *"Cô A muốn đưa Toán lên tiết 1, đưa GDTC xuống tiết 4 để phù hợp, và
+   muốn xếp 2 tiết Tiếng Việt liền nhau để dạy một bài đọc liên thông…
+   miễn sao không chạm với các môn chuyên do GV Âm nhạc, Mỹ thuật, Tin
+   học hay Tiếng Anh dạy vào lớp đó."*
+
+   Đổi hai tiết mà cả hai đều của chính chủ nhiệm thì không ai ngoài lớp
+   bị ảnh hưởng. Nhưng đụng tiết của giáo viên dạy nhiều lớp thì kéo theo
+   lịch của họ ở những lớp khác — vẫn hợp lệ, vẫn làm được, chỉ là người
+   chỉnh phải BIẾT trước.
+
+   ⚠️ Suy từ DỮ LIỆU, không ghi cứng danh sách môn. Trường tự khai thêm
+   môn tự chọn (*HD Tự học*, *Kĩ năng CDS*…) và tự phân công ai dạy gì;
+   ghi cứng "Âm nhạc · Mỹ thuật · Tin học · Tiếng Anh" là đúng cho đúng
+   một nhà trường, đúng một năm học. Tiêu chí thật: **người ấy có tiết ở
+   từ hai lớp trở lên**, vì đó mới là thứ sinh ra hệ quả dây chuyền.
+   ================================================================== */
+function laGVLienLop(idGV){
+  const lop=new Set();
+  for(const p of S.phanCong){
+    if(p.gvId!==idGV) continue;
+    lop.add(p.lopId);
+    if(lop.size>1) return true;      /* biết đủ rồi thì dừng */
+  }
+  return false;
+}
+
+/* Đổi tiết `tu` sang ô `den` trong lớp `idLop` thì chạm tới ai. Trả `null`
+   khi không chạm ai ngoài lớp — đó là phép đổi tự do.
+
+   ⚠️ Chỉ xét ô ĐÍCH. Nếu chính tiết đang cầm là của giáo viên liên lớp thì
+   người dùng đã biết — họ vừa tự tay chọn đúng ô ấy; nhắc lại trên cả 30 ô
+   còn lại là biến cả lưới thành màu vàng và tín hiệu mất hết ý nghĩa. */
+function chamGVKhac(idLop, den){
+  const v=(S.tkb[idLop]||{})[den];
+  if(!v || !laGVLienLop(v.gvId)) return null;
+  const soLop=new Set(S.phanCong.filter(p=>p.gvId===v.gvId).map(p=>p.lopId)).size;
+  return {gvId:v.gvId, hoTen:gvId(v.gvId)?.hoTen||'', mon:v.mon, soLop};
 }
 
 /* ==================================================================
@@ -8866,11 +8934,26 @@ function mTKBLop(){
   const suaDuoc=duocSuaLop(lp), khoiLop=lopId(lp)?.khoi;
   if(!suaDuoc || (S.oChon && !o[S.oChon])) S.oChon=null;
   const soGhim=Object.values(o).filter(t=>t.ghim).length;
-  /* Đang chọn một tiết thì soi trước mọi ô: xanh là đặt được, mờ là không.
-     Người dùng thấy chỗ đặt TRƯỚC khi thao tác, không phải thử rồi bị từ chối. */
+  /* Đang chọn một tiết thì soi trước mọi ô. BA mức, không phải hai
+     (30/8/2026 — chủ dự án nêu ranh giới "miễn sao không chạm với các môn
+     chuyên"):
+       mờ   — vướng ràng buộc cứng, không đổi được
+       vàng — đổi được NHƯNG chạm tiết của giáo viên dạy nhiều lớp
+       xanh — đổi tự do, không ai ngoài lớp bị ảnh hưởng
+     Người dùng thấy chỗ đặt TRƯỚC khi thao tác, và biết luôn phép đổi nào
+     kéo theo lịch của đồng nghiệp. Vàng là NHẮC, không phải cấm — nhà
+     trường vẫn đổi được nếu thấy cần. */
   const nhan=(khoa)=>{
     if(!S.oChon || khoa===S.oChon) return '';
-    return kiemTraChuyen(S.oChon, khoa) ? ' o-cam' : ' o-hop';
+    if(kiemTraChuyen(S.oChon, khoa)) return ' o-cam';
+    return chamGVKhac(lp, khoa) ? ' o-cham' : ' o-hop';
+  };
+  /* Câu giải thích cho ô vàng — hiện ngay trong `title`, và nhắc lại đầy đủ
+     ở dải dưới thanh công cụ khi người dùng đang cầm một tiết. */
+  const nhacCham=(khoa)=>{
+    const c=(S.oChon && khoa!==S.oChon && !kiemTraChuyen(S.oChon,khoa))
+      ? chamGVKhac(lp,khoa) : null;
+    return c ? ` — đổi được, nhưng chạm tiết ${c.mon} của ${c.hoTen} (dạy ${c.soLop} lớp)` : '';
   };
   const oNoi=(t,b,i)=>{
     const k=bb.find(x=>x.thu===t&&x.buoi===b);
@@ -8882,7 +8965,7 @@ function mTKBLop(){
     const g=gvId(v.gvId);
     return `<div class="o-tiet ${mLop(v.mon)}${v.ghim?' ghim':''}${khoa===S.oChon?' chon':''}${nhan(khoa)}"
       ${suaDuoc?`draggable="true" data-keo="${khoa}" data-tha="${khoa}"${cham}`:'style="cursor:default"'}
-      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}">${icMon(v.mon)}
+      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}${esc(nhacCham(khoa))}">${icMon(v.mon)}
       <div class="o-mon">${esc(v.mon)}</div><div class="o-gv">${esc(tenTat(g?.hoTen||''))}</div>
       ${v.ghim&&suaDuoc?`<button class="o-ghim" data-boghim="${khoa}" title="Bỏ ghim tiết này">📌</button>`
         :v.ghim?'<span class="o-ghim">📌</span>':''}</div>`;
@@ -8913,12 +8996,35 @@ function mTKBLop(){
       <button class="b b-vien b-nho" id="btInLop">In / lưu PDF</button>
     </div>
   </div>
-  ${suaDuoc?`<div class="gy" style="margin:-6px 0 12px">
-    ${S.oChon?`Đang chọn tiết <b>${esc(o[S.oChon]?.mon||'')}</b> —
-        ô <b style="color:var(--xanh)">xanh</b> là đặt được, ô mờ là vướng ràng buộc.
-        Chạm lại chính nó để bỏ chọn.`
-      :`Tiết đã chỉnh tay sẽ được <b>ghim 📌</b> để lần xếp tự động sau không đè lên.
-        Bấm vào dấu ghim là bỏ ghim.`}</div>`:''}
+  ${suaDuoc?(()=>{
+    if(!S.oChon)
+      return `<div class="gy" style="margin:-6px 0 12px">Tiết đã chỉnh tay sẽ được
+        <b>ghim 📌</b> để lần xếp tự động sau không đè lên. Bấm vào dấu ghim là bỏ ghim.</div>`;
+    /* Đang cầm một tiết: chú giải BA màu, kèm đúng số ô mỗi loại. Đếm thật
+       chứ không nói chung chung — người dùng nhìn ra ngay còn mấy chỗ đổi
+       tự do trước khi phải động tới lịch đồng nghiệp. */
+    let tuDo=0, chamAi=0;
+    const ai=new Map();
+    oTuan(khoiLop).forEach(x=>{
+      if(x.khoa===S.oChon || kiemTraChuyen(S.oChon,x.khoa)) return;
+      const c=chamGVKhac(lp,x.khoa);
+      if(c){ chamAi++; ai.set(c.gvId,c); } else tuDo++;
+    });
+    const dsAi=[...ai.values()];
+    /* Chính tiết đang cầm là của giáo viên liên lớp thì nói ngay từ đầu —
+       dời nó đi đâu cũng đụng lịch người ấy, không riêng ô đích nào. */
+    const tuCham=chamGVKhac(lp,S.oChon);
+    return `<div class="gy chu-mau" style="margin:-6px 0 12px">
+      <span>Đang chọn tiết <b>${esc(o[S.oChon]?.mon||'')}</b> — chạm lại chính nó để bỏ chọn.</span>
+      <span class="cm"><i class="cm-o cm-hop"></i>${tuDo} ô đổi tự do</span>
+      ${chamAi?`<span class="cm"><i class="cm-o cm-cham"></i>${chamAi} ô chạm tiết của
+        ${esc(dsAi.slice(0,2).map(c=>c.hoTen).join(', '))}${dsAi.length>2?` và ${dsAi.length-2} người nữa`:''}
+        — <b>vẫn đổi được</b>, chỉ là lịch của họ ở lớp khác sẽ đổi theo</span>`:''}
+      <span class="cm"><i class="cm-o cm-cam"></i>ô mờ là vướng ràng buộc, không đổi được</span>
+      ${tuCham?`<div style="margin-top:5px;color:var(--canh)">⚠️ Tiết đang cầm là của
+        <b>${esc(tuCham.hoTen)}</b> (dạy ${tuCham.soLop} lớp) — dời đi đâu cũng đổi lịch của người ấy.</div>`:''}
+    </div>`;
+  })():''}
   <div class="cl-boc">${cotLopHTML(ds, lp, 'clTKBLop')}
     <div class="cl-phai">${bang}</div></div>`;
 }

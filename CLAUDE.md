@@ -1651,6 +1651,68 @@ Bốn điều bắt buộc, cả bốn có phép thử (`npm test` mục **18d**
 
 Đã thử ngược **4/4**, cả bốn đều làm phép thử đỏ.
 
+#### Mức tín hiệu thứ BA khi chỉnh tay *(30/8/2026)*
+
+Chủ dự án nói đúng ranh giới của việc tinh chỉnh sau khi xếp: *"Cô A muốn
+đưa Toán lên tiết 1, đưa GDTC xuống tiết 4 để phù hợp, và muốn xếp 2 tiết
+Tiếng Việt liền nhau để dạy một bài đọc liên thông… **miễn sao không chạm
+với các môn chuyên** do GV Âm nhạc, Mỹ thuật, Tin học hay Tiếng Anh dạy vào
+lớp đó."*
+
+Đổi hai tiết mà **cả hai đều của chính chủ nhiệm** thì không ai ngoài lớp bị
+ảnh hưởng. Đụng tiết của giáo viên dạy nhiều lớp thì kéo theo lịch của họ ở
+những lớp khác — vẫn hợp lệ, vẫn làm được, chỉ là người chỉnh phải BIẾT trước.
+Màn chỉnh tay vốn chỉ có hai mức (xanh = đặt được · mờ = vướng), nay ba:
+
+| Mức | Nghĩa |
+|---|---|
+| mờ `.o-cam` | vướng ràng buộc cứng, không đổi được |
+| **vàng `.o-cham`** | **đổi được NHƯNG chạm tiết của giáo viên dạy nhiều lớp** |
+| xanh `.o-hop` | đổi tự do, không ai ngoài lớp bị ảnh hưởng |
+
+| Hàm | Việc |
+|---|---|
+| `laGVLienLop(idGV)` | vùng LOGIC — người ấy có tiết ở từ hai lớp trở lên |
+| `chamGVKhac(idLop, den)` | ô đích có tiết của ai; `null` = đổi tự do |
+
+Sáu điều bắt buộc, cả sáu có phép thử (`npm test` mục **18e**, `npm run soi`
+mục **17u**):
+
+- ⚠️ **VÀNG LÀ NHẮC, TUYỆT ĐỐI KHÔNG PHẢI CẤM.** Chủ dự án dặn thẳng *"không
+  phải vì vậy mà bắt buộc cứng"*. Phép thử đòi **mọi** ô vàng đều là ô
+  `kiemTraChuyen()` cho qua — ai lỡ biến nó thành chốt chặn là đỏ ngay.
+- **Suy từ DỮ LIỆU, không ghi cứng danh sách môn.** Trường tự khai môn tự
+  chọn và tự phân công ai dạy gì; ghi cứng *"Âm nhạc · Mỹ thuật · Tin học ·
+  Tiếng Anh"* là đúng cho đúng một nhà trường, đúng một năm học. Tiêu chí
+  thật: **dạy từ hai lớp trở lên** — đó mới là thứ sinh hệ quả dây chuyền.
+- **Chỉ xét ô ĐÍCH.** Nếu chính tiết đang cầm là của giáo viên liên lớp thì
+  người dùng đã biết — họ vừa tự tay chọn đúng ô ấy; nhắc lại trên cả 30 ô
+  còn lại là biến cả lưới thành vàng và tín hiệu mất hết ý nghĩa. Trường hợp
+  ấy nhắc **một lần** ở dải trên.
+- **Ô xanh tuyệt đối không được lẫn ô chạm ai** — có phép thử canh cả hai
+  chiều. Lẫn thì người dùng tưởng đổi tự do mà thật ra đụng lịch một cô giáo
+  ở lớp khác.
+- **Nói rõ TÊN và số lớp**, không nói chung chung: *"chạm tiết Mỹ thuật của
+  Đinh Thị Nhã (dạy 24 lớp)"*. Dải trên đếm sẵn *"21 ô đổi tự do · 5 ô chạm
+  tiết của …"*.
+- **Chưa chọn tiết nào thì KHÔNG bày dải ba màu** — đừng chiếm chỗ để nói về
+  thứ người dùng chưa làm.
+
+⚠️ **Chú giải ba màu KHÔNG được dùng flex cho phần chữ.** Mức giữa là một câu
+dài có `<b>` ở giữa; để nó làm flex item thì trên điện thoại câu ấy bị **xé
+thành ba cột chồng nhau**, đọc không ra. Ô màu là `inline-block` trôi cùng
+dòng chữ, và dưới 900px mỗi mức xuống dòng riêng. `npm run soi` chỉ đọc
+`textContent` nên xanh suốt — chỉ ảnh chụp Chrome thật bắt được.
+
+⚠️ **`chuyen()` xoá `S.oChon` mỗi lần đổi màn hình.** Muốn dựng cảnh đang
+cầm một tiết (ảnh chụp, phép thử) thì phải sang màn hình TRƯỚC rồi mới gán
+`S.oChon` và gọi `ve()`.
+
+⚠️ **Phép thử của mục 17u tự chọn lấy lớp, không tin `S.lopXem`** mà các mục
+trước để lại: mục 17r từng dọn sạch `S.tkb`, mục 17t thêm hẳn một phân hiệu
+và dời tám lớp sang đó. Bản đầu tin vào trạng thái sẵn có và đỏ năm phép thử
+liền vì lớp đang mở không còn chủ nhiệm.
+
 ⚠️ **`KQ_XEP` khai bằng `let` nên KHÔNG nằm trên `window`** *(lộ ra 30/8/2026)*.
 `docs/anh-giao-dien/chup.mjs` gán `window.KQ_XEP = xepTuDong()` — tức tạo một
 biến KHÁC, còn màn hình Xếp vẫn đọc bản cũ mà `khoiDong()` đã tự xếp lúc vào
@@ -2696,15 +2758,8 @@ cứng `#0F5132` nên đổi màu là nó đỏ mà không nói được chỗ n
       phép thử canh. Nhờ vậy trường đang chạy không chịu rủi ro nào, đúng
       khuôn "luôn có đường lui". Đo `npm run kiemdinh` ở CẢ HAI chế độ.
 
-      **Phần KHÔNG đụng thuật toán, làm trước được:** chủ dự án nói rõ ranh
-      giới của việc chỉnh tay — *"miễn sao không chạm với các môn chuyên do
-      GV Âm nhạc, Mỹ thuật, Tin học hay Tiếng Anh dạy vào lớp đó"*. Đổi chỗ
-      hai tiết mà **cả hai đều của chính chủ nhiệm** thì không ảnh hưởng ai
-      ngoài lớp; đụng tiết của giáo viên bộ môn thì kéo theo lịch của họ ở
-      các lớp khác. `kiemTraChuyen()` đã chặn đủ ràng buộc cứng, nhưng màn
-      chỉnh tay mới có **hai** mức tín hiệu (xanh = đặt được · mờ = vướng).
-      Cần mức thứ ba: **đổi được nhưng chạm giáo viên chuyên** — nhắc rõ
-      tên, không cấm. Việc này chỉ đọc lưới, an toàn ngang đợt 1.
+      ✅ **Phần KHÔNG đụng thuật toán đã XONG cùng ngày** — xem mục *Mức tín
+      hiệu thứ ba khi chỉnh tay* ngay dưới đây.
 
 - [ ] **Bước tối ưu đang dừng theo ĐỒNG HỒ nên chất lượng phụ thuộc máy**
       *(đo 16/8/2026, chủ dự án chốt để SAU KHAI GIẢNG mới làm — không đụng

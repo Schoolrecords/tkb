@@ -63,7 +63,8 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
-  viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh };`;
+  viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
+  laGVLienLop, chamGVKhac, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -2589,6 +2590,77 @@ console.log('\n18d. Vì sao còn tiết chưa xếp — và phải làm gì');
     const u = taoUngDung(documentGia);
     return [u.viecGoBiXep([]).length === 0 && u.viecGoBiXep(null).length === 0
       && u.viSaoChuaXep({ gvId:'khong-co', lopId:'khong-co', mon:'Toán', con:1 }) === null];
+  })()));
+}
+
+console.log('\n18e. Mức tín hiệu thứ ba khi chỉnh tay — chạm giáo viên liên lớp');
+{
+  const u = taoUngDung(documentGia);
+  u.xepTuDong(0);
+
+  kt('Chủ nhiệm dạy đúng một lớp thì KHÔNG phải giáo viên liên lớp',
+     ...((() => {
+    const lop = u.S.lop[0];
+    const cn = u.cnCuaLop(lop.id);
+    const soLop = new Set(u.S.phanCong.filter(p => p.gvId === cn.id).map(p => p.lopId)).size;
+    return [soLop === 1 && u.laGVLienLop(cn.id) === false,
+            `${cn.hoTen} dạy ${soLop} lớp`];
+  })()));
+
+  kt('Giáo viên bộ môn dạy nhiều lớp thì LÀ liên lớp', ...((() => {
+    const mt = u.S.phanCong.find(p => p.mon === 'Mỹ thuật');
+    const soLop = new Set(u.S.phanCong.filter(p => p.gvId === mt.gvId).map(p => p.lopId)).size;
+    return [soLop > 1 && u.laGVLienLop(mt.gvId) === true,
+            `${u.gvId(mt.gvId).hoTen} dạy ${soLop} lớp`];
+  })()));
+
+  /* ⚠️ `chamGVKhac()` cố ý KHÔNG tự kiểm ràng buộc cứng — đó là việc của
+     `kiemTraChuyen()`, và màn hình gọi hai hàm theo đúng thứ tự: vướng
+     cứng thì tô MỜ, qua được rồi mới xét có chạm ai không. Phép thử cho
+     phần giao diện ấy nằm ở `npm run soi` mục 17u, vì `kiemTraChuyen()`
+     nằm ngoài bốn vùng mã thuần. Ở đây chỉ canh phần dữ liệu. */
+  kt('Có ô chạm giáo viên liên lớp thật trên lưới đã xếp', ...((() => {
+    const lop = u.S.lop.find(l => Object.keys(u.S.tkb[l.id] || {}).length > 5);
+    let vang = 0, tong = 0;
+    Object.keys(u.S.tkb[lop.id]).forEach(k => {
+      tong++;
+      if (u.chamGVKhac(lop.id, k)) vang++;
+    });
+    /* Lớp tiểu học: chủ nhiệm dạy phần lớn tiết, bộ môn chỉ vài tiết —
+       nên phải CÓ ô vàng, nhưng không được vàng cả lớp. */
+    return [vang > 0 && vang < tong,
+            `lớp ${lop.ten}: ${vang}/${tong} tiết là của giáo viên liên lớp`];
+  })()));
+
+  /* Đổi hai tiết mà cả hai đều của chính chủ nhiệm — đúng cảnh chủ dự án
+     nêu: "cô A đưa Toán lên tiết 1, đẩy GDTC xuống tiết 4" */
+  kt('Đổi hai tiết cùng của chủ nhiệm thì KHÔNG chạm ai — ô xanh', ...((() => {
+    const lop = u.S.lop[0];
+    const cn = u.cnCuaLop(lop.id);
+    const o = u.S.tkb[lop.id];
+    const cuaCN = Object.keys(o).filter(k => o[k].gvId === cn.id);
+    if (cuaCN.length < 2) return [false, 'chủ nhiệm không có đủ hai tiết'];
+    return [u.chamGVKhac(lop.id, cuaCN[1]) === null,
+            `${o[cuaCN[0]].mon} ↔ ${o[cuaCN[1]].mon}, cùng ${cn.hoTen}`];
+  })()));
+
+  kt('Chạm tiết của giáo viên bộ môn thì nói rõ TÊN và số lớp', ...((() => {
+    const mt = u.S.phanCong.find(p => p.mon === 'Mỹ thuật');
+    let thay = null;
+    for (const l of u.S.lop) {
+      const o = u.S.tkb[l.id] || {};
+      const k = Object.keys(o).find(x => o[x].gvId === mt.gvId);
+      if (k) { thay = u.chamGVKhac(l.id, k); break; }
+    }
+    return [!!thay && thay.hoTen === u.gvId(mt.gvId).hoTen && thay.soLop > 1 && !!thay.mon,
+            thay ? `${thay.hoTen} · ${thay.mon} · ${thay.soLop} lớp` : 'không tìm thấy'];
+  })()));
+
+  kt('Ô trống không chạm ai', ...((() => {
+    const lop = u.S.lop[0];
+    const trong = u.oTuan(lop.khoi).find(x => !u.S.tkb[lop.id][x.khoa]);
+    return [!trong || u.chamGVKhac(lop.id, trong.khoa) === null,
+            trong ? 'có ô trống để soi' : 'lớp kín, bỏ qua'];
   })()));
 }
 

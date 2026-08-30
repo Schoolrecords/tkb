@@ -193,6 +193,47 @@ await chup('13-truong-moi-chua-co-gi', { lam: p => p.evaluate(() => {
   window.chuyen('dieuhanh');
 }) });
 
+/* Ba mức tín hiệu khi chỉnh tay (30/8/2026). Phải CẦM sẵn một tiết của chủ
+   nhiệm thì ba màu mới hiện — ảnh chụp lúc chưa chọn gì thì không thấy gì.
+   ⚠️ Mọi lời gọi `chup()` phải đứng TRƯỚC `tr.close()`; nối thêm vào cuối
+   tệp là trình duyệt đã đóng, hàm chạy nhưng không ra ảnh nào. */
+await chup('39-ba-muc-tin-hieu', { cao: 1050, lam: async p => {
+  await xep(p);
+  /* ⚠️ Sang màn hình TRƯỚC rồi mới cầm tiết: `chuyen()` xoá `S.oChon` mỗi
+     lần đổi màn — đặt trước là ảnh chụp ra lưới bình thường, không màu nào. */
+  await di('tkblop')(p);
+  await p.evaluate(() => {
+    const l = S.lop.find(x => {
+      const cn = cnCuaLop(x.id); if (!cn) return false;
+      const o = S.tkb[x.id] || {}, k = Object.keys(o);
+      return k.length > 8 && k.some(y => o[y].gvId === cn.id && !o[y].ghim)
+                          && k.some(y => o[y].gvId !== cn.id && !o[y].ghim);
+    });
+    S.lopXem = l.id;
+    const o = S.tkb[l.id], cn = cnCuaLop(l.id);
+    S.oChon = Object.keys(o).find(k => o[k].gvId === cn.id && !o[k].ghim);
+    ve();
+  });
+} });
+/* Điện thoại — PHT phụ trách phân hiệu gần như chỉ chỉnh tay bằng máy này,
+   nên dải chú giải ba màu phải xuống dòng gọn chứ không tràn ngang. */
+await chup('40-dt-ba-muc-tin-hieu', { rong: 390, cao: 900, lam: async p => {
+  await xep(p);
+  await di('tkblop')(p);
+  await p.evaluate(() => {
+    const l = S.lop.find(x => {
+      const cn = cnCuaLop(x.id); if (!cn) return false;
+      const o = S.tkb[x.id] || {}, k = Object.keys(o);
+      return k.length > 8 && k.some(y => o[y].gvId === cn.id && !o[y].ghim)
+                          && k.some(y => o[y].gvId !== cn.id && !o[y].ghim);
+    });
+    S.lopXem = l.id;
+    const o = S.tkb[l.id], cn = cnCuaLop(l.id);
+    S.oChon = Object.keys(o).find(k => o[k].gvId === cn.id && !o[k].ghim);
+    ve();
+  });
+} });
+
 await tr.close();
 may.close();
 console.log(loi.length ? '\nLỖI:\n' + loi.join('\n') : '\nKhông lỗi JavaScript nào.');

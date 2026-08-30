@@ -3542,6 +3542,107 @@ console.log('\n17q. Số hiệu và ngày thực hiện của văn bản thời 
   w.eval('S.ranhO = ""; S.ranhNhom = []');
 }
 
+{
+  console.log('\n17u. Ba mức tín hiệu khi chỉnh tay');
+  /* ⚠️ Đừng tin vào `S.lopXem` mà các mục trước để lại — mục 17r từng dọn
+     sạch `S.tkb`, mục 17t thêm hẳn một phân hiệu và dời tám lớp sang đó.
+     Mục này tự chọn lấy một lớp CÓ chủ nhiệm, CÓ tiết của cả chủ nhiệm lẫn
+     giáo viên bộ môn, rồi mới soi. */
+  const lp = w.eval(`(() => {
+    const ok = S.lop.find(l => {
+      const cn = cnCuaLop(l.id); if (!cn) return false;
+      const o = S.tkb[l.id] || {};
+      const k = Object.keys(o);
+      return k.length > 8
+        && k.some(x => o[x].gvId === cn.id && !o[x].ghim)
+        && k.some(x => o[x].gvId !== cn.id && !o[x].ghim);
+    });
+    if (ok) { S.lopXem = ok.id; S.phamVi = ''; }
+    return ok ? ok.id : '';
+  })()`);
+  kt('Tìm được lớp đủ điều kiện để soi', !!lp, lp ? w.eval(`lopId(${JSON.stringify(lp)})?.ten`) : 'KHÔNG CÓ');
+  w.chuyen('tkblop');
+  const o = S.tkb[lp];
+  const cn = w.eval(`cnCuaLop(${JSON.stringify(lp)})?.id`);
+
+  /* Cầm một tiết của CHỦ NHIỆM — đúng cảnh chủ dự án nêu: cô A đưa Toán
+     lên tiết 1, đẩy GDTC xuống tiết 4. */
+  const tuCN = Object.keys(o).find(k => o[k].gvId === cn && !o[k].ghim);
+  kt('Chọn một tiết thì lưới hiện đủ BA mức, không phải hai', (() => {
+    w.eval(`S.oChon = ${JSON.stringify(tuCN)}`); w.ve();
+    const d = w.document;
+    const hop = d.querySelectorAll('.o-hop').length;
+    const cham = d.querySelectorAll('.o-cham').length;
+    const cam = d.querySelectorAll('.o-cam').length;
+    return [hop > 0 && cham > 0 && cam >= 0, `${hop} xanh · ${cham} vàng · ${cam} mờ`];
+  })());
+
+  /* ⚠️ Điều quan trọng nhất của cả mục: vàng là NHẮC, tuyệt đối không phải
+     CẤM. Chủ dự án dặn thẳng *"không phải vì vậy mà bắt buộc cứng, sau xếp
+     nhà trường còn tinh chỉnh"*. Mọi ô vàng phải là ô `kiemTraChuyen()` cho
+     qua — ai lỡ biến nó thành chốt chặn thì con số này khác 0 ngay. */
+  kt('Ô vàng LUÔN đổi được — nhắc, KHÔNG cấm', (() => {
+    const xau = w.eval(`(() => {
+      const ds = [...document.querySelectorAll('.o-cham')];
+      let sai = 0;
+      ds.forEach(n => {
+        const khoa = n.dataset.cham || n.dataset.tha;
+        if (khoa && kiemTraChuyen(S.oChon, khoa)) sai++;
+      });
+      return { sai, tong: ds.length };
+    })()`);
+    return [xau.sai === 0 && xau.tong > 0, `${xau.tong} ô vàng, ${xau.sai} ô bị chặn`];
+  })());
+
+  /* Và chiều ngược lại: ô XANH thì tuyệt đối không được chạm ai — nếu lẫn
+     thì tín hiệu vô nghĩa, người dùng tưởng đổi tự do mà thật ra đụng lịch
+     một cô giáo ở lớp khác. */
+  kt('Ô xanh tuyệt đối KHÔNG chạm giáo viên liên lớp nào', (() => {
+    const xau = w.eval(`(() => {
+      const ds = [...document.querySelectorAll('.o-hop')];
+      let sai = 0;
+      ds.forEach(n => {
+        const khoa = n.dataset.cham || n.dataset.tha;
+        if (khoa && chamGVKhac(S.lopXem, khoa)) sai++;
+      });
+      return { sai, tong: ds.length };
+    })()`);
+    return [xau.sai === 0 && xau.tong > 0, `${xau.tong} ô xanh, ${xau.sai} ô lẫn`];
+  })());
+
+  kt('Dải chú giải nói đủ ba màu và đếm đúng số ô đổi tự do', (() => {
+    const t = w.document.querySelector('.chu-mau')?.textContent.replace(/\s+/g, ' ').trim() || '';
+    const soXanh = w.document.querySelectorAll('.o-hop').length;
+    return [/đổi tự do/.test(t) && /không đổi được/.test(t) && t.includes(`${soXanh} ô đổi tự do`),
+            t.slice(0, 120)];
+  })());
+
+  kt('Ô vàng nói rõ TÊN người bị ảnh hưởng, không nói chung chung', (() => {
+    const n = w.document.querySelector('.o-cham');
+    const tt = n?.getAttribute('title') || '';
+    return [/chạm tiết .+ của .+ \(dạy \d+ lớp\)/.test(tt), tt.slice(0, 110)];
+  })());
+
+  /* Cầm tiết của chính giáo viên bộ môn thì phải nhắc NGAY từ đầu — dời đi
+     đâu cũng đổi lịch người ấy, không riêng ô đích nào. */
+  kt('Cầm tiết của giáo viên liên lớp thì nhắc ngay ở dải trên', (() => {
+    const tuBM = Object.keys(o).find(k => o[k].gvId !== cn && !o[k].ghim);
+    if (!tuBM) return [true, 'lớp không có tiết bộ môn — bỏ qua'];
+    w.eval(`S.oChon = ${JSON.stringify(tuBM)}`); w.ve();
+    const t = w.document.querySelector('.chu-mau')?.textContent.replace(/\s+/g, ' ') || '';
+    return [/Tiết đang cầm là của/.test(t) && /dạy \d+ lớp/.test(t),
+            (t.match(/Tiết đang cầm[^⚠]*/) || [''])[0].slice(0, 100)];
+  })());
+
+  /* Không chọn gì thì KHÔNG bày chú giải — đừng chiếm chỗ để nói về thứ
+     người dùng chưa làm. Cùng luật "số 0 không tô đỏ". */
+  kt('Chưa chọn tiết nào thì không bày dải ba màu', (() => {
+    w.eval('S.oChon = null'); w.ve();
+    return [!w.document.querySelector('.chu-mau'),
+            w.document.querySelector('.gy')?.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) || ''];
+  })());
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');
