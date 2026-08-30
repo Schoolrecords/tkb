@@ -2957,6 +2957,63 @@ console.log('\n18f. Cố định môn vào giờ trước khi xếp');
       gom.map(x => `${x.n} lớp ${x.vi}`).join(' · ')]);
 
   sach();
+
+  /* ---------- LỖI DO AGENT KIỂM THỬ TÌM RA (31/8/2026) ----------
+     (Ba phép thử về tiền tố phân hiệu nằm ở `npm run soi` — `goiYTienTo()`
+     thuộc vùng giao diện, bộ soi này không nạp tới.) */
+
+  /* ⚠️ LỖI 2: dòng xem trước của hộp *Cố định môn vào giờ* chỉ soi ba điều
+     kiện dễ, bỏ qua ràng buộc cứng "một giáo viên không dạy hai lớp cùng
+     giờ" — mà đó chính là thứ `datCoDinh()` dùng để từ chối. Đo được: hộp
+     hứa 12 lớp, đặt được 1. Nay xem trước chạy thử thật rồi hoàn lại lưới,
+     nên con số phải TRÙNG KHÍT. */
+  kt('Xem trước và kết quả thật của Cố định môn phải trùng khít', (() => {
+    const v = taoUngDung(documentGia);
+    v.S.lop.forEach(l => v.S.tkb[l.id] = {});
+    /* Chọn môn mà MỘT giáo viên dạy nhiều lớp — đó là cảnh gây lệch. */
+    const gv = v.S.giaoVien
+      .map(g => ({ g, ds: v.S.phanCong.filter(p => p.gvId === g.id) }))
+      .sort((a, b) => b.ds.length - a.ds.length)[0];
+    const mon = gv.ds[0].mon, khoa = '3-S-2';
+    const dsId = v.S.lop.map(l => l.id);
+
+    /* "Xem trước" = chạy thử trên bản sao rồi hoàn lại, đúng như hộp làm */
+    const luu = JSON.parse(JSON.stringify(v.S.tkb));
+    const thu = v.datCoDinh(dsId, mon, khoa);
+    v.S.tkb = luu;
+    /* Rồi đặt thật */
+    const that = v.datCoDinh(dsId, mon, khoa);
+    return [thu.dat.length === that.dat.length && thu.bo.length === that.bo.length,
+            `xem trước ${thu.dat.length} · thật ${that.dat.length} (môn ${mon})`];
+  })());
+
+  kt('Chạy thử trên bản sao KHÔNG để lại dấu vết trên lưới', (() => {
+    const v = taoUngDung(documentGia);
+    v.S.lop.forEach(l => v.S.tkb[l.id] = {});
+    const truoc = JSON.stringify(v.S.tkb);
+    const luu = JSON.parse(truoc);
+    v.datCoDinh(v.S.lop.map(l => l.id), 'HDTN', '2-S-0');
+    v.S.tkb = luu;
+    return [JSON.stringify(v.S.tkb) === truoc, 'lưới nguyên vẹn'];
+  })());
+
+  kt('datCoDinh trả kèm id lớp đặt được — xem trước cần id, không phải tên', (() => {
+    const v = taoUngDung(documentGia);
+    v.S.lop.forEach(l => v.S.tkb[l.id] = {});
+    const r = v.datCoDinh(v.S.lop.map(l => l.id), 'HDTN', '2-S-0');
+    return [Array.isArray(r.datId) && r.datId.length === r.dat.length
+            && r.datId.every(id => !!v.lopId(id))
+            && r.bo.every(x => !!x.id),
+            `${r.datId.length} id`];
+  })());
+
+  /* Câu báo: một nhóm lý do thì đừng nhắc con số hai lần. */
+  kt('Lý do bỏ qua hạ chữ đầu, không lạc chữ hoa giữa câu', (() => {
+    const g = gomLyDoCoDinh([{ lop: '1A', vi: 'Giáo viên đang dạy lớp 2B' },
+                             { lop: '1B', vi: 'Giáo viên đang dạy lớp 2B' }]);
+    return [g[0].vi === 'giáo viên đang dạy lớp 2B' && g[0].n === 2, g[0].vi];
+  })());
+
 }
 
 console.log('\n18g. Mã lớp lệch tên lớp — không đoán bừa');

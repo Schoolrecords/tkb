@@ -2063,25 +2063,25 @@ function datDuoc(o,lp,gv,cs,mon){
 
    Trả về {dat, bo} — KHÔNG đụng DOM, để `npm test` gọi thẳng. */
 function datCoDinh(dsLop, mon, khoa){
-  const dat=[], bo=[];
-  const them=(l,vi)=>bo.push({lop:l, vi});
+  const dat=[], datId=[], bo=[];
+  const them=(l,vi,id)=>bo.push({lop:l, vi, id});
   for(const id of (dsLop||[])){
     const l=lopId(id);
-    if(!l){ them(id,'không tìm thấy lớp'); continue; }
+    if(!l){ them(id,'không tìm thấy lớp',id); continue; }
     const ten=tenLopDay(id);
     /* Ô có nằm trong khung giờ của KHỐI ấy không — khối 1 tan sau tiết 4
        nên "chiều thứ Năm tiết 3" không tồn tại với các em. */
     const o=oTuanLop(id).find(x=>x.khoa===khoa);
-    if(!o){ them(ten,`khối ${l.khoi} không học giờ này`); continue; }
+    if(!o){ them(ten,`khối ${l.khoi} không học giờ này`,id); continue; }
     const pc=S.phanCong.find(x=>x.lopId===id && x.mon===mon);
-    if(!pc){ them(ten,`lớp không học môn ${mon}`); continue; }
+    if(!pc){ them(ten,`lớp không học môn ${mon}`,id); continue; }
     /* Đã cố định đủ số tiết của môn ấy thì thôi — cố định tiết thứ ba của
        một môn chỉ có hai tiết là tự tay tạo ra tiết thừa. */
     const daGhim=Object.values(S.tkb[id]||{}).filter(t=>t.mon===mon && t.ghim).length;
-    if(daGhim>=pc.soTiet){ them(ten,`đã cố định đủ ${pc.soTiet} tiết ${mon}`); continue; }
+    if(daGhim>=pc.soTiet){ them(ten,`đã cố định đủ ${pc.soTiet} tiết ${mon}`,id); continue; }
     const dangCo=S.tkb[id]?.[khoa];
     if(dangCo?.ghim){
-      them(ten, dangCo.mon===mon?'đã cố định sẵn':`ô này đang cố định ${dangCo.mon}`);
+      them(ten, dangCo.mon===mon?'đã cố định sẵn':`ô này đang cố định ${dangCo.mon}`, id);
       continue;
     }
     /* Tiết CHƯA ghim thì nhường chỗ — nó sẽ được xếp lại ở lần Xếp sau.
@@ -2089,11 +2089,11 @@ function datCoDinh(dsLop, mon, khoa){
        "Lớp đã có tiết khác" cho chính cái tiết mình đang định thay. */
     if(dangCo) delete S.tkb[id][khoa];
     const li=datDuoc(o, id, pc.gvId, chiSo(), mon);
-    if(li){ if(dangCo) S.tkb[id][khoa]=dangCo; them(ten, li); continue; }
+    if(li){ if(dangCo) S.tkb[id][khoa]=dangCo; them(ten, li, id); continue; }
     S.tkb[id][khoa]={gvId:pc.gvId, mon, ghim:true};
-    dat.push(ten);
+    dat.push(ten); datId.push(id);
   }
-  return {dat, bo};
+  return {dat, datId, bo};
 }
 
 /* Gom lý do bỏ qua để câu báo không dài bằng danh sách lớp: mười lớp cùng
@@ -2101,9 +2101,12 @@ function datCoDinh(dsLop, mon, khoa){
 function gomLyDoCoDinh(bo){
   const theo={};
   (bo||[]).forEach(x=>{ (theo[x.vi]=theo[x.vi]||[]).push(x.lop); });
+  /* Hạ chữ đầu: lý do từ `datDuoc()` viết hoa ("Giáo viên đang dạy lớp 1A")
+     vì nó vốn đứng riêng một câu; ghép vào giữa câu thì thành chữ hoa lạc. */
+  const thuong = t => t ? t[0].toLowerCase()+t.slice(1) : t;
   return Object.entries(theo)
     .sort((a,b)=>b[1].length-a[1].length)
-    .map(([vi,ds])=>({vi, ds, n:ds.length}));
+    .map(([vi,ds])=>({vi:thuong(vi), ds, n:ds.length}));
 }
 
 /* Điểm ưu tiên — càng thấp càng nên chọn */
@@ -11234,9 +11237,25 @@ async function xuatExcel(){
     /* Bề ngang cột đo từ CHÍNH dữ liệu: dòng dài nhất sau khi ngắt đôi, cộng
        hai ký tự đệm. Đặt một con số chết thì trường nào có "Nguyễn Thị Hương
        Giang" là lại tràn sang dòng thứ ba. */
-    const daiNhat=Math.max(0,...a.slice(4).flatMap(h=>h.slice(3)
+    /* ⚠️ Đo từ `a.slice(4)` là bỏ mất chính DÒNG TÊN CỘT. Ở TOAN_TRUONG nó
+       vô tình đúng vì trang ấy có thêm dòng khối phía trên, nên slice(4) lọt
+       cả tên cột vào — "hai thứ tình cờ đúng". TKB_LOP · TKB_GV · KHOI_* thì
+       không: phân hiệu tên dài làm đầu cột `1A · Tiểu học Diễn Thái` (23 ký
+       tự) nằm trong cột rộng 22 và bị cụt đuôi. Đo từ slice(3) để luôn gồm
+       dòng tên cột. */
+    const daiNhat=Math.max(0,...a.slice(3).flatMap(h=>h.slice(3)
       .flatMap(v=>haiDong(v).split('\n').map(x=>x.length))));
-    const rong=Math.min(26, Math.max(rongDL||22, daiNhat+2));
+    /* Trần bề ngang: rộng hơn thì tờ A3 không đủ chỗ cho 60 lớp; hẹp hơn
+       thì tên môn tự chọn dài bị ngắt thành ba dòng. */
+    const TRAN_RONG=26;
+    const rong=Math.min(TRAN_RONG, Math.max(rongDL||22, daiNhat+2));
+    /* ⚠️ Chạm trần bề ngang thì chữ phải xuống DÒNG THỨ BA, mà hàng cao 32
+       điểm chỉ ôm được hai dòng — đúng lớp lỗi "chữ chồng nhau" đã vá ngày
+       24/8/2026, chỉ dời lên ngưỡng cao hơn. Nới chiều cao theo số dòng thật
+       sự cần, chứ đừng khoá một con số rồi mong dữ liệu vừa. */
+    const soDong=Math.max(2, ...a.slice(3).flatMap(h=>h.slice(3).flatMap(v=>
+      haiDong(v).split('\n').map(x=>Math.ceil(x.length/Math.max(1,rong))))));
+    const caoHang=Math.max(32, soDong*14+4);
     ws.columns=[{width:11},{width:9},{width:7},...Array.from({length:soCotDL},()=>({width:rong}))];
     let r=tieuDeXL(ws,1,soCot,tieu,namHoc);
     /* Bỏ ba dòng đầu của mảng (đã thành tiêu đề). Riêng lưới toàn trường còn
@@ -11295,7 +11314,7 @@ async function xuatExcel(){
          bảng — đúng với bảng một dòng, nhưng ở đây ô có hai dòng chữ. Đây
          chính là chỗ đã sinh ra cảnh chữ chồng nhau: bật wrapText mà không
          nới chiều cao thì Excel vẫn cắt đúng 19 điểm. */
-      row.height=32;
+      row.height=caoHang;
     }
     ws.views=[{state:'frozen',xSplit:3,ySplit:dCot}];
     return ws;
@@ -11406,6 +11425,12 @@ table.in-b{width:100%;border-collapse:collapse;margin-top:10px}
 table.in-b th,table.in-b td{border:1px solid #000;padding:5px 6px;vertical-align:top}
 table.in-b th{background:#EDEFF4;font-size:11pt;text-align:center;font-weight:700;
   -webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* CANH GIUA cho ba cot TT - Tiet - Lop cua ban in Lich day thay.
+   Lop .giua von chi khai o CSS MAN HINH, nen ban in tren trinh duyet van
+   can giua (trang dang mo co CSS ay) con tep Word thi tut ve can trai:
+   hai loi ra cua cung mot ban in cho ra hai ket qua khac nhau.
+   Agent kiem thu tim ra 31/8/2026. */
+table.in-b td.giua,table.in-b th.giua{text-align:center}
 table.in-b td.c{text-align:center;font-weight:700;width:42px;vertical-align:middle}
 table.in-b td.c2{text-align:center;font-weight:700;width:58px;vertical-align:middle}
 table.in-b td b{display:block;font-size:11.5pt;font-weight:700}
@@ -14118,8 +14143,11 @@ function datCN(idLop, idGV){
 /* Mã lớp và mã giáo viên phải duy nhất — đây là khoá tự nhiên khi ghi lên
    máy chủ, trùng là đè mất bản ghi của người khác. */
 function maChuaDung(goc, daCo){
+  /* Gạch DƯỚI, không phải gạch nối — `datLaiMaLop()` và `maLopTu()` đều dùng
+     `_`, mà mã lớp là thứ nhà trường gõ tay vào cột Ma_lop. Hai kiểu ngăn
+     cách trong cùng một cột là chỗ để gõ nhầm. */
   let m=goc||'x', i=1;
-  while(daCo.has(m)) m=goc+'-'+(++i);
+  while(daCo.has(m)) m=goc+'_'+(++i);
   return m;
 }
 
@@ -14184,10 +14212,20 @@ function hopSinhLop(){
   veVD();
 }
 /* Gợi ý tiền tố từ tên phân hiệu: "Phân hiệu Diễn Liên" → "DL" */
+/* ⚠️ PHẢI đi qua `tienToDT()` — cùng hàm mà `maLopChuan()` và
+   `datLaiMaLop()` lấy làm chuẩn. Bản cũ tự tính bằng `khongDau()` nên gợi ý
+   `DD` cho "Phân hiệu Diễn Đồng" trong khi chuẩn là `DĐ`: app tạo lớp bằng
+   chính con số nó gợi ý, rồi vài giây sau nút *Đặt lại mã lớp* đòi sửa lại
+   toàn bộ mã vừa tạo — mà mã lớp là thứ nhà trường đã gõ vào cột `Ma_lop`
+   của tệp Excel.
+
+   Tệ hơn, bỏ dấu làm *Diễn Đồng* và *Diễn Đông* cùng ra `DD`: hai phân hiệu
+   khác nhau đụng mã, `maChuaDung()` chống trùng bằng `1A_DD-2` — vừa vô
+   nghĩa với người đọc vừa lệch quy ước gạch DƯỚI. Đúng cái lẫn lộn CLAUDE.md
+   dặn phải tránh ngay từ khi chốt dạng mã lớp. */
 function goiYTienTo(ten){
   if(S.diemTruong.length<2) return '';
-  const chu=khongDau(String(ten).replace('Phân hiệu','')).split('-').filter(Boolean);
-  return chu.slice(-2).map(x=>x[0]).join('').toUpperCase();
+  return tienToDT(ten);
 }
 
 function hopThemLop(){
@@ -14381,11 +14419,16 @@ function hopCoDinhMon(){
     dong();
     KQ_XEP=null;
     const gom=gomLyDoCoDinh(kq.bo);
+    /* Một nhóm lý do thì đừng nhắc lại con số hai lần — "Bỏ qua 11 lớp:
+       11 lớp giáo viên đang dạy lớp 1A" là đọc vấp ngay từ dấu hai chấm. */
+    const keLyDo = gom.map(g=>`${g.n} lớp ${g.vi}`).join(' · ');
+    const boQua = gom.length===1 ? `${gom[0].n} lớp không đặt được: ${gom[0].vi}`
+                                 : `Bỏ qua ${kq.bo.length} lớp — ${keLyDo}`;
     bao(kq.dat.length
       ? `Đã cố định ${mon} cho ${kq.dat.length} lớp.`
-        + (gom.length?` Bỏ qua ${kq.bo.length} lớp: ${gom.map(g=>`${g.n} lớp ${g.vi}`).join(' · ')}.`:'')
+        + (gom.length?` ${boQua}.`:'')
         + ' Bấm Xếp để máy xếp phần còn lại.'
-      : `Không cố định được lớp nào: ${gom.map(g=>`${g.n} lớp ${g.vi}`).join(' · ')}.`,
+      : `Không cố định được lớp nào — ${keLyDo}.`,
       !kq.dat.length);
     ve();
   }}]);
@@ -14404,25 +14447,38 @@ function hopCoDinhMon(){
   const khoaCoDinh=()=>`${$('#cdThu').value}-${$('#cdBuoi').value}-${$('#cdTiet').value||0}`;
   /* Xem trước ngay bên cạnh từng lớp: đặt được hay vướng gì. Người dùng thấy
      TRƯỚC khi bấm, chứ không phải bấm xong mới biết hỏng. */
+  /* ⚠️ XEM TRƯỚC PHẢI CHẠY THỬ THẬT, không tự đoán bằng ba điều kiện dễ.
+     Bản đầu chỉ soi "lớp có học môn này · khối có giờ này · ô đã cố định
+     chưa" nên bỏ qua ràng buộc cứng số 1 — mà đó chính là thứ `datCoDinh()`
+     dùng để từ chối. Hậu quả đo được: hộp hứa 12 lớp, đặt được 1. Và đây
+     không phải cảnh hiếm — các môn nhà trường muốn cố định (HĐTN, Tiếng Anh
+     tăng cường, Tin học, Mỹ thuật) đúng là môn MỘT giáo viên dạy nhiều lớp,
+     nên một ô giờ chỉ nhận được vài lớp.
+
+     Cách chữa: gọi thẳng `datCoDinh()` trên một BẢN SAO của lưới rồi hoàn
+     lại — một nguồn sự thật, không có đường thứ hai để lệch. */
   const xemTruoc=()=>{
     const mon=$('#cdMon').value, khoa=khoaCoDinh();
+    const luu=JSON.parse(JSON.stringify(S.tkb));
+    const thu=datCoDinh(dsL.map(l=>l.id), mon, khoa);
+    S.tkb=luu;
+    const viCua={}; thu.bo.forEach(x=>{ if(x.id) viCua[x.id]=x.vi; });
+    const datDuocId=new Set(thu.datId||[]);
     let duoc=0, vuong=0;
     dsL.forEach(l=>{
       const o=document.querySelector(`[data-cdtt="${l.id}"]`); if(!o) return;
-      const thu2=oTuanLop(l.id).find(x=>x.khoa===khoa);
-      const pc=S.phanCong.find(x=>x.lopId===l.id && x.mon===mon);
-      let t='';
-      if(!pc) t='không học môn này';
-      else if(!thu2) t=`khối ${l.khoi} không học giờ này`;
-      else { const dc=S.tkb[l.id]?.[khoa]; if(dc?.ghim) t=`đang cố định ${dc.mon}`; }
+      const t=datDuocId.has(l.id) ? '' : (viCua[l.id]||'không đặt được');
       o.textContent=t; o.style.color=t?'var(--cam)':'var(--chu-mo)';
       const ip=document.querySelector(`[data-cd="${l.id}"]`);
       if(ip){ ip.disabled=!!t; if(t) ip.checked=false; }
       if(t) vuong++; else duoc++;
     });
+    /* Nói luôn vì sao chỉ được bấy nhiêu — con số trần dễ bị đọc thành lỗi.
+       Gom theo lý do, cùng khuôn `dienGiaiLoiNhap()`. */
+    const gom=gomLyDoCoDinh(thu.bo);
     $('#cdXem').innerHTML = `<b>${duoc}</b> lớp đặt được`
-      + (vuong?` · <b>${vuong}</b> lớp không (xem cột ghi chú)`:'')
-      + '. Tiết đã cố định mang dấu 📌 và không bị xếp lại.';
+      + (vuong?` · <b>${vuong}</b> lớp không: ${esc(gom.map(g=>`${g.n} lớp ${g.vi}`).join(' · '))}`:'')
+      + (duoc?'. Tiết đã cố định mang dấu 📌 và không bị xếp lại.':'');
   };
   const moi=()=>{ veTiet(); xemTruoc(); };
   ['#cdThu','#cdBuoi'].forEach(x=>$(x).onchange=moi);

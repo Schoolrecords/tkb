@@ -3780,6 +3780,59 @@ console.log('\n17v. Đổi tên phân hiệu ngay trên thẻ');
   }
 }
 
+console.log('\n17w. Tiền tố phân hiệu trong hộp tạo lớp');
+/* ⚠️ Agent kiểm thử tìm ra 31/8/2026: `goiYTienTo()` tự tính viết tắt bằng
+   `khongDau()` nên gợi ý `DD` cho "Phân hiệu Diễn Đồng", trong khi chuẩn
+   (`tienToDT()`, thứ `maLopChuan()` và `datLaiMaLop()` lấy làm mốc) là `DĐ`.
+   App tạo lớp bằng chính con số nó gợi ý, rồi vài giây sau nút *Đặt lại mã
+   lớp* đòi sửa lại toàn bộ mã vừa tạo — mà mã lớp là thứ nhà trường đã gõ
+   vào cột `Ma_lop` của tệp Excel.
+
+   Tệ hơn: bỏ dấu làm *Diễn Đồng* và *Diễn Đông* cùng ra `DD`, hai phân hiệu
+   khác nhau đụng mã. Đúng cái lẫn lộn CLAUDE.md dặn tránh khi chốt dạng mã. */
+{
+  const dtGoc = w.eval('JSON.stringify(S.diemTruong)');
+  w.eval(`S.diemTruong = ${JSON.stringify([
+    { id: 'a', ten: 'Phân hiệu Diễn Liên' },
+    { id: 'b', ten: 'Phân hiệu Diễn Đồng' },
+    { id: 'c', ten: 'Phân hiệu Diễn Đông' }])}`);
+
+  kt('Tiền tố gợi ý GIỮ DẤU, khớp đúng chuẩn của mã lớp', (() => {
+    const goi = ['Phân hiệu Diễn Liên', 'Phân hiệu Diễn Đồng', 'Phân hiệu Diễn Đông']
+      .map(t => w.goiYTienTo(t));
+    const chuan = ['Phân hiệu Diễn Liên', 'Phân hiệu Diễn Đồng', 'Phân hiệu Diễn Đông']
+      .map(t => w.tienToDT(t));
+    return [String(goi) === String(chuan) && goi[1] === 'DĐ',
+            `gợi ý ${goi.join(' ')} · chuẩn ${chuan.join(' ')}`];
+  })());
+
+  /* ⚠️ Giữ dấu bảo vệ được gì, và KHÔNG bảo vệ được gì — nói rõ để người sửa
+     sau khỏi đặt kỳ vọng nhầm như phép thử đầu tiên viết ra hôm nay:
+
+     · Diễn Liên → DL  ≠  Diễn Đồng → DĐ   ← đây là chỗ giữ dấu cứu được
+     · Diễn Đồng → DĐ  =  Diễn Đông → DĐ   ← vẫn trùng, và đó là tất yếu:
+       viết tắt chỉ lấy CHỮ CÁI ĐẦU, hai tên chỉ khác nhau ở dấu của chữ thứ
+       hai thì không cách nào phân biệt. `maChuaDung()` lo phần chống trùng. */
+  kt('Giữ dấu tách được Diễn Liên khỏi Diễn Đồng — chỗ bỏ dấu làm hỏng', (() => {
+    const a = w.goiYTienTo('Phân hiệu Diễn Liên'), b = w.goiYTienTo('Phân hiệu Diễn Đồng');
+    return [a === 'DL' && b === 'DĐ' && a !== b, `${a} ≠ ${b}`];
+  })());
+
+  kt('Hai phân hiệu ra cùng tiền tố thì mã lớp vẫn phải khác nhau', (() => {
+    const daCo = new Set(['1A_DĐ']);
+    const m = w.maChuaDung('1A_DĐ', daCo);
+    return [m !== '1A_DĐ' && !daCo.has(m) && !m.includes('-'), `1A_DĐ → ${m}`];
+  })());
+
+  /* Trường một phân hiệu thì mã trần, nên không gợi ý tiền tố nào cả. */
+  kt('Trường một phân hiệu: không gợi ý tiền tố', (() => {
+    w.eval(`S.diemTruong = ${JSON.stringify([{ id: 'a', ten: 'Điểm trường chính' }])}`);
+    return [w.goiYTienTo('Điểm trường chính') === '', 'để trống'];
+  })());
+
+  w.eval(`S.diemTruong = ${dtGoc}`);
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');
