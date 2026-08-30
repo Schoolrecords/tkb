@@ -1481,3 +1481,80 @@ Ba điều bắt buộc, cả ba có phép thử (`npm run soi` mục **17v**):
 
 Đã thử ngược cả hai vá (bỏ nút · bỏ phép kiểm trùng tên): cả hai đều làm phép
 thử đỏ. `npm run soi` 523 đạt · `npm test` 477 · `npm run soi-nhap` 60, 0 hỏng.
+
+---
+
+## 30/8/2026 — Phân hiệu Diễn Thái "tự nhiên biến mất": lần Lưu của một phiên CŨ xoá thật
+
+Chủ dự án: *"trước khi em sửa nút sửa thầy đã thêm đủ 3 phân hiệu, nhưng sau
+đó vào lại mất đi phân hiệu Diễn Thái … Thầy đã vào app bằng tài khoản khác
+kiểm tra đang còn giữ nguyên."*
+
+**Không phải lỗi của bản vá nút Sửa** — lỗi có từ 28/8/2026, trong chính tính
+năng *"phân hiệu đã xoá thì xoá thật"*. Bước ấy viết:
+
+```js
+const tenGiu = new Set(dl.diemTruong.map(d => d.ten));
+const dtBo   = (dtCu || []).filter(d => !tenGiu.has(d.ten));   // ← xoá THẬT
+```
+
+Nghĩa là: **mọi dòng trên máy chủ mà danh sách đang gửi lên không nhắc tới đều
+bị xoá.** Nó ngầm coi "máy tôi đang giữ bản đầy đủ nhất" — điều gần như không
+bao giờ đúng sau sáp nhập. Ba đường vào, cả ba đều là việc bình thường:
+
+- **Hai tab / hai phiên.** Tab mở từ trước Diễn Thái được thêm; bấm Lưu ở đó
+  là xoá. Chủ dự án đang dùng hai tài khoản để đối chiếu, đúng cảnh này.
+- **Tệp Excel.** Nhập mẫu ma trận (chỉ có lớp Diễn Liên) đi thẳng vào
+  `ghiDuLieuNguon(dl)` với `dl.diemTruong` dựng từ tệp — phân hiệu nào không
+  có trong tệp là mất.
+- **Máy chủ ghi xong nhưng máy mình chưa tải lại**, rồi bấm Lưu lần nữa.
+
+⚠️ **Van an toàn cũ không cứu được đúng trường hợp này.** Bước xoá có kiểm
+"còn lớp trỏ tới thì không xoá" — nhưng phân hiệu **vừa thêm thì chưa có lớp
+nào**. Van chỉ chắn được cái cũ, còn cái mới tinh — thứ dễ mất nhất vì chưa ai
+kịp nhớ — thì đi qua thẳng. Đặt van thì phải hỏi *nó chắn được cảnh nào*, chứ
+không phải *nó có tồn tại không*.
+
+⚠️ **Và hậu quả không dừng ở một cái tên.** `nguoi_dung.diem_truong_id` không
+có khoá ngoại, nên PHT phụ trách phân hiệu bị xoá treo vào một id đã mất: họ
+bấm Lưu, máy chủ trả *ok*, `luu_tkb()` ép phạm vi về "lớp của phân hiệu ấy" =
+rỗng, và **không ô nào được ghi** — không một lỗi nào hiện ra. Đúng khuôn bài
+học `suaHang()`: thành công 0 dòng trông y hệt thành công.
+
+**Cách chữa: chỉ xoá đúng cái người dùng ĐÃ BẤM XOÁ.**
+
+| Chỗ | Việc |
+|---|---|
+| `S.dtDaXoa` | nút × ghi lại `{id, ten}` của phân hiệu vừa bấm xoá |
+| `ghiDuLieuNguon()` | `dtBo` lọc thêm `laBo(d)` — chỉ dòng nằm trong danh sách ấy |
+| `dtLa` | tên trên máy chủ mà máy này chưa có: **giữ nguyên** và nói ra |
+
+Bốn điều bắt buộc, cả bốn có phép thử (`npm test` mục 11):
+
+- **Máy chủ có phân hiệu lạ thì GIỮ, không xoá.** Nó gần như luôn là việc của
+  đồng nghiệp vừa làm, không phải rác. Câu báo nói thẳng: *"Hệ thống còn Phân
+  hiệu Diễn Thái mà máy này chưa có — giữ nguyên, tải lại để thấy."*
+- **Bấm × thì vẫn xoá thật** — tính năng 28/8 còn nguyên, không đổi ý.
+- ⚠️ **Dò cả theo TÊN, không chỉ theo id.** Phân hiệu khai trong app rồi xoá
+  ngay thì trong tay chỉ có id app (`dt`+thời điểm), còn dòng trên máy chủ
+  mang UUID — hai id không bao giờ khớp. Chỉ so id là bấm xoá mà máy chủ vẫn
+  giữ. Có phép thử riêng cho đúng cảnh này.
+- **Xoá xong thì bỏ khỏi danh sách chờ.** Giữ lại thì lần Lưu sau đi xoá lại
+  đúng cái tên ấy — mà lúc đó nó có thể đã là phân hiệu MỚI của người khác.
+
+Kèm hai việc để lần sau truy được:
+
+- `ghiNhatKy('nhap_du_lieu_nguon', …)` nay ghi thêm **số phân hiệu** gửi lên
+  và **tên phân hiệu bị xoá**. Sự cố này không truy được ai làm mất, vì nhật
+  ký cũ chỉ đếm lớp · giáo viên · phân công.
+- **`db/soi-phan-hieu.sql`** — câu chỉ đọc: phân hiệu của từng trường kèm số
+  lớp · số GV · số PHT phụ trách, phân hiệu trùng tên, nhật ký các lần Lưu,
+  và hai câu tìm lớp / PHT trỏ vào phân hiệu không còn.
+
+Đã thử ngược cả ba vá (bỏ lọc `laBo` · bỏ phép dò theo tên): đều làm phép thử
+đỏ. `npm test` 480 · `npm run soi` 523 · `npm run soat` 0 lỗi.
+
+⚠️ **Việc còn lại cho chủ dự án:** phân hiệu đã mất thì **không khôi phục tự
+động được** — dòng đã xoá hẳn khỏi cơ sở dữ liệu. Thêm lại bằng tay là đủ (nó
+chưa có lớp nào), nhưng nếu có PHT nào từng được gán phụ trách phân hiệu ấy
+thì phải gán lại — câu số 5 của `db/soi-phan-hieu.sql` chỉ ra ai.

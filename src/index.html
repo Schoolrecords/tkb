@@ -6578,26 +6578,48 @@ async function ghiDuLieuNguon(dl){
        ⚠️ Và chỉ xoá nơi KHÔNG CÒN LỚP NÀO trỏ tới — lớp thừa trên máy chủ
        (`lopThua`) vẫn giữ phân hiệu của nó sống. Bọc riêng try/catch: xoá
        không được thì báo, tuyệt đối không làm hỏng cả lần lưu. */
-    let dtChuaXoa=[];
+    let dtChuaXoa=[], dtLa=[];
     const tenGiu=new Set(dl.diemTruong.map(d=>d.ten));
-    const dtBo=(dtCu||[]).filter(d=>!tenGiu.has(d.ten));
+    /* ⚠️ ĐÃ MẤT THẬT (30/8/2026): chủ dự án thêm đủ ba phân hiệu, vào lại
+       thì Diễn Thái biến mất. Bản đầu của bước này xoá MỌI dòng trên máy chủ
+       mà danh sách đang gửi lên không nhắc tới — nghĩa là bất cứ lần Lưu nào
+       từ một phiên có dữ liệu CŨ HƠN cũng xoá sạch phân hiệu người khác vừa
+       thêm, im lặng và không thể hoàn tác. Hai tab, hai tài khoản, một tệp
+       Excel không có cột phân hiệu — cả ba đều đủ để mất.
+
+       Nay chỉ xoá đúng những dòng người dùng ĐÃ BẤM XOÁ trong phiên này
+       (`S.dtDaXoa`). Cái lạ trên máy chủ thì GIỮ NGUYÊN và nói ra — nó gần
+       như luôn là việc của đồng nghiệp, không phải rác. */
+    const daXoa=(dl.dtDaXoa||[]);
+    const laBo=d=>daXoa.some(x=>x.id===d.id||x.ten===d.ten);
+    const dtBo=(dtCu||[]).filter(d=>!tenGiu.has(d.ten) && laBo(d));
+    dtLa=(dtCu||[]).filter(d=>!tenGiu.has(d.ten) && !laBo(d)).map(d=>d.ten);
     if(dtBo.length){
       const conDung=new Set((lopSv||[]).map(l=>l.diem_truong_id).filter(Boolean));
+      const xong=new Set();
       for(const d of dtBo){
         if(conDung.has(d.id)){ dtChuaXoa.push(d.ten); continue; }
         try{ await goiAPI(`/rest/v1/diem_truong?id=eq.${d.id}`,
-               {method:'DELETE', headers:{Prefer:'return=minimal'}}); }
+               {method:'DELETE', headers:{Prefer:'return=minimal'}});
+             xong.add(d.id); xong.add(d.ten); }
         catch(e){ dtChuaXoa.push(d.ten); }
       }
+      /* Xoá xong thì bỏ khỏi danh sách chờ — để lần Lưu sau không đi xoá lại
+         một cái tên mà lúc đó có thể đã là phân hiệu MỚI của người khác. */
+      if(xong.size) S.dtDaXoa=(S.dtDaXoa||[]).filter(x=>!xong.has(x.id)&&!xong.has(x.ten));
     }
 
+    /* Ghi kèm SỐ PHÂN HIỆU: sự cố mất Diễn Thái (30/8/2026) không truy được
+       ai làm mất vì nhật ký chỉ đếm lớp · giáo viên · phân công. */
     ghiNhatKy('nhap_du_lieu_nguon',
-      {lop:dl.lop.length, giaoVien:dl.giaoVien.length, phanCong:hangPC.length});
-    return {ok:true, lopThua, gvThua, loiTruong:(loiTruong+(loiTruong&&loiDanhMuc?' ':'')+loiDanhMuc).trim(), dtChuaXoa,
+      {lop:dl.lop.length, giaoVien:dl.giaoVien.length, phanCong:hangPC.length,
+       diemTruong:dl.diemTruong.length, dtXoa:dtBo.map(d=>d.ten)});
+    return {ok:true, lopThua, gvThua, loiTruong:(loiTruong+(loiTruong&&loiDanhMuc?' ':'')+loiDanhMuc).trim(), dtChuaXoa, dtLa,
       chiTiet:{diemTruong:Object.keys(maDT).length, khungGio:dl.khungGio.length,
                giaoVien:dl.giaoVien.length, lop:dl.lop.length, phanCong:hangPC.length},
       thongBao:`Đã nhập ${dl.lop.length} lớp · ${dl.giaoVien.length} giáo viên · ${hangPC.length} dòng phân công.`
         + (dtChuaXoa.length?` ⚠️ Chưa xoá được ${dtChuaXoa.join(', ')} — trên máy chủ còn lớp học ở đó.`:'')
+        + (dtLa.length?` Hệ thống còn ${dtLa.join(', ')} mà máy này chưa có — giữ nguyên, tải lại để thấy.`:'')
         + (loiTruong?` ⚠️ ${loiTruong}`:'')
         + (loiDanhMuc?` ⚠️ ${loiDanhMuc.trim()}`:'')};
   }catch(e){
@@ -13200,6 +13222,11 @@ function noiSuKien(){
     if(S.diemTruong.length<=1)return;
     const con=S.diemTruong.find(d=>d.id!==x.dataset.xoadt);
     S.lop.forEach(l=>{if(S.lopDT[l.id]===x.dataset.xoadt)S.lopDT[l.id]=con.id;});
+    /* Ghi lại ĐÚNG cái người dùng vừa bấm xoá. `ghiDuLieuNguon()` chỉ được
+       xoá trên máy chủ những dòng nằm trong danh sách này — xem ghi chú dài
+       ở bước "PHÂN HIỆU ĐÃ XOÁ THÌ XOÁ THẬT". */
+    const dBo=dtId(x.dataset.xoadt);
+    if(dBo) S.dtDaXoa=[...(S.dtDaXoa||[]), {id:dBo.id, ten:dBo.ten}];
     S.diemTruong=S.diemTruong.filter(d=>d.id!==x.dataset.xoadt);
     if(S.phamVi===x.dataset.xoadt)S.phamVi='';
     bao('Đã xoá phân hiệu'); ve();});

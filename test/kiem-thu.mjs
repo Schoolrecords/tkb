@@ -375,6 +375,12 @@ async function mangGia(url, opt = {}) {
       than.map(h => ({ khoa: (url.match(/on_conflict=([^&]*)/) || [])[1] || '', hang: h })));
     return dap(null, 201);
   }
+  if (opt.method === 'DELETE' && co('/diem_truong')) {
+    const id = (url.match(/id=eq\.([^&]*)/) || [])[1] || '';
+    GHI.xoaDT = (GHI.xoaDT || []).concat(id);
+    GHI.diemTruong = GHI.diemTruong.filter(d => d.id !== id);
+    return dap(null, 204);
+  }
   if (opt.method === 'DELETE' && co('/phan_cong')) { GHI.xoaPhanCong++; return dap(null, 204); }
   if (opt.method === 'POST' && co('/phan_cong')) { GHI.phanCong = than; return dap(null, 201); }
   /* Đọc lại sau khi ghi, để tầng dữ liệu lấy mã UUID mà nối phân công */
@@ -1302,6 +1308,52 @@ kt('Phân hiệu chưa khai bao giờ thì để TRỐNG, không đẩy chữ l�
                     dinhMuc: 23, dtChinh: 'dt_khong_ton_tai' }] });
      const hang = (GHI.giaoVien || []).find(g => g.ma_gv === 'GV_LA');
      return !!hang && hang.diem_truong_id === null;
+   })());
+
+/* ---------- PHÂN HIỆU: XOÁ CHỈ KHI NGƯỜI DÙNG THẬT SỰ BẤM XOÁ ----------
+   ⚠️ ĐÃ MẤT THẬT (30/8/2026): chủ dự án thêm đủ ba phân hiệu, vào lại thì
+   Diễn Thái biến mất. Bước "xoá phân hiệu thừa" (28/8) xoá MỌI dòng trên máy
+   chủ mà danh sách gửi lên không nhắc tới — nên một phiên có dữ liệu cũ hơn
+   (tab khác, tài khoản khác, tệp Excel không có cột phân hiệu) cũng xoá sạch
+   phân hiệu người khác vừa thêm, im lặng và không hoàn tác được.
+
+   Phân hiệu vừa thêm thường CHƯA CÓ LỚP NÀO, nên van an toàn "còn lớp thì
+   không xoá" không cứu được nó — đó đúng là trường hợp đã mất. */
+kt('Máy chủ có phân hiệu mà máy này chưa thấy: KHÔNG xoá, chỉ nói ra',
+   await (async () => {
+     GHI.xoaDT = [];
+     GHI.diemTruong.push({ id: 'dt-cua-nguoi-khac', ten: 'Phân hiệu Diễn Thái' });
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [] });
+     return [r.ok && GHI.xoaDT.length === 0
+             && (r.dtLa || []).includes('Phân hiệu Diễn Thái')
+             && /Diễn Thái/.test(r.thongBao),
+             `xoá ${GHI.xoaDT.length} dòng · ${(r.dtLa || []).join(', ') || 'không nêu tên nào'}`];
+   })());
+
+/* Nhưng người dùng bấm × thì vẫn phải xoá thật — tính năng 28/8 còn nguyên. */
+kt('Bấm xoá thật thì máy chủ xoá thật',
+   await (async () => {
+     GHI.xoaDT = [];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       dtDaXoa: [{ id: 'dt-cua-nguoi-khac', ten: 'Phân hiệu Diễn Thái' }] });
+     return [r.ok && GHI.xoaDT.includes('dt-cua-nguoi-khac')
+             && !GHI.diemTruong.some(d => d.id === 'dt-cua-nguoi-khac')
+             && !(r.dtLa || []).includes('Phân hiệu Diễn Thái'),
+             `xoá ${GHI.xoaDT.length} dòng`];
+   })());
+
+/* Phân hiệu khai trong app rồi xoá ngay thì `dtDaXoa` mang id app
+   (`dt`+thời điểm), còn dòng trên máy chủ mang UUID — hai id không bao giờ
+   khớp nhau. Phải dò thêm bằng TÊN, không thì bấm xoá mà máy chủ vẫn giữ. */
+kt('Xoá được cả khi trong tay chỉ có id app, không có UUID máy chủ',
+   await (async () => {
+     GHI.xoaDT = [];
+     GHI.diemTruong.push({ id: 'uuid-may-chu-9', ten: 'Phân hiệu Tạm' });
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       dtDaXoa: [{ id: 'dt1787992176500', ten: 'Phân hiệu Tạm' }] });
+     return [r.ok && GHI.xoaDT.includes('uuid-may-chu-9')
+             && !GHI.diemTruong.some(d => d.ten === 'Phân hiệu Tạm'),
+             `xoá ${GHI.xoaDT.length} dòng`];
    })());
 
 /* ---------- Thông tin trường: tên, năm học, địa bàn ----------
