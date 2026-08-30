@@ -68,7 +68,7 @@ const TRANG = ['dieuhanh',
                /* Bước 2 — xếp */
                'kiemtra','xep',
                /* Bước 3 — sản phẩm */
-               'toantruong','tkbkhoi','tkblop','tkbgv','cuatoi','xuatin',
+               'toantruong','tkbkhoi','tkblop','tkbgv','cuatoi','airanh','xuatin',
                'huongdan'];
 for (const t of TRANG) {
   const truoc = loiChay.length;
@@ -3250,6 +3250,297 @@ console.log('\n17q. Số hiệu và ngày thực hiện của văn bản thời 
   w.eval(`KHO.vanBan = ${vbGoc}`);
 }
 
+
+/* ==================================================================
+   17r. BA VIỆC HỌC TỪ SMARTSCHEDULER (30/8/2026)
+   ------------------------------------------------------------------
+   Lọc giáo viên theo tình trạng · soi một giáo viên trên lưới · bảng
+   ai rảnh tiết nào. Cả ba chỉ ĐỌC S.tkb, không đụng thuật toán và
+   không thêm đường ghi nào lên máy chủ.
+   ================================================================== */
+{
+  console.log('\n17r. Lọc giáo viên theo TÌNH TRẠNG lịch');
+  w.chuyen('giaovien');
+  const dai = w.document.querySelector('.loc-nhanh');
+  kt('Màn Giáo viên có dải lọc nhanh', !!dai);
+
+  /* Mọi nút phải mang số DƯƠNG. Nút "Vượt định mức 0" là đúng thứ luật
+     "số 0 không tô đỏ" cấm — ba mươi hai lần nói không có gì xảy ra. */
+  kt('Không nút nào mang số 0', (() => {
+    const so = [...(dai?.querySelectorAll('.ln:not(.ln-bo) span') || [])]
+      .map(x => +x.textContent);
+    return [so.length > 0 && so.every(n => n > 0), so.join(' · ') || 'không có nút nào'];
+  })());
+
+  /* Bấm nút thì bảng chỉ còn đúng số dòng của tình trạng ấy */
+  kt('Bấm một nút thì bảng lọc còn đúng số dòng ghi trên nút', (() => {
+    const nut = dai?.querySelector('.ln:not(.ln-bo)');
+    if (!nut) return [false, 'không có nút nào'];
+    const so = +nut.querySelector('span').textContent;
+    nut.dispatchEvent(new w.Event('click'));
+    const hien = [...w.document.querySelectorAll('#bGV tr[data-loctu]')]
+      .filter(r => r.style.display !== 'none').length;
+    return [hien === so, `nút ghi ${so}, bảng còn ${hien} dòng`];
+  })());
+
+  kt('Bấm lại chính nút ấy là TẮT lọc, bảng trở về đủ dòng', (() => {
+    const nut = w.document.querySelector('.loc-nhanh .ln:not(.ln-bo)');
+    nut.dispatchEvent(new w.Event('click'));
+    const hien = [...w.document.querySelectorAll('#bGV tr[data-loctu]')]
+      .filter(r => r.style.display !== 'none').length;
+    const tong = w.document.querySelectorAll('#bGV tr[data-loctu]').length;
+    return [hien === tong, `${hien}/${tong} dòng`];
+  })());
+
+  /* Ô gõ chữ và dải nút phải CHỒNG nhau, không cái nào xoá kết quả cái kia */
+  kt('Lọc bằng nút rồi gõ thêm chữ thì hai bộ lọc chồng nhau', (() => {
+    const nut = w.document.querySelector('.loc-nhanh .ln:not(.ln-bo)');
+    nut.dispatchEvent(new w.Event('click'));
+    const chiNut = [...w.document.querySelectorAll('#bGV tr[data-loctu]')]
+      .filter(r => r.style.display !== 'none');
+    if (!chiNut.length) return [false, 'nút không lọc ra dòng nào'];
+    /* Gõ đúng tên một người ĐANG hiện — kết quả phải còn đúng 1 dòng */
+    const ten = chiNut[0].querySelector('input[data-gvten]')?.value
+             || chiNut[0].querySelector('b')?.textContent || '';
+    const o = w.document.querySelector('[data-loc="bGV"]');
+    if (!o) return [true, 'ít giáo viên nên chưa bày ô tìm kiếm — bỏ qua'];
+    o.value = ten; o.dispatchEvent(new w.Event('input'));
+    const sau = [...w.document.querySelectorAll('#bGV tr[data-loctu]')]
+      .filter(r => r.style.display !== 'none').length;
+    o.value = ''; o.dispatchEvent(new w.Event('input'));
+    w.document.querySelector('.loc-nhanh .ln.on')?.dispatchEvent(new w.Event('click'));
+    return [sau === 1, `lọc nút ${chiNut.length} dòng, thêm tên "${ten}" còn ${sau}`];
+  })());
+
+  /* ⚠️ Hai nhãn `canLuoi` chỉ có nghĩa khi ĐÃ xếp. Lưới trắng thì cả trường
+     đều "chưa xếp đủ tiết" — một con số 35 không nói lên điều gì. */
+  kt('Lưới còn trắng thì KHÔNG bày nhãn "chưa xếp đủ tiết" và "trống kẹp"', (() => {
+    const luu = w.eval('JSON.stringify(S.tkb)');
+    w.eval('S.tkb = {}; S.lop.forEach(l => S.tkb[l.id] = {})');
+    w.chuyen('giaovien');
+    const ma = [...w.document.querySelectorAll('.loc-nhanh .ln[data-lnhanh]')]
+      .map(b => b.dataset.lnhanh.split('|')[1]);
+    w.eval(`S.tkb = ${JSON.stringify(luu)} && JSON.parse(${JSON.stringify(luu)})`);
+    w.chuyen('giaovien');
+    return [!ma.includes('chuaxep') && !ma.includes('trong'),
+            ma.join(' · ') || 'không nhãn nào'];
+  })());
+}
+
+{
+  console.log('\n17s. Soi một giáo viên trên lưới toàn trường');
+  w.chuyen('toantruong');
+  kt('Chưa soi ai thì lưới KHÔNG mang lớp dang-soi', (() => {
+    const b = w.document.querySelector('#noiDung table.tt');
+    return [!!b && !b.classList.contains('dang-soi')];
+  })());
+
+  /* Chọn một giáo viên bộ môn — người có tiết ở nhiều lớp, đúng ca đáng soi */
+  const idSoi = w.eval(`(() => {
+    const ds = lopChoLuoi().map(l => l.id);
+    const dem = {};
+    ds.forEach(id => Object.values(S.tkb[id] || {}).forEach(v => dem[v.gvId] = (dem[v.gvId]||0)+1));
+    return Object.entries(dem).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
+  })()`);
+  kt('Soi một giáo viên: số ô nổi đúng bằng số tiết của người ấy trên lưới', (() => {
+    if (!idSoi) return [false, 'không tìm được ai có tiết'];
+    w.eval(`S.soiGV = ${JSON.stringify(idSoi)}`); w.ve();
+    const b = w.document.querySelector('#noiDung table.tt');
+    const soi = b?.querySelectorAll('td.o-soi').length || 0;
+    const can = w.eval(`(() => {
+      const ds = lopChoLuoi().map(l => l.id);
+      let n = 0;
+      ds.forEach(id => Object.values(S.tkb[id] || {})
+        .forEach(v => { if (v.gvId === ${JSON.stringify(idSoi)}) n++; }));
+      return n;
+    })()`);
+    return [!!b?.classList.contains('dang-soi') && soi === can && can > 0,
+            `${soi} ô nổi / ${can} tiết · ${gvTen(idSoi)}`];
+  })());
+
+  kt('Ô của người khác thì mờ đi, KHÔNG biến mất khỏi lưới', (() => {
+    const b = w.document.querySelector('#noiDung table.tt');
+    const mo = b?.querySelectorAll('td.o-mo').length || 0;
+    const mau = b?.querySelectorAll('td.o-mau').length || 0;
+    return [mo > 0 && mo < mau, `${mo} ô mờ / ${mau} ô có tiết`];
+  })());
+
+  /* ⚠️ Ba màn hình khác cũng gọi luoiRongHTML — chúng KHÔNG được đổi hành vi
+     vì một trạng thái của riêng màn Toàn trường. */
+  kt('Bảng điều hành và Theo khối KHÔNG bị chế độ soi ăn theo', (() => {
+    const xet = t => { w.chuyen(t);
+      return [...w.document.querySelectorAll('#noiDung table.tt')]
+        .every(b => !b.classList.contains('dang-soi')); };
+    const ok = xet('dieuhanh') && xet('tkbkhoi');
+    w.eval('S.soiGV = ""'); w.chuyen('toantruong');
+    return [ok];
+  })());
+
+  kt('Tóm tắt đếm đúng số lần đổi phân hiệu trong tuần', (() => {
+    const r = w.eval(`(() => { const t = tomTatSoiGV(${JSON.stringify(idSoi)});
+      return t && {doi: t.doiDiem, dt: t.soDT, tiet: t.tiet}; })()`);
+    /* Một phân hiệu thì không thể có lần đổi nào — phép thử hai chiều */
+    return [!!r && r.doi >= 0 && (r.dt > 1 || r.doi === 0),
+            `${r?.tiet} tiết · ${r?.dt} phân hiệu · ${r?.doi} lần đổi`];
+  })());
+}
+
+{
+  console.log('\n17t. Bảng "Ai rảnh tiết nào"');
+  w.chuyen('airanh');
+  const oDau = w.document.querySelector('[data-ranho]');
+  kt('Lưới bày được các ô giờ, mỗi ô ghi số lớp và số người rảnh', !!oDau);
+
+  /* Phép thử NẶNG nhất của cả mục: bốn nhóm phải chia trọn danh sách giáo
+     viên — không ai bị đếm hai lần, không ai rơi ra ngoài. Nhóm nào tính
+     sai điều kiện là con số này lệch ngay. */
+  kt('Bốn nhóm chia TRỌN danh sách, không trùng không sót', (() => {
+    const r = w.eval(`(() => {
+      const gv = gvTrongPV(), lop = lopChoLuoi();
+      const xau = [];
+      dongGio().forEach(o => {
+        const k = aiRanh(o.khoa, gv, lop);
+        const tong = k.ranh.length + k.dayO.length + k.banNoiKhac.length + k.daBao.length;
+        if (tong !== gv.length) xau.push(o.khoa + ': ' + tong + '/' + gv.length);
+      });
+      return {xau: xau.slice(0,3), so: xau.length, oGio: dongGio().length, gv: gv.length};
+    })()`);
+    return [r.so === 0, `${r.oGio} ô giờ × ${r.gv} giáo viên${r.so ? ' — lệch: ' + r.xau.join(', ') : ''}`];
+  })());
+
+  /* ⚠️ Người ĐANG DẠY tuyệt đối không được nằm trong danh sách rảnh —
+     mời họ đi dự giờ là lớp mất giáo viên. */
+  kt('Người đang có tiết KHÔNG bao giờ lọt vào danh sách rảnh', (() => {
+    const r = w.eval(`(() => {
+      const gv = gvTrongPV(), lop = lopChoLuoi();
+      let xau = 0, oCo = 0;
+      dongGio().forEach(o => {
+        const k = aiRanh(o.khoa, gv, lop);
+        if (!k.dangHoc.length) return;
+        oCo++;
+        const ban = new Set(k.dangHoc.map(x => x.gvId));
+        if (k.ranh.some(g => ban.has(g.id))) xau++;
+      });
+      return {xau, oCo};
+    })()`);
+    return [r.xau === 0, `soi ${r.oCo} ô giờ có tiết`];
+  })());
+
+  /* Ràng buộc cứng số 7: buổi bận đã đăng ký thì không mời được */
+  kt('Người đã đăng ký buổi bận nằm ở nhóm riêng, không phải nhóm rảnh', (() => {
+    const r = w.eval(`(() => {
+      const gv = gvTrongPV(), lop = lopChoLuoi();
+      /* Đặt một người bận đúng một buổi rồi soi lại chính buổi ấy */
+      const ai = gv[0].id, o = dongGio()[0];
+      const kB = o.khoa.slice(0, o.khoa.lastIndexOf('-'));
+      const luu = S.gvNghi[ai];
+      S.gvNghi[ai] = [kB];
+      const k = aiRanh(o.khoa, gv, lop);
+      S.gvNghi[ai] = luu;
+      return {ranh: k.ranh.some(g => g.id === ai), bao: k.daBao.some(g => g.id === ai),
+              day: k.dayO.some(g => g.id === ai), ten: gvId(ai).hoTen};
+    })()`);
+    /* Người ấy có thể đang dạy chính tiết đó — khi ấy nhóm "đang dạy" thắng,
+       vẫn đúng vì điều cần canh là KHÔNG lọt vào nhóm rảnh. */
+    return [!r.ranh && (r.bao || r.day), `${r.ten}: ${r.bao ? 'đã báo bận' : r.day ? 'đang dạy' : 'LỌT VÀO RẢNH'}`];
+  })());
+
+  /* Ràng buộc lõi sau sáp nhập: một giáo viên một buổi chỉ ở một phân hiệu.
+     ⚠️ Bản đầu của phép thử này viết `soDT > 1 ? true : n === 0` — tức là
+     với trường nhiều phân hiệu nó XANH VÔ ĐIỀU KIỆN, không kiểm được gì.
+     Đúng cái bẫy "phép thử so hai thứ tình cờ bằng nhau" đã ghi ở mục 3.
+     Nay soi từng lượt: người bị xếp vào nhóm ấy phải THẬT SỰ có tiết ở
+     phân hiệu khác trong chính buổi đó, và KHÔNG có tiết nào ở phân hiệu
+     đang xem. Sai một lượt là đỏ. */
+  kt('Người đang ở phân hiệu khác tách riêng, không mời nhầm', (() => {
+    const r = w.eval(`(() => {
+      const gv = gvTrongPV(), lop = lopChoLuoi();
+      const dtXet = new Set(lop.map(l => S.lopDT[l.id]).filter(Boolean));
+      let n = 0, sai = 0;
+      dongGio().forEach(o => {
+        const kB = o.khoa.slice(0, o.khoa.lastIndexOf('-'));
+        aiRanh(o.khoa, gv, lop).banNoiKhac.forEach(g => {
+          n++;
+          const dt = new Set();
+          Object.entries(S.tkb).forEach(([lp, oo]) => Object.keys(oo).forEach(x => {
+            if (x.startsWith(kB + '-') && oo[x].gvId === g.id) dt.add(S.lopDT[lp]);
+          }));
+          if (!dt.size || [...dt].some(d => dtXet.has(d))) sai++;
+        });
+      });
+      return {n, sai, soDT: S.diemTruong.length};
+    })()`);
+    /* Một phân hiệu thì con số này bắt buộc bằng 0; nhiều phân hiệu thì
+       bắt buộc KHÁC 0 — không có đường nào để phép thử tự xanh. */
+    return [r.sai === 0 && (r.soDT === 1 ? r.n === 0 : r.n > 0),
+            `${r.soDT} phân hiệu · ${r.n} lượt · ${r.sai} lượt sai`];
+  })());
+
+  kt('Bấm một ô thì mở phần chi tiết của đúng tiết ấy', (() => {
+    oDau.dispatchEvent(new w.Event('click'));
+    const t = w.document.querySelector('.ra-tieu')?.textContent || '';
+    const p = oDau.dataset.ranho.split('-');
+    return [t.includes(`tiết ${+p[2] + 1}`), t.replace(/\s+/g, ' ').trim().slice(0, 60)];
+  })());
+
+  /* ⚠️ Phải tích người ĐANG DẠY NHIỀU, không phải người đầu danh sách.
+     Bản đầu tích trúng một hồ sơ chưa có tiết nào nên "cả nhóm rảnh"
+     ra đúng 30/30 ô — lọc có tác dụng hay không cũng cùng kết quả, phép
+     thử xanh mà không kiểm được gì. Nay đòi số ô phải NHỎ HƠN tổng. */
+  kt('Tìm giờ họp tổ: tích người vào nhóm thì lưới tô giờ cả nhóm cùng rảnh', (() => {
+    const ban = w.eval(`(() => {
+      const dem = {};
+      lopChoLuoi().forEach(l => Object.values(S.tkb[l.id] || {})
+        .forEach(v => dem[v.gvId] = (dem[v.gvId] || 0) + 1));
+      return Object.entries(dem).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    })()`);
+    if (!ban) return [false, 'không ai có tiết'];
+    w.eval(`S.ranhNhom = [${JSON.stringify(ban)}]`); w.ve();
+    const hop = w.document.querySelectorAll('.ro.hop').length;
+    const tongO = w.document.querySelectorAll('[data-ranho]').length;
+    const can = w.eval(`(() => { const lop = lopChoLuoi(); let n = 0;
+      dongGio().forEach(o => { if (nhomCungRanh(o.khoa, S.ranhNhom, lop)) n++; });
+      return n; })()`);
+    /* Thêm người thứ hai thì số giờ chung chỉ được GIẢM hoặc giữ nguyên,
+       không bao giờ tăng — nhóm càng đông càng khó tìm giờ chung. */
+    const hai = w.eval(`(() => {
+      const them = gvTrongPV().find(g => g.id !== ${JSON.stringify(ban)});
+      if (!them) return -1;
+      S.ranhNhom = [${JSON.stringify(ban)}, them.id];
+      const lop = lopChoLuoi(); let n = 0;
+      dongGio().forEach(o => { if (nhomCungRanh(o.khoa, S.ranhNhom, lop)) n++; });
+      return n;
+    })()`);
+    w.eval('S.ranhNhom = []');
+    return [hop === can && hop > 0 && hop < tongO && (hai < 0 || hai <= hop),
+            `1 người ${hop}/${tongO} ô · thêm người nữa còn ${hai}`];
+  })());
+
+  /* Phòng đếm theo TỪNG phân hiệu — phòng Tin của Diễn Liên không dùng
+     thay cho Diễn Đồng được (ràng buộc cứng số 4). */
+  kt('Phòng trống đếm theo từng phân hiệu, không gộp cả trường', (() => {
+    const r = w.eval(`(() => {
+      const luu = JSON.stringify(S.phong);
+      const dt = S.diemTruong[0].id;
+      S.phong = [{id:'p1', dtId:dt, ten:'Phòng máy 1', mon:'Tin học'}];
+      const gv = gvTrongPV(), lop = lopChoLuoi();
+      let xau = 0;
+      dongGio().forEach(o => {
+        const k = aiRanh(o.khoa, gv, lop);
+        const dungTin = k.dangHoc.filter(x => monCanPhong(x.mon) === 'Tin học'
+          && S.lopDT[x.lopId] === dt).length;
+        /* Một phòng: có lớp học Tin ở phân hiệu ấy thì phải hết trống */
+        if (dungTin > 0 && k.phongTrong.length > 0) xau++;
+        if (dungTin === 0 && k.phongTrong.length === 0 && S.lopDT[lop[0]?.id] === dt) xau++;
+      });
+      S.phong = JSON.parse(luu);
+      return xau;
+    })()`);
+    return [r === 0, r ? `${r} ô đếm sai` : 'khớp ở mọi ô giờ'];
+  })());
+
+  w.eval('S.ranhO = ""; S.ranhNhom = []');
+}
 
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,

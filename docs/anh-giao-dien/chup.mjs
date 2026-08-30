@@ -141,6 +141,31 @@ await chup('26-dt-430-bang-dieu-hanh', { rong: 430, cao: 900, lam: async p => {
 await chup('32-dt-theo-lop', { rong: 390, cao: 860, lam: async p => {
   await xep(p); await di('tkblop')(p); } });
 
+/* ---------- Ba việc học từ SmartScheduler (30/8/2026) ----------
+   Cả ba chỉ đọc S.tkb nên phải xếp lịch trước, không thì chụp ra màn
+   hình trống — đúng thứ ảnh chụp sinh ra để tránh. */
+await chup('33-ai-ranh', { cao: 1150, lam: async p => {
+  await xep(p); await di('airanh')(p);
+  /* Mở sẵn một ô để thấy cả phần chi tiết bốn nhóm */
+  await p.click('[data-ranho]'); } });
+await chup('34-soi-giao-vien', { rong: 1600, cao: 1000, lam: async p => {
+  await xep(p); await di('toantruong')(p);
+  await p.evaluate(() => {
+    /* Soi người dạy nhiều nhất — đúng ca đáng soi, và lộ rõ ô mờ / ô nổi */
+    const dem = {};
+    lopChoLuoi().forEach(l => Object.values(S.tkb[l.id] || {})
+      .forEach(v => dem[v.gvId] = (dem[v.gvId] || 0) + 1));
+    S.soiGV = Object.entries(dem).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    ve();
+  }); } });
+await chup('35-loc-giao-vien', { cao: 1000, lam: async p => {
+  await xep(p); await di('giaovien')(p); } });
+/* Điện thoại: dải nút lọc và lưới ô giờ là hai chỗ dễ vỡ bố cục nhất */
+await chup('36-dt-ai-ranh', { rong: 390, cao: 900, lam: async p => {
+  await xep(p); await di('airanh')(p); } });
+await chup('37-dt-loc-giao-vien', { rong: 390, cao: 900, lam: async p => {
+  await xep(p); await di('giaovien')(p); } });
+
 /* Trường CHƯA khai gì — thanh tiến trình phải chỉ rõ từng việc còn thiếu */
 await chup('13-truong-moi-chua-co-gi', { lam: p => p.evaluate(() => {
   S.lop = []; S.giaoVien = []; S.phanCong = []; S.tkb = {};

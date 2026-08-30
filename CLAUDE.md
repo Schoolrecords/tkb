@@ -1539,6 +1539,73 @@ Hai chỗ dễ sai khi sửa vùng này:
 Chỗ đã gắn: Lớp học · Giáo viên · Môn học · Phòng học · Buổi bận · Phân công ·
 TKB theo lớp · TKB theo giáo viên · Dạy thay · Xuất và in.
 
+#### Ba việc học từ SmartScheduler — đợt 1 *(30/8/2026)*
+
+Đọc trọn cụm tài liệu `help.tinhochoanggia.com/smartscheduler/` — chính phần
+mềm Diễn Liên đang dùng, và là nguồn của `data/truong-dien-lien.json`. Bản
+đối chiếu đầy đủ ở **`docs/hoc-tu-smartscheduler.md`**; đọc tệp ấy trước khi
+định lấy thêm thứ gì của họ.
+
+⚠️ **Kết luận quan trọng nhất là một điều KHÔNG làm.** SmartScheduler có
+chừng **30 loại ràng buộc khai tay** (giáo viên 10 · môn 11 · nhóm môn 8), và
+chính tài liệu của họ phải cảnh báo ở **cả ba trang**: *"thêm quá nhiều ràng
+buộc sẽ giảm khả năng xếp được 100%"*. Họ còn phải làm hẳn chức năng *Tinh
+chỉnh* và **9 câu FAQ** chỉ để gỡ hậu quả. Đó là thiết kế đẩy việc cân bằng
+sang người dùng. App mình đi hướng ngược — ít khai tay, điểm phạt mềm tự cân,
+cộng R01–R13 chạy **trước** khi xếp — và **giữ nguyên hướng ấy**. Chỉ lấy thứ
+nào máy tự suy được, hoặc khai một lần rất rẻ mà giá trị lớn.
+
+Ba việc đợt này đều **chỉ ĐỌC `S.tkb`**: không đụng thuật toán, không thêm
+bảng máy chủ, không thêm đường ghi nào — nên năm trường đang chạy thật không
+chịu rủi ro nào.
+
+| Hàm | Việc |
+|---|---|
+| `tinhTrangGV(idGV)` | vùng LOGIC — tiết thiếu · trống kẹp · số phân hiệu · số ngày phải đến trường |
+| `NHAN_GV` · `nhanGV()` · `demNhanGV()` | bộ nhãn tình trạng và phép đếm |
+| `oLocNhanh(dich, ds)` · `chayLoc(dich)` | dải nút lọc, và một đường lọc chung |
+| `tomTatSoiGV(idGV)` · `thanhSoiGV()` | soi một giáo viên trên lưới toàn trường |
+| `aiRanh(khoa, dsGV, dsLop)` · `nhomCungRanh()` | vùng LOGIC — ai dạy · ai rảnh · phòng trống |
+| `mAiRanh()` | màn hình *Ai rảnh tiết nào*, nhóm TRA CỨU |
+
+Bảy điều bắt buộc, cả bảy có phép thử (`npm run soi` mục **17r · 17s · 17t**):
+
+- **Nút lọc mang số 0 thì KHÔNG hiện.** `demNhanGV()` lọc sẵn, hết chuyện thì
+  cả dải biến mất — chứ không nằm đó nói sáu lần rằng không có gì xảy ra.
+  Cùng luật "số 0 không tô đỏ" của dải chỉ số Bảng điều hành.
+- ⚠️ **Hai nhãn `canLuoi` chỉ hiện khi ĐÃ xếp.** Lưới còn trắng thì cả trường
+  đều "chưa xếp đủ tiết" — con số 35 ấy không nói lên điều gì.
+- **Lọc nhãn và gõ chữ CHỒNG nhau**, cùng đi qua `chayLoc()`. Hai đường riêng
+  thì bên này bật lại xoá kết quả bên kia. `locBang(inp)` vẫn nhận **chính ô
+  nhập** — 12 nơi đang gọi như thế.
+- **Bấm nút lọc KHÔNG gọi `ve()`.** Vẽ lại cả màn hình chỉ để đổi một chữ trên
+  nút là mất chỗ cuộn của bảng 86 dòng — người dùng bị ném về đầu bảng.
+- **`luoiRongHTML()` nhận `soi` làm THAM SỐ**, không đọc thẳng `S.soiGV`: ba
+  nơi khác cũng gọi hàm ấy (Bảng điều hành, Theo khối) và không được đổi hành
+  vi vì một trạng thái của riêng màn Toàn trường. Có phép thử canh.
+- ⚠️ **"Rảnh" KHÔNG có nghĩa là "dùng được".** `aiRanh()` tách **bốn nhóm**
+  — đang rảnh · đang dạy · **đang ở phân hiệu khác** · đã đăng ký bận — chứ
+  không trả một danh sách phẳng. Gộp lại là mời một cô giáo đang đứng lớp
+  cách đó mấy cây số. Phép thử nặng nhất của mục đòi bốn nhóm **chia trọn**
+  danh sách: không ai đếm hai lần, không ai rơi ra ngoài.
+- **Phòng đếm theo TỪNG phân hiệu** — phòng Tin của Diễn Liên không dùng thay
+  cho Diễn Đồng được (ràng buộc cứng số 4).
+
+⚠️ **Hai phép thử đầu tiên viết ra XANH OAN**, lại đúng khuôn bẫy đã ghi ở
+mục 3 — và lần này em tự bắt bằng cách đọc lại chính câu điều kiện:
+- *"Người đang ở phân hiệu khác"* viết `soDT > 1 ? true : n === 0` — trường
+  hai phân hiệu thì **xanh vô điều kiện**. Nay soi từng lượt: người bị xếp
+  vào nhóm ấy phải thật sự có tiết ở phân hiệu khác trong chính buổi đó, và
+  không có tiết nào ở phân hiệu đang xem.
+- *"Tìm giờ họp tổ"* tích trúng một hồ sơ **chưa có tiết nào** nên ra 30/30
+  ô — lọc có tác dụng hay không cũng cùng kết quả. Nay chọn người dạy nhiều
+  nhất, đòi số ô **nhỏ hơn tổng**, và đòi thêm người thứ hai thì số giờ chung
+  chỉ được **giảm**.
+
+**Đã thử ngược cả sáu vá** (script tạm, phá từng đoạn rồi chạy `npm run soi`):
+6/6 đều làm phép thử đỏ. Bài học ba lần trong một tuần nay thành thói quen —
+vá xong thì phá thử, không thì không biết phép thử có canh gì không.
+
 Ảnh chụp 13 màn hình: **`docs/anh-giao-dien/`**, chụp lại bằng
 `node docs/anh-giao-dien/chup.mjs` (Chrome thật, không tải thêm trình duyệt).
 Khác `npm run soi` ở chỗ đó chạy trình duyệt giả để **kiểm** lỗi, còn tệp này

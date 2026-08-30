@@ -791,6 +791,24 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 .loc-rong{display:none;padding:26px 16px;text-align:center;color:var(--chu-mo);font-size:13px;
   background:var(--the);border:1px solid var(--ke);border-radius:var(--r);margin-top:-1px}
 .loc-rong.hien{display:block}
+/* Dải lọc nhanh theo tình trạng (30/8/2026). Cùng hệ với .dt-nut nhưng
+   NHỎ HƠN một bậc: đây là bộ lọc phụ đứng ngay dưới ô tìm kiếm, to bằng
+   dải chuyển phân hiệu là tranh chỗ với chính cái bảng nó đang lọc.
+   ⚠️ Nút KHÔNG tô đỏ sẵn — trong cả app đỏ nghĩa là nguy hiểm hoặc hỏng,
+   mà đây chỉ là "đáng nhìn qua". Chỉ con SỐ mang màu cảnh báo. */
+.loc-nhanh{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:-4px 0 12px}
+.ln-nhan{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--chu-mo);
+  text-transform:uppercase;margin-right:2px}
+.ln{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--ke);background:var(--the);color:var(--chu);font-size:12px;font-weight:600;
+  font-family:inherit;transition:background .16s,border-color .16s,transform .08s}
+.ln:hover{background:var(--nav-nhat);border-color:var(--nav-vien)}
+.ln:active{transform:translateY(-2px)}
+.ln span{font-size:11px;font-weight:700;background:var(--canh-nen);color:var(--canh);
+  padding:1px 7px;border-radius:20px}
+.ln.on{background:var(--nav);color:#fff;border-color:var(--nav);box-shadow:0 2px 8px rgba(0,83,145,.24)}
+.ln.on span{background:rgba(255,255,255,.22);color:#fff}
+.ln-bo{color:var(--chu-mo);font-weight:500}
 .dl td .ip{padding:6px 9px;font-size:12.5px}
 .x-hang{background:none;border:none;color:var(--do);font-size:17px;line-height:1;cursor:pointer;padding:2px 6px}
 .x-hang:hover{filter:brightness(.8)}
@@ -827,6 +845,58 @@ table.tt th,table.tt td{border-right:1px solid #E3EAF4;border-bottom:1px dashed 
    là 25–60 vạch dọc chồng lên lưới. Vạch nào cũng thừa khi tên môn đã mang
    màu rồi. */
 table.tt td.o-mau b{color:color-mix(in srgb,var(--mc,#2563EB) 76%,#000)}
+/* SOI MỘT GIÁO VIÊN (30/8/2026). Ô của người đang soi giữ nguyên màu môn
+   rồi nổi thêm viền đậm; ô còn lại mờ hẳn nhưng KHÔNG biến mất — người
+   xếp vẫn cần thấy chỗ nào đã kín để đoán còn dời được đi đâu. */
+table.tt.dang-soi td.o-mo{opacity:.17}
+table.tt.dang-soi td.o-soi{box-shadow:inset 0 0 0 2px var(--nav);position:relative;z-index:1}
+table.tt.dang-soi td.o-soi b{color:var(--nav)}
+.soi-thanh{margin-bottom:12px}
+
+/* ---------- Ai rảnh tiết nào (30/8/2026) ----------
+   Ô lưới bày HAI con số chồng nhau: số lớp đang học (bối cảnh) và số giáo
+   viên rảnh (thứ người dùng đi tìm). Số rảnh đậm hơn vì đó là câu trả lời. */
+.ro{width:100%;min-height:52px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;border:1px solid var(--ke);border-radius:9px;cursor:pointer;
+  background:color-mix(in srgb,var(--nav-nhat) var(--dam,0%),var(--the));
+  font-family:inherit;padding:5px 4px;
+  transition:background .16s,border-color .16s,transform .08s}
+.ro:hover{background:var(--nav-nhat);border-color:var(--nav-vien)}
+.ro:active{transform:translateY(-2px)}
+.ro-lop{font-size:10.5px;color:var(--chu-mo)}
+.ro-gv{font-size:14px;font-weight:800;color:var(--nav)}
+.ro.on{background:var(--nav);border-color:var(--nav);box-shadow:0 3px 10px rgba(0,83,145,.26)}
+.ro.on .ro-lop{color:rgba(255,255,255,.72)}
+.ro.on .ro-gv{color:#fff}
+/* Giờ cả nhóm cùng rảnh — viền xanh lá, đúng màu ngữ nghĩa "đạt" */
+.ro.hop{border:2px solid var(--xanh);background:var(--xanh-nen)}
+.ro.hop .ro-gv{color:var(--xanh)}
+.ro-hop{font-size:9.5px;font-weight:700;color:var(--xanh);text-transform:uppercase;letter-spacing:.03em}
+.ro.on.hop{background:var(--nav)}
+.ro.on.hop .ro-hop{color:#fff}
+
+.ra-tieu{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:15px;margin-bottom:12px}
+.ra-day{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.ra-tiet{border-left:3px solid var(--mc,#2563EB);background:color-mix(in srgb,var(--mc,#2563EB) 10%,#fff);
+  border-radius:8px;padding:7px 11px;font-size:12px;min-width:104px}
+.ra-tiet b{display:block;font-size:13px}
+.ra-tiet span{color:color-mix(in srgb,var(--mc,#2563EB) 76%,#000);font-weight:600}
+.ra-tiet i{display:block;font-style:normal;color:var(--chu-mo);font-size:11px;margin-top:1px}
+.ra-cots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px}
+.ra-cot{border:1px solid var(--ke);border-radius:var(--r);padding:11px 13px;background:var(--nen)}
+.ra-dau{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;margin-bottom:8px}
+.ra-dau span{font-size:11px;background:rgba(0,0,0,.06);padding:1px 8px;border-radius:20px}
+.ra-dau.ok{color:var(--xanh)}.ra-dau.canh{color:var(--canh)}
+.ra-dau.do{color:var(--do)}.ra-dau.day{color:var(--nav)}
+.ra-ds{display:flex;gap:5px;flex-wrap:wrap}
+.ra-ds .tag{cursor:pointer}
+.ra-ds .tag:hover{background:var(--nav);color:#fff}
+.ra-gy{font-size:11px;color:var(--chu-mo);margin-top:8px;line-height:1.45}
+.ra-phong{margin-top:13px;font-size:12.5px}
+.ra-nhom{background:var(--xanh-nen);border:1px solid color-mix(in srgb,var(--xanh) 30%,#fff);
+  border-radius:var(--r);padding:11px 14px;margin-bottom:12px;font-size:12.5px}
+.ra-nhom .tag{cursor:pointer;margin-top:5px}
+.ra-nhom .tag:hover{background:var(--do-nen);color:var(--do)}
 /* Hai cột trái dính: Thứ (gộp ô cả ngày) rồi tới Tiết */
 table.tt .c-thu2{position:sticky;left:0;z-index:2;width:44px;min-width:44px;
   background:#E9F3FB;font-weight:800;font-size:12px;text-align:center;color:var(--nav);
@@ -1359,6 +1429,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
       <button class="mi" data-t="tkblop" data-nh="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2M9 13h6M9 17h4"/></svg>Theo lớp <span class="n" id="nLop">0</span></button>
       <button class="mi" data-t="tkbgv" data-nh="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></svg>Theo giáo viên <span class="n" id="nGV">0</span></button>
       <button class="mi" data-t="cuatoi" data-nh="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>Thời khóa biểu của tôi</button>
+      <button class="mi" data-t="airanh" data-nh="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Ai rảnh tiết nào</button>
     </div>
   </div>
   <div class="nh" data-nh="dl">
@@ -1683,6 +1754,10 @@ let S = {
   dtLoc:'moi',          /* bộ lọc lịch đã phân công: hôm nay · mai · tuần · ngày · tất cả */
   dtLocNgay:'',         /* ngày cụ thể khi dtLoc === 'ngay' */
   coLuoi:'tc',          /* cỡ hiển thị lưới: gon · tc (tiêu chuẩn) · rong */
+  locNhan:{},           /* bảng nào đang bật nhãn lọc nào — xem oLocNhanh() */
+  soiGV:'',             /* giáo viên đang soi trên lưới toàn trường */
+  ranhO:'',             /* ô giờ đang mở ở màn Ai rảnh tiết nào */
+  ranhNhom:[],          /* nhóm giáo viên đang tìm giờ họp chung */
   dhXem:'',             /* Bảng điều hành đang bày cách xem nào. Để RỖNG để lần
                            đầu vẽ thì `xemMacDinh()` tự chọn theo quy mô trường:
                            nhiều lớp thì mở thẳng một lớp, ít lớp thì toàn trường */
@@ -3577,6 +3652,188 @@ function thieuMonLop(idLop){
 }
 /* "Tiếng Anh 1, Âm nhạc 1" — đọc một lần là biết phải đi tìm ai */
 const chuThieuMon = ds => ds.map(x=>`${x.mon} ${x.thieu}`).join(', ');
+
+/* ==================================================================
+   TÌNH TRẠNG LỊCH CỦA GIÁO VIÊN (30/8/2026)
+
+   Học từ SmartScheduler: phần mềm ấy lọc được danh sách giáo viên theo
+   TÌNH TRẠNG — "chưa xếp xong", "lịch xấu", "dạy nhiều địa điểm" — chứ
+   không chỉ theo tên. Câu hỏi thật của người xếp không phải "cô Hương
+   đâu" (ô tìm kiếm đã lo) mà là "CÒN AI chưa xếp xong". Sau sáp nhập 86
+   giáo viên thì cuộn tay không ra.
+
+   Hàm thuần, không đụng DOM — `npm test` gọi thẳng.
+   ================================================================== */
+function tinhTrangGV(idGV){
+  const g=gvId(idGV); if(!g) return null;
+  const pc=S.phanCong.filter(p=>p.gvId===idGV);
+  const tongCan=pc.reduce((s,p)=>s+(+p.soTiet||0),0);
+  /* Lịch đã xếp của riêng người này */
+  const oGio={}; let daXep=0;
+  Object.entries(S.tkb).forEach(([lp,o])=>Object.entries(o).forEach(([k,v])=>{
+    if(v.gvId!==idGV) return; oGio[k]=lp; daXep++;
+  }));
+  /* Phân hiệu suy từ PHÂN CÔNG — nơi thầy cô thật sự có tiết. Cột
+     `giao_vien.diem_truong_id` chỉ là nhãn, không phải nguồn sự thật. */
+  const dt=new Set(pc.map(p=>S.lopDT[p.lopId]).filter(Boolean));
+  /* Tiết trống KẸP GIỮA buổi — thầy cô ngồi chờ suông giữa hai tiết */
+  let trong=0;
+  buoiBat().forEach(k=>{
+    const kB=khoaB(k); let dau=-1,cuoi=-1,co=0;
+    for(let i=0;i<k.tiet;i++) if(oGio[`${kB}-${i}`]){ if(dau<0) dau=i; cuoi=i; co++; }
+    if(co>1) trong += (cuoi-dau+1-co);
+  });
+  /* Số NGÀY phải đến trường, và số buổi có mặt */
+  const buoi=new Set(Object.keys(oGio).map(k=>k.slice(0,k.lastIndexOf('-'))));
+  const ngay=new Set([...buoi].map(k=>k.split('-')[0]));
+  const dm=dinhMucCua(g);
+  return {g, tongCan, daXep, thieu:Math.max(0,tongCan-daXep), trong,
+          soDT:dt.size, dsDT:[...dt], soBuoi:buoi.size, soNgay:ngay.size, dm,
+          vuot:tongCan>dm, chuaPC:tongCan===0, chuaTK:!g.nguoiDungId};
+}
+
+/* Bộ nhãn tình trạng. `canLuoi` = chỉ có nghĩa khi đã xếp xong lưới:
+   lưới còn trắng thì CẢ TRƯỜNG đều "chưa xếp đủ tiết", một con số 35
+   không nói lên điều gì. Cùng luật "số 0 không tô đỏ" của Bảng điều hành. */
+const NHAN_GV = [
+  {ma:'chuaxep', ten:'Chưa xếp đủ tiết', canLuoi:true,  hop:t=>t.thieu>0,
+   gy:'Còn tiết trong bảng phân công mà lưới chưa có chỗ'},
+  {ma:'vuot',    ten:'Vượt định mức',    canLuoi:false, hop:t=>t.vuot,
+   gy:'Số tiết được phân công nhiều hơn định mức của chính người ấy'},
+  {ma:'lienph',  ten:'Dạy nhiều phân hiệu', canLuoi:false, hop:t=>t.soDT>1,
+   gy:'Có tiết ở từ hai phân hiệu trở lên — người khó xếp nhất'},
+  {ma:'trong',   ten:'Có tiết trống kẹp', canLuoi:true,  hop:t=>t.trong>0,
+   gy:'Phải ngồi chờ giữa hai tiết trong cùng một buổi'},
+  {ma:'chuapc',  ten:'Chưa phân công',    canLuoi:false, hop:t=>t.chuaPC,
+   gy:'Hồ sơ có nhưng chưa được giao tiết nào'},
+  {ma:'chuatk',  ten:'Chưa có tài khoản', canLuoi:false, hop:t=>t.chuaTK,
+   gy:'Chưa đăng nhập được để tự xem lịch của mình'}
+];
+const nhanGV = tt => tt ? NHAN_GV.filter(n=>n.hop(tt)).map(n=>n.ma) : [];
+
+/* Đếm từng nhãn trên một danh sách giáo viên. Trả về mảng đã LỌC BỎ nhãn
+   không đếm được ai — dải nút chỉ bày thứ đang có thật. */
+function demNhanGV(dsGV){
+  const daXep=Object.values(S.tkb).reduce((s,o)=>s+Object.keys(o).length,0);
+  const dem={};
+  dsGV.forEach(g=>nhanGV(tinhTrangGV(g.id)).forEach(m=>dem[m]=(dem[m]||0)+1));
+  return NHAN_GV.filter(n=>(!n.canLuoi||daXep>0) && dem[n.ma]>0)
+    .map(n=>({...n, so:dem[n.ma]}));
+}
+
+/* ==================================================================
+   SOI MỘT GIÁO VIÊN TRÊN LƯỚI (30/8/2026)
+
+   SmartScheduler gọi là "tô màu TKB theo giáo viên". Lưới mình tô theo
+   MÔN — đẹp và đúng cho việc đọc thời khóa biểu của một lớp, nhưng khi
+   người xếp hỏi "tuần này cô Hương chạy phân hiệu thế nào" thì trên
+   25–60 cột mắt không lần ra nổi.
+
+   Trả về đúng những con số người xếp cân nhắc, không trả điểm phạt.
+   ================================================================== */
+function tomTatSoiGV(idGV){
+  const tt=tinhTrangGV(idGV); if(!tt) return null;
+  const oGio={};
+  Object.entries(S.tkb).forEach(([lp,o])=>Object.entries(o).forEach(([k,v])=>{
+    if(v.gvId===idGV) oGio[k]=lp;
+  }));
+  /* Số tiết ở từng phân hiệu — đọc theo LƯỚI, không theo phân công */
+  const tietDT={};
+  Object.values(oGio).forEach(lp=>{ const d=S.lopDT[lp]; if(d) tietDT[d]=(tietDT[d]||0)+1; });
+  /* Số lần phải đổi phân hiệu giữa hai buổi liền nhau — trọng số nặng
+     nhất của thuật toán, nên cũng là con số đáng bày ra nhất */
+  let doiDiem=0, truoc=null;
+  buoiBat().forEach(k=>{
+    const kB=khoaB(k);
+    const d=[...new Set(Object.keys(oGio).filter(x=>x.startsWith(kB+'-')).map(x=>S.lopDT[oGio[x]]))];
+    if(!d.length) return;
+    if(truoc && d[0]!==truoc) doiDiem++;
+    truoc=d[0];
+  });
+  return {...tt, tietDT, doiDiem, tiet:Object.keys(oGio).length};
+}
+
+/* ==================================================================
+   AI RẢNH TIẾT NÀY (30/8/2026)
+
+   Học từ SmartScheduler: bảng "số lớp · giáo viên · phòng tại 1 thời
+   điểm". Tài liệu của họ ghi đúng hai việc nhà trường dùng nó:
+   TÌM TIẾT DỰ GIỜ cho tổ chuyên môn, và BỐ TRÍ DẠY THAY.
+
+   Ba câu hỏi có thật mà app chưa trả lời được trước hôm nay:
+     · Họp tổ khối 3 vào giờ nào thì cả năm cô cùng rảnh?
+     · Sáng thứ Năm tiết 2 dự giờ được lớp nào, ai đang dạy?
+     · Phòng Tin sáng thứ Ba tiết 3 có trống để cho mượn không?
+
+   Suy hết từ `S.tkb` — không thêm bảng máy chủ, không khai thêm gì.
+
+   ⚠️ "Rảnh" KHÔNG có nghĩa là "dùng được". Ràng buộc lõi sau sáp nhập
+   là một giáo viên một buổi chỉ ở một phân hiệu, nên người đang dạy ở
+   phân hiệu khác trong chính buổi ấy thì không mời sang dự giờ hay dạy
+   thay được. Hàm này vì thế tách `ranh` thành ba nhóm chứ không gộp
+   một danh sách phẳng — gộp lại là mời nhầm người ở cách đó mấy cây số.
+   ================================================================== */
+function aiRanh(khoa, dsGV, dsLop){
+  const gv=dsGV||S.giaoVien, lop=dsLop||S.lop;
+  const trongLop=new Set(lop.map(l=>l.id));
+  const kB=khoa.slice(0,khoa.lastIndexOf('-'));
+  /* Lớp nào đang có tiết ở ô giờ này */
+  const dangHoc=[];
+  lop.forEach(l=>{
+    const v=S.tkb[l.id]?.[khoa];
+    if(v) dangHoc.push({lopId:l.id, mon:v.mon, gvId:v.gvId});
+  });
+  const banO=new Set(dangHoc.map(x=>x.gvId));
+  /* Phân hiệu mỗi người đang đứng trong BUỔI này (không riêng tiết này) */
+  const dtBuoi={};
+  Object.entries(S.tkb).forEach(([lp,o])=>Object.keys(o).forEach(k=>{
+    if(!k.startsWith(kB+'-')) return;
+    const d=S.lopDT[lp]; if(d) (dtBuoi[o[k].gvId] ||= new Set()).add(d);
+  }));
+  /* Phân hiệu của chính ô đang xét — suy từ các lớp trong phạm vi */
+  const dtXet=new Set(lop.map(l=>S.lopDT[l.id]).filter(Boolean));
+  const dayO=[], ranh=[], banNoiKhac=[], daBao=[];
+  gv.forEach(g=>{
+    if(banO.has(g.id)){ dayO.push(g); return; }
+    /* Buổi bận đã đăng ký là ràng buộc CỨNG số 7 — không mời được */
+    if((S.gvNghi[g.id]||[]).includes(kB)){ daBao.push(g); return; }
+    const d=dtBuoi[g.id];
+    /* Đang có mặt ở một phân hiệu KHÁC trong cùng buổi này */
+    if(d && d.size && ![...d].some(x=>dtXet.has(x))){ banNoiKhac.push(g); return; }
+    ranh.push(g);
+  });
+  /* Phòng chức năng: đếm theo TỪNG phân hiệu. Phòng Tin của Diễn Liên
+     không dùng thay cho Diễn Đồng được — đó là ràng buộc cứng số 4. */
+  const phong=(S.phong||[]).filter(p=>dtXet.has(p.dtId));
+  const chiem={};
+  dangHoc.forEach(x=>{
+    const loai=monCanPhong(x.mon); if(!loai) return;
+    const k=S.lopDT[x.lopId]+'|'+loai;
+    chiem[k]=(chiem[k]||0)+1;
+  });
+  /* Phòng thứ n của một loại ở một phân hiệu còn trống khi n vượt số lớp
+     đang chiếm loại ấy tại chính phân hiệu đó */
+  const daDem={}, phongTrong=[];
+  phong.forEach(p=>{
+    const k=p.dtId+'|'+p.mon;
+    daDem[k]=(daDem[k]||0)+1;
+    if(daDem[k] > (chiem[k]||0)) phongTrong.push(p);
+  });
+  return {khoa, kB, dangHoc, dayO, ranh, banNoiKhac, daBao,
+          soLop:dangHoc.length, tongLop:trongLop.size,
+          soPhong:phong.length, soPhongDung:phong.length-phongTrong.length,
+          phongTrong};
+}
+
+/* Cả nhóm người này có cùng rảnh ở ô giờ ấy không — dùng để tìm giờ
+   họp tổ chuyên môn. Trả `false` ngay khi gặp một người vướng, nên
+   nhóm càng đông càng chạy nhanh. */
+function nhomCungRanh(khoa, dsIdGV, dsLop){
+  if(!dsIdGV?.length) return false;
+  const bo=new Set(dsIdGV);
+  const kq=aiRanh(khoa, S.giaoVien.filter(g=>bo.has(g.id)), dsLop);
+  return kq.ranh.length===bo.size;
+}
 
 /*#endregion LOGIC*/
 
@@ -7321,6 +7578,7 @@ function ve(){
     : t==='saoluu'    ? mSaoLuu()
     : t==='toantruong'? mToanTruong()
     : t==='tkbkhoi'   ? mTKBKhoi()
+    : t==='airanh'    ? mAiRanh()
     : t==='xuatin'    ? mXuatIn()
     : t==='huongdan'  ? mHuongDan()
     : t==='choduyet'  ? mChoDuyet()
@@ -7592,36 +7850,65 @@ function locRong(dich){
   return `<div class="loc-rong" data-locrong="${esc(dich)}"></div>`;
 }
 
-/* Chạy lọc trên bảng của một ô tìm kiếm */
-function locBang(inp){
-  const dich=inp.dataset.loc, khung=document.getElementById(dich);
+/* Dải nút LỌC NHANH theo tình trạng (30/8/2026).
+   Ô gõ chữ trả lời "cô Hương đâu"; dải này trả lời "CÒN AI chưa xếp xong" —
+   câu hỏi thật của người xếp, và là câu mà 86 dòng cuộn tay không trả lời nổi.
+
+   ⚠️ Nút có số 0 KHÔNG hiện. `demNhanGV()` đã lọc sẵn: dải chỉ bày tình
+   trạng đang có thật, và hết chuyện thì cả dải biến mất chứ không nằm đó
+   nói sáu lần rằng không có gì xảy ra. Cùng luật "số 0 không tô đỏ". */
+function oLocNhanh(dich, ds){
+  if(!ds.length) return '';
+  const dang=S.locNhan?.[dich]||'';
+  return `<div class="loc-nhanh"><span class="ln-nhan">Cần chú ý</span>
+    ${ds.map(n=>`<button class="ln${dang===n.ma?' on':''}" data-lnhanh="${esc(dich)}|${esc(n.ma)}"
+      title="${esc(n.gy)}">${esc(n.ten)}<span>${n.so}</span></button>`).join('')}
+    ${dang?`<button class="ln ln-bo" data-lnhanh="${esc(dich)}|">&times; Bỏ lọc</button>`:''}</div>`;
+}
+
+/* Chạy lọc trên một bảng. Hai bộ lọc CHỒNG nhau, cùng đi qua đây:
+   ô gõ chữ (`data-loctu`) và dải nút tình trạng (`data-nhan`, xem
+   `oLocNhanh`). Gộp một đường vì bấm nút rồi gõ thêm chữ là chuyện
+   thường — hai đường riêng thì bên này bật lại xoá kết quả bên kia. */
+function chayLoc(dich){
+  const khung=document.getElementById(dich);
   if(!khung) return;
-  const tim=inp.value, donVi=inp.dataset.donvi||'dòng';
+  const inp=document.querySelector(`[data-loc="${dich}"]`);
+  const tim=inp?inp.value:'';
+  const donVi=inp?.dataset.donvi||'dòng';
+  const nhan=S.locNhan?.[dich]||'';
   const hang=khung.querySelectorAll('[data-loctu]');
   /* Phần tử mang `data-locnhan` là NHÃN NHÓM (ví dụ "Khối 1" trong cột lớp):
      vẫn ẩn đi cùng nhóm của nó, nhưng không phải một dòng dữ liệu nên không
      được đếm — không thì cột 31 lớp lại báo "38 lớp". */
   let hien=0, tong=0;
   hang.forEach(h=>{
-    const ok=khopLoc(h.dataset.loctu, tim);
+    const ok = khopLoc(h.dataset.loctu, tim)
+      && (!nhan || (h.dataset.nhan||'').split(' ').includes(nhan));
     h.style.display = ok?'':'none';
     if(h.dataset.locnhan!==undefined) return;
     tong++;
     if(ok) hien++;
   });
+  const hep = tim.trim().length>0 || !!nhan;
   const dem=document.querySelector(`[data-locdem="${dich}"]`);
   if(dem){
-    const hep=tim.trim().length>0;
     dem.textContent = hep ? `${hien}/${tong} ${donVi}` : `${tong} ${donVi}`;
     dem.classList.toggle('hep', hep);
   }
   const rong=document.querySelector(`[data-locrong="${dich}"]`);
   if(rong){
     rong.classList.toggle('hien', tong>0 && hien===0);
-    rong.textContent = `Không có ${donVi} nào khớp “${tim.trim()}”.`;
+    /* Câu phải nói đúng thứ đang lọc: lọc bằng nút mà báo "không khớp
+       chữ nào" thì người dùng đi tìm lỗi ở ô tìm kiếm họ chưa hề gõ. */
+    rong.textContent = tim.trim()
+      ? `Không có ${donVi} nào khớp “${tim.trim()}”.`
+      : `Không có ${donVi} nào ở tình trạng này.`;
   }
-  inp.closest('.loc-o')?.classList.toggle('co-chu', tim.length>0);
+  inp?.closest('.loc-o')?.classList.toggle('co-chu', tim.length>0);
 }
+/* ⚠️ Vẫn nhận CHÍNH Ô NHẬP, không nhận id bảng — 12 nơi đang gọi như thế. */
+function locBang(inp){ chayLoc(inp.dataset.loc); }
 
 /* Lọc các mục của một ô chọn dài (Thời khóa biểu theo lớp / theo giáo viên).
    Mục đang chọn KHÔNG BAO GIỜ bị giấu — giấu đi thì ô chọn hiện ra trống
@@ -9614,7 +9901,11 @@ function daiDiemLuoi(){
    4. Ô "nghỉ" kẻ sọc mờ: mắt nhận ra ngay là "khối này tan rồi", không
       phải đọc từng chữ. Vẫn giữ chữ *nghỉ* — bỏ trống thì lẫn với tiết
       chưa xếp, đó là lỗi đọc sai đã nêu trong bản giao việc. */
-function luoiRongHTML(ds, ghiKhoi, cao){
+/* `soi` = id một giáo viên: ô của người ấy nổi lên, phần còn lại mờ đi.
+   Tham số chứ không đọc thẳng S.soiGV — ba nơi khác đang gọi hàm này
+   (Bảng điều hành, Theo khối) không được đổi hành vi vì một trạng thái
+   của màn hình Toàn trường. */
+function luoiRongHTML(ds, ghiKhoi, cao, soi){
   if(!ds.length) return `<div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
     <b>Không có lớp nào trong phạm vi đang xem</b></div></div>`;
   const bb=buoiBat();
@@ -9631,7 +9922,7 @@ function luoiRongHTML(ds, ghiKhoi, cao){
   hang.forEach(o=>{ soDongNgay[o.thu]=(soDongNgay[o.thu]||0)+1; });
   let thuTruoc=null;
 
-  return `<div class="tt-boc"${cao?` style="max-height:${cao}"`:''}><table class="tt${ghiKhoi?' co-khoi':''}">
+  return `<div class="tt-boc"${cao?` style="max-height:${cao}"`:''}><table class="tt${ghiKhoi?' co-khoi':''}${soi?' dang-soi':''}">
     <thead>
       ${ghiKhoi?`<tr class="dai-khoi"><th class="c-thu2"></th><th class="c-tiet2"></th>
         ${daiKhoi.map(x=>`<th colspan="${x.n}">Khối ${x.k}</th>`).join('')}</tr>`:''}
@@ -9653,11 +9944,51 @@ function luoiRongHTML(ds, ghiKhoi, cao){
           const v=S.tkb[l.id]?.[o.khoa];
           if(!v) return '<td></td>';
           const g=gvId(v.gvId);
-          return `<td class="${mLop(v.mon)} o-mau"><b>${esc(v.mon)}</b>`
+          /* Đang soi thì ô của người ấy giữ nguyên màu môn và nổi thêm
+             viền; ô còn lại mờ hẳn. Hai tín hiệu, không chỉ một. */
+          const dau = soi ? (v.gvId===soi ? ' o-soi' : ' o-mo') : '';
+          return `<td class="${mLop(v.mon)} o-mau${dau}"><b>${esc(v.mon)}</b>`
             +`<span>${esc(g?tenTat(g.hoTen):'')}</span></td>`;
         }).join('')}
       </tr>`;}).join('')}
   </tbody></table></div>`;
+}
+
+/* ---------- Thanh SOI MỘT GIÁO VIÊN trên lưới (30/8/2026) ----------
+   Học từ chức năng "tô màu TKB theo giáo viên" của SmartScheduler. Lưới
+   tô theo MÔN là đúng cho việc đọc lịch của một lớp, nhưng câu hỏi "tuần
+   này cô Hương chạy phân hiệu thế nào" thì trên 25–60 cột không lần ra nổi.
+
+   Dải tóm tắt bày đúng bốn con số người xếp cân nhắc — trong đó SỐ LẦN ĐỔI
+   PHÂN HIỆU là thứ nặng nhất của cả bài toán sau sáp nhập. */
+function thanhSoiGV(dsLop){
+  const cds=[...gvTrongPV()].sort((a,b)=>a.hoTen.localeCompare(b.hoTen,'vi'));
+  if(!cds.length) return '';
+  if(S.soiGV && !cds.some(g=>g.id===S.soiGV)) S.soiGV='';
+  const tt=S.soiGV?tomTatSoiGV(S.soiGV):null;
+  /* Người đang soi có tiết ở phân hiệu KHÁC phân hiệu lưới đang bày thì
+     phải nói ra — không thì thầy cô "biến mất" khỏi lưới và người dùng
+     tưởng cô ấy không có tiết nào. */
+  const ngoai = tt ? Object.entries(tt.tietDT)
+    .filter(([d])=>!dsLop.some(l=>S.lopDT[l.id]===d)) : [];
+  return `<div class="tkb-thanh soi-thanh">
+    <span class="gy" style="white-space:nowrap">Soi giáo viên</span>
+    ${oLocChon('selSoiGV',cds.length,'giáo viên','Tìm giáo viên…')}
+    <select class="ip" id="selSoiGV" style="flex:1 1 170px;max-width:230px">
+      <option value="">— không soi ai —</option>
+      ${cds.map(g=>`<option value="${g.id}" ${g.id===S.soiGV?'selected':''}
+        data-loctu="${tuLoc(g.hoTen,g.maGV,tenCN(g))}">${esc(g.hoTen)}</option>`).join('')}
+    </select>
+    ${tt?`<span class="tag">${tt.tiet} tiết</span>
+      <span class="tag">${tt.soBuoi} buổi · ${tt.soNgay} ngày</span>
+      ${tt.soDT>1?`<span class="tag ${tt.doiDiem?'canh':'ok'}">${tt.doiDiem} lần đổi phân hiệu</span>`:''}
+      ${tt.trong?`<span class="tag canh">${tt.trong} tiết trống kẹp</span>`:''}
+      <button class="b b-vien b-nho" data-bosoi="1">Thôi soi</button>`:''}
+  </div>
+  ${ngoai.length?`<div class="canhbao" style="margin-bottom:12px"><div class="cb-ic">i</div><div class="cb-t">
+    <b>${esc(gvId(S.soiGV)?.hoTen||'')} còn dạy ở phân hiệu khác</b>
+    <div class="cb-g">${ngoai.map(([d,n])=>`<b>${esc(tenDT(d))}</b> ${n} tiết`).join(' · ')} —
+      bấm dải phân hiệu phía trên để xem phần đó.</div></div></div>`:''}`;
 }
 
 function mToanTruong(){
@@ -9682,12 +10013,137 @@ function mToanTruong(){
   ${!xep?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
       <b>Chưa xếp thời khóa biểu nên bảng còn trống</b>
       <div class="cb-g">Sang mục <b>Xếp thời khóa biểu</b> bấm <b>Bắt đầu xếp</b> trước đã.</div></div></div>`:''}
+  ${xep?thanhSoiGV(ds):''}
   <div class="the the-luoi"><div class="the-t">
     ${daiCoLuoi()}
-    <div class="${lopCoLuoi().trim()}" style="margin-top:12px">${luoiRongHTML(ds,true)}</div>
+    <div class="${lopCoLuoi().trim()}" style="margin-top:12px">${luoiRongHTML(ds,true,null,S.soiGV)}</div>
   </div></div>
   <div class="gy" style="margin-top:11px">Bản in khổ A3 ngang. Máy in chỉ có A4 thì trong hộp in
     chọn <b>Khổ giấy A4</b> và <b>Tỷ lệ → Vừa khổ giấy</b>.</div>`;
+}
+
+/* ==================================================================
+   AI RẢNH TIẾT NÀO (30/8/2026)
+
+   Học từ bảng "số lớp · giáo viên · phòng tại 1 thời điểm" của
+   SmartScheduler. Tài liệu của họ ghi đúng hai việc nhà trường dùng nó:
+   TÌM TIẾT DỰ GIỜ cho tổ chuyên môn và BỐ TRÍ DẠY THAY — đều là việc
+   dùng suốt năm học, khác hẳn phần xếp lịch chỉ dùng vài tuần tháng 8.
+
+   Ba điều của màn hình này:
+   · Mọi số liệu suy từ `S.tkb` — không thêm bảng máy chủ, không khai gì.
+   · "Rảnh" tách làm ba nhóm, không gộp một danh sách phẳng: mời nhầm
+     người đang ở phân hiệu cách đó mấy cây số là vô nghĩa.
+   · Tìm giờ họp tổ: tích vài người, lưới tự tô ô cả nhóm cùng rảnh.
+   ================================================================== */
+function mAiRanh(){
+  const dsLop=lopChoLuoi();
+  const dsGV=gvTrongPV();
+  const bb=buoiBat();
+  const daXep=dsLop.reduce((s,l)=>s+Object.keys(S.tkb[l.id]||{}).length,0);
+  /* Nhóm đang tìm giờ họp — bỏ người đã rời phạm vi xem */
+  S.ranhNhom=(S.ranhNhom||[]).filter(id=>dsGV.some(g=>g.id===id));
+  const nhom=S.ranhNhom;
+
+  /* ⚠️ Số người rảnh gần như KHÔNG ĐỔI giữa các ô — tiểu học học kín nên
+     35 giáo viên trừ 25 người đang dạy lúc nào cũng ra 10. Bày số trần thì
+     hai mươi ô ghi cùng một con số, mắt không bắt được ô nào đáng nhìn.
+     Nên nền đậm dần theo số người rảnh, lấy mốc là ô rảnh nhất trong tuần:
+     ô nào dễ họp, dễ dự giờ thì tự nổi lên. Ảnh chụp bằng Chrome thật lộ
+     ra chuyện này, `npm run soi` thì không — nó chỉ đếm được con số. */
+  const demRanh={};
+  dongGio().forEach(o=>{ demRanh[o.khoa]=aiRanh(o.khoa,dsGV,dsLop).ranh.length; });
+  const nhieuNhat=Math.max(1,...Object.values(demRanh));
+
+  const oNoi=(t,b,i)=>{
+    const k=bb.find(x=>x.thu===t&&x.buoi===b);
+    if(!k||i>=k.tiet) return `<div class="o-nghi"></div>`;
+    const khoa=`${t}-${b}-${i}`;
+    const r=aiRanh(khoa,dsGV,dsLop);
+    const chon=S.ranhO===khoa;
+    const hop=nhom.length && nhomCungRanh(khoa,nhom,dsLop);
+    /* Bình phương cho khoảng giữa nhạt hẳn đi — nếu tuyến tính thì 10/25
+       đã là 40% màu, hai mươi ô cùng đậm ngang nhau y như bày số trần. */
+    const dam=Math.round(Math.pow(r.ranh.length/nhieuNhat,2)*100);
+    return `<button class="ro${chon?' on':''}${hop?' hop':''}" data-ranho="${khoa}"
+      style="--dam:${dam}%"
+      title="${r.soLop} lớp đang học · ${r.ranh.length} giáo viên rảnh">
+      <span class="ro-lop">${r.soLop} lớp</span>
+      <span class="ro-gv">${r.ranh.length} rảnh</span>
+      ${hop?'<span class="ro-hop">cả nhóm rảnh</span>':''}</button>`;
+  };
+
+  /* Chi tiết ô đang mở */
+  const ct=(()=>{
+    if(!S.ranhO) return `<div class="gy" style="margin-top:13px">Bấm một ô trên lưới để xem
+      <b>ai đang dạy</b>, <b>ai đang rảnh</b> và <b>phòng nào còn trống</b> ở đúng tiết ấy.</div>`;
+    const r=aiRanh(S.ranhO,dsGV,dsLop);
+    const p=S.ranhO.split('-');
+    const ten=`${TEN_THU[+p[0]]} · ${p[1]==='S'?'sáng':'chiều'} tiết ${+p[2]+1}`;
+    const cot=(tieu,ds,lop,gy)=>ds.length?`<div class="ra-cot">
+      <div class="ra-dau ${lop}">${tieu}<span>${ds.length}</span></div>
+      <div class="ra-ds">${ds.map(g=>`<span class="tag" data-ranhgv="${g.id}"
+        title="Bấm để thêm vào nhóm tìm giờ họp">${esc(g.hoTen)}</span>`).join('')}</div>
+      ${gy?`<div class="ra-gy">${gy}</div>`:''}</div>`:'';
+    return `<div class="the" style="margin-top:14px"><div class="the-t">
+      <div class="ra-tieu"><b>${esc(ten)}</b>
+        <span class="tag">${r.soLop}/${r.tongLop} lớp đang học</span>
+        ${r.soPhong?`<span class="tag ${r.phongTrong.length?'ok':'canh'}">${r.phongTrong.length}/${r.soPhong} phòng trống</span>`:''}
+      </div>
+      ${(()=>{
+        if(!r.dangHoc.length) return `<div class="gy">Không lớp nào có tiết ở giờ này.</div>`;
+        /* ⚠️ GOM theo môn. Tiết chào cờ là 25 thẻ "HDTN" giống hệt nhau —
+           đúng thứ đã cấm ở cột Dạy và ô ma trận: kể ra 25 dòng thì phần
+           chi tiết dài hơn cả cái lưới nó đang giải thích. Môn nào chỉ vài
+           lớp thì vẫn kể tên từng lớp kèm người dạy, vì đó mới là thứ đáng
+           đọc — "ai đang dạy Tin học ở phòng máy" chẳng hạn. */
+        const theoMon={};
+        r.dangHoc.forEach(x=>(theoMon[x.mon]=theoMon[x.mon]||[]).push(x));
+        return `<div class="ra-day">${Object.entries(theoMon)
+          .sort((a,b)=>b[1].length-a[1].length)
+          .map(([mon,ds])=>{
+            if(ds.length>4) return `<div class="ra-tiet ${mLop(mon)}">
+              <b>${ds.length} lớp</b><span>${esc(mon)}</span>
+              <i>${esc(ds.slice(0,2).map(x=>lopId(x.lopId)?.ten||'').join(', '))}…</i></div>`;
+            return ds.map(x=>{
+              const g=gvId(x.gvId);
+              return `<div class="ra-tiet ${mLop(mon)}"><b>${esc(lopId(x.lopId)?.ten||'')}</b>
+                <span>${esc(mon)}</span><i>${esc(g?g.hoTen:'')}</i></div>`;
+            }).join('');
+          }).join('')}</div>`;
+      })()}
+      <div class="ra-cots">
+        ${cot('Đang rảnh — mời được',r.ranh,'ok','Không có tiết, không đăng ký bận, và đang ở đúng phân hiệu này.')}
+        ${cot('Đang dạy',r.dayO,'day','')}
+        ${cot('Đang ở phân hiệu khác',r.banNoiKhac,'canh','Cùng buổi này họ có tiết ở nơi khác — không mời sang được.')}
+        ${cot('Đã đăng ký bận',r.daBao,'do','Buổi bận đã khai ở mục Buổi bận.')}
+      </div>
+      ${r.phongTrong.length?`<div class="ra-phong"><b>Phòng còn trống:</b>
+        ${r.phongTrong.map(x=>`<span class="tag ok">${esc(x.ten)}</span>`).join(' ')}</div>`:''}
+    </div></div>`;
+  })();
+
+  return dauTrang('Ai rảnh tiết nào',
+    'Tìm giờ dự giờ, giờ họp tổ chuyên môn, và người bố trí dạy thay được.',true)+
+  daiDiemLuoi()+
+  (!daXep?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
+      <b>Chưa xếp thời khóa biểu nên chưa biết ai bận giờ nào</b>
+      <div class="cb-g">Sang mục <b>Xếp thời khóa biểu</b> bấm <b>Bắt đầu xếp</b> trước đã.</div></div></div>`:`
+  <div class="tkb-thanh">
+    <span style="font-size:12.5px;color:var(--chu-mo)">${dsLop.length} lớp ·
+      ${dsGV.length} giáo viên trong phạm vi đang xem</span>
+    <span style="flex:1"></span>
+    ${nhom.length?`<span class="tag ok">Nhóm tìm giờ họp: ${nhom.length} người</span>
+      <button class="b b-vien b-nho" data-ranhxoa="1">Bỏ nhóm</button>`:''}
+  </div>
+  ${nhom.length?`<div class="ra-nhom"><b>Đang tìm giờ cả nhóm cùng rảnh:</b>
+    ${nhom.map(id=>`<span class="tag" data-ranhgv="${id}"
+      title="Bấm để bỏ khỏi nhóm">${esc(gvId(id)?.hoTen||'')} &times;</span>`).join(' ')}
+    <div class="ra-gy">Ô có viền xanh là giờ cả ${nhom.length} người đều rảnh.</div></div>`:''}
+  ${luoiTuanKhung(oNoi)}
+  ${ct}
+  <div class="gy" style="margin-top:11px">Bấm tên một giáo viên trong phần chi tiết để
+    <b>thêm họ vào nhóm</b> — lưới sẽ tô những giờ cả nhóm cùng rảnh, đó là giờ họp tổ được.</div>`);
 }
 
 function mTKBKhoi(){
@@ -11800,6 +12256,7 @@ function mGiaoVien(){
        viên là việc của mục Giáo viên. Nó khác `oLoc` ở chỗ không lọc bảng mà
        trả kết quả bấm được, nhảy thẳng tới lịch dạy của người ấy. */''}
   ${oLoc('bGV',ds.length,'giáo viên','Tìm giáo viên trong bảng…')}
+  ${oLocNhanh('bGV', demNhanGV(ds.map(x=>x.g)))}
   <div class="bang" style="max-height:66vh"><table class="dl" id="bGV"><thead><tr>
     ${''/* Mười cột là trần của bảng này. Thêm cụm Sửa/Xoá ngày 28/8 làm nó
           tràn khỏi màn hình, nên hai cột bị GỘP vào chỗ chúng thuộc về:
@@ -11831,7 +12288,8 @@ function mGiaoVien(){
       : '<span style="color:var(--cam)">chưa phân công</span>';
     return `<tr data-loctu="${tuLoc(x.g.hoTen,x.g.maGV,x.g.email,tenCN(x.g),
         day.map(d=>d.mon).join(' '),
-        Object.keys(x.tDT).map(d=>dtId(d)?.ten).join(' '),tinh)}">
+        Object.keys(x.tDT).map(d=>dtId(d)?.ten).join(' '),tinh)}"
+      data-nhan="${nhanGV(tinhTrangGV(x.g.id)).join(' ')}">
       <td class="phai" style="color:var(--chu-mo);font-size:12px">${i+1}</td>
       <td>${sua?`<input class="ip" data-gvten="${x.g.id}" value="${esc(x.g.hoTen)}" style="width:148px">`
                :`<b>${esc(x.g.hoTen)}</b>`}
@@ -12164,6 +12622,25 @@ function noiSuKien(){
      đóng sập ngay từ chữ cái đầu. */
   $$('[data-loc]').forEach(i=>{ i.oninput=()=>locBang(i); locBang(i); });
   $$('[data-locsel]').forEach(i=>{ i.oninput=()=>locChon(i); });
+  /* Dải lọc nhanh: cũng lọc TẠI CHỖ, không gọi ve(). Vẽ lại cả màn hình
+     chỉ để đổi một chữ trên nút là mất chỗ cuộn của bảng 86 dòng — người
+     dùng vừa bấm "Chưa xếp đủ tiết" thì bị ném về đầu bảng. */
+  $$('[data-lnhanh]').forEach(b=>b.onclick=()=>{
+    const [dich,ma]=b.dataset.lnhanh.split('|');
+    S.locNhan[dich] = (S.locNhan[dich]===ma) ? '' : ma;   /* bấm lại là tắt */
+    const dai=b.closest('.loc-nhanh');
+    dai?.querySelectorAll('.ln').forEach(n=>
+      n.classList.toggle('on', !!S.locNhan[dich] && n.dataset.lnhanh===`${dich}|${S.locNhan[dich]}`));
+    /* Nút "Bỏ lọc" chỉ có nghĩa khi đang lọc — dựng/gỡ tại chỗ cho khỏi vẽ lại */
+    const bo=dai?.querySelector('.ln-bo');
+    if(S.locNhan[dich] && !bo && dai){
+      const n=document.createElement('button');
+      n.className='ln ln-bo'; n.dataset.lnhanh=`${dich}|`;
+      n.innerHTML='&times; Bỏ lọc';
+      n.onclick=b.onclick; dai.appendChild(n);
+    } else if(!S.locNhan[dich]) bo?.remove();
+    chayLoc(dich);
+  });
   $$('[data-locxoa]').forEach(b=>b.onclick=()=>{
     const i=b.parentElement.querySelector('input'); if(!i) return;
     i.value=''; (i.dataset.loc?locBang:locChon)(i); i.focus();
@@ -12662,6 +13139,21 @@ function noiSuKien(){
 
   /* ---------- Bước 3: toàn trường và theo khối ---------- */
   $$('[data-khoi]').forEach(b=>b.onclick=()=>{ S.khoiXem=+b.dataset.khoi; ve(); });
+  $('#selSoiGV')&&($('#selSoiGV').onchange=e=>{ S.soiGV=e.target.value; ve(); });
+  $$('[data-bosoi]').forEach(b=>b.onclick=()=>{ S.soiGV=''; ve(); });
+
+  /* --- Ai rảnh tiết nào (30/8/2026) --- */
+  $$('[data-ranho]').forEach(b=>b.onclick=()=>{
+    S.ranhO = S.ranhO===b.dataset.ranho ? '' : b.dataset.ranho;   /* bấm lại là đóng */
+    ve();
+  });
+  $$('[data-ranhgv]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.ranhgv;
+    S.ranhNhom = S.ranhNhom.includes(id)
+      ? S.ranhNhom.filter(x=>x!==id) : [...S.ranhNhom, id];
+    ve();
+  });
+  $$('[data-ranhxoa]').forEach(b=>b.onclick=()=>{ S.ranhNhom=[]; ve(); });
   $('#btInToanTruong')&&($('#btInToanTruong').onclick=()=>
     inRa(trangInToanTruong(), 'toàn trường'));
   $('#btInKhoi')&&($('#btInKhoi').onclick=()=>
