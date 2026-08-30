@@ -1558,3 +1558,62 @@ Kèm hai việc để lần sau truy được:
 động được** — dòng đã xoá hẳn khỏi cơ sở dữ liệu. Thêm lại bằng tay là đủ (nó
 chưa có lớp nào), nhưng nếu có PHT nào từng được gán phụ trách phân hiệu ấy
 thì phải gán lại — câu số 5 của `db/soi-phan-hieu.sql` chỉ ra ai.
+
+---
+
+## 30/8/2026 — HAI KHO song song: "mất phân hiệu" hoá ra là đăng nhập nhầm trường
+
+Đi tìm thủ phạm xoá phân hiệu Diễn Thái thì `db/soi-phan-hieu-gon.sql` lộ ra
+thứ khác hẳn: **hai bản ghi trường tên gần như y hệt, khác nhau đúng một chữ
+hoa** — *"Trường **T**iểu học Quảng Châu 1"* và *"Trường **t**iểu học Quảng
+Châu 1"*. Mỗi bên một kho, mỗi bên một tài khoản:
+
+| | KHO A | KHO B |
+|---|---|---|
+| Mã trường | `THDL` | `45407` |
+| Tạo lúc | 31/7 15:43 | 28/8 18:16 |
+| Đăng nhập bằng | `chungtrt@gmail.com` | `chungtrt@nghean.edu.vn` |
+| Lớp · GV | 25 · 35 | 25 · 32 |
+| **Phân công** | **265 dòng** | **2 dòng** |
+| Phiên bản TKB | 9 (bản 9 đã công bố) | 1 |
+
+Kho B sinh ra ngày 28/8 khi chủ dự án đăng ký lại bằng **Gmail nhà trường** —
+đúng theo bài học Châu Đình 25/8 — nhưng đăng ký là **lập một trường mới**,
+không phải đổi địa chỉ đăng nhập của trường đang có. Từ đó thao tác lúc ở kho
+này lúc ở kho kia: thêm phân hiệu bên A rồi đăng nhập bên B là thấy thiếu.
+
+⚠️ **Nhìn từ phía người dùng, hai kho song song KHÔNG phân biệt được với mất
+dữ liệu.** Cùng một tên trường, cùng 25 lớp, cùng ba phân hiệu — chỉ khác cái
+mình vừa thêm thì không còn. Không màn hình nào nói "đây là trường khác": tên
+trường trên thanh đầu trang giống hệt vì chỉ lệch một chữ hoa.
+
+**Đã gộp cùng ngày** (`db/gop-truong-trung.sql`, ĐÃ CHẠY trên máy chủ thật):
+chuyển Gmail nhà trường về kho A rồi xoá hẳn kho B. Chủ dự án chốt xoá.
+
+Ba luật rút ra:
+
+- ⚠️ **Chuyển tài khoản thì phải đặt `diem_truong_id = null`.** Nó đang trỏ
+  vào phân hiệu của kho cũ, mà sang kho mới thì id ấy không tồn tại — tài
+  khoản thành "PHT phụ trách một phân hiệu không còn": bấm Lưu được máy chủ
+  báo *ok* với phạm vi RỖNG, không ghi được ô nào và không lỗi nào hiện ra.
+- **Xoá một `truong` là xoá SẠCH mọi thứ của nó** — mọi bảng đều khai
+  `on delete cascade` theo `truong_id`. Nên tệp gộp có ba chốt tự dừng: kho
+  giữ lại phải có ≥200 dòng phân công (chắc chắn là kho thật), kho bỏ không
+  được còn tài khoản nào (bước chuyển phải chạy trước, không thì hồ sơ quản
+  trị bị xoá theo và lần sau đăng nhập bị coi là *"chưa thuộc trường nào"*),
+  và chỉ xoá đúng dòng mang mã đã nêu — **không dò theo tên**, vì tên chính
+  là thứ đang trùng.
+- **Ba tài khoản chủ dự án đều `quan_tri` toàn trường**, nhưng chỉ hai cái
+  mang `la_chu_he_thong`; Gmail nhà trường vừa chuyển sang thì **false**.
+  Đăng nhập bằng nó thì quản lý trường mình bình thường nhưng không duyệt
+  được trường mới đăng ký — chỗ này phải nói ra, không thì hôm có đơn mới
+  lại tưởng phần mềm hỏng.
+
+**Việc còn tồn phát hiện nhân đây:** kho A **chưa có tài khoản giáo viên
+nào** — 35 thầy cô Diễn Liên vẫn chưa vào được. Đường nhanh nhất là cột
+Gmail trong bảng Giáo viên (28/8), không cần mã mời.
+
+Ba câu SQL để lại: `db/soi-phan-hieu.sql` (bản đủ, nhiều câu) ·
+`db/soi-phan-hieu-gon.sql` (**một câu** — SQL Editor của Supabase chỉ bày kết
+quả của một câu, chạy tệp nhiều câu thì bốn bảng đầu không nhìn thấy được) ·
+`db/soi-truong-trung.sql` (trường nào, tài khoản nào trỏ vào đâu).
