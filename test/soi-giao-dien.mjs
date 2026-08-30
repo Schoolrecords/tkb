@@ -9,7 +9,7 @@
    Cần cài một lần:  npm install --no-save jsdom
    Chưa cài thì phép thử tự bỏ qua, `npm test` vẫn chạy độc lập như cũ.
    ================================================================== */
-import { readFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -3831,6 +3831,54 @@ console.log('\n17w. Tiền tố phân hiệu trong hộp tạo lớp');
   })());
 
   w.eval(`S.diemTruong = ${dtGoc}`);
+}
+
+console.log('\n17x. Ảnh minh hoạ trong Hướng dẫn');
+/* Chủ dự án 31/8/2026: "viết lại Hướng dẫn xếp Thời khóa biểu: Bước 1 là gì,
+   Bước 2 là gì cho đến hoàn thành và tinh chỉnh… Nhớ phải có hình ảnh minh
+   họa cho các thầy cô dễ thấy."
+
+   ⚠️ Ảnh phải nằm TRONG src/. GitHub Pages chỉ đăng thư mục ấy
+   (.github/workflows/pages.yml — `path: src`), nên để ở docs/ thì mở ở máy
+   vẫn thấy mà lên web là ô trắng — loại lỗi không bộ soi nào bắt được nếu
+   chỉ mở tệp ở máy. */
+{
+  const maNguon = readFileSync(join(goc, 'src/index.html'), 'utf8');
+  const reAnh = new RegExp('anh-huong-dan/([a-z0-9-]+)[.]png', 'g');
+  const nhac = [...maNguon.matchAll(reAnh)].map(m => m[1]);
+  const co = readdirSync(join(goc, 'src/anh-huong-dan')).map(f => f.replace(/[.]png$/, ''));
+  const theAnh = [...maNguon.matchAll(/<img src="anh-huong-dan[^>]*>/g)].map(m => m[0]);
+
+  kt('Mọi ảnh Hướng dẫn nhắc tới đều CÓ TỆP THẬT trong src/', (() => {
+    const thieu = nhac.filter(a => !co.includes(a));
+    return [nhac.length > 0 && thieu.length === 0, thieu.join(' · ') || `${nhac.length} ảnh`];
+  })());
+
+  kt('Không để lại tệp ảnh thừa không ai dùng', (() => {
+    const thua = co.filter(c => !nhac.includes(c));
+    return [thua.length === 0, thua.join(' · ') || `${co.length} tệp`];
+  })());
+
+  /* Ảnh cộng lại hơn 4 MB. Thiếu `loading="lazy"` thì mở mục Hướng dẫn là
+     tải hết ngay — thầy cô dùng 3G phải chờ cả phút cho một trang chữ. */
+  kt('Mọi ảnh đều tải lười, không kéo cả 4 MB ngay khi mở mục', (() => {
+    const quen = theAnh.filter(t => !/loading="lazy"/.test(t));
+    return [theAnh.length > 0 && quen.length === 0, `${theAnh.length} thẻ ảnh`];
+  })());
+
+  kt('Ảnh nào cũng có chú thích và chữ thay thế', (() => {
+    const thieuAlt = theAnh.filter(t => !/alt="[^"]{10,}"/.test(t));
+    const soChu = (maNguon.match(/<figcaption>/g) || []).length;
+    return [thieuAlt.length === 0 && soChu >= theAnh.length,
+            `${theAnh.length} ảnh · ${soChu} chú thích`];
+  })());
+
+  /* Hướng dẫn phải đi theo BƯỚC, đúng trình tự làm việc — đó là cả yêu cầu. */
+  kt('Hướng dẫn cán bộ quản lý đi theo bảy bước, đúng thứ tự', (() => {
+    const reB = new RegExp("[{]t:'(BƯỚC (" + "[0-9]" + ")[^']*)'", 'g');
+    const b = [...maNguon.matchAll(reB)].map(m => +m[2]);
+    return [b.length === 7 && b.every((x, i) => x === i + 1), b.join(' → ')];
+  })());
 }
 
 console.log('\n18. Không có lỗi chạy nào');

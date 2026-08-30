@@ -741,6 +741,13 @@ tr.tat-d{opacity:.5}tr.tat-d span{text-decoration:line-through}
 .hd-m p:last-child{margin-bottom:0}
 .hd-buoc{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px;margin-top:4px}
 .hd-b{background:#F2F8FD;border:1px solid var(--ke);border-radius:var(--r2);padding:13px 15px}
+/* Ảnh minh hoạ trong Hướng dẫn. `loading=lazy` là bắt buộc: 21 ảnh cộng lại
+   hơn 4 MB, tải hết ngay khi mở mục này thì thầy cô dùng 3G phải chờ cả
+   phút cho một trang chữ. */
+.hd-anh{margin:12px 0 4px}
+.hd-anh img{width:100%;border:1px solid var(--ke);border-radius:var(--r2);
+  box-shadow:0 2px 10px rgba(0,83,145,.10);display:block}
+.hd-anh figcaption{font-size:12.5px;color:var(--chu-mo);margin-top:6px;font-style:italic}
 .hd-b b{display:block;font-size:13px;font-weight:700;margin-bottom:4px}
 .hd-b span{font-size:12.5px;color:var(--chu-mo);line-height:1.6}
 .hd-phim{display:inline-block;background:#E9F3FA;border:1px solid var(--ke-2);border-bottom-width:2px;
@@ -12113,87 +12120,171 @@ const HD_ND = {
         <p>Đã có sẵn bảng phân công của phần mềm cũ thì dùng <b>mẫu ba trang</b>; quen kẻ tay
           kiểu mỗi giáo viên một dòng, mỗi môn một cột đánh dấu <i>x</i> thì dùng <b>mẫu ma trận</b>.
           Cả ba kiểu đều tải lên bằng cùng một nút <b>Chọn tệp</b>.</p>`},
-      {t:'Khai báo dữ liệu nhà trường', n:`
-        <p>Thanh bên gom thành năm nhóm mở được. Làm lần lượt các mục trong nhóm <b>Dữ liệu nhà trường</b>,
-          mỗi màn hình có nút <i>tiếp theo ›</i> để đi sang việc kế — không phải tự mò.</p>
+      {t:'BƯỚC 1 · Khai báo dữ liệu nhà trường', n:`
+        <p>Đây là việc dài nhất, nhưng <b>chỉ làm một lần</b> cho cả năm học. Mở nhóm
+          <b>Dữ liệu nhà trường</b> ở thanh bên rồi đi lần lượt từ trên xuống — mỗi màn hình
+          có nút <i>tiếp theo ›</i> đưa sang việc kế, không phải tự nhớ.</p>
+        <p><b>Nhanh hơn:</b> mỗi màn hình đều có nút <b>Nhập từ Excel</b> → <i>Tải mẫu về điền</i>.
+          Mẫu ra sẵn những gì đang có, chỉ việc gõ thêm rồi tải lên.</p>
+
         <div class="hd-buoc">
-          <div class="hd-b"><b>1 · Thông tin trường</b><span>Tên đơn vị, năm học, xã, tỉnh. Ba thứ này in ở đầu mọi bản thời khóa biểu.</span></div>
-          <div class="hd-b"><b>2 · Phân hiệu</b><span>Nhà trường có mấy nơi dạy học, rồi phân bổ từng lớp về đúng nơi.</span></div>
-          <div class="hd-b"><b>3 · Khối và khung giờ</b><span>Số tiết mỗi buổi của từng khối. Dòng tổng dưới bảng phải xanh cả năm ô mới đúng chuẩn.</span></div>
-          <div class="hd-b"><b>4 · Lớp học</b><span>Bấm <i>Tạo lớp hàng loạt</i>: khai mỗi khối có mấy lớp là máy sinh 1A–1E và tự đặt mã. Rồi chọn chủ nhiệm cho từng lớp.</span></div>
-          <div class="hd-b"><b>5 · Giáo viên</b><span>Thêm từng người, ghi đủ họ tên và định mức tiết mỗi tuần.</span></div>
-          <div class="hd-b"><b>6 · Môn học</b><span>Danh mục môn, màu trên lưới, môn nào ưu tiên sáng sớm, số tiết chuẩn từng khối.</span></div>
-          <div class="hd-b"><b>7 · Phòng học</b><span>Chỉ khai phòng dùng chung: phòng máy, phòng nghệ thuật. Lớp học thường không cần khai.</span></div>
-          <div class="hd-b"><b>8 · Phân công</b><span>Ai dạy môn gì, lớp nào, mấy tiết. Nguồn quan trọng nhất — sai ở đây thì xếp ra sai hết.</span></div>
-          <div class="hd-b"><b>9 · Buổi bận</b><span>Buổi nào thầy cô không lên lớp được thì đánh dấu. Máy sẽ không xếp tiết nào vào đó.</span></div>
+          <div class="hd-b"><b>1 · Thông tin trường</b><span>Tên đơn vị, năm học, xã, tỉnh.
+            Bốn thứ này in ở đầu mọi bản thời khóa biểu nên gõ cho đúng ngay từ đầu.</span></div>
         </div>
-        <p style="margin-top:11px">Khai xong mỗi màn hình nhớ bấm <b>Lưu lên máy chủ</b>, không thì tải lại
-          trang là mất.</p>
-        <p><b>Tìm nhanh trong danh sách dài:</b> trường sáp nhập có tới sáu chục lớp và
-          gần trăm thầy cô. Mỗi bảng dài đều có <b>ô tìm kiếm</b> ở phía trên — gõ vài chữ
-          là danh sách rút gọn ngay, <b>không cần gõ dấu</b>. Gõ <i>huong</i> ra
-          <i>Nguyễn Thị Hương</i>; gõ <i>1a dien dong</i> ra đúng lớp 1A của phân hiệu
-          Diễn Đồng. Bấm dấu <b>×</b> trong ô là trở lại danh sách đủ.</p>
-        <p><b>Nhanh hơn — và đây mới là đường chính:</b> đừng khai tay chín màn hình.
-          Bấm <b>Nhập dữ liệu Excel</b> ngay trên thanh công cụ của màn hình đang mở, tải
-          <b>mẫu trọn gói</b> về điền rồi tải lên — một lần là xong cả chín mục. Xem lại
-          mục <b>1 · Nhập liệu lần đầu</b> ở trên. Chín màn hình dưới đây là chỗ để
-          <b>sửa lặt vặt về sau</b>, không phải chỗ nhập lần đầu.
-          Gộp nhiều trường vào một đơn vị thì mỗi lớp phải có <b>Ma_lop</b> riêng
-          (ví dụ <i>DL-1A</i>, <i>DD-1A</i>, <i>DT-1A</i>). <b>Tên lớp thì được phép trùng nhau</b> giữa các
-          phân hiệu — màn hình tự ghi kèm nơi học để khỏi lẫn.</p>
-        <p><b>Thanh tiến trình</b> ở đầu <i>Bảng điều hành</i> luôn nói rõ còn thiếu gì;
-          bấm thẳng vào dòng thiếu là tới đúng chỗ phải làm.</p>`},
-      {t:'Kiểm tra khả thi trước khi xếp', n:`
-        <p>Vào mục <b>Kiểm tra khả thi</b>. Máy soát mười hai quy tắc và chỉ ra vướng mắc <i>trước</i> khi xếp,
-          lúc còn kịp điều chỉnh nhân sự.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-1-thong-tin-truong.png" alt="Mục Thông tin trường — tên đơn vị và năm học sẽ in trên mọi bản thời khoá biểu" loading="lazy"><figcaption>Mục Thông tin trường — tên đơn vị và năm học sẽ in trên mọi bản thời khoá biểu</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>2 · Phân hiệu</b><span>Nhà trường có mấy nơi dạy học. Trường một
+            điểm thì để nguyên một dòng. Sau sáp nhập thì thêm từng phân hiệu, rồi bấm
+            <i>Phân bổ lớp</i> để chia lớp về đúng nơi.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-2-phan-hieu.png" alt="Mục Phân hiệu — mỗi nơi dạy học một thẻ, kèm số lớp và số giáo viên" loading="lazy"><figcaption>Mục Phân hiệu — mỗi nơi dạy học một thẻ, kèm số lớp và số giáo viên</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>3 · Khối và khung giờ</b><span>Mỗi buổi học mấy tiết, khối nào tan
+            sớm hơn. Ô kết luận dưới mỗi khối phải ghi <i>vừa đủ</i> — còn <i>2 ô trống</i> nghĩa là
+            học sinh khối ấy ngồi chơi 2 tiết mỗi tuần.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-3-khung-gio.png" alt="Mục Khối và khung giờ — số tiết mỗi buổi khai riêng cho từng khối" loading="lazy"><figcaption>Mục Khối và khung giờ — số tiết mỗi buổi khai riêng cho từng khối</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>4 · Lớp học</b><span>Bấm <b>Tạo lớp hàng loạt</b>: khai mỗi khối có
+            mấy lớp là máy sinh đủ. Trường không dùng chữ nào (ví dụ bỏ chữ F) thì
+            <b>xoá chữ ấy khỏi ô “Chữ cái đặt tên lớp”</b> — máy sẽ sinh 1A · 1B · 1C · 1D · 1E ·
+            <b>1G</b> · 1H · 1I.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-4-tao-lop.png" alt="Hộp Tạo lớp hàng loạt — xoá chữ cái nào trường không dùng ra khỏi dãy" loading="lazy"><figcaption>Hộp Tạo lớp hàng loạt — xoá chữ cái nào trường không dùng ra khỏi dãy</figcaption></figure>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-5-lop-hoc.png" alt="Bảng Lớp học — mỗi lớp một mã riêng, chọn chủ nhiệm ngay tại bảng" loading="lazy"><figcaption>Bảng Lớp học — mỗi lớp một mã riêng, chọn chủ nhiệm ngay tại bảng</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>5 · Giáo viên</b><span>Ghi <b>đủ họ tên</b> — trường 35 người đã có
+            bốn cặp trùng tên gọi. Điền sẵn <b>Gmail</b> thì thầy cô bấm <i>Đăng nhập bằng Google</i>
+            là vào thẳng, không cần mã mời. Danh sách xếp <b>chủ nhiệm trước, bộ môn sau</b>.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-6-giao-vien.png" alt="Bảng Giáo viên — cột Dạy do máy tự sinh từ bảng phân công, không gõ tay được" loading="lazy"><figcaption>Bảng Giáo viên — cột Dạy do máy tự sinh từ bảng phân công, không gõ tay được</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>6 · Môn học</b><span>Danh mục môn, màu trên lưới, môn nào ưu tiên
+            sáng sớm, số tiết chuẩn từng khối. Trường thêm môn tự chọn thì khai ở đây.</span></div>
+          <div class="hd-b"><b>7 · Phòng học</b><span>Chỉ khai phòng <b>dùng chung</b>: phòng máy,
+            phòng nghệ thuật. Lớp học thường không cần khai. Khai rồi thì máy không bao giờ
+            xếp hai lớp vào một phòng cùng tiết.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-7-mon-hoc.png" alt="Mục Môn học — số tiết chuẩn từng khối và môn nào cần phòng chức năng" loading="lazy"><figcaption>Mục Môn học — số tiết chuẩn từng khối và môn nào cần phòng chức năng</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>8 · Phân công chuyên môn</b><span>Nguồn quan trọng nhất — sai ở đây
+            thì xếp ra sai hết. Bảng dạng <b>ma trận</b>: hàng là giáo viên, cột là môn, ô ghi lớp.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-8-phan-cong.png" alt="Bảng Phân công dạng ma trận — hàng là giáo viên, cột là môn" loading="lazy"><figcaption>Bảng Phân công dạng ma trận — hàng là giáo viên, cột là môn</figcaption></figure>
+        <p>Giáo viên bộ môn dạy hàng chục lớp thì đừng bấm từng ô: dùng <b>Phân công nhanh cho một
+          giáo viên</b> — chọn người, chọn môn, tích các lớp, một lần là xong.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-9-phan-cong-nhanh.png" alt="Hộp Phân công nhanh — một giáo viên, một môn, nhiều lớp" loading="lazy"><figcaption>Hộp Phân công nhanh — một giáo viên, một môn, nhiều lớp</figcaption></figure>
+
+        <div class="hd-buoc">
+          <div class="hd-b"><b>9 · Buổi bận</b><span>Buổi nào thầy cô <b>không lên lớp được đều đặn
+            hằng tuần</b> thì đánh dấu. Máy sẽ không xếp tiết nào vào đó. Nghỉ một ngày cụ thể thì
+            dùng mục <i>Báo nghỉ</i>, không phải ở đây.</span></div>
+        </div>
+        <figure class="hd-anh"><img src="anh-huong-dan/b1-10-buoi-ban.png" alt="Mục Buổi bận — buổi bận LẶP LẠI hằng tuần, khác với báo nghỉ một ngày" loading="lazy"><figcaption>Mục Buổi bận — buổi bận LẶP LẠI hằng tuần, khác với báo nghỉ một ngày</figcaption></figure>
+
+        <p><b>Khai xong nhớ bấm <i>Lưu</i></b> ở từng màn hình. Dải đỏ
+          <i>“● Có thay đổi chưa lưu”</i> cạnh nút Lưu là lời nhắc — còn dải ấy mà tải lại trang
+          là mất công vừa làm.</p>`},
+
+      {t:'BƯỚC 2 · Kiểm tra khả thi trước khi xếp', n:`
+        <p>Vào mục <b>Kiểm tra khả thi</b>. Máy soát mười ba quy tắc và chỉ ra vướng mắc
+          <i>trước</i> khi xếp — lúc còn kịp điều chỉnh nhân sự, chứ không phải đến lúc xếp xong
+          mới biết thiếu người.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b2-kiem-tra-kha-thi.png" alt="Mục Kiểm tra khả thi — mỗi vướng mắc kèm dòng Hướng xử lý" loading="lazy"><figcaption>Mục Kiểm tra khả thi — mỗi vướng mắc kèm dòng Hướng xử lý</figcaption></figure>
         <ul>
           <li><b>Mục đỏ</b> — phải xử lý, không thì chắc chắn có tiết không xếp được.</li>
           <li><b>Mục cam</b> — nên xem lại, vẫn xếp được.</li>
           <li><b>Mục xanh</b> — chỉ để biết, ví dụ trùng tên gọi giáo viên.</li>
         </ul>
-        <p>Mỗi mục đều kèm dòng <b>Hướng xử lý</b> nói rõ phải làm gì.</p>`},
-      {t:'Xếp thời khóa biểu', n:`
-        <p>Vào <b>Xếp thời khóa biểu</b>, bấm <b>Bắt đầu xếp</b>. Máy làm hai bước liền nhau:</p>
-        <ol>
-          <li>Xếp cái khó trước — giáo viên bộ môn dạy nhiều phân hiệu xếp trước, giáo viên chủ nhiệm xếp sau vì họ linh hoạt hơn.</li>
-          <li>Tinh chỉnh: đổi chỗ hàng trăm lần để kéo Toán và Tiếng Việt về buổi sáng, bớt tiết trống kẹp giữa buổi, giảm số lần thầy cô phải chạy sang phân hiệu khác.</li>
-        </ol>
-        <p>Máy tự ghim sẵn <b>chào cờ</b> sáng thứ Hai tiết 1 và <b>sinh hoạt lớp</b> tiết cuối sáng thứ Sáu
-          của từng khối. Tiết nào không xếp được sẽ liệt kê rõ thiếu ở đâu.</p>
-        <p><b>Môn phải học đúng một giờ nhất định</b> — Tiếng Anh tăng cường do trung tâm về dạy chiều
-          thứ Năm chẳng hạn — thì bấm <b>Cố định môn vào giờ</b> <i>trước khi</i> xếp: chọn môn, chọn
-          thứ · buổi · tiết, rồi tích những lớp áp dụng. Máy đặt sẵn các tiết ấy, đánh dấu 📌, và khi
-          xếp tự động sẽ xếp mọi môn khác quanh chúng chứ không bao giờ đè lên.</p>
-        <p>Hộp ấy nói ngay lớp nào <b>không</b> đặt được và vì sao: lớp không học môn đó, khối ấy
-          không có giờ đó, hoặc thầy cô đang dạy lớp khác cùng giờ. Cách làm quen thuộc:
-          cố định vài môn → <b>Xếp</b> → xem kết quả, tiết nào ưng thì bấm giữ để <b>ghim</b> →
-          <b>Xếp</b> lại cho máy tối ưu phần còn lại.</p>`},
-      {t:'Chỉnh tay — chạm hoặc kéo thả', n:`
-        <p>Vào <b>Theo lớp</b>. Có hai cách, dùng cách nào cũng được:</p>
+        <p>Mỗi mục đều kèm dòng <b>Hướng xử lý</b> nói rõ phải làm gì. Đây là chỗ đáng đọc kỹ
+          nhất của cả phần mềm: nó cho biết vấn đề nhân sự từ tháng 8.</p>`},
+
+      {t:'BƯỚC 3 · Cố định môn vào giờ (nếu cần)', n:`
+        <p>Có môn buộc phải học đúng một giờ nhất định — Tiếng Anh tăng cường do trung tâm về dạy
+          chiều thứ Năm chẳng hạn. Vào <b>Xếp thời khóa biểu</b> → <b>Cố định môn vào giờ</b>
+          <i>trước khi</i> bấm xếp.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b3-1-man-xep.png" alt="Màn hình Xếp thời khóa biểu — nút Cố định môn vào giờ nằm cạnh hai nút xếp" loading="lazy"><figcaption>Màn hình Xếp thời khóa biểu — nút Cố định môn vào giờ nằm cạnh hai nút xếp</figcaption></figure>
+        <p>Chọn môn, chọn thứ · buổi · tiết, rồi tích những lớp áp dụng. Có nút chọn nhanh theo
+          từng <b>khối</b>.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b3-2-co-dinh-mon.png" alt="Hộp Cố định môn vào giờ — nói ngay lớp nào không đặt được và vì sao" loading="lazy"><figcaption>Hộp Cố định môn vào giờ — nói ngay lớp nào không đặt được và vì sao</figcaption></figure>
+        <p>Hộp <b>nói trước</b> lớp nào không đặt được và vì sao — <i>lớp không học môn này</i>,
+          <i>khối ấy không có giờ đó</i>, hay <i>thầy cô đang dạy lớp khác cùng giờ</i>. Ô tích của
+          những lớp ấy bị khoá luôn.</p>
+        <p>Tiết cố định mang dấu <b>📌</b> và khi xếp tự động máy sẽ xếp mọi môn khác quanh chúng,
+          <b>không bao giờ đè lên</b>. Chào cờ sáng thứ Hai và sinh hoạt lớp cuối sáng thứ Sáu thì
+          máy tự ghim sẵn, không phải khai.</p>`},
+
+      {t:'BƯỚC 4 · Xếp tự động', n:`
+        <p>Vẫn ở mục <b>Xếp thời khóa biểu</b>, có hai nút:</p>
         <div class="hd-buoc">
-          <div class="hd-b"><b>Chạm — dùng được trên điện thoại</b><span>Chạm vào tiết cần chuyển. Mọi ô đặt được sáng xanh, ô vướng ràng buộc mờ đi. Chạm ô xanh là xong. Chạm lại chính nó để bỏ chọn.</span></div>
-          <div class="hd-b"><b>Kéo thả — trên máy tính</b><span>Kéo tiết thả sang ô khác như cũ.</span></div>
+          <div class="hd-b"><b>Xếp nhanh</b><span>Một phương án dùng được, trong khoảng một giây.
+            Dùng nút này để xem thử.</span></div>
+          <div class="hd-b"><b>Xếp kỹ</b><span>Chạy vài phút, thử hàng chục cách rồi giữ lại vài
+            phương án đẹp nhất để thầy cô tự chọn. Bấm <i>Dừng lại</i> lúc nào cũng được, phương án
+            tốt nhất tới lúc đó vẫn giữ.</span></div>
         </div>
-        <p style="margin-top:11px">Máy chặn ngay và nói rõ lý do nếu phạm ràng buộc: trùng giờ giáo viên,
-          thầy cô đang dạy ở phân hiệu khác trong cùng buổi, hoặc đã báo bận buổi đó.
-          <b>Không bao giờ xếp được một thời khóa biểu sai.</b></p>`},
-      {t:'Ghim tiết và hoàn tác', n:`
-        <p>Tiết nào chỉnh tay là máy <b>ghim 📌</b> lại. Lần bấm <b>Bắt đầu xếp</b> sau đó, tiết ghim
-          <b>đứng yên</b> — công chỉnh tay không mất.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b4-ket-qua-xep.png" alt="Kết quả xếp — số tiết đã xếp, thời gian chạy, và danh sách tiết chưa xếp được nếu có" loading="lazy"><figcaption>Kết quả xếp — số tiết đã xếp, thời gian chạy, và danh sách tiết chưa xếp được nếu có</figcaption></figure>
+        <p>Máy làm hai việc liền nhau: xếp cái khó trước (giáo viên bộ môn dạy nhiều phân hiệu),
+          rồi tinh chỉnh hàng trăm lần để kéo Toán và Tiếng Việt về buổi sáng, bớt tiết trống kẹp
+          giữa buổi, giảm số lần thầy cô phải chạy sang phân hiệu khác.</p>
+        <p><b>Còn tiết chưa xếp được?</b> Máy liệt kê rõ từng trường hợp, gom theo <b>cách gỡ</b> —
+          vướng ai, gỡ thế nào, gỡ ra được mấy ô. Không phải tự mò.</p>`},
+
+      {t:'BƯỚC 5 · Tinh chỉnh bằng tay', n:`
+        <p>Máy xếp đúng ràng buộc, nhưng nhà trường còn ý riêng. Vào mục <b>Theo lớp</b> để chỉnh.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b5-1-theo-lop.png" alt="Màn hình Theo lớp — danh sách lớp bên trái, lưới của lớp đang chọn bên phải" loading="lazy"><figcaption>Màn hình Theo lớp — danh sách lớp bên trái, lưới của lớp đang chọn bên phải</figcaption></figure>
+        <div class="hd-buoc">
+          <div class="hd-b"><b>Chạm — dùng được trên điện thoại</b><span>Chạm vào tiết cần chuyển,
+            rồi chạm ô muốn đặt. Chạm lại chính nó để bỏ chọn.</span></div>
+          <div class="hd-b"><b>Kéo thả — trên máy tính</b><span>Kéo tiết thả sang ô khác như quen.</span></div>
+        </div>
+        <p>Khi đang cầm một tiết, lưới hiện <b>ba mức tín hiệu</b>:</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b5-2-ba-muc-tin-hieu.png" alt="Ba mức tín hiệu khi đang cầm một tiết — xanh, vàng và ô mờ" loading="lazy"><figcaption>Ba mức tín hiệu khi đang cầm một tiết — xanh, vàng và ô mờ</figcaption></figure>
         <ul>
-          <li>Bấm vào dấu 📌 trên ô là bỏ ghim riêng tiết đó.</li>
-          <li>Nút <b>Bỏ ghim cả lớp</b> gỡ hết ghim của lớp đang xem.</li>
-          <li>Nút <b>Hoàn tác</b> (hoặc <span class="hd-phim">Ctrl</span> + <span class="hd-phim">Z</span>)
-            lùi lại 20 bước gần nhất — kể cả lỡ tay bấm <i>Xoá kết quả</i> hay <i>Bắt đầu xếp</i>.</li>
-        </ul>`},
-      {t:'Lưu và phiên bản', n:`
-        <p>Bấm <b>Lưu lên máy chủ</b> ở mục Xếp thời khóa biểu. Mỗi lần lưu là một phiên bản mới, không đè lên bản cũ.</p>
+          <li><b>Ô xanh</b> — đổi tự do, không ảnh hưởng ai.</li>
+          <li><b>Ô vàng</b> — đổi được, <i>nhưng</i> chạm vào tiết của một giáo viên dạy nhiều lớp.
+            Đây là <b>lời nhắc, không phải cấm</b>: vẫn bấm được nếu nhà trường muốn.</li>
+          <li><b>Ô mờ</b> — vướng ràng buộc cứng, máy không cho đặt và nói rõ vì sao.</li>
+        </ul>
+        <p><b>Tiết nào ưng thì ghim lại</b> — mỗi tiết chỉnh tay được đánh dấu 📌 và lần
+          <i>Xếp</i> sau máy giữ nguyên, chỉ xếp lại phần còn lại. Đây là cách làm quen thuộc:
+          cố định vài môn → xếp → ưng chỗ nào thì ghim → xếp lại cho máy tối ưu phần còn lại.</p>
+        <p>Lỡ tay thì bấm <b>Hoàn tác</b> hoặc <b>Ctrl + Z</b> — máy nhớ 20 bước gần nhất.</p>`},
+
+      {t:'BƯỚC 6 · Lưu, phiên bản và công bố', n:`
+        <p>Bấm <b>Lưu lên máy chủ</b>. Mỗi lần lưu là một phiên bản mới, <b>không đè lên bản cũ</b>.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b6-phien-ban.png" alt="Mục Phiên bản và công bố — mỗi bản lưu một dòng, kèm người sửa và thời điểm" loading="lazy"><figcaption>Mục Phiên bản và công bố — mỗi bản lưu một dòng, kèm người sửa và thời điểm</figcaption></figure>
         <ul>
-          <li>Hai người lưu cùng lúc thì máy chủ từ chối người giữ bản cũ hơn, không ai mất công.</li>
-          <li><b>Lịch sử phiên bản</b> cho xem lại và khôi phục bản cũ. Khôi phục chỉ nạp lên màn hình, muốn chốt thì lưu lại thành bản mới.</li>
-          <li><b>Nhật ký thao tác</b> ghi lại ai lưu, ai công bố, ai nhập dữ liệu, lúc nào — trường nhiều người cùng xếp thì nhìn vào đây là biết chuyện gì đã xảy ra.</li>
-        </ul>`},
+          <li>Hai người lưu cùng lúc thì máy gộp theo phạm vi của từng người — ba phó hiệu trưởng
+            ba phân hiệu cùng sửa một buổi tối cũng không ai mất công.</li>
+          <li><b>Khôi phục</b> bản cũ chỉ nạp lên màn hình; muốn chốt thì lưu lại thành bản mới.</li>
+          <li><b>Nhật ký thao tác</b> ghi ai lưu, ai công bố, ai nhập dữ liệu, lúc nào.</li>
+        </ul>
+        <p><b>Công bố cho giáo viên</b> là bước cuối. Thời khoá biểu chỉ hiện với thầy cô sau khi
+          công bố. Đây là <b>ban hành một văn bản</b>: máy hỏi <i>số hiệu</i>, <i>ngày thực hiện</i>
+          và <i>học kỳ</i>, rồi khoá ngày ký lại — in lại tháng sau vẫn ra đúng ngày ấy.</p>`},
+
+      {t:'BƯỚC 7 · Xuất và in', n:`
+        <p>Mục <b>Toàn trường</b> để xem và dán bảng tin; mục <b>Xuất và in</b> để lấy tệp.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/b7-1-toan-truong.png" alt="Thời khoá biểu toàn trường — mỗi lớp một cột, xem được cả trường trong một màn hình" loading="lazy"><figcaption>Thời khoá biểu toàn trường — mỗi lớp một cột, xem được cả trường trong một màn hình</figcaption></figure>
+        <figure class="hd-anh"><img src="anh-huong-dan/b7-2-xuat-in.png" alt="Mục Xuất và in — bốn loại bản in và tệp Excel nhiều trang" loading="lazy"><figcaption>Mục Xuất và in — bốn loại bản in và tệp Excel nhiều trang</figcaption></figure>
+        <div class="hd-buoc">
+          <div class="hd-b"><b>Bản in giấy</b><span>Một lớp và một giáo viên in khổ A4 dọc; theo khối
+            A4 ngang; toàn trường A3 ngang. Đủ thể thức: tên đơn vị, số hiệu, ngày thực hiện, hai chỗ ký.</span></div>
+          <div class="hd-b"><b>Tệp Word</b><span>Tải về sửa lại được — thứ tệp PDF không cho.</span></div>
+          <div class="hd-b"><b>Tệp Excel</b><span>Nhiều trang tính: toàn trường, theo lớp, theo giáo viên,
+            từng khối, bảng phân công.</span></div>
+        </div>
+        <p><b>Trên điện thoại</b> mọi bước trên đều làm được. Bấm dấu ☰ góc trái để mở thanh điều hướng.</p>
+        <figure class="hd-anh"><img src="anh-huong-dan/dt-1-ngan-keo.png" alt="Trên điện thoại — bấm dấu ☰ để mở thanh điều hướng" loading="lazy"><figcaption>Trên điện thoại — bấm dấu ☰ để mở thanh điều hướng</figcaption></figure>
+        <figure class="hd-anh"><img src="anh-huong-dan/dt-2-theo-lop.png" alt="Chỉnh tay trên điện thoại — chạm chọn tiết rồi chạm ô muốn đặt" loading="lazy"><figcaption>Chỉnh tay trên điện thoại — chạm chọn tiết rồi chạm ô muốn đặt</figcaption></figure>`},
+
       {t:'Cấp quyền vào phần mềm bằng Google', n:`
         <p>Cách chính: vào hộp <b>Tài khoản</b> → nút <b>Mã mời Google</b> → chọn tên thầy cô →
           <b>Tạo mã</b> → gửi mã 6 ký tự qua Zalo. Thầy cô đăng nhập Gmail của mình rồi gõ mã là
