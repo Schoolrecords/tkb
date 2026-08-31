@@ -2478,3 +2478,42 @@ khung giờ giữ nguyên; chỉ danh sách người dạy bị xoá.
 `undefined` và bộ soi **đổ giữa chừng** bằng TypeError thay vì đỏ một dòng —
 đỏ thì đọc ra ngay vấn đề, đổ thì không. Nay tìm bằng khuôn `/^Xoá \d+ hồ sơ$/`
 và có một phép thử riêng canh con số trên nhãn.
+
+---
+
+## 31/8/2026 — Phát hành xong mà mười phút sau vẫn là bản cũ
+
+Đẩy tính năng *Giờ học riêng của lớp* lên lúc 14:17, chủ dự án mở app lúc
+14:20 và báo: *"thầy thử xong rồi, vẫn chưa thấy khu đó em ạ"*.
+
+Bản trên máy chủ **đã đúng** — tải thẳng `tkb.quantrisotruonghoc.com` bằng
+`curl` thấy đủ chuỗi *"Lớp học khác giờ khối"* và 23 chỗ gọi `soTietLop`,
+`Last-Modified: 14:17:09`. Thứ sai nằm ở đường về máy người dùng:
+
+```
+Cache-Control: max-age=600      ← GitHub Pages trả cho trang chính
+```
+
+Service worker vẫn khai chiến lược **mạng trước**, nhưng `fetch()` bên trong
+service worker **đi qua bộ nhớ đệm HTTP của trình duyệt** như mọi yêu cầu
+khác. Nên "mạng trước" ở đây chỉ có nghĩa "hỏi lớp cache trước, chứ không
+hỏi kho của service worker" — trong mười phút sau mỗi lần phát hành, trình
+duyệt trả bản cũ mà không hề đi ra mạng.
+
+Đây là loại lỗi tệ theo kiểu riêng: **không ai thấy gì cả**. Không lỗi, không
+cảnh báo, tính năng chỉ đơn giản là không có ở đó; người dùng kết luận phần
+mềm hỏng hoặc người viết nói dối.
+
+**Cách chữa:** `dungBoNhoDem(q)` trong `src/sw.js` — trang chính, `sw.js`,
+`manifest.webmanifest` và **mọi yêu cầu điều hướng** đi bằng `cache:
+'no-store'`, tức hỏi thẳng máy chủ. Ba tệp ấy nhỏ và mỗi lần mở app chỉ tải
+một lần nên không đánh đổi gì đáng kể. Tài nguyên ghim phiên bản (CDN, phông
+chữ) **không** đi qua đây — chúng vẫn *kho trước* như từ 16/8.
+
+⚠️ Và đường lui không được mất theo: mất mạng thì vẫn phải mở được từ kho.
+Mục **5** của `npm run soi-pwa` canh cả hai chiều bằng Chrome thật — dựng một
+trang giả lập đúng cách GitHub Pages phục vụ (đổi nội dung nhưng vẫn dặn giữ
+10 phút), mở hai lần, đòi lần sau ra bản mới; rồi ngắt mạng, đòi vẫn mở được.
+Đã thử ngược: bỏ `cache: 'no-store'` → phép thử đỏ với `ban 1 → ban 1`.
+
+**Cho tới khi bản vá này lên máy chủ, cách duy nhất là Ctrl + Shift + R.**

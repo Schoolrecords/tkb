@@ -22,8 +22,16 @@ const { chromium } = await import(
 const KIEU = { '.html': 'text/html; charset=utf-8', '.json': 'application/json',
                '.js': 'text/javascript', '.webmanifest': 'application/manifest+json',
                '.png': 'image/png' };
+/* Trang giả lập ĐÚNG cách GitHub Pages phục vụ trang chính: đổi nội dung
+   sau mỗi lần phát hành, nhưng vẫn bảo trình duyệt giữ bản cũ 10 phút. */
+let banPhatHanh = 1;
 const may = http.createServer((q, d) => {
   const duong = decodeURIComponent(q.url.split('?')[0]);
+  if (duong === '/src/thu-ban-moi.html') {
+    d.writeHead(200, { 'content-type': 'text/html; charset=utf-8',
+                       'cache-control': 'max-age=600' });
+    return d.end(`<!doctype html><title>ban ${banPhatHanh}</title><p id="b">ban ${banPhatHanh}</p>`);
+  }
   if (duong.endsWith('cauhinh.js')) { d.writeHead(404); return d.end(); }
   fs.readFile(path.join(GOC, duong), (e, b) => {
     if (e) { d.writeHead(404); return d.end('khong co'); }
@@ -109,6 +117,32 @@ kt('Kho cache không chứa một yêu cầu Supabase nào', await p.evaluate(as
       if (new URL(q.url).hostname.endsWith('.supabase.co')) return false;
   return true;
 }));
+
+/* ⚠️ "Mạng trước" CHƯA ĐỦ để không ai kẹt ở bản cũ (31/8/2026).
+   `fetch()` trong service worker vẫn đi qua bộ nhớ đệm HTTP của trình duyệt,
+   mà GitHub Pages trả `Cache-Control: max-age=600` cho trang chính. Chủ dự án
+   gặp thật: đẩy bản mới lên lúc 14:17, mở app lúc 14:20 vẫn không thấy tính
+   năng vừa làm, và không dấu hiệu nào cho biết vì sao. */
+console.log('\n5. Phát hành bản mới thì thấy NGAY, không phải chờ hết 10 phút');
+{
+  const DIA = 'http://localhost:8780/src/thu-ban-moi.html';
+  await p.goto(DIA, { waitUntil: 'networkidle' });
+  const lan1 = await p.textContent('#b');
+  banPhatHanh = 2;                      /* máy chủ đã có bản mới */
+  await p.goto(DIA, { waitUntil: 'networkidle' });
+  const lan2 = await p.textContent('#b');
+  kt('Mở lại là nhận đúng bản vừa phát hành, dù máy chủ dặn giữ 10 phút',
+     [lan1 === 'ban 1' && lan2 === 'ban 2', `${lan1} → ${lan2}`]);
+
+  /* Nhưng mất mạng thì vẫn phải mở được — đường lui không được mất theo */
+  await ctx.setOffline(true);
+  let moDuoc = true;
+  try { await p.goto(DIA, { waitUntil: 'domcontentloaded' }); }
+  catch (_) { moDuoc = false; }
+  const cu = moDuoc ? await p.textContent('#b').catch(() => '') : '';
+  await ctx.setOffline(false);
+  kt('Mất mạng vẫn mở được từ kho, không trắng trang', [!!cu, cu || 'không mở được']);
+}
 
 await tr.close();
 may.close();

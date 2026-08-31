@@ -97,6 +97,16 @@ phép thử ở `soi-pwa` canh. `sw.js` lấy **kho trước** cho địa chỉ 
 phiên bản và phông chữ (chúng không bao giờ đổi nội dung); trang chính giữ
 **mạng trước** để không ai kẹt lại ở bản cũ.
 
+⚠️ **"Mạng trước" một mình KHÔNG đủ** *(vá 31/8/2026)*. `fetch()` trong service
+worker vẫn đi qua bộ nhớ đệm HTTP của trình duyệt, mà GitHub Pages trả
+`Cache-Control: max-age=600` cho trang chính — nên **mười phút sau mỗi lần
+phát hành**, thầy cô mở app vẫn nhận đúng bản cũ và không dấu hiệu nào cho
+biết vì sao. Chủ dự án gặp thật: đẩy bản mới lên lúc 14:17, mở lúc 14:20
+không thấy tính năng vừa làm. Nay `dungBoNhoDem()` bắt trang chính · `sw.js` ·
+`manifest` · mọi yêu cầu điều hướng đi bằng `cache: 'no-store'` — hỏi thẳng
+máy chủ. Mất mạng thì vẫn rơi về kho như cũ; mục **5** của `npm run soi-pwa`
+canh cả hai chiều.
+
 **Không dùng Google Sheets làm CSDL** — không cô lập được dữ liệu giữa các
 trường, và hai phó hiệu trưởng lưu cùng lúc sẽ ghi đè nhau.
 
