@@ -1715,6 +1715,27 @@ const MON_LOP = {'Tiếng Việt':'m-tv','Toán':'m-toan','Tiếng Anh':'m-ta','
   'LS&ĐL':'m-ls','Khoa học':'m-kh','Tin học':'m-th','CN':'m-cn'};
 const MON_NANG = ['Toán','Tiếng Việt'];          /* nên xếp đầu buổi sáng */
 const MON_NHE  = ['GDTC','Mỹ thuật','Âm nhạc','HDTN'];
+/* ---------- MÔN ĐƯỢC XẾP HAI TIẾT LIỀN NHAU (31/8/2026) ----------
+   Chủ dự án: *"Tiếng Việt, Tiếng Anh các lớp 1–5 có thể có 2 tiết xếp liền
+   nhau, nhưng Toán, Khoa học, Lịch sử và Địa lý… thì không được"*. Lý do
+   nghiệp vụ: một bài đọc, một bài viết dạy liên thông hai tiết thì liền nhau
+   mới hợp; còn Toán hai tiết liền là quá tải với học sinh tiểu học.
+
+   ⚠️ ĐÂY LÀ MẶC ĐỊNH CHO TRƯỜNG MỚI, không phải luật cứng. Trường tự tích lại
+   ở mục Môn học. Môn nào chưa khai (`lienTiet === undefined`) thì coi như
+   ĐƯỢC PHÉP — đúng hành vi trước 31/8/2026, nên trường đang chạy bấm Xếp vẫn
+   ra y hệt lưới cũ cho tới khi họ tự đổi. */
+const MON_LIEN_TIET = ['Tiếng Việt','Tiếng Anh'];
+/* Đo trên dữ liệu thật trước khi chọn con số: phạt 40 đưa nhóm không-được-liền
+   từ 24 cặp về 0 mà vẫn xếp trọn 710/710, Toán và Tiếng Việt vào tiết 1–3
+   sáng vẫn 88%, Tiếng Việt vẫn giữ 78 cặp liền của mình. Phạt 20 cũng về 0
+   nhưng tiết trống kẹp xấu hơn (16 so với 11); phạt 80 thì không tốt thêm. */
+const PHAT_LIEN_TIET = 40;
+/* Môn này có được xếp hai tiết liền nhau không. Không khai thì ĐƯỢC. */
+const choLienTiet = mon => {
+  const m = (S.monHoc||[]).find(x=>x.ten===mon);
+  return m ? m.lienTiet !== false : true;
+};
 
 /* Số tiết chuẩn mỗi tuần theo CT GDPT 2018, tra từ bản kết xuất thật của
    Trường TH Diễn Liên. Khối nào môn đó không học thì bỏ trống. Dùng để gợi ý
@@ -1745,6 +1766,7 @@ function dsMonMacDinh(){
     nang:MON_NANG.includes(ten),          /* ưu tiên tiết đầu buổi sáng */
     nhe :MON_NHE.includes(ten),           /* tránh tiết cuối sáng, tiết 1 chiều */
     phong:ten==='Tin học'?'Tin học':'',   /* cần phòng chức năng loại nào */
+    lienTiet:MON_LIEN_TIET.includes(ten), /* được xếp hai tiết liền nhau không */
     chuan:{...(TIET_CHUAN[ten]||{})}
   }));
 }
@@ -2158,6 +2180,15 @@ function diemO(o,lp,mon,gv,cs){
   }
   /* gom tiết cho giáo viên bộ môn: ưu tiên buổi họ đã có mặt cùng phân hiệu */
   if(cs.gvBuoiDT[gv]?.[o.kB]===S.lopDT[lp]) d-=20;
+  /* Hai tiết cùng môn LIỀN NHAU. Khác hẳn `cungNgay` ở trên (cùng NGÀY):
+     đây là hai ô sát nhau trong một buổi, thứ học sinh cảm nhận rõ nhất.
+     ⚠️ Phải đặt ở CẢ HAI chỗ — hàm này và `diemLop()`. Nguyên mẫu chỉ chặn ở
+     đây thì bước hoán đổi (chấm bằng `diemLop`) ghép lại y như cũ: đo được
+     17 cặp Toán trước và sau, phạt 160 cũng không nhúc nhích. */
+  if(!choLienTiet(mon)){
+    const ke = i => S.tkb[lp][`${o.thu}-${o.buoi}-${i}`]?.mon===mon;
+    if(ke(o.i-1) || ke(o.i+1)) d += PHAT_LIEN_TIET;
+  }
   return d;
 }
 
@@ -2367,6 +2398,9 @@ function diemLop(l){
     for(let i=1;i<a.length;i++){
       lien = (a[i].mon===a[i-1].mon && a[i].buoi===a[i-1].buoi && a[i].i===a[i-1].i+1) ? lien+1 : 1;
       if(lien>2) d+=25;                        /* quá 2 tiết cùng môn liên tiếp */
+      /* Đúng hai tiết liền nhau: chỉ phạt môn nhà trường không cho phép.
+         Tiếng Việt và Tiếng Anh để yên — nhà trường CẦN chúng liền nhau. */
+      if(lien===2 && !choLienTiet(a[i].mon)) d += PHAT_LIEN_TIET;
     }
   }
   const n=THU.map(t=>(theoNgay[t]||[]).length);
@@ -4841,7 +4875,11 @@ function tuMayChu(hang){
      bộ mặc định — không được để trường cũ mở lên là hỏng. */
   const monHoc = (hang.mon_hoc||[]).map(m=>({
     ten:m.ten, mau:m.mau||MON_LOP[m.ten]||'m-tv',
-    nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||'', chuan:m.tiet_chuan||{}
+    nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||'', chuan:m.tiet_chuan||{},
+    /* Máy chủ chưa chạy db/lien-tiet.sql thì cột này không có — để
+       `undefined` chứ đừng ép về false, vì false nghĩa là CẤM xếp liền
+       và cả trường sẽ đổi lưới mà không ai yêu cầu. */
+    ...(m.lien_tiet===undefined||m.lien_tiet===null ? {} : {lienTiet:!!m.lien_tiet})
   }));
   const phong = (hang.phong||[]).map(p=>({
     id:p.id, ten:p.ten, dtId:p.diem_truong_id, mon:p.mon||''
@@ -6316,6 +6354,7 @@ const MUC_NHAP = {
     cot:[{ten:'Ten_mon',  rong:24, khoa:{kieu:'chu', toiDa:60, batBuoc:true}},
          {ten:'Mon_nang', rong:12, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
          {ten:'Mon_nhe',  rong:12, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
+         {ten:'Lien_tiet',rong:14, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
          {ten:'Phong',    rong:18, khoa:{kieu:'chu', toiDa:40}},
          {ten:'K1', rong:7, khoa:{kieu:'so', tu:0, den:20}},
          {ten:'K2', rong:7, khoa:{kieu:'so', tu:0, den:20}},
@@ -6323,7 +6362,8 @@ const MUC_NHAP = {
          {ten:'K4', rong:7, khoa:{kieu:'so', tu:0, den:20}},
          {ten:'K5', rong:7, khoa:{kieu:'so', tu:0, den:20}}],
     hang:()=>(S.monHoc||dsMonMacDinh()).map(m=>[m.ten, m.nang?'Có':'Không',
-      m.nhe?'Có':'Không', m.phong||'', ...[1,2,3,4,5].map(k=>m.chuan?.[k]||'')]),
+      m.nhe?'Có':'Không', m.lienTiet===false?'Không':'Có', m.phong||'',
+      ...[1,2,3,4,5].map(k=>m.chuan?.[k]||'')]),
     viDu:[],
     doc(co, kho, loi){
       let them=0, capNhat=0;
@@ -6337,6 +6377,10 @@ const MUC_NHAP = {
         m.nang=laCoXL(r.Mon_nang)&&String(r.Mon_nang??'').trim()!=='';
         m.nhe =laCoXL(r.Mon_nhe) &&String(r.Mon_nhe??'').trim()!=='';
         m.phong=String(r.Phong??'').trim();
+        /* ⚠️ Ô để TRỐNG thì GIỮ NGUYÊN, không ép về "Không". Tệp cũ của trường
+           đã điền dở không có cột này; ép về Không là cấm xếp liền cả 13 môn
+           và lưới đổi hết mà không ai yêu cầu. Cùng luật ô Gmail để trống. */
+        if(String(r.Lien_tiet??'').trim()) m.lienTiet=laCoXL(r.Lien_tiet);
         m.chuan=chuan;
         if(cu) capNhat++; else { kho.monHoc.push(m); them++; }
       });
@@ -6746,11 +6790,24 @@ async function ghiDuLieuNguon(dl, baoBuoc){
       try{
         await goiAPI(`/rest/v1/mon_hoc?truong_id=eq.${t}`,
           {method:'DELETE', headers:{Prefer:'return=minimal'}});
-        await goiAPI('/rest/v1/mon_hoc', {method:'POST',
-          headers:{Prefer:'return=minimal'},
-          body:JSON.stringify(dl.monHoc.map((m,i)=>({truong_id:t, ten:m.ten, mau:m.mau||null,
+        const hangMon = kemLien => dl.monHoc.map((m,i)=>({truong_id:t, ten:m.ten, mau:m.mau||null,
             nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||null,
-            tiet_chuan:m.chuan||null, thu_tu:i})))});
+            tiet_chuan:m.chuan||null, thu_tu:i,
+            ...(kemLien&&m.lienTiet!==undefined ? {lien_tiet:!!m.lienTiet} : {})}));
+        /* ⚠️ ĐƯỜNG LUI cho cột thêm ngày 31/8/2026 (db/lien-tiet.sql). Máy chủ
+           chưa chạy tệp ấy thì PostgREST từ chối CẢ lệnh chứ không bỏ qua cột
+           thiếu — mất luôn cả danh mục môn, và lần tải sau app lùi về 13 môn
+           mặc định nên các môn tự chọn nhà trường thêm biến mất. Cùng khuôn
+           đường lui của hai cột Gmail ngày 28/8. */
+        try{
+          await goiAPI('/rest/v1/mon_hoc', {method:'POST',
+            headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangMon(KHO.coCotLienTiet!==false))});
+        }catch(e2){
+          if(!/Could not find the 'lien_tiet' column/i.test(String(e2?.message||''))) throw e2;
+          KHO.coCotLienTiet=false;
+          await goiAPI('/rest/v1/mon_hoc', {method:'POST',
+            headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangMon(false))});
+        }
       }catch(e){ if(!thieuBang(e))
         loiDanhMuc='Chưa lưu được danh mục môn học — bấm Lưu lại một lần nữa. '; }
     }
@@ -12835,7 +12892,9 @@ function mMonHoc(){
         mọi trang khác; `.bang` vẫn giữ overflow cho cuộn NGANG 13 cột. */}
   <div class="bang"><table class="dl gon" id="bMon"><thead><tr>
     <th>Môn học</th><th>Màu</th><th style="text-align:center">Ưu tiên<br>sáng sớm</th>
-    <th style="text-align:center">Tránh đầu<br>cuối buổi</th><th>Phòng cần</th>
+    <th style="text-align:center">Tránh đầu<br>cuối buổi</th>
+    <th style="text-align:center" title="Hai tiết cùng môn đứng sát nhau trong một buổi. Tiếng Việt, Tiếng Anh thường cần; Toán, Khoa học, Lịch sử và Địa lý thường không.">Cho xếp<br>2 tiết liền</th>
+    <th>Phòng cần</th>
     ${[1,2,3,4,5].map(k=>`<th class="phai">K${k}</th>`).join('')}
     <th class="phai">Đang xếp</th>${sua?'<th></th>':''}</tr></thead><tbody>
   ${ds.map((m,i)=>`<tr data-loctu="${tuLoc(m.ten,m.phong)}">
@@ -12850,6 +12909,9 @@ function mMonHoc(){
       :esc(MAU_MON.find(x=>x.ma===m.mau)?.ten||'')}</td>
     <td style="text-align:center"><input type="checkbox" data-monnang="${i}" ${m.nang?'checked':''} ${sua?'':'disabled'}></td>
     <td style="text-align:center"><input type="checkbox" data-monnhe="${i}" ${m.nhe?'checked':''} ${sua?'':'disabled'}></td>
+    ${''/* Chưa khai thì coi như ĐƯỢC PHÉP — giữ đúng hành vi trước 31/8/2026,
+          nên trường đang chạy bấm Xếp vẫn ra y hệt lưới cũ. */}
+    <td style="text-align:center"><input type="checkbox" data-monlien="${i}" ${m.lienTiet!==false?'checked':''} ${sua?'':'disabled'}></td>
     <td>${sua?`<input class="ip" data-monphong="${i}" value="${esc(m.phong||'')}" placeholder="học tại lớp" style="width:92px">`
       :esc(m.phong||'—')}</td>
     ${[1,2,3,4,5].map(k=>`<td class="phai">${sua
@@ -13759,6 +13821,8 @@ function noiSuKien(){
     const m=S.monHoc[+x.dataset.monmau]; if(m){ m.mau=e.target.value; ve(); } });
   $$('[data-monnang]').forEach(x=>x.onchange=e=>{
     const m=S.monHoc[+x.dataset.monnang]; if(m){ m.nang=e.target.checked; if(m.nang) m.nhe=false; ve(); } });
+  $$('[data-monlien]').forEach(x=>x.onchange=e=>{
+    const m=S.monHoc[+x.dataset.monlien]; if(m){ m.lienTiet=e.target.checked; ve(); } });
   $$('[data-monnhe]').forEach(x=>x.onchange=e=>{
     const m=S.monHoc[+x.dataset.monnhe]; if(m){ m.nhe=e.target.checked; if(m.nhe) m.nang=false; ve(); } });
   $$('[data-monphong]').forEach(x=>x.onchange=e=>{

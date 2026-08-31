@@ -2100,3 +2100,83 @@ Năm điều bắt buộc, cả năm có phép thử (`npm run soi` mục **19d2
 thì mặc định giữ ghim. Nó soi PHẠM VI chứ không soi chuyện giữ ghim, nên phải
 gỡ ghim ra trước. **Phép thử dùng chung một bộ dữ liệu thì thứ tự chạy là một
 phần của phép thử.**
+
+## 31/8/2026 — Cho phép xếp hai tiết liền nhau, khai theo TỪNG MÔN
+
+Chủ dự án, kèm ảnh chụp SmartScheduler mục *Yêu cầu tiết học xếp liền*:
+*"Tiếng Việt, Tiếng Anh các lớp 1–5 có thể có 2 tiết xếp liền nhau, nhưng
+Toán, Khoa học, Lịch sử và Địa lý… thì không được xếp liền nhau"*.
+
+**Đo trước khi làm** (Diễn Liên thật, sau khi xếp tự động):
+
+| Môn | Tổng tiết | Cặp liền nhau |
+|---|---|---|
+| Tiếng Việt | 215 | **74** ← nhà trường CẦN |
+| Toán | 115 | **17** ← không muốn |
+| Tiếng Anh | 80 | 13 ← được phép |
+| GDTC | 50 | 7 |
+| Khoa học · LS&ĐL · TNXH · Đạo Đức · Tin học · CN | | **0** |
+
+Hoá ra phần lớn danh mục đã sạch sẵn — môn 1–2 tiết/tuần gần như không bao
+giờ rơi vào cùng một buổi. Việc thật chỉ là **24 cặp** (Toán 17 · GDTC 7).
+
+⚠️ **Trước đó app KHÔNG phân biệt liền nhau với cùng ngày.** `diemO` phạt
+`cungNgay` (hai tiết cùng môn trong một NGÀY), `diemLop` phạt chuỗi `lien > 2`.
+Nghĩa là **đúng hai tiết liền nhau hoàn toàn miễn phí với mọi môn** — thứ nhà
+trường quan tâm nhất thì không có luật nào chạm tới.
+
+### ⚠️ Luật phải nằm ở CẢ HAI hàm chấm điểm
+
+Nguyên mẫu đầu chỉ thêm khoản phạt vào `diemO()`. Kết quả: **không nhúc nhích**
+— Toán 17 cặp trước và sau, nâng phạt lên 160 vẫn 17. Lý do: `diemO` chỉ chấm
+lúc bước tham lam ĐẶT tiết, còn bước **hoán đổi** chấm bằng `diemLop()`, và hàm
+ấy không biết luật nên ghép lại y như cũ.
+
+**Một luật mềm chỉ sống khi có mặt ở mọi hàm chấm điểm mà nó phải chi phối.**
+Đặt một chỗ là chỗ kia lặng lẽ hoàn tác — không lỗi, không cảnh báo, chỉ là
+con số không đổi. Phép thử của mục 23 canh đúng chuyện này: gỡ luật khỏi
+`diemLop` là ba phép thử đỏ ngay.
+
+### Con số chọn bằng đo, không bằng cảm tính
+
+Quét `PHAT_LIEN_TIET` ở 20 · 40 · 80 · 160 trên dữ liệu thật:
+
+| Phạt | Xếp được | Nhóm không-cho-liền | Tiếng Việt | Toán+TV vùng vàng | Trống kẹp |
+|---|---|---|---|---|---|
+| 0 | 710/710 | 24 | 74 | 88% | 8 |
+| 20 | 710/710 | 0 | 78 | 88% | 16 |
+| **40** | **710/710** | **0** | **78** | **88%** | **11** |
+| 80 | 710/710 | 0 | 71 | 88% | 13 |
+
+Chọn **40**: nhóm cấm về 0, Tiếng Việt giữ nguyên quyền của mình, không mất
+tiết nào, tỉ lệ vùng vàng không tụt, và tiết trống kẹp tăng ít nhất trong các
+mức có tác dụng. 60 lớp: 51 → 0 cặp, vẫn 1698/1698, vùng vàng 91%.
+
+### Mặc định phải là "giữ nguyên như cũ"
+
+⚠️ `lienTiet === undefined` (nhà trường chưa khai) = **ĐƯỢC PHÉP**, đúng hành
+vi trước 31/8/2026. Cột `mon_hoc.lien_tiet` trong `db/lien-tiet.sql` vì thế
+mặc định **null, không phải false**: đặt false là cấm xếp liền toàn bộ danh
+mục của mọi trường đang chạy, và sáng hôm sau họ bấm Xếp ra một thời khóa biểu
+khác hẳn mà không ai yêu cầu. Cùng bài học cột `trang_thai_duyet` ngày 24/8.
+
+Phép thử canh bằng cách so **hai lưới giống hệt từng ô** giữa "chưa khai" và
+"khai Có" — đó mới là định nghĩa đúng của *cờ tắt thì không đổi gì*.
+
+`dsMonMacDinh()` thì gieo sẵn lựa chọn hợp lý cho **trường mới**: chỉ Tiếng
+Việt và Tiếng Anh được liền. Trường đang chạy muốn theo thì bấm *Khôi phục
+danh mục chuẩn*, hoặc tự tích ở cột mới.
+
+⚠️ Ô `Lien_tiet` trong mẫu Excel để TRỐNG thì **giữ nguyên lựa chọn cũ**, không
+ép về "Không" — tệp nhà trường đã điền dở không có cột này. Cùng luật ô Gmail.
+
+### Vì sao làm ngay chứ không đợi sau khai giảng
+
+Hai lần trước chủ dự án chốt hoãn việc đụng thuật toán (16/8 và 30/8), lý do
+là *"không đụng thuật toán trong lúc đang chạy thật cho Diễn Liên"*. Ngày 31/8
+ông đảo lại, và lý do đanh hơn: **giá trị của App là đúng mùa xếp lịch; xong
+khai giảng thì năm nay không ai cần nữa.**
+
+Cách giữ an toàn vẫn là khuôn cũ: **mặc định giữ nguyên hành vi**, kèm phép
+thử đòi hai lưới giống hệt từng ô. Trường đang chạy không chịu rủi ro nào cho
+tới khi chính họ tích vào ô ấy.

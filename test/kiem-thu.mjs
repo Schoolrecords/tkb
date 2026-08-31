@@ -3719,6 +3719,105 @@ muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, taoUngDung, documentGia });
 }
 
+console.log('\n23. Hai tiết cùng môn LIỀN NHAU — cho phép theo từng môn');
+/* Chủ dự án 31/8/2026: *"Tiếng Việt, Tiếng Anh có thể có 2 tiết xếp liền nhau,
+   nhưng Toán, Khoa học, Lịch sử và Địa lý thì không"*.
+   ⚠️ Luật phải nằm ở CẢ diemO lẫn diemLop. Nguyên mẫu chỉ đặt ở diemO thì
+   bước hoán đổi (chấm bằng diemLop) ghép lại y như cũ — đo được 17 cặp Toán
+   trước và sau, phạt 160 cũng không nhúc nhích. */
+{
+  const DLT = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
+
+  /* Đếm cặp tiết cùng môn đứng SÁT NHAU trong một buổi, theo từng môn */
+  const demCap = (app) => {
+    const cap = {};
+    app.S.lop.forEach(l => {
+      const buoi = {};
+      Object.entries(app.S.tkb[l.id] || {}).forEach(([k, v]) => {
+        const q = k.split('-');
+        (buoi[`${q[0]}-${q[1]}`] ||= []).push({ i: +q[2], mon: v.mon });
+      });
+      Object.values(buoi).forEach(ds => {
+        ds.sort((x, y) => x.i - y.i);
+        for (let n = 1; n < ds.length; n++)
+          if (ds[n].mon === ds[n - 1].mon && ds[n].i === ds[n - 1].i + 1)
+            cap[ds[n].mon] = (cap[ds[n].mon] || 0) + 1;
+      });
+    });
+    return cap;
+  };
+  const anhChup = app => JSON.stringify(app.S.lop.map(l =>
+    Object.entries(app.S.tkb[l.id] || {}).sort().map(([k, v]) => `${k}|${v.mon}|${v.gvId}`)));
+
+  const mo = (sua) => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.napVaoS(JSON.parse(JSON.stringify(DLT)));
+    app.S.monHoc = app.dsMonMacDinh();
+    if (sua) sua(app);
+    app.xepTuDong(1200);
+    return app;
+  };
+
+  kt('Danh mục mặc định: Tiếng Việt và Tiếng Anh được xếp liền, Toán thì không', (() => {
+    const ds = dsMonMacDinh();
+    const co = t => ds.find(m => m.ten === t)?.lienTiet;
+    return [co('Tiếng Việt') === true && co('Tiếng Anh') === true
+            && co('Toán') === false && co('Khoa học') === false,
+            `TV ${co('Tiếng Việt')} · Toán ${co('Toán')}`];
+  })());
+
+  const chuan = mo();
+  const cap = demCap(chuan);
+  kt('Xếp với danh mục mặc định: KHÔNG còn cặp Toán liền nhau',
+     (cap['Toán'] || 0) === 0, `Toán ${cap['Toán'] || 0} cặp`);
+  kt('Nhưng Tiếng Việt VẪN được xếp liền — đó là thứ nhà trường cần',
+     (cap['Tiếng Việt'] || 0) > 0, `Tiếng Việt ${cap['Tiếng Việt'] || 0} cặp`);
+  kt('Không môn nào bị cấm mà vẫn còn cặp liền nhau', (() => {
+    const hong = Object.keys(cap).filter(m =>
+      dsMonMacDinh().find(x => x.ten === m)?.lienTiet === false);
+    return [hong.length === 0, hong.join(' · ') || 'sạch'];
+  })());
+  kt('Và vẫn xếp trọn 710/710 tiết — luật mới không làm mất tiết nào', (() => {
+    const n = chuan.S.lop.reduce((s, l) => s + Object.keys(chuan.S.tkb[l.id] || {}).length, 0);
+    return [n === 710, `${n}/710`];
+  })());
+
+  /* --- Đường lui: chưa khai thì ĐƯỢC PHÉP, y hệt hành vi trước 31/8/2026 --- */
+  const chuaKhai = mo(a => a.S.monHoc.forEach(m => { delete m.lienTiet; }));
+  const khaiCo   = mo(a => a.S.monHoc.forEach(m => { m.lienTiet = true; }));
+  kt('Chưa khai cột này = ĐƯỢC PHÉP xếp liền, không phải cấm',
+     anhChup(chuaKhai) === anhChup(khaiCo), 'hai lưới giống hệt từng ô');
+  kt('Và lúc ấy Toán lại có cặp liền như trước — chứng tỏ luật thật sự tắt',
+     (demCap(chuaKhai)['Toán'] || 0) > 0, `Toán ${demCap(chuaKhai)['Toán'] || 0} cặp`);
+
+  /* --- Bật riêng một môn --- */
+  /* ⚠️ Đòi về ĐÚNG 0 là sai bản chất, và phép thử đầu tiên đã đỏ vì thế.
+     Đây là điểm phạt MỀM, không phải ràng buộc cứng — mà Tiếng Việt khối 1 có
+     12 tiết/tuần trên 8 buổi, nên đôi khi không còn cách nào khác ngoài xếp
+     liền. Thứ phải canh là luật CÓ TÁC DỤNG (74 cặp → 1), không phải con số 0.
+     Đòi 0 ở một khoản phạt mềm là phép thử chập chờn cài sẵn. */
+  const camTV = mo(a => a.S.monHoc.forEach(m => { m.lienTiet = m.ten !== 'Tiếng Việt'; }));
+  const truocTV = demCap(khaiCo)['Tiếng Việt'] || 0;
+  const sauTV = demCap(camTV)['Tiếng Việt'] || 0;
+  kt('Cấm riêng Tiếng Việt thì số cặp liền giảm gần hết',
+     truocTV > 10 && sauTV <= truocTV / 10, `${truocTV} → ${sauTV} cặp`);
+
+  /* --- Mẫu Excel: ô để trống thì GIỮ NGUYÊN, không ép về "Không" --- */
+  kt('Cột Lien_tiet để trống thì giữ nguyên lựa chọn cũ', (() => {
+    const kho = { monHoc: [{ ten: 'Toán', lienTiet: false, chuan: {} }] };
+    const loi = [];
+    MUC_NHAP.monhoc.doc([{ Ten_mon: 'Toán', __dong: 4 }], kho, loi, []);
+    return [kho.monHoc[0].lienTiet === false, `còn ${kho.monHoc[0].lienTiet}`];
+  })());
+  kt('Điền "Không" thì cấm, điền "Có" thì cho', (() => {
+    const kho = { monHoc: [{ ten: 'Toán', chuan: {} }, { ten: 'Tiếng Việt', chuan: {} }] };
+    MUC_NHAP.monhoc.doc([{ Ten_mon: 'Toán', Lien_tiet: 'Không', __dong: 4 },
+                         { Ten_mon: 'Tiếng Việt', Lien_tiet: 'Có', __dong: 5 }], kho, [], []);
+    return [kho.monHoc[0].lienTiet === false && kho.monHoc[1].lienTiet === true,
+            `Toán ${kho.monHoc[0].lienTiet} · TV ${kho.monHoc[1].lienTiet}`];
+  })());
+}
+
 /* ---------- Tổng kết ---------- */
 console.log(`\n\x1b[1mKết quả: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
 process.exit(hong ? 1 : 0);
