@@ -4002,6 +4002,259 @@ console.log('\n17x. Ảnh minh hoạ trong Hướng dẫn');
   })());
 }
 
+console.log('\n17y. Phân công nhanh: bỏ tích một lớp là GỠ');
+/* Chủ dự án 31/8/2026: bỏ tích cả 25 lớp của cô Phan Thị Thương rồi bấm
+   *Phân công* thì nhận "Chưa chọn lớp nào", thoát ra bấm *Lưu ngay* thì phân
+   công cũ vẫn nguyên vẹn. Hộp này chỉ biết THÊM và CẬP NHẬT, mà ô ma trận
+   lại là lối DUY NHẤT sửa phân công của một cặp (giáo viên · môn) — nên
+   không còn đường nào gỡ ngoài việc xoá cả hồ sơ giáo viên. */
+{
+  const pcGoc  = JSON.parse(JSON.stringify(S.phanCong));
+  const tkbGoc = JSON.parse(JSON.stringify(S.tkb));
+  const nutLam = () => w.document.querySelector('#hopC').lastElementChild;
+  const oNq    = id => w.document.querySelector(`[data-nq="${id}"]`);
+  const dangTich = () => [...w.document.querySelectorAll('[data-nq]')]
+    .filter(x => x.checked).map(x => x.dataset.nq);
+  const canh = () => w.document.querySelector('#nqCanh')?.textContent || '';
+
+  /* Cặp (giáo viên · môn) nhiều lớp nhất — đúng cảnh cô Đạo Đức 23 lớp */
+  const dem = {};
+  S.phanCong.forEach(p => { const k = p.gvId + '|' + p.mon; (dem[k] = dem[k] || []).push(p.lopId); });
+  const [khoa, dsLopT] = Object.entries(dem).sort((a, b) => b[1].length - a[1].length)[0];
+  const gvT = khoa.slice(0, khoa.indexOf('|')), monT = khoa.slice(khoa.indexOf('|') + 1);
+  const conCua = () => S.phanCong.filter(p => p.gvId === gvT && p.mon === monT).length;
+
+  w.hopPCTheoGV(gvT, monT);
+  kt('Mở hộp thì tích sẵn ĐÚNG những lớp đang có', (() => {
+    const a = dangTich().sort().join(','), b = [...dsLopT].sort().join(',');
+    return [a === b, `${dangTich().length}/${dsLopT.length} lớp`];
+  })());
+
+  /* ⚠️ Chốt an toàn của cả bản vá: nút nay ĐỒNG BỘ theo danh sách đang tích,
+     nên hộp mở ra mà tích sẵn sai là bấm luôn cũng xoá mất dữ liệu. */
+  kt('Mở ra bấm luôn thì không mất phân công nào', (() => {
+    nutLam().click();
+    return [S.phanCong.length === pcGoc.length, `${pcGoc.length} → ${S.phanCong.length} dòng`];
+  })());
+
+  /* Bỏ tích MỘT lớp — vừa gỡ dòng phân công, vừa gỡ tiết đã xếp của lớp ấy */
+  const lopBo = dsLopT[0];
+  w.eval(`S.tkb[${JSON.stringify(lopBo)}]['2-S-1'] = {gvId:${JSON.stringify(gvT)}, mon:${JSON.stringify(monT)}}`);
+  w.hopPCTheoGV(gvT, monT);
+  oNq(lopBo).click();
+  kt('Bỏ tích một lớp: hộp nói trước sẽ gỡ mấy lớp', /Sẽ gỡ .* khỏi 1 lớp/.test(canh()),
+     canh().slice(0, 40).trim() || 'không có cảnh báo');
+  kt('Nhãn nút nói đúng việc nó làm, không còn ghi trơ "Phân công"',
+     nutLam().textContent === 'Cập nhật phân công', nutLam().textContent);
+  nutLam().click();
+  kt('Gỡ đúng một lớp, các lớp còn lại nguyên vẹn',
+     [conCua() === dsLopT.length - 1 &&
+      !S.phanCong.some(p => p.gvId === gvT && p.mon === monT && p.lopId === lopBo),
+      `${dsLopT.length} → ${conCua()} lớp`]);
+  kt('Tiết đã xếp của lớp bị gỡ cũng biến khỏi lưới',
+     !S.tkb[lopBo]['2-S-1'], 'ô 2-S-1 đã sạch');
+
+  /* Bỏ chọn hết rồi bấm — đúng thao tác chủ dự án làm */
+  w.hopPCTheoGV(gvT, monT);
+  w.document.querySelector('#nqBo').click();
+  kt('Bỏ chọn hết thì nút nói thẳng là gỡ, không hứa phân công',
+     nutLam().textContent === `Gỡ khỏi ${conCua()} lớp`, nutLam().textContent);
+  nutLam().click();
+  kt('Gỡ sạch cặp giáo viên · môn ấy — thao tác của chủ dự án nay có tác dụng',
+     [conCua() === 0, `còn ${conCua()} dòng`]);
+  kt('Và chỉ đụng đúng cặp ấy, phân công của người khác không suy suyển',
+     [S.phanCong.length === pcGoc.length - dsLopT.length,
+      `${pcGoc.length} → ${S.phanCong.length} dòng`]);
+
+  /* Đổi giáo viên trong hộp thì phải tích lại theo hiện trạng NGƯỜI MỚI —
+     giữ tích cũ là bấm một cái xoá nhầm phân công của người vừa chọn. */
+  S.phanCong.length = 0; pcGoc.forEach(p => S.phanCong.push({ ...p }));
+  w.hopPCTheoGV(gvT, monT);
+  kt('Đổi sang người chưa dạy môn ấy thì bỏ hết tích', (() => {
+    const gvKhac = S.giaoVien.find(g => g.id !== gvT &&
+      !S.phanCong.some(p => p.gvId === g.id && p.mon === monT));
+    if (!gvKhac) return [true, 'không có ai để thử — bỏ qua'];
+    const sel = w.document.querySelector('#nqGV');
+    sel.value = gvKhac.id; sel.dispatchEvent(new w.Event('change'));
+    return [dangTich().length === 0, `${dangTich().length} lớp còn tích`];
+  })());
+
+  /* Thêm lớp mới vẫn phải chạy như cũ — bản vá không được đổi việc chính */
+  w.hopPCTheoGV(gvT, monT);
+  const lopThem = S.lop.find(l => !dsLopT.includes(l.id));
+  kt('Tích thêm một lớp thì thêm đúng lớp ấy, không gỡ lớp nào', (() => {
+    if (!lopThem) return [true, 'mọi lớp đã có — bỏ qua'];
+    oNq(lopThem.id).click();
+    const nhan = nutLam().textContent;
+    nutLam().click();
+    return [nhan === 'Phân công' && conCua() === dsLopT.length + 1,
+            `${dsLopT.length} → ${conCua()} lớp · nút "${nhan}"`];
+  })());
+
+  w.eval('dong()');
+  S.phanCong.length = 0; pcGoc.forEach(p => S.phanCong.push(p));
+  Object.keys(S.tkb).forEach(k => delete S.tkb[k]);
+  Object.entries(tkbGoc).forEach(([k, v]) => S.tkb[k] = v);
+}
+
+console.log('\n17z. Lớp học khác giờ khối — màn hình');
+/* Chủ dự án 31/8/2026 (TH Hưng Vinh 1): 1A·1B·1C học 35 tiết còn các lớp 1
+   khác 32 — bảng khung giờ khai theo KHỐI không có ô nào gõ chuyện đó. */
+{
+  const pcGoc = JSON.parse(JSON.stringify(S.phanCong));
+  const nut = t => [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === t);
+  const BA = ['lop_1A', 'lop_1B', 'lop_1C'].filter(id => S.lop.some(l => l.id === id));
+
+  w.chuyen('khunggio');
+  kt('Màn Khung giờ có khu "Lớp học khác giờ khối" và nút Thêm lớp',
+     /Lớp học khác giờ khối/.test(w.document.body.innerHTML)
+     && !!w.document.querySelector('#btThemGioLop'));
+  kt('Chưa khai thì nói thẳng là mọi lớp theo khung của khối',
+     /Chưa lớp nào khai riêng/.test(w.document.body.innerHTML));
+
+  /* Khai đúng cảnh Hưng Vinh: ba lớp khối 1 học thêm 3 tiết */
+  w.document.querySelector('#btThemGioLop').click();
+  kt('Hộp khai bày đủ danh sách lớp và một dòng cho mỗi buổi học',
+     [w.document.querySelectorAll('[data-gl]').length === S.lop.length
+      && w.document.querySelectorAll('[data-glt]').length === w.eval('buoiBat().length'),
+      `${w.document.querySelectorAll('[data-gl]').length} lớp · ${w.document.querySelectorAll('[data-glt]').length} buổi`]);
+  BA.forEach(id => { const o = w.document.querySelector(`[data-gl="${id}"]`); o.checked = true;
+                     o.dispatchEvent(new w.Event('change')); });
+  ['2-S', '3-S', '4-S'].forEach(kb => {
+    const o = w.document.querySelector(`[data-glt="${kb}"]`);
+    o.value = '5'; o.dispatchEvent(new w.Event('change'));
+  });
+  kt('Hộp cộng ngay tổng tiết mỗi tuần của nhóm lớp đang chọn',
+     /30 tiết mỗi tuần cho 3 lớp/.test(w.document.querySelector('#glTong').textContent),
+     w.document.querySelector('#glTong').textContent.trim().slice(0, 46));
+  nut('Lưu giờ học').click();
+
+  kt('Cùng khối 1 mà ba lớp học 30 ô, các lớp còn lại vẫn 27',
+     [w.eval("sucChuaLop('lop_1A')") === 30 && w.eval("sucChuaLop('lop_1D')") === 27,
+      `1A ${w.eval("sucChuaLop('lop_1A')")} · 1D ${w.eval("sucChuaLop('lop_1D')")} ô`]);
+  kt('Khu khai gom ba lớp thành MỘT dòng, ghi rõ số tiết và số của khối',
+     [/1A · 1B · 1C/.test(w.document.body.innerHTML)
+      && /30<\/b> tiết\/tuần/.test(w.document.body.innerHTML),
+      'một dòng cho cả nhóm']);
+
+  /* ⚠️ Phần dôi ra phải hiện thành Ô NGHỈ đúng như khối tan sớm — đây là
+     hình dạng chủ dự án chỉ ra ở ảnh SmartScheduler. */
+  kt('Lưới của lớp 1D bày ô nghỉ ở tiết 5 sáng, lưới 1A thì không', (() => {
+    const dem = id => (w.luoiTuanLop(id).match(/o-nghi/g) || []).length;
+    return [dem('lop_1D') > dem('lop_1A'), `1D ${dem('lop_1D')} ô nghỉ · 1A ${dem('lop_1A')}`];
+  })());
+  kt('Bản in một lớp cao đúng giờ của lớp ấy, không phải của khối', (() => {
+    const so = id => (w.bangIn(() => '', w.eval(`lopId(${JSON.stringify(id)})`)).match(/<tr>/g) || []).length;
+    return [so('lop_1A') > so('lop_1D'), `1A ${so('lop_1A')} dòng · 1D ${so('lop_1D')}`];
+  })());
+  kt('Bản Excel toàn trường ghi chữ "Nghỉ" vào ô lớp không học', (() => {
+    const a = w.luoiToanTruong(S.lop);
+    const ten = id => w.eval(`tenLopDay(${JSON.stringify(id)})`);
+    const dTen = a.find(r => r.includes(ten('lop_1D')) && r.includes(ten('lop_1A')));
+    const cot1D = dTen ? dTen.indexOf(ten('lop_1D')) : -1, cot1A = dTen ? dTen.indexOf(ten('lop_1A')) : -1;
+    /* Dòng tiết 5 chỉ tồn tại NHỜ ba lớp khai riêng — trước bản vá không có */
+    const hang = a.filter(r => r[2] === 5 && r[1] === 'Sáng' && /^Thứ (Hai|Ba|Tư)$/.test(String(r[0])));
+    const nghi = hang.filter(r => r[cot1D] === 'Nghỉ').length;
+    /* 1A chỉ cần KHÔNG bị ghi "Nghỉ" — ô ấy đang mở, có tiết hay chưa là
+       việc của lần xếp sau; bộ soi này không chạy lại thuật toán. */
+    const mo = hang.filter(r => r[cot1A] !== 'Nghỉ').length;
+    return [cot1D > 0 && hang.length === 3 && nghi === 3 && mo === 3,
+            `${hang.length} dòng tiết 5 đầu tuần · 1D nghỉ ${nghi} · 1A mở ${mo}`];
+  })());
+
+  /* Bỏ khai riêng — nút Bỏ ngay trên khu, không phải mở hộp lần nữa */
+  w.chuyen('khunggio');
+  w.document.querySelector('[data-bogio]').click();
+  /* ⚠️ Soi trong ĐÚNG khu khai, không soi cả body: hộp thoại vừa đóng vẫn
+     để lại markup cũ trong #hopN, nên `body.innerHTML` còn tên ba lớp ấy và
+     phép thử đỏ oan. */
+  kt('Nút Bỏ trả cả nhóm về đúng khung của khối', (() => {
+    const khu = [...w.document.querySelectorAll('#noiDung .the')]
+      .find(x => /Lớp học khác giờ khối/.test(x.textContent));
+    return [w.eval("sucChuaLop('lop_1A')") === 27
+            && w.eval('nhomGioRieng().length') === 0
+            && /Chưa lớp nào khai riêng/.test(khu?.textContent || ''),
+            `1A ${w.eval("sucChuaLop('lop_1A')")} ô · ${w.eval('nhomGioRieng().length')} nhóm còn lại`];
+  })());
+
+  S.phanCong.length = 0; pcGoc.forEach(x => S.phanCong.push(x));
+}
+
+console.log('\n17aa. Xoá toàn bộ danh sách giáo viên');
+/* Chủ dự án 31/8/2026: *"Có cách nào xóa toàn bộ danh sách Giáo viên không?"*
+   Trước đó chỉ có nút xoá từng người — trường 88 giáo viên nhập nhầm một tệp
+   là ngồi bấm 88 lần, mỗi lần một hộp xác nhận. */
+{
+  const gvGoc  = JSON.parse(JSON.stringify(S.giaoVien));
+  const pcGoc  = JSON.parse(JSON.stringify(S.phanCong));
+  const tkbGoc = JSON.parse(JSON.stringify(S.tkb));
+  const nghiGoc = JSON.parse(JSON.stringify(S.gvNghi || {}));
+  const xoaGoc = JSON.parse(JSON.stringify(S.gvDaXoa || []));
+  const nut = t => [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === t);
+
+  /* Một thầy cô ĐANG CÓ TÀI KHOẢN — đúng tình huống phải giữ lại */
+  const coTK = S.giaoVien[0];
+  coTK.nguoiDungId = 'nd-that';
+  w.chuyen('giaovien');
+  kt('Màn Giáo viên có nút Xoá toàn bộ danh sách',
+     !!w.document.querySelector('#btXoaHetGV'));
+
+  w.document.querySelector('#btXoaHetGV').click();
+  const hopN = () => w.document.querySelector('#hopN').textContent;
+  kt('Hộp nói trước mất bao nhiêu phân công, không chỉ đếm đầu người',
+     /dòng phân công/.test(hopN()), hopN().trim().slice(0, 52));
+  kt('Và nói rõ ai được GIỮ LẠI vì đang có tài khoản đăng nhập',
+     [/Giữ lại 1 thầy cô đang có tài khoản/.test(hopN())
+      && hopN().includes(coTK.hoTen), coTK.hoTen]);
+
+  /* ⚠️ Ô xác nhận là hàng rào thật, không phải trang trí: bấm khi chưa tích
+     thì tuyệt đối không được xoá dòng nào. */
+  const truocGV = S.giaoVien.length;
+  /* ⚠️ Tìm nút bằng KHUÔN nhãn, không bằng con số dựng sẵn: bẻ ngược bản vá
+     thì nhãn đổi, mà tìm theo con số là bộ soi ném TypeError và đổ giữa
+     chừng — đỏ thì tốt, đổ thì không đọc ra vấn đề nằm ở đâu. */
+  const nutXoa = () => [...w.document.querySelectorAll('#hopC button')]
+    .find(b => /^Xoá \d+ hồ sơ$/.test(b.textContent));
+  kt('Nhãn nút đếm đúng số hồ sơ sẽ xoá, đã trừ người có tài khoản',
+     [nutXoa()?.textContent === `Xoá ${truocGV - 1} hồ sơ`, nutXoa()?.textContent]);
+  nutXoa().click();
+  kt('Chưa tích ô xác nhận thì không xoá dòng nào',
+     [S.giaoVien.length === truocGV, `vẫn ${S.giaoVien.length} hồ sơ`]);
+
+  w.document.querySelector('#xhHieu').checked = true;
+  nutXoa().click();
+  kt('Xoá sạch, chỉ chừa người đang có tài khoản',
+     [S.giaoVien.length === 1 && S.giaoVien[0].id === coTK.id,
+      `${truocGV} → ${S.giaoVien.length} hồ sơ`]);
+  kt('Phân công và tiết trên lưới của những người ấy cũng đi theo', (() => {
+    const con = S.phanCong.filter(p => p.gvId !== coTK.id).length;
+    const tiet = Object.values(S.tkb).reduce((n, o) =>
+      n + Object.values(o).filter(x => x.gvId !== coTK.id).length, 0);
+    return [con === 0 && tiet === 0, `${con} dòng phân công · ${tiet} tiết còn sót`];
+  })());
+  /* ⚠️ Không ghi vào `gvDaXoa` thì bấm Lưu xong tải lại là hồ sơ MỌC LẠI —
+     `ghiDuLieuNguon()` chỉ xoá trên máy chủ đúng những ai nằm trong danh
+     sách này, không bao giờ xoá theo kiểu "ai không có trong màn hình". */
+  kt('Ghi đủ vào danh sách đã xoá để lần Lưu sau xoá hẳn trên hệ thống',
+     [(S.gvDaXoa || []).length === truocGV - 1,
+      `${(S.gvDaXoa || []).length} hồ sơ chờ xoá trên máy chủ`]);
+  kt('Lớp học và khung giờ giữ nguyên — chỉ danh sách người dạy bị xoá',
+     [S.lop.length > 0 && S.khungGio.length > 0,
+      `${S.lop.length} lớp · ${S.khungGio.length} buổi`]);
+
+  /* Danh sách trống thì nút cũng biến mất, không mời bấm vào chỗ không có gì */
+  w.chuyen('giaovien');
+  S.giaoVien = [];
+  w.ve();
+  kt('Danh sách trống thì nút cũng không hiện',
+     !w.document.querySelector('#btXoaHetGV'));
+
+  S.giaoVien = gvGoc; S.phanCong = pcGoc; S.gvNghi = nghiGoc; S.gvDaXoa = xoaGoc;
+  Object.keys(S.tkb).forEach(k => delete S.tkb[k]);
+  Object.entries(tkbGoc).forEach(([k, v]) => S.tkb[k] = v);
+  w.chuyen('giaovien');
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');

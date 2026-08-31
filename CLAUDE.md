@@ -652,6 +652,87 @@ dòng thì cột này dài hơn cả bảng.
 *không có gì xảy ra* — đúng thứ làm mắt bỏ qua cả ba dòng cần nhìn. Cùng luật
 "số 0 không tô đỏ" của dải chỉ số Bảng điều hành.
 
+### Xoá TOÀN BỘ danh sách giáo viên *(31/8/2026)*
+
+Chủ dự án: *"Có cách nào xóa toàn bộ danh sách Giáo viên không?"* — trước đó
+chỉ có nút xoá từng người, mà trường 88 giáo viên nhập nhầm một tệp là ngồi
+bấm 88 lần, mỗi lần một hộp xác nhận. Nút *Xoá toàn bộ danh sách* nằm ở thanh
+công cụ màn *Giáo viên* (`hopXoaHetGV`), chỉ hiện khi danh sách còn người.
+
+Ba điều bắt buộc, cả ba đều có phép thử (`npm run soi` mục **17aa**):
+
+- ⚠️ **NGƯỜI ĐANG CÓ TÀI KHOẢN thì GIỮ LẠI.** Không phải cẩn thận suông:
+  `ghiDuLieuNguon()` cố ý không xoá họ trên máy chủ (`phan_cong` · `gv_nghi` ·
+  `bao_nghi` · `day_thay` đều `on delete cascade` theo giáo viên). App xoá
+  khỏi màn hình trong khi máy chủ giữ lại thì lần tải sau họ **mọc lại** —
+  đúng cái bẫy đã ghi cho đường xoá phân hiệu. Hộp nói rõ tên họ và chỉ đường
+  gỡ tài khoản trước.
+- **Ghi đủ vào `S.gvDaXoa`.** Đó là danh sách duy nhất `ghiDuLieuNguon()` dám
+  xoá theo; thiếu là bấm Lưu xong tải lại hồ sơ mọc lại.
+- **Ô tích xác nhận là hàng rào thật**, không phải trang trí — hộp đếm sẵn số
+  dòng phân công, số lớp mất chủ nhiệm và số tiết trên lưới sẽ mất theo.
+
+### Giờ học riêng của LỚP — không phải mọi lớp trong khối học như nhau *(31/8/2026 — `db/gio-hoc-lop.sql`)*
+
+Chủ dự án, từ Trường TH Hưng Vinh 1: *"Lớp 1A, 1B, 1C khung chương trình 35
+tiết mà các lớp 1 còn lại 32 tiết… bố trí cứng khung giờ này thì bài toán
+Hưng Vinh 1 không giải được."*
+
+Khung giờ khai theo **khối** (`khung_gio.so_tiet_khoi`) nên trong cùng một
+khối không có ô nào gõ được hai con số. Nay mỗi **lớp** ghi đè được số tiết
+của từng buổi; lớp không khai thì kế thừa đúng con số của khối.
+
+⚠️ **Cơ chế "ô nghỉ" đã có sẵn từ trước, chỉ đổi TRỤC từ khối sang lớp.**
+Lưới vẽ `.o-nghi`, Excel và bản in ghi chữ *Nghỉ* — đúng dáng SmartScheduler
+mà chủ dự án chỉ ra: khung mở rộng, lớp nào ít tiết hơn thì mấy tiết cuối
+buổi ghi *Nghỉ*. Không dựng cơ chế mới nào.
+
+| Hàm | Việc |
+|---|---|
+| `soTietLop(k, lop)` | con số cuối cùng **mọi nơi** phải hỏi; thay `soTietBuoi(k, khoi)` ở 20 chỗ |
+| `oTuanLop(id)` · `sucChuaLop(id)` | lưới và sức chứa của một lớp |
+| `coGioRieng(id)` · `gioRiengBuoi(kB)` | lớp có khai riêng không; mọi giá trị khai cho một buổi |
+| `datGioLop(dsId, tiet)` | đặt cho một loạt lớp; `null` = trả về khung của khối |
+| `tietRaNgoai(dsId, tiet)` | tiết đã xếp sẽ rơi ra ngoài nếu thu giờ lại |
+| `nhomGioRieng()` | gom các lớp khai GIỐNG HỆT nhau thành một dòng |
+| `khuGioRieng()` · `hopGioLop(dsSan)` | khu khai ở màn *Khung giờ học* |
+
+Chín điều bắt buộc, cả chín đều có phép thử (`npm test` mục **25**,
+`npm run soi` mục **17z**):
+
+- **Không lớp nào khai riêng thì lưới ra GIỐNG HỆT từng ô.** Năm trường đang
+  chạy thật không chịu rủi ro nào — đúng khuôn "cờ mặc định tắt" của trần số
+  buổi dạy. Có phép thử so từng ô.
+- ⚠️ **Bản đồ chỉ giữ phần LỆCH**, không chép cả tuần. Nhờ vậy sửa khung của
+  khối thì lớp khai riêng vẫn đi theo ở những buổi dùng chung; chép đủ tám
+  buổi là mỗi lần sửa khung phải nhớ sửa tay từng lớp.
+- ⚠️ **Chiều cao lưới (`k.tiet`) phải TRÙM cả giờ riêng.** `chuanKhungGio()`
+  lấy max của khối *và* `gioRiengBuoi()`. Thiếu vế sau thì tiết thứ 5 của 1A
+  xếp vào được nhưng không hàng nào vẽ ra — xếp thấy đủ, in ra thì thiếu.
+  Kéo theo: `S.lopTiet` phải nạp **trước** `chuanKhungGio()`.
+- ⚠️ **`docTKB()` xét ô hợp lệ theo LỚP.** Xét theo khối thì tải bản đã lưu về
+  là mất trắng phần tiết ở ô chỉ lớp ấy mới có, mà lời báo chỉ nói "bỏ qua
+  mấy ô".
+- ⚠️ **Thu giờ lại thì phải GỠ tiết rơi ra ngoài** (`tietRaNgoai` → xoá khỏi
+  `S.tkb`), và nói ra đã gỡ mấy tiết. Giữ ngầm là lưới có tiết mà không bản
+  in nào bày.
+- ⚠️ **Bộ dữ liệu KHÔNG mang trường này thì GIỮ NGUYÊN, đừng xoá.** Tệp Excel,
+  bộ mẫu, dữ liệu cũ đều không có `lopTiet`; hiểu "không có" thành "hãy xoá"
+  là nhập một tệp phân công xong mất luôn giờ riêng của mấy lớp. `napVaoS()`
+  giữ nguyên, và `ghiDuLieuNguon()` **bỏ hẳn cột** khỏi lệnh ghi.
+- **Khai trùng đúng con số của khối = KHÔNG phải giờ riêng** — `datGioLop()`
+  xoá khỏi bản đồ. Bảng khai càng ít dòng càng dễ đọc.
+- **Sinh hoạt lớp là tiết cuối CỦA LỚP**, không phải của khối; `laGhim()` và
+  bước ghim đều đi qua `soTietLop()`.
+- **R05 đo sức chứa theo lớp** (`sucChuaLop`), không theo `slotKhoi` — không
+  thì lớp khai riêng vừa đủ chỗ vẫn bị báo thiếu.
+
+⚠️ **Phép thử đầu tiên bỏ sót đúng chỗ dễ sót nhất**: bẻ ngược phép đếm ô của
+pha 0 (`chonBuoiNghi`) về theo khối mà **17 phép thử vẫn xanh**, vì pha ấy mặc
+định TẮT nên không lần chạy nào đi qua. Nay có cảnh khai rộng giờ mà không
+thêm tiết — đếm theo khối thì không ai được nghỉ, đếm theo lớp thì có. Đã thử
+ngược **5/5**, cả năm đều làm phép thử đỏ.
+
 ### Ba bảng khai báo: Giáo viên · Phân công · Môn học
 
 Cách dựng ba bảng ấy — hộp khai bảy ô, bảng phân công **dạng ma trận** (hàng là
@@ -675,6 +756,17 @@ giáo viên, cột là môn), bảng môn học 13 dòng — ghi đầy đủ �
 `hopThemPC()` và `hopPCTheoGV()` **bù nhau, cố ý không gộp**: hộp đầu là một
 giáo viên · **một lớp** · nhiều môn (cho chủ nhiệm), hộp sau là một giáo viên ·
 một môn · **nhiều lớp** (cho bộ môn).
+
+⚠️ **Hộp *Phân công nhanh* ĐỒNG BỘ theo danh sách đang tích** *(31/8/2026)* —
+bỏ tích một lớp là **GỠ** phân công của lớp ấy, kèm tiết đã xếp trên lưới.
+Trước đó nó chỉ biết thêm và cập nhật, mà ô ma trận lại là lối DUY NHẤT sửa
+phân công của một cặp (giáo viên · môn): chủ dự án bỏ tích cả 25 lớp của cô
+Thương, bấm *Phân công* nhận *"Chưa chọn lớp nào"*, ra bấm *Lưu ngay* thì
+phân công cũ vẫn nguyên. Kéo theo hai luật: **tích sẵn theo hiện trạng là
+chốt an toàn** (nút đồng bộ mà hộp không tích sẵn thì bấm luôn là xoá sạch,
+nên `dongBoTich()` chạy cả lúc mở lẫn mỗi lần đổi giáo viên · môn), và **nhãn
+nút phải nói đúng việc nó làm** (*Phân công* → *Cập nhật phân công* → *Gỡ
+khỏi N lớp*). Đầy đủ ở `docs/lich-su-quyet-dinh.md`.
 
 ⚠️ `locBang()` nhận **chính ô nhập** và đọc `data-loc` của nó, không nhận id
 bảng. Gọi `locBang('bMT')` là lỗi `Cannot read properties of undefined`.
@@ -2010,6 +2102,10 @@ môn: **`docs/giao-dien.md`**. Năm luật giữ lại đây:
       Còn phải làm: nhập **danh sách lớp** (biểu mẫu nhà trường gửi 30/8 để
       trống phần B), rồi phân công chuyên môn. 88 cán bộ giáo viên đã có tệp
       sẵn ngoài kho mã (thư mục *TH Châu Đình*), 38 · 50 theo hai phân hiệu.
+- [ ] **Chạy `db/gio-hoc-lop.sql` trên máy chủ thật** *(31/8/2026)* — thêm cột
+      `lop.so_tiet_buoi` cho tính năng *Giờ học riêng của lớp* (bài toán TH
+      Hưng Vinh 1). Chưa chạy thì app vẫn khai và xếp được, chỉ là bấm Lưu
+      thì cột ấy bị bỏ qua nên tải lại là mất phần khai riêng.
 - [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi

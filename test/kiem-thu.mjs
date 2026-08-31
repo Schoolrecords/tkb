@@ -66,7 +66,8 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
   laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi,
   choLienTiet, goiYLienTiet, MON_LIEN_TIET, chonBuoiNghi, khoaB, khoiDangCo,
-  thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId };`;
+  thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId,
+  soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -99,7 +100,9 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
         datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap, dienGiaiLoi,
-        thuTuHangGV, lopCN } = taoUngDung(documentGia);
+        thuTuHangGV, lopCN,
+        soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai
+        } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
 let dat = 0, hong = 0;
@@ -3921,6 +3924,214 @@ console.log('\n24. Trần số buổi dạy — pha 0 chọn buổi nghỉ TRƯ�
     const app = mo(themO);
     const r = app.chonBuoiNghi(0);
     return [r.datDu === 0 && Object.keys(r.nghi).length === 0, 'không sinh buổi nghỉ nào'];
+  })());
+}
+
+console.log('\n25. Lớp học khác giờ khối — bài toán TH Hưng Vinh 1');
+/* Chủ dự án 31/8/2026: "Lớp 1A, 1B, 1C khung chương trình 35 tiết mà các lớp 1
+   còn lại 32 tiết… bố trí cứng khung giờ này thì bài toán Hưng Vinh 1 không
+   giải được." Khung giờ vốn khai theo KHỐI nên trong một khối không có chỗ nào
+   nói hai con số. Nay mỗi lớp ghi đè được số tiết của từng buổi. */
+{
+  const DL2 = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
+  const BA = ['lop_1A', 'lop_1B', 'lop_1C'];
+
+  /* Dựng một bản app sạch; `sua` chạy TRƯỚC khi xếp. */
+  const mo2 = (sua) => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.napVaoS(JSON.parse(JSON.stringify(DL2)));
+    app.S.monHoc = app.dsMonMacDinh();
+    if (sua) sua(app);
+    app.xepTuDong(1200);
+    return app;
+  };
+  /* Ba buổi sáng đầu tuần nâng từ 4 lên 5 tiết — đúng cách nhà trường mở thêm
+     giờ cho lớp học đủ hai buổi, và cũng là cách SmartScheduler bày lưới. */
+  const gioRieng = (app) => {
+    const m = {};
+    app.buoiBat().forEach(k => { m[app.khoaB(k)] = app.soTietBuoi(k, 1); });
+    m['2-S'] = 5; m['3-S'] = 5; m['4-S'] = 5;
+    app.datGioLop(BA, m);
+    /* Ba tiết thêm phải có người dạy, không thì phân công vẫn là 27 */
+    BA.forEach(id => {
+      const pc = app.S.phanCong.find(p => p.lopId === id && p.mon === 'Tiếng Việt');
+      if (pc) pc.soTiet += 3;
+    });
+  };
+  const tongCan = app => app.S.phanCong.reduce((s, p) => s + p.soTiet, 0);
+  const tongXep = app => app.S.lop.reduce((s, l) => s + Object.keys(app.S.tkb[l.id] || {}).length, 0);
+
+  /* --- a) Chốt an toàn: không khai gì thì mọi thứ y như trước --- */
+  kt('Không lớp nào khai riêng thì lưới ra GIỐNG HỆT từng ô', (() => {
+    const a = mo2(), b = mo2();
+    const cot = app => app.S.lop.map(l => l.id + ':' +
+      Object.entries(app.S.tkb[l.id] || {}).sort()
+        .map(([k, v]) => `${k}=${v.mon}/${v.gvId}`).join(',')).join('|');
+    return [cot(a) === cot(b) && tongXep(a) === 710, `${tongXep(a)}/710 tiết`];
+  })());
+  kt('Chưa khai thì soTietLop trả đúng con số của KHỐI, không lệch ô nào', (() => {
+    const app = mo2();
+    const lech = [];
+    app.S.lop.forEach(l => app.buoiBat().forEach(k => {
+      if (app.soTietLop(k, l) !== app.soTietBuoi(k, l.khoi)) lech.push(l.ten + ' ' + app.khoaB(k));
+    }));
+    return [lech.length === 0 && !app.coGioRieng('lop_1A'), lech.join(' · ') || 'khớp cả 25 lớp'];
+  })());
+
+  /* --- b) Khai giờ riêng: hai con số trong CÙNG một khối --- */
+  const hv = mo2(gioRieng);
+  kt('Cùng khối 1 mà 1A học 30 ô còn 1D vẫn 27 — thứ khung theo khối không nói được',
+     [hv.sucChuaLop('lop_1A') === 30 && hv.sucChuaLop('lop_1D') === 27,
+      `1A ${hv.sucChuaLop('lop_1A')} · 1D ${hv.sucChuaLop('lop_1D')} ô`]);
+  kt('Bản đồ chỉ giữ phần LỆCH, ba buổi chứ không phải cả tám',
+     [Object.keys(hv.S.lopTiet['lop_1A']).sort().join(',') === '2-S,3-S,4-S',
+      Object.keys(hv.S.lopTiet['lop_1A']).sort().join(',')]);
+  kt('Lớp không khai thì tuyệt đối không bị đụng tới',
+     [!hv.coGioRieng('lop_1D') && !hv.coGioRieng('lop_2A') && hv.sucChuaLop('lop_2A') === 27,
+      `2A ${hv.sucChuaLop('lop_2A')} ô`]);
+
+  /* --- c) Xếp được, và không tiết nào rơi ra ngoài giờ của lớp --- */
+  kt('Xếp trọn số tiết đã phân công, kể cả 9 tiết thêm của ba lớp',
+     [tongXep(hv) === tongCan(hv) && tongCan(hv) === 719, `${tongXep(hv)}/${tongCan(hv)} tiết`]);
+  /* ⚠️ Đây là phép thử NẶNG nhất của mục: tiết nằm ngoài lưới của lớp thì xếp
+     vẫn thấy đủ mà bản in thiếu — không ai phát hiện ra cho tới lúc phát tờ. */
+  kt('Mọi tiết đều nằm trong giờ học của chính lớp ấy', (() => {
+    const ra = [];
+    hv.S.lop.forEach(l => {
+      const hopLe = new Set(hv.oTuanLop(l.id).map(x => x.khoa));
+      Object.keys(hv.S.tkb[l.id] || {}).forEach(k => { if (!hopLe.has(k)) ra.push(l.ten + ' ' + k); });
+    });
+    return [ra.length === 0, ra.slice(0, 3).join(' · ') || 'sạch cả 25 lớp'];
+  })());
+  kt('1D KHÔNG bị xếp vào tiết 5 sáng — ô ấy chỉ mở cho ba lớp kia', (() => {
+    const co = k => Object.keys(hv.S.tkb[k] || {}).filter(x => /-S-4$/.test(x)).length;
+    return [co('lop_1D') === 0 && co('lop_1E') === 0 && co('lop_1A') === 3,
+            `1A ${co('lop_1A')} tiết · 1D ${co('lop_1D')}`];
+  })());
+
+  /* --- c2) Bản lưu đọc lại phải GIỮ tiết ở ô chỉ lớp ấy mới có ---
+     `docTKB()` bỏ những ô không còn tồn tại trong lưới. Xét theo KHỐI thì
+     tiết 5 sáng của 1A là "ô không tồn tại" — tải bản đã lưu về là mất
+     trắng 9 tiết, mà lời báo chỉ nói "bỏ qua mấy ô", không nói vì sao. */
+  kt('Tải bản đã lưu về không mất tiết nào của lớp khai giờ riêng', (() => {
+    const goi = JSON.parse(JSON.stringify(hv.dongGoiTKB()));
+    const truoc = tongXep(hv);
+    const r = hv.docTKB(goi);
+    return [tongXep(hv) === truoc && r.boQua === 0, `${truoc} → ${tongXep(hv)} tiết · bỏ qua ${r.boQua}`];
+  })());
+
+  /* --- d) Hai tiết theo quy định vẫn đúng chỗ --- */
+  kt('Chào cờ vẫn ở tiết 1 sáng thứ Hai của cả năm lớp khối 1',
+     [['lop_1A', 'lop_1B', 'lop_1C', 'lop_1D', 'lop_1E']
+        .every(id => hv.S.tkb[id]['2-S-0']?.mon === 'HDTN'), 'đủ 5 lớp']);
+  kt('Sinh hoạt lớp vẫn là tiết CUỐI của lớp — thứ Sáu sáng khối 1 vẫn 4 tiết',
+     [hv.S.tkb['lop_1A']['6-S-3']?.mon === 'HDTN' && !hv.S.tkb['lop_1A']['6-S-4'],
+      '1A: 6-S-3']);
+
+  /* --- e) Thu giờ lại thì phải GỠ tiết rơi ra ngoài, không được giữ ngầm --- */
+  kt('tietRaNgoai đếm đúng số tiết sẽ rơi ra khi trở lại giờ của khối', (() => {
+    const ra = hv.tietRaNgoai(BA, null);
+    return [ra.length === 9 && ra.every(x => /-S-4$/.test(x.khoa)), `${ra.length} tiết`];
+  })());
+  kt('Bỏ giờ riêng thì ba lớp trở lại đúng khung khối', (() => {
+    const ra = hv.tietRaNgoai(BA, null);
+    hv.datGioLop(BA, null);
+    ra.forEach(x => { delete hv.S.tkb[x.id][x.khoa]; });
+    return [!hv.coGioRieng('lop_1A') && hv.sucChuaLop('lop_1A') === 27
+            && Object.keys(hv.S.lopTiet).length === 0,
+            `1A ${hv.sucChuaLop('lop_1A')} ô · còn ${Object.keys(hv.S.lopTiet).length} lớp khai riêng`];
+  })());
+  kt('Và lưới không còn tiết nào nằm ngoài giờ mới', (() => {
+    const hopLe = new Set(hv.oTuanLop('lop_1A').map(x => x.khoa));
+    return [Object.keys(hv.S.tkb['lop_1A']).every(k => hopLe.has(k)), 'sạch'];
+  })());
+
+  /* --- f) Khai đúng bằng khối = KHÔNG phải giờ riêng --- */
+  kt('Khai trùng đúng con số của khối thì không lưu gì cả', (() => {
+    const app = mo2();
+    const m = {};
+    app.buoiBat().forEach(k => { m[app.khoaB(k)] = app.soTietBuoi(k, 1); });
+    app.datGioLop(['lop_1A'], m);
+    return [!app.coGioRieng('lop_1A') && Object.keys(app.S.lopTiet).length === 0,
+            'bản đồ rỗng'];
+  })());
+
+  /* --- g) Chiều cao lưới phải trùm cả giờ riêng --- */
+  kt('Chiều cao lưới nâng theo lớp khai nhiều tiết nhất', (() => {
+    const app = mo2(gioRieng);
+    const k = app.buoiBat().find(x => x.thu === 2 && x.buoi === 'S');
+    return [k.tiet === 5 && app.soTietBuoi(k, 1) === 4,
+            `lưới ${k.tiet} · khối 1 vẫn ${app.soTietBuoi(k, 1)}`];
+  })());
+
+  /* --- h) Nhóm lớp khai giống nhau gom một dòng --- */
+  kt('Ba lớp khai giống nhau gom thành MỘT nhóm, sắp theo lớp', (() => {
+    const app = mo2(gioRieng);
+    const n = app.nhomGioRieng();
+    return [n.length === 1 && n[0].ids.join(',') === BA.join(','),
+            n.map(x => x.ids.length + ' lớp').join(' · ')];
+  })());
+
+  /* --- i1) Nhập Excel KHÔNG được lặng lẽ xoá giờ riêng ---
+     Bộ dữ liệu đọc từ tệp Excel không mang trường này; hiểu "không có"
+     thành "hãy xoá đi" là nhà trường nhập một tệp phân công xong mất luôn
+     giờ học riêng của mấy lớp, mà không câu nào báo. */
+  kt('Nạp bộ dữ liệu không mang trường ấy thì GIỮ NGUYÊN giờ riêng', (() => {
+    const app = mo2(gioRieng);
+    const truoc = app.sucChuaLop('lop_1A');
+    app.napVaoS(JSON.parse(JSON.stringify(DL2)));      /* bộ mẫu, không có lopTiet */
+    return [app.sucChuaLop('lop_1A') === truoc && app.coGioRieng('lop_1A'),
+            `${truoc} → ${app.sucChuaLop('lop_1A')} ô`];
+  })());
+  kt('Bản sao để soát tệp nhập cũng mang theo, không làm rơi giữa đường', (() => {
+    const app = mo2(gioRieng);
+    const kho = app.chepKhoNguon();
+    app.napMucVaoS({ kho });
+    return [app.coGioRieng('lop_1A') && app.sucChuaLop('lop_1A') === 30,
+            `${app.sucChuaLop('lop_1A')} ô`];
+  })());
+  kt('Lớp bị thay mất thì giờ riêng của nó cũng dọn theo, không để rác', (() => {
+    const app = mo2(gioRieng);
+    const kho = app.chepKhoNguon();
+    kho.lop = kho.lop.filter(l => l.id !== 'lop_1A');
+    app.napMucVaoS({ kho });
+    return [!app.S.lopTiet['lop_1A'] && Object.keys(app.S.lopTiet).length === 2,
+            `còn ${Object.keys(app.S.lopTiet).length} lớp khai riêng`];
+  })());
+
+  /* --- i2) Phép tính SỐ Ô của pha 0 cũng phải đếm theo lớp ---
+     ⚠️ Phép thử đầu tiên của mục này bỏ sót đúng chỗ ấy: bẻ ngược
+     `chiSo`/`chonBuoiNghi` về đếm theo khối mà cả 17 phép thử vẫn xanh, vì
+     pha 0 mặc định TẮT nên không lần chạy nào đi qua. Cảnh dưới đây khai
+     rộng giờ mà KHÔNG thêm tiết — đếm theo khối thì lớp dư 0 ô và không ai
+     được nghỉ, đếm theo lớp thì dư 9 ô và có người nghỉ. */
+  kt('Pha 0 đếm ô dôi ra theo GIỜ CỦA LỚP, không theo khung khối', (() => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.napVaoS(JSON.parse(JSON.stringify(DL2)));
+    app.S.monHoc = app.dsMonMacDinh();
+    const m = {};
+    app.buoiBat().forEach(k => { m[app.khoaB(k)] = app.soTietBuoi(k, 1); });
+    m['2-S'] = 5; m['3-S'] = 5; m['4-S'] = 5;
+    app.datGioLop(BA, m);            /* rộng thêm 9 ô, phân công giữ nguyên */
+    const r = app.chonBuoiNghi(1);
+    return [r.datDu > 0 && r.hetO.length < app.S.lop.length,
+            `${r.datDu} người được nghỉ · ${r.hetO.length} lớp hết ô`];
+  })());
+
+  /* --- i) R05 đo sức chứa theo LỚP, không theo khối --- */
+  kt('R05 im lặng khi lớp đủ chỗ nhờ giờ riêng — trước đây nó báo oan', (() => {
+    const app = mo2(gioRieng);
+    const kq = app.kiemTra();
+    return [!kq.vm.some(v => v.ma === 'R05'),
+            kq.vm.filter(v => v.ma === 'R05').map(v => v.t).join(' · ') || 'không có R05'];
+  })());
+  kt('Nhưng vẫn nổ đúng khi phân công vượt quá giờ của chính lớp ấy', (() => {
+    const app = mo2(gioRieng);
+    const pc = app.S.phanCong.find(p => p.lopId === 'lop_1A' && p.mon === 'Tiếng Việt');
+    pc.soTiet += 4;
+    const kq = app.kiemTra();
+    const v = kq.vm.find(x => x.ma === 'R05');
+    return [!!v && /1A/.test(v.m), v ? v.t : 'không nổ'];
   })());
 }
 

@@ -2314,3 +2314,167 @@ bớt dù chỉ một buổi ngắn nhất. Có phép thử canh cả hai chiề
 
 **Mười phép thử ở mục 24 của `npm test`.** Đã thử ngược: gỡ phép tính số ô →
 6 phép thử đỏ (và mất 54 tiết); gỡ `finally` → 1 đỏ.
+
+---
+
+## 31/8/2026 — Phân công nhanh: bỏ tích một lớp nay là GỠ
+
+Chủ dự án: *"cô Phan Thị Thương cần bố trí lại, bỏ chọn tất cả, và muốn lưu
+lại ngay thì không được, phải quay lại chọn 1 môn nào đó thì mới lưu được;
+còn không chọn, thoát ra để lưu tổng «Lưu ngay» thì mất lệnh, vẫn giữ nguyên
+phân công cũ."*
+
+Hộp *Phân công nhanh cho một giáo viên* (`hopPCTheoGV`) chỉ biết **THÊM và
+CẬP NHẬT**: vòng lặp mở đầu bằng `if(!x.checked) return`, nên ô bỏ tích không
+có nghĩa gì cả. Bỏ tích cả 25 lớp thì `n===0` và hộp trả về *"Chưa chọn lớp
+nào."* — câu ấy đúng mặt chữ nhưng sai hẳn về ý: người dùng **có** ra lệnh,
+lệnh ấy là *gỡ hết*, và phần mềm lặng lẽ vứt đi.
+
+Hậu quả nặng hơn một hộp thoại khó tính: ô của **bảng ma trận** là lối **DUY
+NHẤT** sửa phân công của một cặp (giáo viên · môn), nên khi nó không gỡ được
+thì **không còn đường nào gỡ** ngoài việc xoá cả hồ sơ giáo viên rồi khai lại.
+Và vì `S.phanCong` không đổi nên `vanTayNguon()` cũng không đổi — bấm *Lưu
+ngay* là ghi lại đúng dữ liệu cũ, "mất lệnh" đúng như chủ dự án tả.
+
+**Nút nay ĐỒNG BỘ theo danh sách đang tích**: tích → thêm hoặc cập nhật số
+tiết; bỏ tích mà đang có → gỡ dòng phân công, và gỡ luôn tiết đã xếp của đúng
+lớp ấy trên lưới (`S.tkb`), đúng cách `hopXoaGV()` vẫn làm. Bảng `phan_cong`
+ghi theo kiểu *xoá sạch rồi ghi lại* nên bấm Lưu là máy chủ xoá thật — không
+phải thêm đường ghi nào.
+
+Ba điều bắt buộc, cả ba đều có phép thử (`npm run soi` mục **17y**):
+
+- ⚠️ **Tích sẵn theo hiện trạng là CHỐT AN TOÀN, không phải tiện nghi.** Nút
+  đã đồng bộ thì hộp mở ra mà không tích sẵn nghĩa là bấm luôn cũng xoá sạch.
+  Vì thế `dongBoTich()` chạy cả lúc mở lẫn mỗi lần đổi `#nqGV` · `#nqMon` —
+  trước đây chỉ tích sẵn khi mở từ một ô ma trận, mở từ nút chung thì không.
+- **Nói trước hậu quả, và nhãn nút phải nói đúng việc nó làm.** Dải đỏ *"Sẽ
+  gỡ Đạo Đức khỏi 23 lớp"* cập nhật theo từng ô tích, và nút đổi chữ:
+  *Phân công* → *Cập nhật phân công* → *Gỡ khỏi N lớp*. Nút ghi "Phân công"
+  trong khi việc thật là gỡ 23 lớp là câu chữ nói dối về chính thứ nguy hiểm
+  nhất — cùng bài học với dải cảnh báo của mẫu ma trận hôm 29/8.
+- **Câu tổng kết kể đủ cả ba chiều** — thêm · đổi số tiết · gỡ — thay cho câu
+  cũ chỉ đếm được một chiều.
+
+**Mười một phép thử ở mục 17y.** Đã thử ngược 2/2: bỏ nhánh gỡ → 4 đỏ; bỏ
+`dongBoTich()` khỏi `doiCap()` → 8 đỏ.
+
+---
+
+## 31/8/2026 — Giờ học riêng của LỚP: bài toán TH Hưng Vinh 1
+
+Chủ dự án: *"hiện tại App TKB còn 1 tình huống như Trường TH Hưng Vinh 1: Lớp
+1A, 1B, 1C khung chương trình 35 tiết mà các lớp 1 còn lại 32 tiết… hiện tại
+bố trí cứng khung giờ này thì bài toán Hưng Vinh 1 không giải được."*
+
+Kèm một ảnh chụp SmartScheduler: *"họ để khung sáng cứ 5 tiết, chiều 4 tiết,
+lớp nào thêm thì để trống, buổi sáng nào 5 tiết để nguyên, 4 tiết «ghi nghỉ»
+tiết cuối."*
+
+### Gốc của bế tắc
+
+Khung giờ khai theo **KHỐI** — `khung_gio.so_tiet_khoi = {1:4, 2:4, …}`, một
+con số cho cả khối. Hưng Vinh 1 cần **hai** con số trong cùng khối 1, nên bảng
+ở màn *Khung giờ học* không có ô nào để gõ. Tệ hơn, R05 đo sức chứa theo
+`slotKhoi[l.khoi]` nên nó sẽ báo *"lớp không đủ chỗ"* rồi chỉ đường sửa vào
+đúng chỗ không sửa được.
+
+### Điều làm việc này rẻ hẳn đi
+
+**Cơ chế "ô nghỉ" đã có sẵn từ lâu, chỉ ở mức KHỐI.** Lưới vẽ `.o-nghi`, Excel
+và bản in ghi chữ *Nghỉ* cho phần khối tan sớm — đúng dáng chủ dự án chỉ ra
+trong ảnh. Nên đây không phải dựng cơ chế mới mà là **đổi trục từ khối sang
+lớp**: thêm `soTietLop(k, lop)` rồi thay `soTietBuoi(k, khoi)` ở **20 chỗ** —
+thuật toán (`chiSo` · ghim sinh hoạt lớp · `diemO` · `diemLop` · `laGhim` ·
+danh sách ô của lớp), kiểm tra khả thi (R05 · R12 · R13), `docTKB`, lưới màn
+hình, Excel, bản in, và chốt chặn chỉnh tay `kiemTraChuyen`.
+
+Dữ liệu là **một cột jsonb trên bảng `lop`** (`db/gio-hoc-lop.sql`), chỉ chứa
+buổi nào lệch khối: `{"2-S":5,"3-S":5,"4-S":5}`. Không thêm bảng, không thêm
+quy tắc RLS — cột nằm trên bảng vốn đã có `p_lop_doc`/`p_lop_sua` — và không
+cần trigger canh cột vì `so_tiet_buoi` không quyết định quyền của ai.
+
+### Đo trên dữ liệu vàng
+
+Dựng đúng cảnh Hưng Vinh trên bộ 25 lớp của Diễn Liên: ba lớp 1A·1B·1C nâng
+ba buổi sáng từ 4 lên 5 tiết (30 ô/tuần), thêm 3 tiết Tiếng Việt cho mỗi lớp,
+các lớp 1 còn lại giữ 27.
+
+| Đo | Kết quả |
+|---|---|
+| Xếp | **719/719 tiết**, 0 tiết nằm ngoài giờ của lớp |
+| 1D bị xếp vào tiết 5 sáng | **0** — ô ấy chỉ mở cho ba lớp kia |
+| Chào cờ · sinh hoạt lớp | vẫn đúng chỗ, sinh hoạt lớp là tiết cuối **của lớp** |
+| Không lớp nào khai riêng | lưới ra **giống hệt từng ô** như trước |
+
+### Giao diện: khu khai nằm ngay dưới bảng khối
+
+Màn *Khung giờ học* có thêm khu **Lớp học khác giờ khối**: nút *Thêm lớp* mở
+hộp cho tích **nhiều lớp một lượt** (1A·1B·1C là một việc nhà trường quyết một
+lần, bày ba dòng y hệt nhau là bắt người đọc tự gom), bảng chín dòng buổi điền
+sẵn theo khối, và một dải cộng ngay *"30 tiết mỗi tuần cho 3 lớp · phân công
+cần 30 — vừa đủ"*. Các nhóm đã khai hiện thành một dòng kèm nút *Sửa* · *Bỏ*.
+
+### Chín luật, và một phép thử suýt xanh oan
+
+Chín điều bắt buộc ghi ở `CLAUDE.md`, mục *Giờ học riêng của LỚP*. Ba điều
+đắt nhất:
+
+- ⚠️ **Chiều cao lưới `k.tiet` phải TRÙM cả giờ riêng**, và `S.lopTiet` phải
+  nạp **trước** `chuanKhungGio()`. Thiếu là tiết thứ 5 của 1A xếp vào được
+  nhưng không hàng nào vẽ ra — xếp thấy đủ, in ra thì thiếu.
+- ⚠️ **`docTKB()` xét ô hợp lệ theo LỚP.** Theo khối thì tải bản đã lưu về
+  mất trắng 9 tiết, mà lời báo chỉ nói "bỏ qua mấy ô".
+- ⚠️ **Bộ dữ liệu không mang trường ấy thì GIỮ NGUYÊN, đừng xoá.** Tệp Excel
+  và bộ mẫu đều không có `lopTiet`; hiểu "không có" thành "hãy xoá" là nhập
+  một tệp phân công xong mất luôn giờ riêng của mấy lớp mà không câu nào báo.
+  `napVaoS()` giữ nguyên, `ghiDuLieuNguon()` **bỏ hẳn cột** khỏi lệnh ghi.
+
+⚠️ **Bộ phép thử đầu tiên bỏ sót đúng chỗ dễ sót nhất.** Bẻ ngược phép đếm ô
+của pha 0 (`chonBuoiNghi`) về theo khối mà **cả 17 phép thử vẫn xanh**, vì pha
+ấy mặc định TẮT nên không lần chạy nào đi qua đó. Nay có cảnh khai rộng giờ mà
+**không** thêm tiết — đếm theo khối thì lớp dư 0 ô và không ai được nghỉ, đếm
+theo lớp thì dư 9 ô và có ba người nghỉ được.
+
+**22 phép thử ở mục 25 của `npm test`, 10 phép thử ở mục 17z của `npm run
+soi`.** Đã thử ngược **5/5**: bỏ nhánh giờ riêng của `oTuanLop` → 5 đỏ; bỏ
+`gioRiengBuoi` khỏi chiều cao lưới → 1 đỏ; `chiSo` về theo khối → 1 đỏ;
+`napVaoS` xoá thẳng → 1 đỏ; `docTKB` về theo khối → 2 đỏ.
+
+**Còn phải chạy `db/gio-hoc-lop.sql` trên máy chủ thật** — chưa chạy thì app
+vẫn mở bình thường, khai được giờ riêng và xếp được, chỉ là bấm Lưu thì cột
+ấy bị bỏ qua (bắt lỗi *"Could not find the 'so_tiet_buoi' column"* rồi ghi lại
+không kèm cột, đúng khuôn cột Gmail ngày 28/8).
+
+---
+
+## 31/8/2026 — Xoá toàn bộ danh sách giáo viên
+
+Chủ dự án: *"Có cách nào xóa toàn bộ danh sách Giáo viên không em?"*
+
+Trước đó chỉ có `hopXoaGV(id)` — xoá từng người, mỗi người một hộp xác nhận.
+Trường 88 giáo viên nhập nhầm một tệp là ngồi bấm 88 lần. Nay có nút **Xoá
+toàn bộ danh sách** ở thanh công cụ màn *Giáo viên*.
+
+Điều đáng ghi lại không phải cái nút, mà là **vì sao nó không xoá tất cả**:
+người đang có tài khoản đăng nhập thì **giữ lại**. `ghiDuLieuNguon()` cố ý
+không xoá họ trên máy chủ (bốn bảng `phan_cong` · `gv_nghi` · `bao_nghi` ·
+`day_thay` đều khai `on delete cascade` theo giáo viên, nên xoá một hồ sơ là
+kéo theo cả lịch dạy thay và hồ sơ báo nghỉ của một người thật). App mà xoá
+khỏi màn hình trong khi máy chủ giữ lại thì lần tải sau họ **mọc lại** —
+đúng cái bẫy đã trả giá với đường xoá phân hiệu ngày 28/8. **Hai bên phải
+nói cùng một câu.**
+
+Hộp đếm sẵn hậu quả trước khi hỏi: bao nhiêu dòng phân công, bao nhiêu lớp
+mất chủ nhiệm, bao nhiêu tiết trên lưới sẽ bị gỡ — rồi mới đến ô tích *"Tôi
+hiểu là mất toàn bộ bảng phân công của N thầy cô này"*. Lớp học, môn học và
+khung giờ giữ nguyên; chỉ danh sách người dạy bị xoá.
+
+**Chín phép thử ở mục 17aa của `npm run soi`.** Đã thử ngược 3/3: bỏ hàng rào
+ô tích → 2 đỏ; xoá luôn người có tài khoản → 3 đỏ.
+
+⚠️ Bài học nhỏ về chính bộ soi: bản đầu tìm nút xác nhận bằng nhãn dựng sẵn
+(`Xoá 59 hồ sơ`). Bẻ ngược bản vá thì nhãn đổi thành *Xoá 60*, `find()` trả
+`undefined` và bộ soi **đổ giữa chừng** bằng TypeError thay vì đỏ một dòng —
+đỏ thì đọc ra ngay vấn đề, đổ thì không. Nay tìm bằng khuôn `/^Xoá \d+ hồ sơ$/`
+và có một phép thử riêng canh con số trên nhãn.

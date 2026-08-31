@@ -1816,6 +1816,10 @@ let S = {
   monHoc:dsMonMacDinh(),
   phong:[],             /* rỗng = chưa khai phòng riêng, chỉ dùng cờ phongTin của phân hiệu */
   lopDT:{}, khungGio:[], tkb:{}, gvNghi:{},
+  /* Giờ học riêng của từng lớp: {mã lớp: {'2-S':5, '3-C':2}} — CHỈ ghi buổi
+     nào khác khối. Rỗng = mọi lớp học đúng khung của khối mình, tức đúng
+     hành vi trước 31/8/2026. Xem soTietLop(). */
+  lopTiet:{},
   dayThay:[],           /* phân công dạy thay theo ngày — bảng day_thay trên máy chủ */
   baoNghi:[],           /* giáo viên báo nghỉ theo ngày — bảng bao_nghi trên máy chủ */
   giaoVienQL:[],        /* hồ sơ giáo viên của cán bộ quản lý — chỉ vào phương án dự phòng */
@@ -1968,6 +1972,24 @@ function soTietBuoi(k, khoi){
   const n = k.tietKhoi?.[khoi];
   return Number.isFinite(+n) ? +n : (+k.tiet||0);
 }
+/* Số tiết một buổi của MỘT LỚP — con số cuối cùng mọi nơi phải hỏi.
+   Cùng một khối vẫn có thể khác nhau: TH Hưng Vinh 1 có 1A·1B·1C học 35
+   tiết/tuần còn 1D·1E 32, mà bảng khung giờ khai theo KHỐI thì không có ô
+   nào để gõ chuyện đó. Lớp không khai riêng thì kế thừa đúng con số của
+   khối, nên trường nào không dùng tới thì lưới ra y hệt như trước. */
+function soTietLop(k, lop){
+  const l = typeof lop === 'string' ? lopId(lop) : lop;
+  if(!l) return +k.tiet || 0;
+  const r = S.lopTiet?.[l.id]?.[khoaB(k)];
+  return Number.isFinite(+r) ? +r : soTietBuoi(k, l.khoi);
+}
+/* Lớp này có khai giờ riêng không. Dùng để bày nhãn, và để `oTuanLop()` đi
+   thẳng đường cũ (có bộ nhớ đệm theo khối) cho tuyệt đại đa số lớp. */
+const coGioRieng = id => Object.keys(S.lopTiet?.[id] || {}).length > 0;
+/* Mọi giờ riêng đang khai cho một buổi — `chuanKhungGio()` cần để biết
+   chiều cao lưới, `mKhungGio()` cần để bày nhãn. */
+const gioRiengBuoi = kB => Object.values(S.lopTiet || {})
+  .map(m => +m?.[kB]).filter(x => Number.isFinite(x));
 /* Vá lại khung giờ cho đủ 5 khối và `tiet` = số tiết lớn nhất của buổi.
    `tiet` chính là chiều cao lưới hiển thị; khối nào ít tiết hơn thì phần dư
    là ô nghỉ. Gọi sau mỗi lần nạp dữ liệu hoặc sửa tay. */
@@ -1979,7 +2001,10 @@ function chuanKhungGio(){
       const n = +cu[x];
       k.tietKhoi[x] = Number.isFinite(n) && n>=0 ? Math.min(8,n) : (+k.tiet||0);
     });
-    k.tiet = Math.max(0, ...Object.values(k.tietKhoi));
+    /* ⚠️ Chiều cao lưới phải trùm cả GIỜ RIÊNG của lớp. Lớp 1A khai 5 tiết
+       sáng trong khi khối 1 để 4 mà `tiet` vẫn là 4 thì tiết thứ 5 rơi ra
+       ngoài lưới: xếp vào được nhưng không hàng nào vẽ nó ra. */
+    k.tiet = Math.max(0, ...Object.values(k.tietKhoi), ...gioRiengBuoi(khoaB(k)));
   });
   return S.khungGio;
 }
@@ -1995,7 +2020,71 @@ function oTuan(khoi){
   });
   return r;
 }
-const oTuanLop = id => oTuan(lopId(id)?.khoi);
+function oTuanLop(id){
+  const l = lopId(id);
+  if(!l) return oTuan(null);
+  if(!coGioRieng(id)) return oTuan(l.khoi);      /* đường cũ, gần hết các lớp */
+  const r=[];
+  buoiBat().forEach(k=>{
+    const n = soTietLop(k, l);
+    for(let i=0;i<n;i++)
+      r.push({thu:k.thu,buoi:k.buoi,i,khoa:`${k.thu}-${k.buoi}-${i}`,kB:khoaB(k)});
+  });
+  return r;
+}
+/* Sức chứa một tuần của MỘT lớp — thay cho sucChuaKhoi() ở mọi chỗ đã biết
+   mình đang xét lớp nào. */
+const sucChuaLop = id => oTuanLop(id).length;
+/* Các lớp khai GIỐNG HỆT nhau gom thành một nhóm. 1A·1B·1C cùng học 35 tiết
+   là MỘT việc nhà trường quyết một lần — bày ba dòng y hệt nhau thì người
+   đọc phải tự gom lấy, đúng bài học của trình soát lỗi nhập ngày 28/8. */
+function nhomGioRieng(){
+  const g = {};
+  Object.keys(S.lopTiet||{}).forEach(id=>{
+    if(!lopId(id) || !coGioRieng(id)) return;
+    const k = JSON.stringify(Object.entries(S.lopTiet[id]).sort());
+    (g[k] ||= []).push(id);
+  });
+  /* Sắp trong nhóm và giữa các nhóm theo khối rồi tên lớp — không gọi
+     `xepTheoKhoi()` vì hàm ấy nằm ngoài vùng LOGIC, mà vùng này còn được
+     cắt ra chạy trong Worker và trong Node. */
+  const sx = (a,b) => (lopId(a)?.khoi||0)-(lopId(b)?.khoi||0)
+    || String(lopId(a)?.ten||'').localeCompare(String(lopId(b)?.ten||''),'vi');
+  return Object.values(g).map(ids=>({ids:[...ids].sort(sx)}))
+    .sort((a,b)=>sx(a.ids[0], b.ids[0]));
+}
+/* Đặt giờ riêng cho một loạt lớp. `tiet` là {khoá buổi: số tiết} đầy đủ;
+   buổi nào TRÙNG con số của khối thì không lưu — bản đồ chỉ giữ phần LỆCH,
+   nhờ vậy sửa khung của khối thì các lớp ấy vẫn đi theo ở những buổi chung. */
+function datGioLop(dsId, tiet){
+  (dsId||[]).forEach(id=>{
+    const l = lopId(id); if(!l) return;
+    const m = {};
+    buoiBat().forEach(k=>{
+      const n = +tiet?.[khoaB(k)];
+      if(Number.isFinite(n) && n !== soTietBuoi(k, l.khoi)) m[khoaB(k)] = Math.max(0, Math.min(8, n));
+    });
+    if(Object.keys(m).length) S.lopTiet[id] = m; else delete S.lopTiet[id];
+  });
+  chuanKhungGio();          /* chiều cao lưới có thể vừa cao lên hoặc thấp xuống */
+  return dsId;
+}
+/* Tiết đang nằm NGOÀI giờ học mới của lớp — thu giờ lại thì phải gỡ, không
+   thì lưới giữ tiết mà không hàng nào vẽ ra: xếp thấy đủ, in ra thì thiếu. */
+function tietRaNgoai(dsId, tiet){
+  const r = [];
+  (dsId||[]).forEach(id=>{
+    const l = lopId(id), o = S.tkb[id]; if(!l || !o) return;
+    buoiBat().forEach(k=>{
+      const n = Number.isFinite(+tiet?.[khoaB(k)]) ? +tiet[khoaB(k)] : soTietBuoi(k, l.khoi);
+      Object.keys(o).forEach(kh=>{
+        const t = kh.split('-');
+        if(`${t[0]}-${t[1]}` === khoaB(k) && +t[2] >= n) r.push({id, khoa:kh, mon:o[kh].mon});
+      });
+    });
+  });
+  return r;
+}
 /* Sức chứa tối đa mỗi tuần của từng khối */
 const sucChuaKhoi = () => Object.fromEntries([1,2,3,4,5].map(k=>[k, oTuan(k).length]));
 function bao(m,loi){const b=$('#bao');b.textContent=m;b.className=(loi?'loi ':'')+'on';
@@ -2255,7 +2344,7 @@ function chonBuoiNghi(soNghi){
     (gvCuaLop[p.lopId] ||= []).push(p.gvId);
   });
   const oLop={};
-  S.lop.forEach(l=>{ oLop[l.id]={}; bb.forEach(k=>{ oLop[l.id][khoaB(k)]=soTietBuoi(k,l.khoi); }); });
+  S.lop.forEach(l=>{ oLop[l.id]={}; bb.forEach(k=>{ oLop[l.id][khoaB(k)]=soTietLop(k,l); }); });
 
   const nghi={}, banSan={};
   S.giaoVien.forEach(g=>{ banSan[g.id]=new Set(S.gvNghi[g.id]||[]); nghi[g.id]=new Set(banSan[g.id]); });
@@ -2371,10 +2460,11 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
     const s2=buoiBat().find(k=>k.thu===2&&k.buoi==='S');
     const s6=buoiBat().find(k=>k.thu===6&&k.buoi==='S');
     if(s2) ghim.push([l.id,`2-S-0`,cn.id,'HDTN']);
-    /* Sinh hoạt lớp là tiết CUỐI của khối đó, không phải tiết cuối của lưới:
-       khối 1–3 tan sau tiết 4, khối 4–5 sau tiết 5. */
+    /* Sinh hoạt lớp là tiết CUỐI CỦA LỚP ĐÓ, không phải tiết cuối của lưới:
+       khối 1–3 tan sau tiết 4, khối 4–5 sau tiết 5 — và lớp khai giờ riêng
+       thì theo con số riêng ấy. */
     if(s6){
-      const cuoi=soTietBuoi(s6,l.khoi);
+      const cuoi=soTietLop(s6,l);
       if(cuoi>0) ghim.push([l.id,`6-S-${cuoi-1}`,cn.id,'HDTN']);
     }
   });
@@ -2413,8 +2503,13 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
 
   const chuaXep=[];
   /* Mỗi khối một danh sách ô riêng — tính một lần rồi dùng lại */
-  const oKhoi={};
-  const oCuaLop = id => { const k=lopId(id)?.khoi; return oKhoi[k] || (oKhoi[k]=oTuan(k)); };
+  const oKhoi={}, oRieng={};
+  /* Lớp khai giờ riêng thì có lưới riêng, không dùng chung bộ nhớ đệm của
+     khối — nếu không thì 1D (32 tiết) lại được xếp trên lưới của 1A (35). */
+  const oCuaLop = id => {
+    if(coGioRieng(id)) return oRieng[id] || (oRieng[id]=oTuanLop(id));
+    const k=lopId(id)?.khoi; return oKhoi[k] || (oKhoi[k]=oTuan(k));
+  };
   /* Bảng tra dựng MỘT lần rồi cập nhật tăng dần sau mỗi tiết đặt xong.
      Trước đây gọi lại chiSo() cho từng tiết — mỗi lần quét cả lưới. */
   const cs=chiSo();
@@ -2426,7 +2521,7 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
     cs.cauVang[l.id]=dsPC.filter(p=>p.lopId===l.id&&laMonNang(p.mon))
       .reduce((s,p)=>s+p.soTiet,0);
     cs.cungVang[l.id]=buoiBat().filter(k=>k.buoi==='S')
-      .reduce((s,k)=>s+Math.min(3,soTietBuoi(k,l.khoi)),0);
+      .reduce((s,k)=>s+Math.min(3,soTietLop(k,l)),0);
   });
   /* Giáo viên LIÊN phân hiệu được MIỄN thuế đặt chỗ: ràng buộc "một buổi
      một phân hiệu" đã bó cửa sổ khả dụng của họ rất hẹp, bắt kiêng thêm
@@ -2485,7 +2580,7 @@ function laGhim(l, khoa){
   if(S.tkb[l.id]?.[khoa]?.ghim) return true;            /* người xếp ghim tay */
   if(khoa==='2-S-0') return true;                       /* chào cờ */
   const s6=buoiBat().find(k=>k.thu===6&&k.buoi==='S');
-  const n=s6?soTietBuoi(s6,l.khoi):0;
+  const n=s6?soTietLop(s6,l):0;
   return !!(s6 && n>0 && khoa===`6-S-${n-1}`);          /* sinh hoạt lớp */
 }
 
@@ -2536,7 +2631,7 @@ function diemLop(l){
     else if(buoi==='S'&&i<3) thuongVang++;
     if(mon==='GDTC'){
       const k2=bb.find(x=>String(x.thu)===thu && x.buoi===buoi);
-      if(k2 && buoi==='S' && i===soTietBuoi(k2,l.khoi)-1) d+=10;   /* tiết cuối sáng */
+      if(k2 && buoi==='S' && i===soTietLop(k2,l)-1) d+=10;   /* tiết cuối sáng */
       if(buoi==='C' && i===0) d+=10;                                /* tiết 1 chiều */
     }
   }
@@ -2869,14 +2964,15 @@ function kiemTra(){
       `${ds.join(', ')} — so với danh mục môn nhà trường đã khai.`,
       +d>0?'Rà lại bảng phân công, có thể một môn bị nhập trùng.':'Bổ sung phân công cho đủ số tiết quy định.'));
   }
-  /* Sức chứa xét theo đúng khối của lớp, vì mỗi khối một lưới giờ riêng */
+  /* Sức chứa xét theo đúng LỚP: mỗi khối một lưới giờ riêng, và lớp nào
+     khai giờ riêng thì theo con số của chính nó. */
   const qua=S.lop.map(l=>({l, t:S.phanCong.filter(p=>p.lopId===l.id).reduce((s,p)=>s+p.soTiet,0),
-                           suc:slotKhoi[l.khoi]||0})).filter(x=>x.t>x.suc);
+                           suc:sucChuaLop(l.id)})).filter(x=>x.t>x.suc);
   if(qua.length){
     const thieuNhat=Math.max(...qua.map(x=>x.t-x.suc));
     V('R05','do',`${qua.length} lớp không đủ chỗ trong tuần`,
-      qua.map(x=>`${tenLopDay(x.l.id)} cần ${x.t} tiết, khối ${x.l.khoi} chỉ có ${x.suc} ô`).join('; ')+'.',
-      `Mở thêm ${thieuNhat} tiết cho các khối đó ở mục Khung giờ.`);
+      qua.map(x=>`${tenLopDay(x.l.id)} cần ${x.t} tiết, ${coGioRieng(x.l.id)?'giờ riêng của lớp':'khối '+x.l.khoi} chỉ có ${x.suc} ô`).join('; ')+'.',
+      `Mở thêm ${thieuNhat} tiết ở mục Khung giờ — cho cả khối, hoặc riêng những lớp này.`);
   }
 
   const khongCN=S.lop.filter(l=>!cnCuaLop(l.id));
@@ -2943,9 +3039,9 @@ function kiemTra(){
       if(!coBangPhong()) return;
       const soP=soPhong(d.id,loai);
       /* Sức chứa = số phòng × số ô giờ mà lớp nào đó tại đây còn học được */
-      const khoiCo=[...new Set(S.lop.filter(l=>S.lopDT[l.id]===d.id).map(l=>+l.khoi))];
       const oCo=new Set();
-      khoiCo.forEach(k=>oTuan(k).forEach(x=>oCo.add(x.khoa)));
+      S.lop.filter(l=>S.lopDT[l.id]===d.id)
+        .forEach(l=>oTuanLop(l.id).forEach(x=>oCo.add(x.khoa)));
       const sucChua=soP*oCo.size;
       if(n>sucChua) V('R12','do',`${d.ten} không đủ chỗ trong phòng ${loai}`,
         `Cần ${n} tiết ${loai} mỗi tuần, mà ${soP} phòng × ${oCo.size} ô giờ chỉ chứa được ${sucChua} tiết.`,
@@ -2965,7 +3061,7 @@ function kiemTra(){
     if(cau>0){
       let cung=0;
       S.lop.forEach(l=>bb.forEach(k=>{
-        if(k.buoi==='S') cung+=Math.min(3,soTietBuoi(k,l.khoi));
+        if(k.buoi==='S') cung+=Math.min(3,soTietLop(k,l));
       }));
       const chaoCo = bb.some(k=>k.thu===2&&k.buoi==='S') ? S.lop.length : 0;
       /* Giáo viên KHÔNG dạy môn nặng mà lịch kín tới mức chỗ NGOÀI vùng
@@ -2978,13 +3074,13 @@ function kiemTra(){
         const pc=S.phanCong.filter(p=>p.gvId===g.id);
         const tong=pc.reduce((s,p)=>s+p.soTiet,0);
         if(!tong || pc.some(p=>laMonNang(p.mon))) return;
-        const khoiDay=[...new Set(pc.map(p=>lopId(p.lopId)?.khoi).filter(Boolean))];
-        if(!khoiDay.length) return;
+        const lopDay=[...new Set(pc.map(p=>p.lopId))].map(lopId).filter(Boolean);
+        if(!lopDay.length) return;
         const nghi=new Set(S.gvNghi[g.id]||[]);
         let ngoai=0;
         bb.forEach(k=>{
           if(nghi.has(khoaB(k))) return;
-          const cao=Math.max(...khoiDay.map(kh=>soTietBuoi(k,kh)));
+          const cao=Math.max(...lopDay.map(l=>soTietLop(k,l)));
           ngoai += k.buoi==='C' ? cao : Math.max(0,cao-3);
         });
         if(tong>ngoai) ep.push({g, x:tong-ngoai, mon:[...new Set(pc.map(p=>p.mon))].join(', ')});
@@ -4990,6 +5086,13 @@ function dangXuat(){
    lop.gvcn_id, không bao giờ dò theo tên gọi — trường có bốn cặp trùng tên. */
 function tuMayChu(hang){
   const lop = (hang.lop||[]).map(l=>({id:l.id, ten:l.ten, khoi:+l.khoi, maLop:l.ma_lop||''}));
+  /* Giờ học riêng của lớp — cột thêm sau (db/gio-hoc-lop.sql). Máy chủ chưa
+     nâng cấp thì cột không có, `lopTiet` rỗng và mọi lớp theo khung khối. */
+  const lopTiet = {};
+  (hang.lop||[]).forEach(l=>{
+    const m = l.so_tiet_buoi;
+    if(m && typeof m === 'object' && Object.keys(m).length) lopTiet[l.id] = {...m};
+  });
   /* Chủ nhiệm nối bằng MÃ LỚP: ba phân hiệu có thể cùng có lớp tên "1A" */
   const cnCuaGV = {};
   (hang.lop||[]).forEach(l=>{ if(l.gvcn_id) cnCuaGV[l.gvcn_id] = l.id; });
@@ -5067,7 +5170,7 @@ function tuMayChu(hang){
   return {
     tenTruong:hang.truong?.ten || '',
     namHoc:hang.truong?.nam_hoc || '', xa:hang.truong?.xa || '', tinh:hang.truong?.tinh || '',
-    giaoVien, lop, diemTruong, lopDT, gvNghi, monHoc, phong, dayThay, baoNghi, giaoVienQL,
+    giaoVien, lop, diemTruong, lopDT, lopTiet, gvNghi, monHoc, phong, dayThay, baoNghi, giaoVienQL,
     khungGio:(hang.khung_gio||[]).map(k=>({
       thu:+k.thu, buoi:k.buoi, tiet:+k.so_tiet, bat:k.bat!==false,
       tietKhoi:k.so_tiet_khoi || null      /* null → chuanKhungGio() cho mọi khối bằng nhau */
@@ -5090,6 +5193,15 @@ function napVaoS(dl){
   S.diemTruong = dl.diemTruong?.length ? dl.diemTruong.map(d=>({...d}))
     : [{id:'dt1', ten:'Phân hiệu chính', phongTin:true}];
   S.khungGio  = dl.khungGio?.length ? dl.khungGio.map(k=>({...k})) : khungGioMacDinh();
+  /* ⚠️ Giờ riêng của lớp phải nạp TRƯỚC `chuanKhungGio()`: chiều cao lưới
+     (`k.tiet`) trùm cả giờ riêng, nạp sau là lưới hụt đúng phần dôi ra. */
+  /* ⚠️ Bộ dữ liệu KHÔNG mang trường này (tệp Excel, bộ mẫu, dữ liệu cũ)
+     thì GIỮ NGUYÊN chứ không xoá: nhập một tệp phân công không có nghĩa
+     là nhà trường muốn bỏ giờ học riêng của mấy lớp. */
+  if(dl.lopTiet){
+    S.lopTiet = {};
+    Object.entries(dl.lopTiet).forEach(([id,m])=>{ if(m && Object.keys(m).length) S.lopTiet[id]={...m}; });
+  } else S.lopTiet = S.lopTiet || {};
   chuanKhungGio();
   S.gvNghi    = dl.gvNghi ? {...dl.gvNghi} : {};
   /* Danh mục môn rỗng thì lùi về bộ mặc định — không bao giờ để trống, vì màn
@@ -5108,6 +5220,8 @@ function napVaoS(dl){
     S.lopDT[l.id] = S.diemTruong.some(x=>x.id===d) ? d : macDinh;
     S.tkb[l.id] = {};
   });
+  /* Giờ riêng của lớp đã bị xoá thì bỏ đi, không để rác lại trong bản lưu */
+  Object.keys(S.lopTiet).forEach(id=>{ if(!S.lop.some(l=>l.id===id)) delete S.lopTiet[id]; });
   chuanCN();
   /* Mã lớp phải đọc được ngay từ lúc nạp — cần lopDT nên đặt sau vòng trên */
   S.soMaVuaDat = chuanMaLop();
@@ -5136,9 +5250,12 @@ function dongGoiTKB(){
    hoặc khung giờ đã thu hẹp nên ô đó không còn tồn tại — và báo rõ số lượng. */
 function docTKB(blob){
   const luoi = (blob && blob.tkb) ? blob.tkb : (blob || {});
-  /* Ô hợp lệ xét theo đúng khối của lớp — mỗi khối một lưới giờ riêng */
-  const theoKhoi = {};
+  /* Ô hợp lệ xét theo đúng LỚP — mỗi khối một lưới giờ riêng, và lớp khai
+     giờ riêng thì theo con số của chính nó. */
+  const theoKhoi = {}, theoLop = {};
   const hopLeCho = lp => {
+    if(coGioRieng(lp))
+      return theoLop[lp] || (theoLop[lp] = new Set(oTuanLop(lp).map(x=>x.khoa)));
     const k = lopId(lp)?.khoi;
     return theoKhoi[k] || (theoKhoi[k] = new Set(oTuan(k).map(x=>x.khoa)));
   };
@@ -5264,7 +5381,8 @@ async function taiChoGiaoVien(t, bang){
       bang('khung_gio','&order=thu.asc,buoi.asc'),
       /* Vẫn cần tên đồng nghiệp: ô trong lưới phải ghi được ai dạy */
       bang('giao_vien','&select=id,ho_ten,ma_gv,dinh_muc,nguoi_dung_id&order=ho_ten.asc'),
-      bang('lop','&select=id,ten,khoi,ma_lop,gvcn_id,diem_truong_id&order=ten.asc'),
+      bang('lop','&select=id,ten,khoi,ma_lop,gvcn_id,diem_truong_id,so_tiet_buoi&order=ten.asc')
+        .catch(()=>bang('lop','&select=id,ten,khoi,ma_lop,gvcn_id,diem_truong_id&order=ten.asc')),
       bang('mon_hoc','&order=thu_tu.asc,ten.asc').catch(()=>[]),
       bang('day_thay', locDT+'&order=ngay.asc&limit=500').catch(()=>[]),
       bang('bao_nghi', locBN+'&order=ngay.desc&limit=200').catch(()=>[]),
@@ -6657,6 +6775,7 @@ function chepKhoNguon(g){
     khungGio:(n.khungGio?.length?n.khungGio:khungGioMacDinh()).map(k=>({...k})),
     lop:(n.lop||[]).map(l=>({...l})),
     lopDT:{...(n.lopDT||{})},
+    lopTiet:Object.fromEntries(Object.entries(n.lopTiet||{}).map(([k,v])=>[k,{...v}])),
     giaoVien:(n.giaoVien||[]).map(x=>({...x})),
     monHoc:(n.monHoc||dsMonMacDinh()).map(m=>({...m})),
     phong:(n.phong||[]).map(p=>({...p})),
@@ -6700,6 +6819,11 @@ function napMucVaoS(kq){
   const k=kq.kho;
   S.diemTruong=k.diemTruong; S.khungGio=k.khungGio;
   S.lop=k.lop; S.lopDT=k.lopDT; S.giaoVien=k.giaoVien;
+  if(k.lopTiet) S.lopTiet=k.lopTiet;
+  /* Lớp bị thay bằng lớp mã khác thì giờ riêng của lớp cũ là rác — dọn ngay,
+     không thì `gioRiengBuoi()` còn kéo chiều cao lưới theo một lớp đã mất. */
+  Object.keys(S.lopTiet||{}).forEach(id=>{ if(!S.lop.some(l=>l.id===id)) delete S.lopTiet[id]; });
+  chuanKhungGio();
   S.monHoc=k.monHoc; S.phong=k.phong;
   S.phanCong=k.phanCong; S.gvNghi=k.gvNghi;
 }
@@ -6871,7 +6995,25 @@ async function ghiDuLieuNguon(dl, baoBuoc){
     const tenDiemCua=id=>dl.diemTruong.find(d=>d.id===dl.lopDT[id])?.ten;
     const maCua=l=>l.maLop||l.id;
     const hangLop=l=>({truong_id:t, ma_lop:maCua(l), ten:l.ten, khoi:l.khoi,
-      diem_truong_id:maDT[tenDiemCua(l.id)], gvcn_id:idSv[cnCua[l.id]] || null});
+      diem_truong_id:maDT[tenDiemCua(l.id)], gvcn_id:idSv[cnCua[l.id]] || null,
+      /* Giờ học riêng: `null` chứ không phải `{}` — bỏ khai giờ riêng thì
+         phải XOÁ hẳn trên máy chủ, để nguyên là lần tải sau lớp vẫn lệch.
+         ⚠️ Nhưng bộ dữ liệu KHÔNG mang trường này (đường nhập từ tệp Excel)
+         thì bỏ hẳn cột khỏi lệnh ghi — ghi null ở đó là nhập một tệp phân
+         công xong mất luôn giờ học riêng của mấy lớp, mà không ai báo gì. */
+      ...(dl.lopTiet ? {so_tiet_buoi:
+        Object.keys(dl.lopTiet[l.id]||{}).length ? dl.lopTiet[l.id] : null} : {})});
+    /* Cùng khuôn `gopGV`: máy chủ chưa chạy db/gio-hoc-lop.sql thì ghi lại
+       KHÔNG kèm cột ấy, chứ không để mất cả lần lưu — tên lớp, khối, chủ
+       nhiệm đều đi chung một lệnh. */
+    const gopLop=async (hang, khoa)=>{
+      try{ return await gop('lop', hang, khoa); }
+      catch(e){
+        if(!/Could not find the 'so_tiet_buoi' column/i.test(String(e?.message||''))) throw e;
+        KHO.coCotGioLop=false;
+        return gop('lop', hang.map(({so_tiet_buoi, ...r})=>r), khoa);
+      }
+    };
     /* ⚠️ BẪY CHẾT NGƯỜI khi ĐỔI MÃ LỚP. Upsert theo khoá tự nhiên
        (truong_id, ma_lop) chỉ đúng khi mã không đổi. Lớp đã nằm trên máy chủ
        mà nay mang mã mới thì không khớp dòng cũ → máy chủ THÊM lớp mới, nhân
@@ -6883,9 +7025,9 @@ async function ghiDuLieuNguon(dl, baoBuoc){
     const daCoTrenSv=dl.lop.filter(l=>laUUID(l.id));
     const lopMoiKhai=dl.lop.filter(l=>!laUUID(l.id));
     if(daCoTrenSv.length)
-      await gop('lop', daCoTrenSv.map(l=>({id:l.id, ...hangLop(l)})), 'id');
+      await gopLop(daCoTrenSv.map(l=>({id:l.id, ...hangLop(l)})), 'id');
     if(lopMoiKhai.length)
-      await gop('lop', lopMoiKhai.map(hangLop), 'truong_id,ma_lop');
+      await gopLop(lopMoiKhai.map(hangLop), 'truong_id,ma_lop');
     const lopSv=await goiAPI(`/rest/v1/lop?truong_id=eq.${t}&select=id,ma_lop,ten,diem_truong_id`);
     const maLop={}; (lopSv||[]).forEach(l=>maLop[l.ma_lop]=l.id);
 
@@ -7400,7 +7542,8 @@ function vanTayNguon(){
      không dải đỏ, không beforeunload — đúng sự cố 2/8/2026 tái phát trên
      các cột thêm sau (Gmail, điện thoại, khung giờ, số tiết chuẩn môn). */
   return [
-    gon(S.lop, l=>`${l.id}:${l.ten}:${l.khoi}:${l.maLop||''}:${S.lopDT[l.id]||''}`),
+    gon(S.lop, l=>`${l.id}:${l.ten}:${l.khoi}:${l.maLop||''}:${S.lopDT[l.id]||''}`
+      +`:${JSON.stringify(S.lopTiet?.[l.id]||null)}`),
     gon(S.giaoVien, g=>`${g.id}:${g.hoTen}:${g.cn||''}:${g.dinhMuc||''}:${g.maGV||''}`
       +`:${g.email||''}:${g.dienThoai||''}:${g.ghiChu||''}:${g.dtChinh||''}`),
     gon(S.phanCong, p=>`${p.gvId}:${p.lopId}:${p.mon}:${p.soTiet}`),
@@ -7756,9 +7899,9 @@ function luoiToanTruong(ds){
   dongGio().forEach(o=>{
     a.push([TEN_THU[o.thu], o.buoi==='S'?'Sáng':'Chiều', o.tiet,
       ...sx.map(l=>{
-        /* Khối này tan sớm hơn thì ô đó là giờ nghỉ, không phải tiết trống */
+        /* Lớp này tan sớm hơn thì ô đó là giờ nghỉ, không phải tiết trống */
         const k=buoiBat().find(x=>x.thu===o.thu&&x.buoi===o.buoi);
-        if(k && o.tiet>soTietBuoi(k,khoiCuaLop(l))) return 'Nghỉ';
+        if(k && o.tiet>soTietLop(k,l)) return 'Nghỉ';
         const v=S.tkb[l.id]?.[o.khoa]; if(!v) return '';
         const g=gvId(v.gvId);
         return v.mon+(g?' — '+g.hoTen:'');
@@ -7774,9 +7917,12 @@ function luoiTheoKhoiHoc(khoi, ds){
   a.push(['Thứ','Buổi','Tiết', ...sx.map(l=>tenLopDay(l.id))]);
   dongGio().forEach(o=>{
     const k=buoiBat().find(x=>x.thu===o.thu&&x.buoi===o.buoi);
-    if(k && o.tiet>soTietBuoi(k,+khoi)) return;      /* khối này không học tiết ấy */
+    /* Bỏ hẳn dòng chỉ khi MỌI lớp trong khối đều nghỉ tiết ấy — trong một
+       khối vẫn có lớp khai giờ riêng học dài hơn. */
+    if(k && sx.every(l=>o.tiet>soTietLop(k,l))) return;
     a.push([TEN_THU[o.thu], o.buoi==='S'?'Sáng':'Chiều', o.tiet,
       ...sx.map(l=>{
+        if(k && o.tiet>soTietLop(k,l)) return 'Nghỉ';
         const v=S.tkb[l.id]?.[o.khoa]; if(!v) return '';
         const g=gvId(v.gvId);
         return v.mon+(g?' — '+g.hoTen:'');
@@ -9022,10 +9168,10 @@ function luoiTuanGV(id){
 
 /* Lưới tuần của MỘT LỚP, bản chỉ đọc. */
 function luoiTuanLop(id){
-  const bb=buoiBat(), o=S.tkb[id]||{}, khoi=lopId(id)?.khoi;
+  const bb=buoiBat(), o=S.tkb[id]||{}, l=lopId(id);
   return luoiTuanKhung((t,b,i)=>{
     const k=bb.find(x=>x.thu===t&&x.buoi===b);
-    if(!k||i>=soTietBuoi(k,khoi)) return '<div class="o-nghi"></div>';
+    if(!k||i>=soTietLop(k,l)) return '<div class="o-nghi"></div>';
     const v=o[`${t}-${b}-${i}`];
     if(!v) return '<div class="o-trong"></div>';
     const g=gvId(v.gvId);
@@ -9503,7 +9649,7 @@ function mTKBLop(){
   /* lưới ngang: cột = thứ, dòng = tiết — dễ nhìn hơn cho một lớp */
   const maxS=Math.max(...bb.filter(k=>k.buoi==='S').map(k=>k.tiet),0);
   const maxC=Math.max(...bb.filter(k=>k.buoi==='C').map(k=>k.tiet),0);
-  const suaDuoc=duocSuaLop(lp), khoiLop=lopId(lp)?.khoi;
+  const suaDuoc=duocSuaLop(lp), lopNay=lopId(lp);
   if(!suaDuoc || (S.oChon && !o[S.oChon])) S.oChon=null;
   const soGhim=Object.values(o).filter(t=>t.ghim).length;
   /* Đang chọn một tiết thì soi trước mọi ô. BA mức, không phải hai
@@ -9530,7 +9676,7 @@ function mTKBLop(){
   const oNoi=(t,b,i)=>{
     const k=bb.find(x=>x.thu===t&&x.buoi===b);
     /* Quá số tiết của khối này thì là ô nghỉ — lớp nhỏ tan sớm hơn */
-    if(!k||i>=soTietBuoi(k,khoiLop)) return `<div class="o-nghi"></div>`;
+    if(!k||i>=soTietLop(k,lopNay)) return `<div class="o-nghi"></div>`;
     const khoa=`${t}-${b}-${i}`, v=o[khoa];
     const cham=suaDuoc?` data-cham="${khoa}"`:'';
     if(!v) return `<div class="o-trong${nhan(khoa)}"${cham} ${suaDuoc?`data-tha="${khoa}"`:''}></div>`;
@@ -9589,7 +9735,7 @@ function mTKBLop(){
        tự do trước khi phải động tới lịch đồng nghiệp. */
     let tuDo=0, chamAi=0;
     const ai=new Map();
-    oTuan(khoiLop).forEach(x=>{
+    oTuanLop(lp).forEach(x=>{
       if(x.khoa===S.oChon || kiemTraChuyen(S.oChon,x.khoa)) return;
       const c=chamGVKhac(lp,x.khoa);
       if(c){ chamAi++; ai.set(c.gvId,c); } else tuDo++;
@@ -10774,7 +10920,7 @@ function luoiRongHTML(ds, ghiKhoi, cao, soi){
         ${dauNgay?`<td class="c-thu2" rowspan="${soDongNgay[o.thu]}">${TAT_THU[o.thu]}</td>`:''}
         <td class="c-tiet2 ${o.buoi==='S'?'sang':'chieu'}">${o.buoi==='S'?'S':'C'}${o.tiet}</td>
         ${ds.map(l=>{
-          if(k && o.tiet>soTietBuoi(k,khoiCuaLop(l)))
+          if(k && o.tiet>soTietLop(k,l))
             return '<td class="o-nghi-t">nghỉ</td>';
           const v=S.tkb[l.id]?.[o.khoa];
           if(!v) return '<td></td>';
@@ -11848,12 +11994,12 @@ ${kieu}
 
 
 /* Bảng lưới: cột = thứ, dòng = buổi/tiết. lay(thu,buoi,tiet) trả nội dung ô. */
-/* Truyền `khoi` để bản in của một lớp chỉ hiện đúng số tiết khối đó học;
-   bỏ trống (bản in giáo viên) thì lấy toàn lưới vì họ dạy nhiều khối. */
-function bangIn(lay, khoi){
+/* Truyền `lop` để bản in của một lớp chỉ hiện đúng số tiết lớp đó học;
+   bỏ trống (bản in giáo viên) thì lấy toàn lưới vì họ dạy nhiều lớp. */
+function bangIn(lay, lop){
   const bb=buoiBat();
   const cao=(b)=>Math.max(0,...bb.filter(k=>k.buoi===b)
-    .map(k=>khoi==null?k.tiet:soTietBuoi(k,khoi)));
+    .map(k=>lop==null?k.tiet:soTietLop(k,lop)));
   let h=`<table class="in-b"><thead><tr><th style="width:52px">Buổi</th><th style="width:46px">Tiết</th>
     ${THU.map(t=>`<th>${TEN_THU[t]}</th>`).join('')}</tr></thead><tbody>`;
   [['S','Sáng',cao('S')],['C','Chiều',cao('C')]].forEach(([b,ten,mx])=>{
@@ -11861,7 +12007,7 @@ function bangIn(lay, khoi){
       h+=`<tr>${i===0?`<td class="c2" rowspan="${mx}">${ten}</td>`:''}<td class="c">${i+1}</td>
         ${THU.map(t=>{
           const k=bb.find(x=>x.thu===t&&x.buoi===b);
-          const n=!k?0:(khoi==null?k.tiet:soTietBuoi(k,khoi));
+          const n=!k?0:(lop==null?k.tiet:soTietLop(k,lop));
           return `<td>${i>=n?'':lay(t,b,i)}</td>`;
         }).join('')}</tr>`;
     }
@@ -11878,7 +12024,7 @@ function trangInLop(id){
       const v=S.tkb[l.id]?.[`${t}-${b}-${i}`]; if(!v) return '';
       const g=gvId(v.gvId);
       return `<b>${esc(v.mon)}</b><span>${esc(g?.hoTen||'')}</span>`;
-    }, l.khoi), 'doc')).join('');
+    }, l), 'doc')).join('');
 }
 
 /* Bản in nhiều cột: toàn trường hoặc một khối. Khổ A3 ngang vì 25 lớp không
@@ -11892,12 +12038,12 @@ function bangInRong(ds){
     ${hang.map((o,i)=>{
       const k=bb.find(x=>x.thu===o.thu&&x.buoi===o.buoi);
       const cuoi = !hang[i+1] || hang[i+1].thu!==o.thu || hang[i+1].buoi!==o.buoi;
-      /* Khối nào cũng nghỉ tiết này thì bỏ hẳn dòng, đỡ tốn giấy */
-      if(k && ds.every(l=>o.tiet>soTietBuoi(k,khoiCuaLop(l)))) return '';
+      /* Lớp nào cũng nghỉ tiết này thì bỏ hẳn dòng, đỡ tốn giấy */
+      if(k && ds.every(l=>o.tiet>soTietLop(k,l))) return '';
       return `<tr class="${cuoi?'het':''}">
         <td class="g">${TAT_THU[o.thu]}<br>${o.buoi==='S'?'sáng':'chiều'} ${o.tiet}</td>
         ${ds.map(l=>{
-          if(k && o.tiet>soTietBuoi(k,khoiCuaLop(l))) return '<td style="text-align:center">—</td>';
+          if(k && o.tiet>soTietLop(k,l)) return '<td style="text-align:center">—</td>';
           const v=S.tkb[l.id]?.[o.khoa]; if(!v) return '<td></td>';
           const g=gvId(v.gvId);
           return `<td><b>${esc(v.mon)}</b><span>${esc(g?.hoTen||'')}</span></td>`;
@@ -13213,7 +13359,8 @@ function mGiaoVien(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M18 8h5M20.5 5.5v5"/></svg>
     Tài khoản đăng nhập</button>
     ${S.giaoVien.some(g=>g.nguoiDungId)?`<button class="b b-vien" id="btChuyenTK">Chuyển tài khoản</button>`:''}
-    ${S.giaoVien.length?`<button class="b b-vien" id="btDatLaiMaGV">Đặt lại mã giáo viên</button>`:''}`):'')+`
+    ${S.giaoVien.length?`<button class="b b-vien" id="btDatLaiMaGV">Đặt lại mã giáo viên</button>`:''}
+    ${S.giaoVien.length?`<button class="b b-vien" id="btXoaHetGV" style="color:var(--do);border-color:var(--do)">Xoá toàn bộ danh sách</button>`:''}`):'')+`
   ${/* Ô tìm kiếm chung chuyển từ Bảng điều hành về đây 3/8/2026 — tìm giáo
        viên là việc của mục Giáo viên. Nó khác `oLoc` ở chỗ không lọc bảng mà
        trả kết quả bấm được, nhảy thẳng tới lịch dạy của người ấy. */''}
@@ -13398,6 +13545,129 @@ function mPhanCong(){
     Ô ghi <b>số lớp</b> và <b>tổng tiết</b>; hàng cuối đếm mỗi môn đã có người dạy ở mấy lớp
     trên tổng ${ds.length} lớp.</div>`;
 }
+/* ---------- Lớp học khác giờ khối ----------
+   TH Hưng Vinh 1: 1A·1B·1C học 35 tiết/tuần còn 1D·1E 32 — cùng khối mà khác
+   giờ, nên bảng khai theo KHỐI ở trên không có ô nào để gõ. Cách nhà trường
+   vẫn làm (và cách SmartScheduler làm) là mở khung rộng ra rồi cho lớp nào
+   ít tiết hơn "nghỉ" mấy tiết cuối buổi — ở đây là khai đúng số tiết của
+   lớp, còn phần dôi ra hiện thành ô nghỉ y như khối tan sớm. */
+function khuGioRieng(sua){
+  const nhom = nhomGioRieng();
+  const nhan = ids => ids.map(id=>esc(tenLopDay(id))).join(' · ');
+  return `<div class="the" style="margin-top:16px"><div class="the-t">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:${nhom.length?'11px':'7px'}">
+      <b style="font-size:14px">Lớp học khác giờ khối</b>
+      ${sua?`<button class="b b-vien b-nho" id="btThemGioLop" style="margin-left:auto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+        Thêm lớp</button>`:''}
+    </div>
+    ${nhom.length ? `<div class="bang"><table class="dl gon"><tbody>
+      ${nhom.map(n=>{
+        const l0 = lopId(n.ids[0]);
+        const tong = sucChuaLop(n.ids[0]), tongKhoi = KT.slotKhoi[l0?.khoi] || 0;
+        return `<tr><td><b>${nhan(n.ids)}</b>
+            <div style="color:var(--chu-mo);font-size:12px">${
+              buoiBat().filter(k=>soTietLop(k,l0)!==soTietBuoi(k,l0.khoi))
+                .map(k=>`${TAT_THU[k.thu]} ${k.buoi==='S'?'sáng':'chiều'} ${soTietLop(k,l0)} tiết`).join(' · ')}</div></td>
+          <td class="phai"><b>${tong}</b> tiết/tuần
+            <div style="color:var(--chu-mo);font-size:12px">khối ${l0?.khoi}: ${tongKhoi}</div></td>
+          ${sua?`<td class="phai" style="width:130px">
+            <button class="b b-vien b-nho" data-suagio="${esc(n.ids.join(','))}">Sửa</button>
+            <button class="b b-vien b-nho" data-bogio="${esc(n.ids.join(','))}">Bỏ</button></td>`:''}
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`
+    : `<div class="gy">Chưa lớp nào khai riêng — mọi lớp học đúng khung giờ của khối mình.
+        ${sua?'Dùng khi trong một khối có lớp học nhiều tiết hơn các lớp khác, ví dụ lớp học hai buổi đầy đủ còn lớp kia tan sớm ba buổi chiều.':''}</div>`}
+  </div></div>`;
+}
+
+/* Hộp khai giờ riêng. Nhận sẵn danh sách lớp khi bấm Sửa một nhóm. */
+function hopGioLop(dsSan){
+  const dsL = xepTheoKhoi(S.lop);
+  if(!dsL.length) return bao('Chưa có lớp nào — khai ở mục Lớp học trước.', true);
+  const bb = buoiBat();
+  const chon = new Set(dsSan && dsSan.length ? dsSan : []);
+  const l0 = lopId([...chon][0]) || dsL[0];
+  hop('Giờ học riêng của lớp',
+  `<div class="on-l"><label>Chọn lớp</label>
+     <div class="gy" style="margin-bottom:7px">Các lớp học giống nhau thì tích chung một lượt —
+       nhà trường quyết một lần cho cả nhóm.</div>
+     <div class="bang" style="max-height:26vh"><table class="dl"><tbody>
+       ${dsL.map(l=>`<tr><td style="width:34px"><input type="checkbox" data-gl="${l.id}" ${chon.has(l.id)?'checked':''}></td>
+         <td><b>${esc(tenLopDay(l.id))}</b></td>
+         <td style="color:var(--chu-mo)">Khối ${khoiCuaLop(l)}</td>
+         <td class="phai" style="color:var(--chu-mo);font-size:12px">${sucChuaLop(l.id)} tiết${coGioRieng(l.id)?' · đang khai riêng':''}</td></tr>`).join('')}
+     </tbody></table></div></div>
+   <div class="on-l"><label>Số tiết mỗi buổi</label>
+     <div class="bang"><table class="dl gon"><thead><tr>
+       <th>Buổi học</th><th class="phai" id="glCotKhoi">Khối ${l0.khoi}</th>
+       <th class="giua" style="width:96px">Lớp đã chọn</th></tr></thead><tbody>
+       ${bb.map(k=>`<tr><td>${TAT_THU[k.thu]} · ${k.buoi==='S'?'Sáng':'Chiều'}</td>
+         <td class="phai" style="color:var(--chu-mo)" data-glk="${khoaB(k)}">${soTietBuoi(k,l0.khoi)}</td>
+         <td class="giua"><input class="ip" type="number" min="0" max="8" style="width:64px;text-align:center"
+           data-glt="${khoaB(k)}" value="${soTietLop(k,l0)}"></td></tr>`).join('')}
+     </tbody></table></div></div>
+   <div id="glTong"></div>`,
+  [{ten:'Huỷ',phu:1,lam:dong},
+   {ten:'Theo đúng khối',phu:1,lam:()=>{
+     const ids=[...document.querySelectorAll('[data-gl]')].filter(x=>x.checked).map(x=>x.dataset.gl);
+     if(!ids.length) return bao('Chưa chọn lớp nào.', true);
+     const ra=tietRaNgoai(ids, null);
+     datGioLop(ids, null);
+     ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
+     dong(); bao(`${ids.length} lớp trở lại đúng khung giờ của khối.`
+       +(ra.length?` Gỡ ${ra.length} tiết rơi ra ngoài.`:'')); ve();
+   }},
+   {ten:'Lưu giờ học',lam:()=>{
+     const ids=[...document.querySelectorAll('[data-gl]')].filter(x=>x.checked).map(x=>x.dataset.gl);
+     if(!ids.length) return bao('Chưa chọn lớp nào.', true);
+     const tiet={};
+     document.querySelectorAll('[data-glt]').forEach(x=>{
+       tiet[x.dataset.glt]=Math.max(0,Math.min(8,+x.value||0)); });
+     const ra=tietRaNgoai(ids, tiet);
+     datGioLop(ids, tiet);
+     ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
+     const rieng=ids.filter(id=>coGioRieng(id)).length;
+     dong();
+     bao(rieng ? `Đã đặt giờ học riêng cho ${rieng} lớp — ${sucChuaLop(ids[0])} tiết mỗi tuần.`
+                 +(ra.length?` Gỡ ${ra.length} tiết rơi ra ngoài giờ mới.`:'')
+               : `${ids.length} lớp học đúng khung giờ của khối, không cần khai riêng.`);
+     ve();
+   }}]);
+  /* Cột giữa và dòng tổng đọc theo lớp ĐANG TÍCH — đổi lớp là đổi cả hai,
+     không thì người dùng so số tiết của lớp này với khối của lớp khác. */
+  const veTong=()=>{
+    const ids=[...document.querySelectorAll('[data-gl]')].filter(x=>x.checked).map(x=>x.dataset.gl);
+    const l=lopId(ids[0])||l0;
+    const khoi=[...new Set(ids.map(id=>lopId(id)?.khoi))];
+    $('#glCotKhoi').textContent = khoi.length===1 ? `Khối ${khoi[0]}` : 'Khối';
+    bb.forEach(k=>{ const o=document.querySelector(`[data-glk="${khoaB(k)}"]`);
+      if(o) o.textContent = khoi.length===1 ? soTietBuoi(k,khoi[0]) : '—'; });
+    let tong=0;
+    document.querySelectorAll('[data-glt]').forEach(x=>tong+=Math.max(0,Math.min(8,+x.value||0)));
+    const can=ids.length ? Math.max(...ids.map(id=>
+      S.phanCong.filter(p=>p.lopId===id).reduce((a,p)=>a+p.soTiet,0))) : 0;
+    const ra=ids.length ? tietRaNgoai(ids, Object.fromEntries(
+      [...document.querySelectorAll('[data-glt]')].map(x=>[x.dataset.glt, Math.max(0,Math.min(8,+x.value||0))]))) : [];
+    const d=tong-can;
+    $('#glTong').innerHTML = !ids.length
+      ? `<div class="gy">Tích ít nhất một lớp.</div>`
+      : `<div class="canhbao ${can&&d<0?'do':can&&d?'':'ok'}" style="margin:0 0 4px">
+          <div class="cb-ic">${can&&d<0?'!':can&&d?'~':'✓'}</div><div class="cb-t">
+          <b>${tong} tiết mỗi tuần cho ${ids.length} lớp${can?` · phân công cần ${can}`:''}</b>
+          <div class="cb-g">${
+            !can ? 'Chưa phân công tiết nào cho lớp này nên chưa đối chiếu được.'
+            : d<0 ? `Thiếu ${-d} chỗ — có tiết sẽ không xếp được.`
+            : d ? `Học sinh sẽ ngồi chơi ${d} tiết mỗi tuần.`
+                : 'Vừa đủ chỗ cho bảng phân công của lớp.'}${
+            ra.length?` <b>Gỡ ${ra.length} tiết đã xếp</b> nằm ngoài giờ mới.`:''}</div></div></div>`;
+  };
+  document.querySelectorAll('[data-gl],[data-glt]').forEach(x=>x.onchange=veTong);
+  document.querySelectorAll('[data-glt]').forEach(x=>x.oninput=veTong);
+  veTong();
+}
+
 function mKhungGio(){
   const sua=duocSuaNguon(), suc=KT.slotKhoi;
   const o=(k,x)=>soTietBuoi(k,x);
@@ -13439,6 +13709,8 @@ function mKhungGio(){
     }).join('')}
     <td style="font-size:12px;color:var(--chu-mo)">${KT.buoi} buổi/tuần</td>
   </tr></tfoot></table></div>
+
+  ${khuGioRieng(sua)}
 
   <div class="the" style="margin-top:16px"><div class="the-t">
     ${[1,2,3,4,5].every(x=>(suc[x]||0)===tietCanKhoi(x))
@@ -14091,8 +14363,21 @@ function noiSuKien(){
   /* Cột Dạy chỉ đọc — bấm vào là sang màn Phân công đã lọc sẵn người ấy */
   $$('[data-gvpc]').forEach(x=>x.onclick=()=>{
     S.pcGV=x.dataset.gvpc; chuyen('phancong'); });
+  $('#btXoaHetGV')&&($('#btXoaHetGV').onclick=hopXoaHetGV);
   $$('[data-suagv]').forEach(x=>x.onclick=()=>hopSuaGV(x.dataset.suagv));
   $$('[data-xoagv]').forEach(x=>x.onclick=()=>hopXoaGV(x.dataset.xoagv));
+
+  /* Khung giờ — lớp học khác giờ khối */
+  $('#btThemGioLop')&&($('#btThemGioLop').onclick=()=>hopGioLop([]));
+  $$('[data-suagio]').forEach(b=>b.onclick=()=>hopGioLop(b.dataset.suagio.split(',')));
+  $$('[data-bogio]').forEach(b=>b.onclick=()=>{
+    const ids=b.dataset.bogio.split(',');
+    const ra=tietRaNgoai(ids, null);
+    datGioLop(ids, null);
+    ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
+    bao(`${ids.length} lớp trở lại đúng khung giờ của khối.`
+      +(ra.length?` Gỡ ${ra.length} tiết rơi ra ngoài.`:'')); ve();
+  });
 
   /* Phân công */
   $('#btPCTheoGV')&&($('#btPCTheoGV').onclick=hopPCTheoGV);
@@ -14467,7 +14752,7 @@ function kiemTraChuyen(tu,den){
      khối 4–5, nên một ô có thật với lớp 5A vẫn có thể là "đã tan" với 1A.
      §7 đòi nói rõ lý do; đây là lý do dễ hiểu sai nhất nên đặt lên trước. */
   const lop=lopId(S.lopXem);
-  if(lop && !oTuan(lop.khoi).some(x=>x.khoa===den))
+  if(lop && !oTuanLop(lop.id).some(x=>x.khoa===den))
     return `Khối ${lop.khoi} đã tan trước tiết này — không có ô trong khung giờ`;
   const bo=(gv,khoa)=>{ /* bỏ qua chính tiết đang di chuyển */
     return cs.gvBan[gv]&&cs.gvBan[gv][khoa]===S.lopXem; };
@@ -14845,7 +15130,7 @@ function hopXoaLop(id){
     S.lop=S.lop.filter(x=>x.id!==id);
     S.phanCong=S.phanCong.filter(p=>p.lopId!==id);
     S.giaoVien.forEach(g=>{ if(g.cn===id) g.cn=''; });
-    delete S.lopDT[id]; delete S.tkb[id];
+    delete S.lopDT[id]; delete S.tkb[id]; delete S.lopTiet[id];
     if(S.lopXem===id) S.lopXem=null;
     dong(); bao('Đã xoá lớp '+l.ten); ve();
   }}]);
@@ -15004,13 +15289,14 @@ function hopCoDinhMon(){
     ve();
   }}]);
 
-  /* Số tiết mỗi buổi KHÁC NHAU THEO KHỐI, nên danh sách tiết phải dựng theo
-     buổi đang chọn và lấy khối NHIỀU tiết nhất — lớp nào không có giờ ấy thì
+  /* Số tiết mỗi buổi KHÁC NHAU THEO KHỐI, và có lớp còn khai giờ riêng —
+     nên danh sách tiết dựng theo buổi đang chọn và lấy chiều cao lưới
+     (`k.tiet`, đã trùm cả giờ riêng). Lớp nào không có giờ ấy thì
      `datCoDinh()` nói rõ, chứ đừng giấu luôn lựa chọn. */
   const veTiet=()=>{
     const t=+$('#cdThu').value, b=$('#cdBuoi').value;
     const k=buoi.find(x=>x.thu===t && x.buoi===b);
-    const n=k?Math.max(...[1,2,3,4,5].map(x=>soTietBuoi(k,x))):0;
+    const n=k?(+k.tiet||0):0;
     $('#cdTiet').innerHTML = n
       ? [...Array(n)].map((_,i)=>`<option value="${i}">Tiết ${i+1}</option>`).join('')
       : '<option value="">— buổi này nghỉ —</option>';
@@ -15090,6 +15376,62 @@ function hopXoaGV(id){
     if(S.gvXem===id) S.gvXem=null;
     dong(); bao('Đã xoá '+g.hoTen+(coMayChu()?' — bấm Lưu để xoá hẳn trên hệ thống':'')); ve();
   }}]);
+}
+
+/* ---------- Xoá TOÀN BỘ danh sách giáo viên (31/8/2026) ----------
+   Chủ dự án hỏi thẳng: *"Có cách nào xóa toàn bộ danh sách Giáo viên không?"*
+   Trước đó chỉ có nút xoá từng người, mà trường mới nhập nhầm một tệp là ngồi
+   bấm 88 lần — và mỗi lần một hộp xác nhận.
+
+   ⚠️ NGƯỜI ĐANG CÓ TÀI KHOẢN thì GIỮ LẠI, không xoá. Không phải để cẩn thận
+   suông: `ghiDuLieuNguon()` cố ý không xoá họ trên máy chủ (bốn bảng khai
+   `on delete cascade` theo giáo viên, nên xoá một hồ sơ là kéo theo cả lịch
+   dạy thay và hồ sơ báo nghỉ của một người thật). App mà xoá khỏi màn hình
+   trong khi máy chủ giữ lại thì lần tải sau họ MỌC LẠI — đúng cái bẫy đã
+   ghi cho đường xoá phân hiệu. Hai bên phải nói cùng một câu. */
+function hopXoaHetGV(){
+  if(!duocSuaNguon()) return bao('Chỉ người phụ trách toàn trường mới sửa được dữ liệu nguồn',true);
+  const tong=S.giaoVien.length;
+  if(!tong) return bao('Danh sách giáo viên đang trống.');
+  const giu=S.giaoVien.filter(g=>g.nguoiDungId);
+  const bo=S.giaoVien.filter(g=>!g.nguoiDungId);
+  const pc=S.phanCong.filter(p=>bo.some(g=>g.id===p.gvId)).length;
+  const cn=bo.filter(g=>lopCN(g)).length;
+  const tiet=Object.values(S.tkb).reduce((n,o)=>
+    n+Object.values(o).filter(t=>bo.some(g=>g.id===t.gvId)).length, 0);
+  hop('Xoá toàn bộ danh sách giáo viên',
+  `<p style="font-size:13px">Xoá <b>${bo.length}</b> trong tổng số ${tong} hồ sơ giáo viên.</p>
+   ${bo.length?`<div class="canhbao do" style="margin-top:11px"><div class="cb-ic">!</div><div class="cb-t">
+     <b>Mất kèm ${pc} dòng phân công${cn?` và chủ nhiệm của ${cn} lớp`:''}${tiet?`, ${tiet} tiết đã xếp trên lưới`:''}</b>
+     <div class="cb-g">Không lấy lại được bằng nút Hoàn tác. Lớp học, môn học và khung giờ
+       thì giữ nguyên — chỉ danh sách người dạy bị xoá.</div></div></div>`:''}
+   ${giu.length?`<div class="canhbao" style="margin-top:11px"><div class="cb-ic">~</div><div class="cb-t">
+     <b>Giữ lại ${giu.length} thầy cô đang có tài khoản đăng nhập</b>
+     <div class="cb-g">${esc(giu.slice(0,4).map(g=>g.hoTen).join(', '))}${giu.length>4?` và ${giu.length-4} người nữa`:''}.
+       Xoá hồ sơ là cắt luôn đường vào phần mềm của một người thật, nên hệ thống
+       không xoá. Muốn xoá thật thì gỡ tài khoản của họ trước ở nút
+       <b>Tài khoản đăng nhập</b>.</div></div></div>`:''}
+   ${bo.length?`<label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer;font-size:13px;margin-top:13px">
+     <input type="checkbox" id="xhHieu" style="margin-top:2px">
+     <span>Tôi hiểu là mất toàn bộ bảng phân công của ${bo.length} thầy cô này.</span></label>`:''}`,
+  [{ten:'Huỷ',phu:1,lam:dong},
+   ...(bo.length?[{ten:`Xoá ${bo.length} hồ sơ`,lam:()=>{
+     if(!$('#xhHieu')?.checked) return bao('Tích vào ô xác nhận trước đã.',true);
+     const boId=new Set(bo.map(g=>g.id));
+     /* Ghi lại ĐÚNG những người vừa bấm xoá — `ghiDuLieuNguon()` chỉ xoá
+        trên máy chủ những ai nằm trong danh sách này, không bao giờ xoá
+        theo kiểu "hồ sơ nào tệp không nhắc tới". */
+     S.gvDaXoa=[...(S.gvDaXoa||[]), ...bo.map(g=>({id:g.id, maGV:g.maGV||'', hoTen:g.hoTen}))];
+     S.giaoVien=S.giaoVien.filter(g=>!boId.has(g.id));
+     S.phanCong=S.phanCong.filter(p=>!boId.has(p.gvId));
+     Object.values(S.tkb).forEach(o=>Object.keys(o).forEach(k=>{ if(boId.has(o[k].gvId)) delete o[k]; }));
+     boId.forEach(id=>{ delete S.gvNghi[id]; });
+     if(boId.has(S.gvXem)) S.gvXem=null;
+     dong();
+     bao(`Đã xoá ${bo.length} hồ sơ giáo viên${giu.length?`, giữ lại ${giu.length} người đang có tài khoản`:''}.`
+       +(coMayChu()?' Bấm Lưu để xoá hẳn trên hệ thống.':''));
+     ve();
+   }}]:[])]);
 }
 
 /* Ô khai của MỘT môn — dùng chung cho cả Thêm lẫn Sửa. Viết hai bản thì sớm
@@ -15288,6 +15630,7 @@ function hopPCTheoGV(gvSan, monSan){
      <select class="ip" id="nqMon" style="width:100%">
        ${dsMonDung().map(m=>`<option value="${esc(m)}" ${monSan===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
    <div class="on-l"><label>Chọn lớp</label>
+     <div class="gy" style="margin-bottom:7px">Ô đang tích là hiện trạng phân công. Bỏ tích một lớp là <b>gỡ</b> môn này khỏi lớp đó.</div>
      <div style="margin-bottom:7px"><button class="b b-vien" id="nqHet" style="padding:5px 11px;font-size:12px">Chọn cả ${dsL.length} lớp</button>
        <button class="b b-vien" id="nqBo" style="padding:5px 11px;font-size:12px">Bỏ chọn hết</button></div>
      <div class="bang" style="max-height:38vh"><table class="dl"><tbody>
@@ -15295,6 +15638,7 @@ function hopPCTheoGV(gvSan, monSan){
          <td><b>${esc(tenLopDay(l.id))}</b></td><td style="color:var(--chu-mo)">Khối ${khoiCuaLop(l)}</td>
          <td class="phai" id="nqc_${l.id}" style="color:var(--chu-mo);font-size:12px"></td></tr>`).join('')}
      </tbody></table></div></div>
+   <div id="nqCanh"></div>
    <div class="on-l"><label>Số tiết mỗi lớp</label>
      <input class="ip" id="nqTiet" type="number" min="1" max="20" value="1" style="width:100%">
      <div class="gy">Để mặc định thì mỗi lớp lấy đúng số tiết chuẩn của khối lớp đó.</div></div>
@@ -15303,34 +15647,86 @@ function hopPCTheoGV(gvSan, monSan){
   [{ten:'Huỷ',phu:1,lam:dong},{ten:'Phân công',lam:()=>{
     const g=$('#nqGV').value, mon=$('#nqMon').value;
     const dungChuan=$('#nqChuan').checked, mac=Math.max(1,Math.min(20,+$('#nqTiet').value||1));
-    let n=0, boQua=0;
+    let them=0, doi=0, boQua=0;
+    const goLop=[];
     $$('[data-nq]').forEach(x=>{
-      if(!x.checked) return;
-      const lp=x.dataset.nq, k=lopId(lp)?.khoi;
+      const lp=x.dataset.nq;
+      const cu=S.phanCong.find(p=>p.gvId===g&&p.lopId===lp&&p.mon===mon);
+      /* Bỏ tích một lớp ĐANG CÓ nghĩa là GỠ. Trước bản vá 31/8/2026 hộp này
+         chỉ biết thêm và cập nhật, nên bỏ tích không có tác dụng gì: chủ dự
+         án bỏ hết 25 lớp của cô Thương, bấm Phân công và nhận "Chưa chọn lớp
+         nào", thoát ra bấm Lưu ngay thì phân công cũ vẫn nguyên vẹn. Ô ma
+         trận lại là lối DUY NHẤT sửa phân công của một cặp (giáo viên · môn),
+         nên không còn đường nào gỡ ngoài việc xoá cả hồ sơ giáo viên. */
+      if(!x.checked){ if(cu) goLop.push(lp); return; }
+      const k=lopId(lp)?.khoi;
       const st=dungChuan ? (chuanMon(mon,k)||mac) : mac;
       if(!st) { boQua++; return; }
-      const cu=S.phanCong.find(p=>p.gvId===g&&p.lopId===lp&&p.mon===mon);
-      if(cu) cu.soTiet=st; else S.phanCong.push({gvId:g, lopId:lp, mon, soTiet:st});
-      n++;
+      if(cu){ if(cu.soTiet!==st){ cu.soTiet=st; doi++; } }
+      else { S.phanCong.push({gvId:g, lopId:lp, mon, soTiet:st}); them++; }
     });
+    if(goLop.length){
+      const bo=new Set(goLop);
+      S.phanCong=S.phanCong.filter(p=>!(p.gvId===g && p.mon===mon && bo.has(p.lopId)));
+      /* Gỡ luôn tiết đã xếp của đúng những lớp ấy — đúng cách `hopXoaGV()`
+         vẫn làm. Để lại là lưới có tiết mà bảng phân công không còn dòng nào
+         giải thích nó, và lần xếp sau sẽ đè lên một cách khó hiểu. */
+      goLop.forEach(lp=>{ const o=S.tkb[lp]; if(!o) return;
+        Object.keys(o).forEach(kh=>{ if(o[kh].gvId===g && o[kh].mon===mon) delete o[kh]; }); });
+    }
     dong();
-    bao(n?`Đã phân công ${mon} cho ${n} lớp${boQua?`, bỏ qua ${boQua} lớp chưa có tiết chuẩn`:''}.`
-         :'Chưa chọn lớp nào.', !n);
+    const phan=[];
+    if(them) phan.push(`phân công ${mon} cho ${them} lớp`);
+    if(doi)  phan.push(`đổi số tiết ${doi} lớp`);
+    if(goLop.length) phan.push(`gỡ khỏi ${goLop.length} lớp`);
+    bao(phan.length ? `Đã ${phan.join(', ')}.${boQua?` Bỏ qua ${boQua} lớp chưa có tiết chuẩn.`:''}`
+                    : 'Không có thay đổi nào — danh sách lớp đang tích đúng bằng phân công hiện có.', !phan.length);
     ve();
   }}]);
-  /* Mở từ một ô ma trận thì tích sẵn đúng những lớp đang có — người dùng
-     thấy hiện trạng rồi sửa, không phải nhớ lại mình đã phân công những đâu. */
-  if(gvSan && monSan) S.phanCong.filter(p=>p.gvId===gvSan && p.mon===monSan)
-    .forEach(p=>{ const o=$(`[data-nq="${p.lopId}"]`); if(o) o.checked=true; });
-  $('#nqHet').onclick=()=>$$('[data-nq]').forEach(x=>x.checked=true);
-  $('#nqBo').onclick =()=>$$('[data-nq]').forEach(x=>x.checked=false);
+  /* Tích sẵn đúng những lớp đang có của cặp (giáo viên · môn) đang chọn.
+     ⚠️ Việc này BẮT BUỘC, không phải tiện nghi: nút Phân công nay ĐỒNG BỘ
+     theo danh sách đang tích, nên hộp mở ra mà không tích sẵn thì bấm luôn
+     là xoá sạch. Đổi giáo viên hay môn cũng phải tích lại. */
+  const dongBoTich=()=>{
+    const g=$('#nqGV').value, mon=$('#nqMon').value;
+    const co=new Set(S.phanCong.filter(p=>p.gvId===g && p.mon===mon).map(p=>p.lopId));
+    $$('[data-nq]').forEach(x=>x.checked=co.has(x.dataset.nq));
+  };
+  /* Nói trước hậu quả: mấy lớp sẽ bị gỡ, và nhãn nút nói đúng việc nó làm.
+     Nút ghi "Phân công" trong khi việc thật là gỡ 23 lớp là câu chữ nói dối
+     về chính thứ nguy hiểm nhất. */
+  const nutLam=()=>$('#hopC')?.lastElementChild;
+  const veCanh=()=>{
+    const g=$('#nqGV').value, mon=$('#nqMon').value;
+    const co=new Set(S.phanCong.filter(p=>p.gvId===g && p.mon===mon).map(p=>p.lopId));
+    let them=0, go=0, giu=0;
+    $$('[data-nq]').forEach(x=>{
+      if(x.checked){ co.has(x.dataset.nq) ? giu++ : them++; }
+      else if(co.has(x.dataset.nq)) go++;
+    });
+    const tiet=go && Object.values(S.tkb).reduce((s,o)=>s+Object.values(o)
+      .filter(t=>t.gvId===g && t.mon===mon).length,0);
+    $('#nqCanh').innerHTML = go
+      ? `<div class="canhbao do" style="margin:0 0 13px"><div class="cb-ic">!</div><div class="cb-t">
+          <b>Sẽ gỡ ${esc(mon)} khỏi ${go} lớp</b>
+          <div class="cb-g">${tiet?`Các tiết đã xếp của những lớp đó cũng bị gỡ khỏi lưới. `:''}Bấm Lưu sau đó thì hệ thống xoá hẳn.</div></div></div>`
+      : '';
+    const b=nutLam();
+    if(b) b.textContent = go && !them && !giu ? `Gỡ khỏi ${go} lớp`
+                        : go ? 'Cập nhật phân công' : 'Phân công';
+  };
   /* Cột phải hiện số tiết chuẩn của từng lớp theo môn đang chọn */
   const veChuan=()=>{
     const mon=$('#nqMon').value;
     dsL.forEach(l=>{ const o=$('#nqc_'+l.id);
       if(o) o.textContent = chuanMon(mon,khoiCuaLop(l)) ? chuanMon(mon,khoiCuaLop(l))+' tiết' : '—'; });
   };
-  $('#nqMon').onchange=veChuan; veChuan();
+  $('#nqHet').onclick=()=>{ $$('[data-nq]').forEach(x=>x.checked=true); veCanh(); };
+  $('#nqBo').onclick =()=>{ $$('[data-nq]').forEach(x=>x.checked=false); veCanh(); };
+  $$('[data-nq]').forEach(x=>x.onchange=veCanh);
+  const doiCap=()=>{ dongBoTich(); veChuan(); veCanh(); };
+  $('#nqGV').onchange=doiCap; $('#nqMon').onchange=doiCap;
+  doiCap();
 }
 
 /* Ghi toàn bộ dữ liệu nguồn đang có trên màn hình lên máy chủ.
