@@ -2031,3 +2031,72 @@ Viết lại, ba ý theo đúng thứ tự người dùng cần:
 
 Ý cuối là thứ đắt nhất: nút chỉ tạo được một loại mã, mà chỗ đứng của nó
 (hộp phân quyền) lại gợi ý rằng nó cấp được mọi quyền.
+
+## 31/8/2026 — Ghim tiết: nút chỉ đi được một chiều, và vùng bấm quá nhỏ
+
+Chủ dự án: *"Thao tác ghim tiết dạy trên App khá khó, nút này lúc được lúc
+không. Bỏ ghim rồi thì bấm ghim lại rất khó, chỉ có cách chuyển chỗ mới thực
+hiện ghim!"*
+
+Hai lỗi khác nhau nằm chồng lên nhau.
+
+**a) Thao tác một chiều.** Ô lưới chỉ vẽ dấu ghim khi tiết **đã** ghim
+(`v.ghim && suaDuoc`). Bỏ ghim xong thì nút biến mất, nên **không còn đường
+nào ghim lại** — cách duy nhất là chuyển tiết sang ô khác rồi chuyển về, vì
+`chuyenTiet()` đặt `ghim:true`. Người dùng phải phá lưới để bật lại một cờ.
+
+⚠️ **Một thao tác chỉ đi được một chiều thì không phải thao tác, là ngõ cụt.**
+Nay `datGhim()` bật/tắt, và nút luôn có mặt khi sửa được: đã ghim thì đậm,
+chưa ghim thì mờ `.28` nhưng **vẫn thấy**. Cố ý không ẩn rồi chỉ hiện khi rê
+chuột — PHT phụ trách phân hiệu gần như chỉ dùng điện thoại, mà điện thoại
+không có trạng thái rê.
+
+**b) "Lúc được lúc không".** Nút cũ là chữ 10,5px kèm đệm 1px — đích bấm
+khoảng 13px, **nằm trong ô `draggable="true"`**. Trên máy tính chỉ nhích chuột
+một li là trình duyệt hiểu thành KÉO chứ không phải bấm; trên điện thoại thì
+ngón tay trượt. Nay đệm 6px mỗi chiều (đích ~26px) và thẻ mang
+`draggable="false"` để không khởi phát kéo.
+
+⚠️ Đổi lại: khi sửa được thì **góc phải trên là của dấu ghim**, biểu tượng môn
+(`icMon`) không vẽ nữa. Một góc không chứa được hai thứ. Tên môn vốn đã in
+bằng chữ ngay trong ô nên biểu tượng chỉ là trang trí; người **xem** (giáo
+viên) vẫn thấy biểu tượng như cũ.
+
+## 31/8/2026 — Xoá thời khóa biểu theo PHẠM VI, giữ tiết đã ghim
+
+Chủ dự án: *"có nút xoá TKB (Lớp/nhiều lớp/Khối/Cả trường), những tiết cố
+định được giữ lại, còn những tiết khác thì chạy theo mong muốn người dùng"*.
+
+Trước đó chỉ có đúng **một** nút *Xoá kết quả* ở màn Xếp, và nó xoá SẠCH cả
+trường **kể cả tiết ghim tay** — nghĩa là muốn xếp lại một lớp thì phải vứt cả
+phần chỉnh tay của 46 lớp còn lại. Thực tế nhà trường làm ngược hẳn: **giữ
+phần đã ưng, xoá phần chưa ưng, rồi xếp lại.**
+
+| Hàm | Việc |
+|---|---|
+| `lopXoaDuoc()` | lớp người này được phép đụng — đi qua `duocSuaLop()` |
+| `demXoaLuoi(dsId, giuGhim)` | hàm thuần: xoá bao nhiêu, giữ bao nhiêu |
+| `xoaLuoi(dsId, giuGhim)` | xoá thật, có `luuLui()` nên Ctrl+Z lấy lại được |
+| `hopXoaTKB(lopMacDinh)` | hộp chọn phạm vi; mở từ màn Theo lớp thì tích sẵn lớp ấy |
+
+Năm điều bắt buộc, cả năm có phép thử (`npm run soi` mục **19d2**):
+
+- ⚠️ **Bốn phạm vi KHÔNG dựng thành bốn nút.** Lớp · nhiều lớp · khối · cả
+  trường chỉ là bốn cách chọn ra một TẬP LỚP, nên làm một danh sách tích kèm
+  nút chọn nhanh *Cả trường · Khối n · Bỏ chọn hết*. Bốn nút riêng thì sớm
+  muộn bốn đường xử lý lệch nhau — đúng luật đã đặt cho lưới ở Bảng điều hành.
+- **Mặc định GIỮ tiết đã ghim.** Đó là cả lý do tính năng này ra đời; muốn xoá
+  sạch thì bỏ tích, một cú bấm có ý thức.
+- **Con số đứng TRƯỚC cú bấm.** Tóm tắt sống đổi theo từng ô tích, và nhãn nút
+  ghi thẳng *"Xoá 1147 tiết"*. Không ai xoá nhầm cả trường khi con số hiện ra
+  ngay trên nút mình sắp bấm.
+- **Chỉ đụng lớp `duocSuaLop()` cho phép** — PHT một phân hiệu không xoá được
+  lưới phân hiệu khác, và hộp nói rõ *"N lớp ngoài phạm vi không hiện ở đây"*.
+- **`KQ_XEP=null` sau khi xoá** — bảng kết quả lần xếp trước không còn mô tả
+  đúng lưới nữa, để lại là bày một con số đã sai.
+
+⚠️ Bẫy trong chính phép thử: phép thử *"xoá một lớp thì lớp khác còn nguyên"*
+đỏ ở lần chạy đầu vì mục 4 phía trên vừa ghim một tiết của đúng lớp ấy, mà hộp
+thì mặc định giữ ghim. Nó soi PHẠM VI chứ không soi chuyện giữ ghim, nên phải
+gỡ ghim ra trước. **Phép thử dùng chung một bộ dữ liệu thì thứ tự chạy là một
+phần của phép thử.**

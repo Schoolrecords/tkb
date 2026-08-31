@@ -575,9 +575,19 @@ table.tkb tr:last-child td{border-bottom:none}
 .cm-hop{border-color:var(--xanh);background:var(--xanh-nen)}
 .cm-cham{border-color:var(--canh);background:var(--canh-nen)}
 .cm-cam{border-color:var(--ke);background:var(--the);opacity:.45}
-.o-ghim{position:absolute;top:2px;right:3px;font-size:10.5px;line-height:1;padding:1px 2px;
+/* ⚠️ VÙNG BẤM PHẢI TO (vá 31/8/2026). Bản cũ là chữ 10,5px kèm đệm 1px —
+   một đích cho ảng 13px, nằm trong ô `draggable`, nên trên máy tính chỉ nhích chuột
+   một li là trình duyệt hiểu thành KÉO chứ không phải bấm, còn trên điện thoại thì
+   ngón tay trượt. Đúng cái "lúc được lúc không" chủ dự án gặp. Nay đệm 6px mỗi
+   chiều (đích ~26px) và thẻ mang draggable="false" để không khởi phát kéo. */
+.o-ghim{position:absolute;top:0;right:0;font-size:11px;line-height:1;padding:6px;
   background:none;border:none;cursor:pointer;filter:saturate(.9)}
 button.o-ghim:hover{transform:scale(1.2)}
+/* Chưa ghim thì mờ — vẫn thấy để biết bấm được, nhưng không đua màu với
+   dấu ghim thật. Tuyệt đối không ẩn hẳn rồi chỉ hiện khi rê chuột: PHT phụ trách
+   phân hiệu gần như chỉ dùng điện thoại, mà điện thoại không có trạng thái rê. */
+.o-ghim.tat{opacity:.28;filter:grayscale(1)}
+.o-tiet:hover .o-ghim.tat{opacity:.8;filter:none}
 .o-trong{min-height:48px;border-radius:10px;border:1.5px dashed var(--ke-2);background:#FCFDFF}
 .o-trong.nhan{border-color:var(--lam);background:#EDF2FC}
 .o-trong.cam-tha{border-color:var(--do);background:var(--do-nen)}
@@ -9120,7 +9130,7 @@ function mXep(){
           <button class="b b-vang" id="btXep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>Xếp nhanh</button>
           <button class="b b-ch" id="btXepKy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Xếp kỹ — tìm nhiều phương án</button>
           <button class="b b-vien" id="btCoDinh">Cố định môn vào giờ</button>
-          <button class="b b-vien" id="btXoaTKB">Xoá kết quả</button>
+          <button class="b b-vien" id="btXoaTKB">Xoá thời khóa biểu…</button>
         </div>
         <div class="gy" style="margin-top:12px"><b>Xếp nhanh</b> cho một phương án dùng được trong khoảng một giây.
           <b>Xếp kỹ</b> chạy vài phút, thử hàng chục cách rồi giữ lại vài phương án đẹp nhất để thầy cô tự chọn.
@@ -9293,9 +9303,10 @@ function mTKBLop(){
     const g=gvId(v.gvId);
     return `<div class="o-tiet ${mLop(v.mon)}${v.ghim?' ghim':''}${khoa===S.oChon?' chon':''}${nhan(khoa)}"
       ${suaDuoc?`draggable="true" data-keo="${khoa}" data-tha="${khoa}"${cham}`:'style="cursor:default"'}
-      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}${esc(nhacCham(khoa))}">${icMon(v.mon)}
+      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}${esc(nhacCham(khoa))}">${suaDuoc?'':icMon(v.mon)}
       <div class="o-mon">${esc(v.mon)}</div><div class="o-gv">${esc(tenTat(g?.hoTen||''))}</div>
-      ${v.ghim&&suaDuoc?`<button class="o-ghim" data-boghim="${khoa}" title="Bỏ ghim tiết này">📌</button>`
+      ${suaDuoc?`<button class="o-ghim${v.ghim?'':' tat'}" data-ghim="${khoa}" draggable="false"
+        title="${v.ghim?'Bỏ ghim tiết này':'Ghim tiết này — xếp lại vẫn đứng nguyên chỗ'}">📌</button>`
         :v.ghim?'<span class="o-ghim">📌</span>':''}</div>`;
   };
   let bang=`<div class="luoi-boc"><table class="tkb"><thead><tr><th class="gt">Buổi</th><th style="width:52px">Tiết</th>
@@ -9321,6 +9332,7 @@ function mTKBLop(){
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       ${suaDuoc&&coLui()?`<button class="b b-vien b-nho" id="btHoanTac" title="Ctrl + Z">↶ Hoàn tác</button>`:''}
       ${suaDuoc&&soGhim?`<button class="b b-vien b-nho" id="btBoGhimHet">Bỏ ghim cả lớp</button>`:''}
+      ${suaDuoc&&dem?`<button class="b b-vien b-nho" id="btXoaLopNay">Xoá lịch…</button>`:''}
       <button class="b b-vien b-nho" id="btInLop">In / lưu PDF</button>
     </div>
   </div>
@@ -13548,12 +13560,14 @@ function noiSuKien(){
   /* chạm chọn — chạm đặt: lối chỉnh tay dùng được trên điện thoại */
   $$('[data-cham]').forEach(el=>{
     el.onclick=e=>{
-      if(e.target.closest('[data-boghim]')) return;   /* bấm dấu ghim là việc khác */
+      if(e.target.closest('[data-ghim]')) return;    /* bấm dấu ghim là việc khác */
       chamO(el.dataset.cham);
     };
   });
-  $$('[data-boghim]').forEach(el=>el.onclick=e=>{ e.stopPropagation(); boGhim(el.dataset.boghim); });
+  $$('[data-ghim]').forEach(el=>el.onclick=e=>{ e.stopPropagation(); datGhim(el.dataset.ghim); });
   $('#btBoGhimHet')&&($('#btBoGhimHet').onclick=boGhimCaLop);
+  /* Mở đúng hộp ấy, tích sẵn lớp đang xem — một đường xọc, hai lối vào. */
+  $('#btXoaLopNay')&&($('#btXoaLopNay').onclick=()=>hopXoaTKB(S.lopXem));
   $('#btHoanTac')&&($('#btHoanTac').onclick=hoanTac);
 
   $('#btXep')&&($('#btXep').onclick=()=>{
@@ -13577,25 +13591,10 @@ function noiSuKien(){
      Trước đây bấm một cái là bay sạch 710 tiết, chỉ còn dòng thông báo nhỏ
      mách nước bấm Hoàn tác — mà nút Hoàn tác lại nằm ở màn hình KHÁC.
      Tiết đã ghim tay là công sức chỉnh tay, nên đếm riêng và nói rõ. */
-  $('#btXoaTKB')&&($('#btXoaTKB').onclick=()=>{
-    const xoaThat=()=>{
-      if(soTietDaXep()) luuLui('xoá kết quả xếp');
-      S.lop.forEach(l=>S.tkb[l.id]={}); KQ_XEP=null; S.oChon=null;
-      dong(); bao('Đã xoá kết quả xếp — bấm Hoàn tác hoặc Ctrl+Z nếu nhầm'); ve();
-    };
-    const so=soTietDaXep();
-    if(!so) return xoaThat();
-    const ghim=S.lop.reduce((s,l)=>
-      s+Object.values(S.tkb[l.id]||{}).filter(v=>v.ghim).length,0);
-    hop('Xoá toàn bộ kết quả xếp?',
-      `<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">
-        <b>${so} tiết của ${S.lop.length} lớp sẽ bị xoá khỏi lưới</b>
-        <div class="cb-g">${ghim
-          ? `Trong đó có <b>${ghim} tiết đã ghim tay</b> — đây là phần thầy cô tự chỉnh, xếp lại không dựng lại được.`
-          : 'Bản đã lưu trên máy chủ không đổi cho tới khi bấm Lưu.'}
-          <br>Lỡ tay thì bấm <b>Hoàn tác</b> hoặc <b>Ctrl+Z</b> là về như cũ.</div></div></div>`,
-      [{ten:'Không xoá',phu:1,lam:dong},{ten:`Xoá ${so} tiết`,lam:xoaThat}]);
-  });
+  /* ⚠️ Nút này từng xoá SẠCH cả trường kể cả tiết ghim tay (vá 31/8/2026) —
+     muốn xếp lại một lớp thì phải vứt cả phần chỉnh tay của những lớp còn lại.
+     Nay đi qua hộp chọn phạm vi, mặc định GIỮ tiết đã ghim. */
+  $('#btXoaTKB')&&($('#btXoaTKB').onclick=()=>hopXoaTKB());
 
   /* kéo thả trong lưới lớp */
   let nguon=null;
@@ -14040,11 +14039,129 @@ function chamO(khoa){
   S.oChon=null; ve();
 }
 
-function boGhim(khoa){
+/* BẬT/TẮT ghim một tiết (31/8/2026).
+   Trước đó chỉ có đường BỎGHIM: dấu ghim chỉ hiện ở tiết ĐÃ ghim, nên muốn ghim
+   lại một tiết vừa bỏ thì **không có nút nào** — cách duy nhất là chuyển nó sang
+   ô khác rồi chuyển về, vì `chuyenTiet()` đặt `ghim:true`. Chủ dự án: *"Bỏ ghim
+   rồi thì bấm ghim lại rất khó, chỉ có cách chuyển chỗ mới thực hiện ghim"*.
+   Một thao tác chỉ đi được một chiều thì không phải thao tác, là ngõ cụt. */
+function datGhim(khoa){
   const v=S.tkb[S.lopXem]?.[khoa]; if(!v) return;
-  luuLui('bỏ ghim một tiết');
-  delete v.ghim; bao('Đã bỏ ghim tiết này'); ve();
+  /* Chốt chặn cuối, dù ô lưới đã ẩn nút với người không có quyền —
+     ⚠️ `bao()` nhận CHỮ THUẦN, đừng đưa `nhanChiXem()` vào (nó trả HTML). */
+  if(!duocSuaLop(S.lopXem)) return bao('Lớp này ngoài phạm vi phụ trách của thầy cô',true);
+  luuLui(v.ghim?'bỏ ghim một tiết':'ghim một tiết');
+  if(v.ghim){ delete v.ghim; bao('Đã bỏ ghim tiết này'); }
+  else { v.ghim=true; bao('Đã ghim — xếp lại tiết này vẫn đứng nguyên chỗ'); }
+  ve();
 }
+/* ================= XOÁ LƯỚI THEO PHẠM VI, GIỮ TIẾT ĐÃ GHIM =================
+   Chủ dự án: *"có nút xoá TKB (Lớp/nhiều lớp/Khối/Cả trường), những tiết cố
+   định được giữ lại, còn những tiết khác thì chạy theo mong muốn người dùng"*.
+
+   Trước đó chỉ có đúng MỘT nút *Xoá kết quả* ở màn Xếp, và nó xoá SẠCH cả
+   trường kể cả tiết ghim tay — nghĩa là muốn xếp lại một lớp thì phải vứt cả
+   phần chỉnh tay của 46 lớp còn lại. Thực tế nhà trường làm ngược: giữ phần
+   đã ưng, xoá phần chưa ưng, rồi xếp lại.
+
+   ⚠️ Bốn phạm vi người dùng nêu (lớp · nhiều lớp · khối · cả trường) KHÔNG
+   dựng thành bốn nút. Chúng chỉ là bốn cách chọn ra một TẬP LỚP, nên làm một
+   danh sách tích kèm mấy nút chọn nhanh — thêm phạm vi thứ năm sau này cũng
+   không phải sửa gì. Bốn nút riêng thì sớm muộn bốn đường xử lý lệch nhau.
+
+   ⚠️ Chỉ đụng lớp `duocSuaLop()` cho phép — PHT phụ trách một phân hiệu không
+   xoá được lưới của phân hiệu khác. Cùng chốt chặn của `kiemTraChuyen()`. */
+const lopXoaDuoc = () => S.lop.filter(l=>duocSuaLop(l.id));
+
+/* Đếm sẽ xoá bao nhiêu, giữ lại bao nhiêu. Hàm thuần, `npm test` gọi thẳng. */
+function demXoaLuoi(dsId, giuGhim){
+  let xoa=0, giu=0;
+  (dsId||[]).forEach(id=>Object.values(S.tkb[id]||{}).forEach(v=>{
+    if(giuGhim && v.ghim) giu++; else xoa++;
+  }));
+  return {xoa, giu};
+}
+
+function xoaLuoi(dsId, giuGhim){
+  const {xoa, giu}=demXoaLuoi(dsId, giuGhim);
+  if(!xoa) return {xoa:0, giu};
+  luuLui(`xoá ${xoa} tiết`);
+  dsId.forEach(id=>{
+    const o=S.tkb[id]||{};
+    if(!giuGhim){ S.tkb[id]={}; return; }
+    Object.keys(o).forEach(k=>{ if(!o[k].ghim) delete o[k]; });
+  });
+  /* Kết quả lần xếp trước không còn mô tả đúng lưới nữa */
+  KQ_XEP=null; S.oChon=null;
+  return {xoa, giu};
+}
+
+function hopXoaTKB(lopMacDinh){
+  const ds=lopXoaDuoc();
+  if(!ds.length) return bao('Không có lớp nào trong phạm vi phụ trách của thầy cô',true);
+  const khoi=[...new Set(ds.map(l=>l.khoi))].sort((a,b)=>a-b);
+  const chon=new Set(lopMacDinh?[lopMacDinh]:[]);
+  const ngoai=S.lop.length-ds.length;
+  hop('Xoá thời khóa biểu',
+    `<div class="gy" style="margin-bottom:12px">Chọn lớp cần xoá. Tiết đã <b>📌 ghim</b> giữ nguyên,
+       phần còn lại xoá đi để xếp lại.${ngoai?` ${ngoai} lớp ngoài phạm vi của thầy cô không hiện ở đây.`:''}</div>
+     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px">
+       <button class="b b-vien b-nho" data-xchon="tat">Cả trường</button>
+       ${khoi.map(k=>`<button class="b b-vien b-nho" data-xchon="k${k}">Khối ${k}</button>`).join('')}
+       <button class="b b-vien b-nho" data-xchon="khong">Bỏ chọn hết</button>
+     </div>
+     <div class="bang" style="max-height:34vh;margin-bottom:13px"><table class="dl"><tbody>
+       ${ds.map(l=>{
+         const t=Object.values(S.tkb[l.id]||{});
+         return `<tr><td style="width:34px"><input type="checkbox" data-xlop="${l.id}" data-k="${l.khoi}"
+             ${chon.has(l.id)?'checked':''}></td>
+           <td><b>${esc(tenLopDay(l.id))}</b></td>
+           <td class="phai" style="white-space:nowrap;color:var(--chu-mo);font-size:12px">
+             ${t.length} tiết${t.filter(v=>v.ghim).length?` · 📌 ${t.filter(v=>v.ghim).length}`:''}</td></tr>`;
+       }).join('')}
+     </tbody></table></div>
+     <label class="hang" style="cursor:pointer"><span>Giữ nguyên các tiết đã ghim</span>
+       <input type="checkbox" id="xGiuGhim" checked></label>
+     <div id="xTom" class="canhbao" style="margin-top:12px"><div class="cb-ic">i</div>
+       <div class="cb-t"><b>Chưa chọn lớp nào</b></div></div>`,
+    [{ten:'Không xoá',phu:1,lam:dong},
+     {ten:'Xoá',lam:()=>{
+       const dsId=[...$$('[data-xlop]')].filter(x=>x.checked).map(x=>x.dataset.xlop);
+       if(!dsId.length) return bao('Chưa chọn lớp nào',true);
+       const kq=xoaLuoi(dsId, $('#xGiuGhim').checked);
+       dong();
+       bao(kq.xoa?`Đã xoá ${kq.xoa} tiết của ${dsId.length} lớp`
+                 +`${kq.giu?`, giữ lại ${kq.giu} tiết đã ghim`:''} — Ctrl+Z nếu nhầm`
+                 :'Không có tiết nào để xoá');
+       ve();
+     }}]);
+  /* Tóm tắt sống: người dùng thấy ngay mình sắp xoá bao nhiêu, giữ bao nhiêu.
+     Con số đứng trước cú bấm thì không ai xoá nhầm cả trường. */
+  const tom=()=>{
+    const dsId=[...$$('[data-xlop]')].filter(x=>x.checked).map(x=>x.dataset.xlop);
+    const {xoa, giu}=demXoaLuoi(dsId, $('#xGiuGhim').checked);
+    const o=$('#xTom'); if(!o) return;
+    o.className='canhbao'+(xoa?' do':'');
+    o.querySelector('.cb-t').innerHTML = dsId.length
+      ? `<b>Xoá ${xoa} tiết của ${dsId.length} lớp</b>`
+        +(giu?`<div class="cb-g">Giữ lại ${giu} tiết đã ghim.</div>`:'')
+      : '<b>Chưa chọn lớp nào</b>';
+    const n=[...$$('#hopC button')].find(b=>/^Xoá/.test(b.textContent));
+    if(n) n.textContent = xoa?`Xoá ${xoa} tiết`:'Xoá';
+  };
+  $$('[data-xlop]').forEach(x=>x.onchange=tom);
+  $('#xGiuGhim').onchange=tom;
+  $$('[data-xchon]').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.xchon;
+    $$('[data-xlop]').forEach(x=>{
+      x.checked = v==='tat' ? true : v==='khong' ? false
+                : v.startsWith('k') ? x.dataset.k===v.slice(1) : x.checked;
+    });
+    tom();
+  });
+  tom();
+}
+
 function boGhimCaLop(){
   const o=S.tkb[S.lopXem]||{};
   const n=Object.values(o).filter(t=>t.ghim).length;

@@ -129,12 +129,30 @@ kt('Xếp lại vẫn giữ nguyên tiết đã ghim',
    S.tkb[lop][k1]?.mon === monGhim && S.tkb[lop][k1]?.gvId === gvGhim,
    `${monGhim} đứng yên ở ${k1}`);
 w.ve();
-kt('Lưới hiện dấu ghim cho người dùng thấy',
-   w.document.querySelectorAll('[data-boghim]').length > 0);
+kt('L\u01b0\u1edbi hi\u1ec7n d\u1ea5u ghim cho ng\u01b0\u1eddi d\u00f9ng th\u1ea5y',
+   w.document.querySelectorAll('[data-ghim]').length > 0);
 
-/* Bấm vào dấu ghim để bỏ ghim */
-w.document.querySelector(`[data-boghim="${k1}"]`)?.dispatchEvent(new w.Event('click', { bubbles: true }));
-kt('Bấm dấu ghim là bỏ ghim tiết đó', !S.tkb[lop][k1]?.ghim);
+/* --- N\u00fat ghim l\u00e0 B\u1eacT/T\u1eaeT, kh\u00f4ng ph\u1ea3i ch\u1ec9 B\u1ece (31/8/2026) ---------------------
+   Ch\u1ee7 d\u1ef1 \u00e1n: *"B\u1ecf ghim r\u1ed3i th\u00ec b\u1ea5m ghim l\u1ea1i r\u1ea5t kh\u00f3, ch\u1ec9 c\u00f3 c\u00e1ch chuy\u1ec3n ch\u1ed7 m\u1edbi
+   th\u1ef1c hi\u1ec7n ghim"*. B\u1ea3n c\u0169 ch\u1ec9 v\u1ebd d\u1ea5u ghim \u1edf ti\u1ebft \u0110\u00c3 ghim n\u00ean kh\u00f4ng c\u00f3 \u0111\u01b0\u1eddng
+   ghim l\u1ea1i \u2014 m\u1ed9t thao t\u00e1c ch\u1ec9 \u0111i \u0111\u01b0\u1ee3c m\u1ed9t chi\u1ec1u th\u00ec l\u00e0 ng\u00f5 c\u1ee5t. */
+const oGhim = k => w.document.querySelector(`[data-ghim="${k}"]`);
+const bamGhim = k => oGhim(k)?.dispatchEvent(new w.Event('click', { bubbles: true }));
+
+bamGhim(k1);
+kt('B\u1ea5m d\u1ea5u ghim l\u00e0 b\u1ecf ghim ti\u1ebft \u0111\u00f3', !S.tkb[lop][k1]?.ghim);
+kt('B\u1ecf ghim r\u1ed3i N\u00daT V\u1eaaN C\u00d2N \u0111\u00f3 \u0111\u1ec3 ghim l\u1ea1i, kh\u00f4ng bi\u1ebfn m\u1ea5t',
+   !!oGhim(k1), oGhim(k1) ? oGhim(k1).getAttribute('title') : '(m\u1ea5t n\u00fat)');
+bamGhim(k1);
+kt('B\u1ea5m l\u1ea7n n\u1eefa l\u00e0 GHIM L\u1ea0I \u2014 kh\u00f4ng ph\u1ea3i chuy\u1ec3n ch\u1ed7 m\u1edbi ghim \u0111\u01b0\u1ee3c',
+   !!S.tkb[lop][k1]?.ghim);
+kt('N\u00fat ghim kh\u00f4ng kh\u1edfi ph\u00e1t k\u00e9o th\u1ea3 \u2014 \u0111\u00f3 l\u00e0 g\u1ed1c c\u1ee7a "l\u00fac \u0111\u01b0\u1ee3c l\u00fac kh\u00f4ng"',
+   oGhim(k1)?.getAttribute('draggable') === 'false');
+kt('Ti\u1ebft ch\u01b0a ghim c\u0169ng c\u00f3 n\u00fat, ch\u1ec9 l\u00e0 m\u1edd h\u01a1n', (() => {
+  const k2 = Object.keys(S.tkb[lop]).find(k => !S.tkb[lop][k].ghim);
+  return [!!k2 && !!oGhim(k2) && /tat/.test(oGhim(k2).className),
+          k2 ? oGhim(k2)?.className : '(l\u1edbp n\u00e0y ghim h\u1ebft)'];
+})());
 
 console.log('\n5. Buổi bận');
 w.chuyen('buoiban');
@@ -2198,35 +2216,107 @@ kt('Từ khoá khớp hàng chục lớp vẫn KHÔNG đẩy phân hiệu ra ngo
        loai.join(' · ')];
    })()));
 
-console.log('\n19d2. Cảnh báo trước thao tác ảnh hưởng nhiều tiết');
-kt('Bấm "Xoá kết quả" thì HỎI trước, không xoá ngay hàng trăm tiết', (() => {
-  w.eval('KQ_XEP = xepTuDong(0)');
+console.log('\n19d2. Xoá thời khóa biểu theo PHẠM VI, giữ tiết đã ghim');
+/* Chủ dự án: *"có nút xoá TKB (Lớp/nhiều lớp/Khối/Cả trường), những tiết cố
+   định được giữ lại"*. Trước đó chỉ một nút xoá SẠCH cả trường kể cả tiết
+   ghim tay — muốn xếp lại một lớp thì phải vứt phần chỉnh tay của mọi lớp. */
+const nutHop = re => [...w.document.querySelectorAll('#hopC button')]
+  .find(b => re.test(b.textContent));
+const tichLop = ids => {
+  w.document.querySelectorAll('[data-xlop]').forEach(x => {
+    x.checked = ids.includes(x.dataset.xlop);
+    x.dispatchEvent(new w.Event('change', { bubbles: true }));
+  });
+};
+const moHopXoa = () => {
   w.chuyen('xep');
+  w.document.querySelector('#btXoaTKB').dispatchEvent(new w.Event('click', { bubbles: true }));
+};
+
+kt('Bấm "Xoá thời khóa biểu" thì HỎI trước, không xoá ngay hàng trăm tiết', (() => {
+  w.eval('KQ_XEP = xepTuDong(0)');
   const truoc = w.eval('soTietDaXep()');
-  w.document.querySelector('#btXoaTKB').dispatchEvent(new w.Event('click', {bubbles:true}));
-  const conNguyen = w.eval('soTietDaXep()') === truoc;
-  const hoi = /sẽ bị xoá khỏi lưới/.test(w.document.querySelector('#hopN').textContent);
-  return truoc > 0 && conNguyen && hoi;
+  moHopXoa();
+  const n = w.document.querySelectorAll('[data-xlop]').length;
+  return [truoc > 0 && w.eval('soTietDaXep()') === truoc && n > 0, `${n} lớp bày ra để chọn`];
 })());
-kt('Hộp hỏi nói rõ SỐ TIẾT, không nói chung chung', (() => {
-  const t = w.document.querySelector('#hopN').textContent;
-  const nut = [...w.document.querySelectorAll('#hopC button')].map(b => b.textContent);
-  return /tiết của \d+ lớp/.test(t) && nut.some(x => /^Xoá \d+ tiết$/.test(x))
-    && nut.includes('Không xoá');
+kt('Bốn phạm vi người dùng nêu đều chọn được: lớp · nhiều lớp · khối · cả trường', (() => {
+  const nut = [...w.document.querySelectorAll('[data-xchon]')].map(b => b.dataset.xchon);
+  return [nut.includes('tat') && nut.some(v => /^k\d$/.test(v)) && nut.includes('khong'),
+          nut.join(' · ')];
+})());
+kt('Chưa chọn lớp nào thì KHÔNG bày ra con số xoá', (() => {
+  tichLop([]);
+  return /Chưa chọn lớp nào/.test(w.document.querySelector('#xTom').textContent);
+})());
+kt('Chọn "Cả trường" thì nút ghi rõ SỐ TIẾT sắp xoá', (() => {
+  w.document.querySelector('[data-xchon="tat"]').dispatchEvent(new w.Event('click', { bubbles: true }));
+  const n = nutHop(/^Xoá/);
+  return [/^Xoá \d+ tiết$/.test(n.textContent), n.textContent];
 })());
 kt('Bấm "Không xoá" thì lưới còn nguyên vẹn', (() => {
   const truoc = w.eval('soTietDaXep()');
-  [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === 'Không xoá')
-    .dispatchEvent(new w.Event('click', {bubbles:true}));
+  nutHop(/^Không xoá$/).dispatchEvent(new w.Event('click', { bubbles: true }));
   return w.eval('soTietDaXep()') === truoc && truoc > 0;
 })());
-kt('Xác nhận rồi thì xoá thật, và Hoàn tác lấy lại được', (() => {
-  w.document.querySelector('#btXoaTKB').dispatchEvent(new w.Event('click', {bubbles:true}));
-  [...w.document.querySelectorAll('#hopC button')].find(b => /^Xoá \d+ tiết$/.test(b.textContent))
-    .dispatchEvent(new w.Event('click', {bubbles:true}));
-  const sach = w.eval('soTietDaXep()') === 0;
+
+/* --- Xoá MỘT lớp thì các lớp khác không suy suyển --- */
+kt('Xoá một lớp thì chỉ lớp ấy trống, lớp khác còn nguyên', (() => {
+  const a = S.lop[0].id, b = S.lop[1].id;
+  const truocB = Object.keys(S.tkb[b] || {}).length;
+  /* Phép thử này soi PHẠM VI, không soi chuyện giữ ghim — mà mục 4 ở trên vừa
+     ghim một tiết của chính lớp này, và hộp thì mặc định GIỮ tiết ghim. Gỡ
+     ghim ra trước, không thì phép thử đỏ vì đúng cái nó không định soi. */
+  Object.values(S.tkb[a] || {}).forEach(v => { delete v.ghim; });
+  moHopXoa(); tichLop([a]);
+  nutHop(/^Xoá/).dispatchEvent(new w.Event('click', { bubbles: true }));
+  return [Object.keys(S.tkb[a] || {}).length === 0
+          && Object.keys(S.tkb[b] || {}).length === truocB,
+          `lớp kia còn ${Object.keys(S.tkb[b] || {}).length} tiết`];
+})());
+kt('Hoàn tác lấy lại được lớp vừa xoá', (() => {
   w.eval('hoanTac()');
-  return sach && w.eval('soTietDaXep()') > 0;
+  return Object.keys(S.tkb[S.lop[0].id] || {}).length > 0;
+})());
+
+/* --- Điều quan trọng nhất: tiết ĐÃ GHIM phải sống sót --- */
+kt('Mặc định GIỮ tiết đã ghim — đây là cả lý do tính năng này ra đời', (() => {
+  const a = S.lop[0].id;
+  const ks = Object.keys(S.tkb[a] || {});
+  if (ks.length < 3) return [false, 'lớp thử không đủ tiết'];
+  ks.forEach(k => { delete S.tkb[a][k].ghim; });
+  ks.slice(0, 2).forEach(k => { S.tkb[a][k].ghim = true; });
+  moHopXoa();
+  const giu = w.document.querySelector('#xGiuGhim');
+  tichLop([a]);
+  nutHop(/^Xoá/).dispatchEvent(new w.Event('click', { bubbles: true }));
+  const con = Object.values(S.tkb[a] || {});
+  return [giu.checked && con.length === 2 && con.every(v => v.ghim),
+          `còn ${con.length} tiết, tất cả đều ghim`];
+})());
+kt('Bỏ tích "Giữ tiết đã ghim" thì mới xoá sạch', (() => {
+  w.eval('hoanTac()');
+  const a = S.lop[0].id;
+  moHopXoa(); tichLop([a]);
+  const giu = w.document.querySelector('#xGiuGhim');
+  giu.checked = false; giu.dispatchEvent(new w.Event('change', { bubbles: true }));
+  nutHop(/^Xoá/).dispatchEvent(new w.Event('click', { bubbles: true }));
+  return [Object.keys(S.tkb[a] || {}).length === 0, 'lớp trống hẳn'];
+})());
+kt('Hoàn tác vẫn lấy lại được sau khi xoá sạch', (() => {
+  w.eval('hoanTac()');
+  return Object.keys(S.tkb[S.lop[0].id] || {}).length > 0;
+})());
+
+/* Đếm là hàm thuần — nó nói đúng thì màn hình mới nói đúng */
+kt('demXoaLuoi() đếm khớp với thứ xoaLuoi() thật sự làm', (() => {
+  const a = S.lop[0].id;
+  const { xoa, giu } = JSON.parse(w.eval(`JSON.stringify(demXoaLuoi(${JSON.stringify([a])}, true))`));
+  const truoc = Object.keys(S.tkb[a] || {}).length;
+  w.eval(`xoaLuoi(${JSON.stringify([a])}, true)`);
+  const sau = Object.keys(S.tkb[a] || {}).length;
+  w.eval('hoanTac()');
+  return [truoc - sau === xoa && sau === giu, `xoá ${xoa}, giữ ${giu}`];
 })());
 
 console.log('\n19e. Lưới: cỡ hiển thị và toàn màn hình');
