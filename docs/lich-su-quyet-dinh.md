@@ -2715,3 +2715,53 @@ ràng buộc unique trong máy chủ giả. Thử ngược 3/3 đỏ.
 lâu — nhưng chỉ ghi rồi để nguyên cách làm nguy hiểm, và không phép thử nào
 canh. Viết được câu ấy ra tức là đã thấy vấn đề; lúc ấy phải sửa, chứ không
 phải chú thích nó.
+
+---
+
+## 31/8/2026 (tối) — "Cho tất cả giáo viên đi 7/8 buổi" và ngưỡng ô dư
+
+Chủ dự án nhìn thẻ *"8 buổi có mặt"* của một cô giáo rồi hỏi *"có nút hoặc
+tính năng nào có sự lựa chọn GV dạy trong 7 buổi / hoặc 8 buổi không em?"*,
+rồi nói rõ ý: *"thầy muốn tất cả giáo viên sẽ đi 7/8 buổi, hệ thống sẽ chọn
+ngẫu nhiên buổi nghỉ."*
+
+Tính năng ấy **đã có từ hôm trước** (pha 0 chọn buổi nghỉ, `S.buoiNghiToiThieu`)
+— nhưng nhãn viết ngược chiều với cách người dùng nghĩ: *"được nghỉ ít nhất N
+buổi"* bắt họ tự lấy 8 trừ đi, trong khi con số họ vừa nhìn trên màn *Theo
+giáo viên* là **số buổi có mặt**. Một tính năng người dùng không nhận ra thì
+bằng không có.
+
+### Đo ngưỡng thật
+
+Trường 25 lớp · 8 buổi/tuần, ép mỗi người nghỉ 1 buổi:
+
+| Khung dư mỗi lớp | Nghỉ đủ 1 buổi | Còn phải đến cả 8 buổi | Tiết xếp được |
+|---|---|---|---|
+| 0 ô | 0/35 | 17 | 710/710 |
+| 1 ô | **0/35** | 16 | 710/710 |
+| 2 ô | 19/35 | 7 | 710/710 |
+| 3 ô | **35/35** | 0 | 710/710 |
+
+Cả bốn lần đều xếp trọn tiết — pha 0 không bao giờ đánh đổi tiết lấy buổi nghỉ.
+
+⚠️ **Dư 1 ô vẫn là 0 người nghỉ được**, nên câu cũ *"đang dư 1 ô, còn chỗ để
+dồn tiết lại"* là **lạc quan sai**: bỏ một buổi thì phải dồn **trọn** số tiết
+của buổi ấy sang chỗ khác, nên dư ít hơn buổi ngắn nhất là chắc chắn không ai
+nghỉ nổi. Nay nhãn nói đúng ngưỡng — *"cần dư ít nhất 3 ô (buổi ngắn nhất 3
+tiết) thì mọi thầy cô mới nghỉ được — hiện còn thiếu 2 ô"*.
+
+### Ba chỗ sửa trên nhãn
+
+- Bày thẳng **"dạy nhiều nhất 7/8 buổi"** (hoặc *"đến trường cả 8 buổi"* khi
+  chưa ép) — đúng con số ở màn *Theo giáo viên*.
+- Nói **ngưỡng ô dư** thay cho câu chung chung.
+- ⚠️ Đính chính một chữ của chủ dự án, vì nó ảnh hưởng tới kỳ vọng: máy
+  **không bốc thăm**. `chonBuoiNghi()` chọn buổi ít thiệt hại nhất và tất
+  định — chạy lại ra đúng bản ấy. Ngẫu nhiên thì mỗi lần xếp lại đổi buổi
+  nghỉ của cả trường, không ai dám công bố.
+
+Ai cần đúng một buổi cụ thể (nuôi con nhỏ, học nâng chuẩn, dạy liên trường)
+thì vẫn là mục **Buổi bận** — ràng buộc cứng, chính xác hơn "một buổi bất kỳ".
+
+**Sáu phép thử ở mục 17ac**, soi cả hai nhánh: khung vừa khít thì nói thẳng
+là đặt số cũng vô ích; có ô dư thì nói rõ còn thiếu mấy ô.

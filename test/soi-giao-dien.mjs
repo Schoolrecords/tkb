@@ -4349,6 +4349,25 @@ console.log('\n17ac. Trần số buổi dạy nói bằng SỐ BUỔI PHẢI Đ�
       (chu().match(/dạy nhiều nhất \d+\/\d+ buổi/) || [''])[0]]);
   kt('Và chỉ đường sang mục Buổi bận cho ai cần chỉ định đúng buổi',
      /mục Buổi bận/.test(chu()));
+  /* ⚠️ Nói NGƯỠNG THẬT: đo được dư 1 ô thì vẫn 0/35 người nghỉ được, nên câu
+     "đang dư 1 ô, còn chỗ đấy" là lạc quan sai. Ngưỡng là buổi ngắn nhất.
+     Dữ liệu vàng dư 0 ô nên phải nâng khung lên mới soi được nhánh ấy. */
+  kt('Khung vừa khít thì nói thẳng là đặt số này cũng không ai nghỉ được',
+     [/dư 0 ô/.test(chu()), (chu().match(/dư 0 ô/) || [''])[0]]);
+  kt('Có ô dư thì nói rõ cần dư mấy ô mọi thầy cô mới nghỉ được', (() => {
+    const kgGoc = w.eval('JSON.stringify(S.khungGio)');
+    /* Phải nâng cho MỌI khối: `duIt` lấy khối dư ít nhất, nâng mình khối 1
+       thì con số ấy vẫn là 0 và phép thử đỏ oan. */
+    w.eval("const k=S.khungGio.find(x=>x.thu===2&&x.buoi==='C');"
+         + "[1,2,3,4,5].forEach(x=>k.tietKhoi[x]++); chuanKhungGio()");
+    w.chuyen('xep');
+    const c = chu();
+    w.eval(`S.khungGio = ${kgGoc}; chuanKhungGio()`);
+    w.chuyen('xep');
+    return [/cần dư ít nhất \d+ ô/.test(c), (c.match(/cần dư ít nhất \d+ ô[^.]*/) || [''])[0].slice(0, 70)];
+  })());
+  kt('Và nói rõ máy chọn buổi theo tính toán, không bốc thăm',
+     /không bốc thăm/.test(chu()));
   /* Nhãn nhắc phải theo tên mục hiện hành — mục đổi tên 31/8/2026 */
   kt('Không còn nhắc tới tên mục cũ "Khối và khung giờ"',
      !/Khối và khung giờ/.test(chu()));
