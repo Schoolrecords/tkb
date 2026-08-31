@@ -1822,6 +1822,9 @@ let S = {
   nguoiDung:{vaiTro:'qt', gvId:null, diemTruongId:null},
   phamVi:'', trangHienTai:'dieuhanh', lopXem:null, gvXem:null, khoiXem:null,
   dtLuoi:'',            /* phân hiệu đang xem trên lưới rộng — xem lopChoLuoi() */
+  /* Số buổi mỗi thầy cô được nghỉ trong tuần. 0 = không ép gì, và 0 là MẶC
+     ĐỊNH: cùng dữ liệu thì lưới ra y hệt như trước 31/8/2026. */
+  buoiNghiToiThieu:0,
   oChon:null,           /* ô đang chọn trong lưới lớp — lối chỉnh tay trên điện thoại */
   bnXem:null,           /* thông báo nghỉ đang mở phương án dạy thay */
   paChon:0,             /* phương án dạy thay đang chọn: 0 · 1 · 2 */
@@ -2205,6 +2208,125 @@ function diemO(o,lp,mon,gv,cs){
   return d;
 }
 
+/* ==================================================================
+   PHA 0 — CHỌN BUỔI NGHỈ CHO TỪNG GIÁO VIÊN, TRƯỚC KHI XẾP  (31/8/2026)
+   ------------------------------------------------------------------
+   Chủ dự án: *"số buổi dạy của từng giáo viên được cố định trước khi xếp …
+   đồng loạt giáo viên cả trường chỉ phải dạy trong 7 hoặc 8 buổi / 9 buổi"*.
+
+   ⚠️ KHÔNG SỬA MỘT DÒNG NÀO của bước tham lam hay bước hoán đổi. Thuật toán
+   vốn đã tôn trọng `S.gvNghi` như ràng buộc CỨNG số 7, nên chỉ cần quyết
+   trước ai nghỉ buổi nào rồi nạp vào đó — phần còn lại chạy y như cũ.
+
+   BA CÁCH RẺ ĐỀU ĐÃ ĐO VÀ ĐỀU HỎNG, ghi lại để đừng ai thử lại:
+     · Điểm phạt mềm khi mở buổi mới: số nhảy loạn, không theo chiều nào.
+       Bước tham lam xếp theo độ khó giảm dần nên khi tới tiết cuối của một
+       người thì họ đã trải khắp tuần rồi. "Số buổi khác nhau" là mục tiêu
+       trên cả TẬP tiết, mà điểm phạt thì chấm từng Ô — không diễn đạt được.
+     · Trần cứng trong `datDuoc()`: 710 → 667 tiết, mất 43. Và bước hoán đổi
+       phá luôn trần vì `doiChoDuoc()` không biết luật.
+     · Trần cứng kèm van xả: giữ đủ tiết nhưng mất sạch tác dụng (18/35 y như
+       không làm gì) — van mở quá sớm.
+
+   ⚠️ VÀ ĐIỀU QUYẾT ĐỊNH KHÔNG PHẢI THUẬT TOÁN, LÀ PHÉP TÍNH SỐ Ô.
+   Lưới Diễn Liên có ĐÚNG 27/28/30 ô cho 27/28/30 tiết — dư 0 ô (chính
+   `CLAUDE.md` mục 7 đã ghi). Bỏ một buổi đi là lớp thiếu chỗ, nên cho ai
+   nghỉ cũng là mất tiết, không cách xếp nào cứu được. Đo:
+
+   | | dư 0 ô | dư 3 ô (mở thêm một buổi chiều) |
+   |---|---|---|
+   | Không ép | 18/35 người trống ≥1 buổi | **31/35** |
+   | Ép nghỉ 1 buổi | 12/35 đạt, **mất 5 tiết** | **35/35 đạt, 710/710** |
+
+   Nên hàm này TỰ TỪ CHỐI khi lớp không còn dư ô: trường lưới kín thì không
+   ai nghỉ và lưới ra y hệt như trước — đo được 710/710 và 1698/1698 không
+   suy suyển, điểm phạt không đổi. Muốn thầy cô được nghỉ thì nhà trường mở
+   thêm ô ở mục *Khối và khung giờ*; đó là quyết định của nhà trường, không
+   phải việc thuật toán làm thay được. */
+function chonBuoiNghi(soNghi){
+  const bb = buoiBat();
+  if(!(soNghi>0) || !bb.length) return {nghi:{}, datDu:0, tong:0, hetO:[]};
+
+  const tietGV={}, tietGVLop={}, tietLop={}, gvCuaLop={};
+  S.phanCong.forEach(p=>{
+    tietGV[p.gvId]=(tietGV[p.gvId]||0)+p.soTiet;
+    (tietGVLop[p.gvId] ||= {})[p.lopId]=(tietGVLop[p.gvId][p.lopId]||0)+p.soTiet;
+    tietLop[p.lopId]=(tietLop[p.lopId]||0)+p.soTiet;
+    (gvCuaLop[p.lopId] ||= []).push(p.gvId);
+  });
+  const oLop={};
+  S.lop.forEach(l=>{ oLop[l.id]={}; bb.forEach(k=>{ oLop[l.id][khoaB(k)]=soTietBuoi(k,l.khoi); }); });
+
+  const nghi={}, banSan={};
+  S.giaoVien.forEach(g=>{ banSan[g.id]=new Set(S.gvNghi[g.id]||[]); nghi[g.id]=new Set(banSan[g.id]); });
+
+  /* Sức phủ một (lớp, buổi) KHÔNG phải tổng tiết: cô 12 tiết Tiếng Việt chỉ
+     phủ được nhiều nhất số ô của buổi ấy, chứ không phải 12. */
+  const sucPhu=(lp,k,boGV)=>{
+    const o=oLop[lp][khoaB(k)];
+    return [...new Set(gvCuaLop[lp]||[])].reduce((s,gv)=>
+      (gv===boGV||nghi[gv].has(khoaB(k))) ? s : s+Math.min(tietGVLop[gv]?.[lp]||0, o), 0);
+  };
+  /* ⚠️ ĐÃ THỬ VÀ BỎ: một phép kiểm "toàn trường buổi ấy còn đủ sức dạy cho
+     mọi lớp". Nghe rất hợp lý — cô Mỹ thuật xét riêng lớp 1A thì "vẫn dạy
+     được", nhưng cô chỉ ở được một lớp một tiết mà cả 25 lớp trông vào cô.
+     Thế nhưng đo trên bốn kịch bản (25 lớp dư 3 ô · dư 5 ô · nghỉ 2 buổi ·
+     60 lớp dư 3 ô), có và không có nó ra kết quả GIỐNG HỆT: phép tính số ô
+     bên dưới vốn đã chặt hơn. Giữ một hàng rào mà không phép thử nào làm nó
+     đỏ được thì chỉ là mã chết đội lốt an toàn. */
+
+  const demNghi={}; bb.forEach(k=>{ demNghi[khoaB(k)]=0; });
+  S.giaoVien.forEach(g=>nghi[g.id].forEach(k=>{ demNghi[k]=(demNghi[k]||0)+1; }));
+
+  const ds=S.giaoVien.filter(g=>tietGV[g.id]>0).sort((a,b)=>tietGV[b.id]-tietGV[a.id]);
+  const dai=Math.max(...bb.map(k=>k.tiet));
+  /* ⚠️ `hetO` phải nói ĐÚNG NGHĨA TÊN NÓ: lớp không đủ ô để bỏ bớt dù chỉ
+     một buổi ngắn nhất. Bản đầu gom mọi lớp từng trượt một buổi ứng viên nào
+     đó, nên lưới dư 3 ô mà 35/35 thầy cô nghỉ được thì nó vẫn kể ra 25 lớp
+     "hết ô" — một con số đúng kỹ thuật mà đọc ra thì sai hẳn. */
+  const buoiNganNhat=Math.min(...bb.map(k=>k.tiet));
+  const hetO=S.lop.filter(l=>{
+    const O=Object.values(oLop[l.id]).reduce((a,b)=>a+b,0);
+    return (tietLop[l.id]||0)>0 && O-(tietLop[l.id]||0) < buoiNganNhat;
+  }).map(l=>l.id);
+  let datDu=0;
+
+  for(const g of ds){
+    for(let lan=0; lan<soNghi; lan++){
+      const con=bb.filter(k=>!nghi[g.id].has(khoaB(k)));
+      const ungVien=con.filter(k=>{
+        /* a) bản thân họ còn đủ chỗ */
+        if(con.filter(x=>x!==k).reduce((s,x)=>s+Math.min(x.tiet,dai),0) < tietGV[g.id]) return false;
+        /* b) PHÉP TÍNH QUYẾT ĐỊNH — lớp còn đủ Ô cho toàn bộ tiết của mình
+           sau khi trừ các buổi người này nghỉ. Cộng dồn, không xét rời từng
+           buổi: nghỉ hai buổi 3 ô rồi 2 ô là mất 5 ô, kiểm rời thì cái nào
+           cũng lọt và đo được mất 14 tiết. */
+        return Object.keys(tietGVLop[g.id]||{}).every(lp=>{
+          const conO=bb.reduce((s,x)=>
+            (nghi[g.id].has(khoaB(x))||khoaB(x)===khoaB(k)) ? s : s+oLop[lp][khoaB(x)], 0);
+          if(conO < tietLop[lp]) return false;
+          /* c) mỗi lớp họ dạy còn ai phủ buổi ấy, và chính họ còn chỗ dồn */
+          if(sucPhu(lp,k,g.id) < oLop[lp][khoaB(k)]) return false;
+          const cho=bb.reduce((s,x)=>
+            (nghi[g.id].has(khoaB(x))||khoaB(x)===khoaB(k)) ? s
+              : s+Math.min(tietGVLop[g.id][lp], oLop[lp][khoaB(x)]), 0);
+          return cho >= tietGVLop[g.id][lp];
+        });
+      });
+      if(!ungVien.length) break;
+      /* Buổi ngắn thì rẻ, nhưng buổi đã đông người nghỉ thì đắt */
+      const hai=k=>k.tiet
+        + 3*Object.keys(tietGVLop[g.id]||{}).reduce((s,lp)=>s
+            + [...new Set(gvCuaLop[lp]||[])].filter(gv=>gv!==g.id&&nghi[gv].has(khoaB(k))).length, 0)
+        + 0.5*demNghi[khoaB(k)];
+      const chon=[...ungVien].sort((a,b)=>hai(a)-hai(b))[0];
+      nghi[g.id].add(khoaB(chon)); demNghi[khoaB(chon)]++;
+    }
+    if(nghi[g.id].size - banSan[g.id].size >= soNghi) datDu++;
+  }
+  return {nghi, datDu, tong:ds.length, hetO};
+}
+
 function xepTuDong(gioiHanToiUu=1200, tuyChon){
   const t0=performance.now();
   /* Phạm vi: mặc định cả trường. Truyền `lop` để chỉ xếp một nhóm độc lập —
@@ -2217,6 +2339,18 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
      Không truyền hạt thì chạy y như trước, nên mọi phép thử cũ vẫn đúng. */
   const rnd = tuyChon?.hat==null ? null : taoNgauNhien(tuyChon.hat);
   const nhieu = tuyChon?.nhieu ?? 10;
+  /* Buổi nghỉ do pha 0 chọn được nạp vào `S.gvNghi` trong LÚC XẾP rồi trả
+     lại nguyên trạng — `datDuoc()` vốn đã đọc chỗ ấy như ràng buộc cứng.
+     ⚠️ Phải trả lại trong `finally`: làm bẩn buổi bận THẬT của nhà trường là
+     lần xếp sau thầy cô bỗng nghỉ những buổi họ không hề đăng ký, và nó còn
+     theo lên máy chủ ở lần Lưu kế tiếp. */
+  const nghiGoc = tuyChon?.nghiToiThieu>0 ? S.gvNghi : null;
+  let pha0 = null;
+  if(nghiGoc){
+    pha0 = chonBuoiNghi(tuyChon.nghiToiThieu);
+    S.gvNghi = Object.fromEntries(Object.entries(pha0.nghi).map(([k,v])=>[k,[...v]]));
+  }
+  try{
   /* Giữ lại những tiết người xếp đã ghim. Chỉnh tay cả buổi rồi bấm xếp lại
      mà mất sạch thì không ai dám bấm nút này lần thứ hai. */
   const giuGhim={};
@@ -2328,8 +2462,10 @@ function xepTuDong(gioiHanToiUu=1200, tuyChon){
     giay:((performance.now()-t0)/1000).toFixed(1),
     daXep:dsLop.reduce((s,l)=>s+Object.keys(S.tkb[l.id]||{}).length,0),
     tongCan:dsPC.reduce((s,p)=>s+p.soTiet,0),
-    soGhim, chuaXep, toiUu
+    soGhim, chuaXep, toiUu,
+    pha0: pha0 ? {datDu:pha0.datDu, tong:pha0.tong, hetO:pha0.hetO} : null
   };
+  }finally{ if(nghiGoc) S.gvNghi = nghiGoc; }
 }
 
 /* ==================================================================
@@ -9216,6 +9352,20 @@ function mXep(){
           <button class="b b-vien" id="btCoDinh">Cố định môn vào giờ</button>
           <button class="b b-vien" id="btXoaTKB">Xoá thời khóa biểu…</button>
         </div>
+        ${(()=>{
+          const du=[...new Set(khoiDangCo().map(k=>sucChuaKhoi()[k]-tietCanKhoi(k)))].sort((a,b)=>a-b);
+          const duIt=du.length?du[0]:0;
+          return `<label class="hang" style="margin-top:14px;cursor:pointer">
+            <span>Mỗi thầy cô được nghỉ ít nhất
+              <input class="ip" type="number" min="0" max="4" id="ipNghi"
+                value="${S.buoiNghiToiThieu||0}" style="width:58px;text-align:center">
+              buổi mỗi tuần</span></label>
+          <div class="gy" style="margin-top:7px">${duIt>0
+            ? `Khung giờ đang dư <b>${duIt} ô</b> mỗi lớp, nên còn chỗ để dồn tiết lại.`
+            : `⚠️ Khung giờ đang <b>dư 0 ô</b> — số ô vừa khít số tiết. Bỏ một buổi đi là lớp
+               thiếu chỗ, nên đặt số này lớn hơn 0 cũng không ai nghỉ được. Muốn thầy cô có
+               buổi trống thì mở thêm ô ở mục <b>Khối và khung giờ</b>.`}</div>`;
+        })()}
         <div class="gy" style="margin-top:12px"><b>Xếp nhanh</b> cho một phương án dùng được trong khoảng một giây.
           <b>Xếp kỹ</b> chạy vài phút, thử hàng chục cách rồi giữ lại vài phương án đẹp nhất để thầy cô tự chọn.
           Cả hai đều ghim sẵn chào cờ sáng thứ Hai và sinh hoạt lớp cuối sáng thứ Sáu.</div>`
@@ -13676,11 +13826,19 @@ function noiSuKien(){
     if(!S.phanCong.length)
       return bao('Chưa có dòng phân công nào — khai ở mục Phân công chuyên môn trước.', true);
     if(soTietDaXep()) luuLui('xếp tự động');
-    KQ_XEP=xepTuDong();
+    KQ_XEP=xepTuDong(1200, S.buoiNghiToiThieu>0?{nghiToiThieu:S.buoiNghiToiThieu}:undefined);
     bao(KQ_XEP.chuaXep.length?`Đã xếp ${KQ_XEP.daXep}/${KQ_XEP.tongCan} tiết — còn vướng`
       :`Đã xếp trọn ${KQ_XEP.daXep} tiết trong ${KQ_XEP.giay} giây`, KQ_XEP.chuaXep.length>0);
+    /* Pha 0 làm được tới đâu thì nói ra tới đó — im lặng ở đây là người dùng
+       đặt số 1 rồi tưởng đã xong, trong khi không ai được nghỉ buổi nào. */
+    if(KQ_XEP.pha0) setTimeout(()=>bao(KQ_XEP.pha0.datDu
+      ? `${KQ_XEP.pha0.datDu}/${KQ_XEP.pha0.tong} thầy cô được nghỉ đủ ${S.buoiNghiToiThieu} buổi`
+      : 'Không thầy cô nào nghỉ thêm được buổi nào — khung giờ không còn ô dư. '
+        +'Mở thêm ô ở mục Khối và khung giờ.', !KQ_XEP.pha0.datDu), 2600);
     ve();
   });
+  $('#ipNghi')&&($('#ipNghi').onchange=e=>{
+    S.buoiNghiToiThieu=Math.max(0, Math.min(4, +e.target.value||0)); ve(); });
   $('#btXepKy')&&($('#btXepKy').onclick=hopXepKy);
   $$('[data-dungpa]').forEach(b=>b.onclick=()=>{
     const p=PA_TIM?.phuongAn[+b.dataset.dungpa]; if(!p) return;

@@ -2234,3 +2234,83 @@ một chỗ*: thiếu một trường trong vân tay, thiếu một điều ki�
 suy nghĩ về nhánh dữ liệu thứ hai. Bộ soi chỉ canh được thứ nó biết là có.
 Người thứ hai đọc lại bằng con mắt khác vẫn là thứ không thay bằng phép thử
 được.
+
+## 31/8/2026 — Trần số buổi dạy: nút thắt là PHÉP TÍNH SỐ Ô, không phải thuật toán
+
+Chủ dự án: *"số buổi dạy của từng giáo viên được cố định trước khi xếp … đồng
+loạt giáo viên cả trường chỉ phải dạy trong 7 hoặc 8 buổi / 9 buổi"*, kèm ảnh
+SmartScheduler có cột *Giới hạn số buổi dạy/1 tuần*.
+
+**Hiện trạng đo được** (Diễn Liên, sau khi xếp tự động): **17/35 thầy cô phải
+đến trường cả 8 buổi**, 14 người 7 buổi, chỉ 4 người ≤6.
+
+### Ba cách rẻ, cả ba đều hỏng — ghi lại để đừng ai thử lại
+
+| Cách | Kết quả |
+|---|---|
+| Điểm phạt mềm khi mở buổi mới (20 · 30 · 60 · 120 · 250) | Số **nhảy loạn không theo chiều nào**: phạt 30 được 21/35, phạt 60 còn **16/35 — tệ hơn không phạt**. Là nhiễu, không phải tín hiệu. |
+| Trần cứng trong `datDuoc()` | 710 → **667 tiết, mất 43**. Và cột "nhiều nhất" vẫn 8/8 — bước hoán đổi phá luôn trần vì `doiChoDuoc()` không biết luật. |
+| Trần cứng kèm van xả | Giữ đủ 710 tiết nhưng **mất sạch tác dụng**: 18/35 y như không làm gì. Van mở quá sớm. |
+
+Vì sao phạt mềm không ăn: bước tham lam xếp theo độ khó giảm dần, nên tới lúc
+đặt tiết cuối của một người thì họ đã trải khắp tuần rồi. **"Số buổi khác
+nhau" là mục tiêu trên cả TẬP tiết, mà điểm phạt thì chấm từng Ô** — không
+diễn đạt được.
+
+### Cách đúng: quyết TRƯỚC, rồi để thuật toán chạy y như cũ
+
+Thuật toán vốn đã tôn trọng `S.gvNghi` như **ràng buộc cứng số 7**. Nên pha 0
+chỉ cần chọn ai nghỉ buổi nào rồi nạp vào đó — **không sửa một dòng nào** của
+bước tham lam hay bước hoán đổi.
+
+⚠️ Buổi nghỉ nạp vào `S.gvNghi` **trong lúc xếp** rồi trả lại trong `finally`.
+Làm bẩn buổi bận THẬT của nhà trường là lần xếp sau thầy cô bỗng nghỉ những
+buổi họ không hề đăng ký, và nó còn theo lên máy chủ ở lần Lưu kế tiếp.
+
+### ⚠️ Điều quyết định không phải thuật toán
+
+Bản đầu của pha 0 cho **35/35 người nghỉ nhưng mất 54 tiết**. Chẩn đoán bằng
+chính `viecGoBiXep()` của app: **20/35 thầy cô cùng chọn nghỉ chiều thứ Hai**
+— heuristic bảo ai cũng chọn buổi ngắn nhất, nên buổi ấy cả trường vắng.
+
+Rải đều xong vẫn mất 52 tiết. Lý do sâu hơn: **chủ nhiệm dạy 20/27 tiết lớp
+mình**, nghỉ một buổi 2 ô là lớp còn đúng 25 ô cho 25 tiết — **không còn một ô
+dư nào**. Và `CLAUDE.md` mục 7 đã ghi sẵn điều này từ đầu: lưới Diễn Liên *"dư
+0 ô ở cả năm khối"*.
+
+Nên điều kiện đúng là một **phép tính số ô**, không phải mẹo xếp:
+
+> Lớp có `O` ô cho `tietCan` tiết. Bỏ các buổi người này nghỉ đi thì còn
+> `O − ΣO_k` ô. Nếu chỗ ấy không đủ cho toàn bộ tiết của lớp thì cho ai nghỉ
+> cũng là mất tiết — không cách xếp nào cứu được.
+
+Phải **cộng dồn** mọi buổi đã nghỉ, không xét rời từng buổi: nghỉ hai buổi 3 ô
+rồi 2 ô là mất 5 ô, kiểm rời thì cái nào cũng lọt và đo được mất 14 tiết.
+
+| | dư **0 ô** (Diễn Liên hôm nay) | dư **3 ô** (mở thêm một buổi chiều) |
+|---|---|---|
+| Không ép gì | 18/35 người trống ≥1 buổi · 710/710 | **31/35** · 710/710 |
+| Ép nghỉ 1 buổi | **0 người nghỉ, lưới GIỐNG HỆT từng ô, 710/710** | **35/35 người, 710/710**, kín tuần 4 → 0 |
+
+**Kết luận cho nhà trường:** muốn thầy cô có buổi trống thì phải **mở thêm ô**
+ở mục *Khối và khung giờ*. Đó là quyết định của nhà trường, không phải việc
+thuật toán làm thay được — và màn Xếp nay nói thẳng câu ấy ngay cạnh ô nhập.
+
+### Một hàng rào đã thử và BỎ
+
+Có thêm một phép kiểm *"toàn trường buổi ấy còn đủ sức dạy cho mọi lớp"* —
+nghe rất hợp lý, vì cô Mỹ thuật xét riêng lớp 1A thì "vẫn dạy được" nhưng cô
+chỉ ở được một lớp một tiết. Đo trên bốn kịch bản (25 lớp dư 3 ô · dư 5 ô ·
+nghỉ 2 buổi · 60 lớp dư 3 ô): có và không có nó ra **kết quả giống hệt** —
+phép tính số ô vốn đã chặt hơn. Đã gỡ. **Giữ một hàng rào mà không phép thử
+nào làm nó đỏ được thì chỉ là mã chết đội lốt an toàn.**
+
+### Và một cái tên nói sai nghĩa
+
+`hetO` bản đầu gom mọi lớp từng trượt một buổi ứng viên nào đó, nên lưới dư 3
+ô mà 35/35 thầy cô nghỉ được thì nó vẫn kể ra 25 lớp *"hết ô"* — con số đúng
+kỹ thuật mà đọc ra thì sai hẳn. Nay là đúng nghĩa tên: lớp không đủ ô để bỏ
+bớt dù chỉ một buổi ngắn nhất. Có phép thử canh cả hai chiều.
+
+**Mười phép thử ở mục 24 của `npm test`.** Đã thử ngược: gỡ phép tính số ô →
+6 phép thử đỏ (và mất 54 tiết); gỡ `finally` → 1 đỏ.

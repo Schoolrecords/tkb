@@ -65,7 +65,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
   laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi,
-  choLienTiet, goiYLienTiet, MON_LIEN_TIET,
+  choLienTiet, goiYLienTiet, MON_LIEN_TIET, chonBuoiNghi, khoaB, khoiDangCo,
   thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
@@ -3835,6 +3835,92 @@ console.log('\n23. Hai tiết cùng môn LIỀN NHAU — cho phép theo từng m
                          { Ten_mon: 'Tiếng Việt', Lien_tiet: 'Có', __dong: 5 }], kho, [], []);
     return [kho.monHoc[0].lienTiet === false && kho.monHoc[1].lienTiet === true,
             `Toán ${kho.monHoc[0].lienTiet} · TV ${kho.monHoc[1].lienTiet}`];
+  })());
+}
+
+console.log('\n24. Trần số buổi dạy — pha 0 chọn buổi nghỉ TRƯỚC khi xếp');
+/* Chủ dự án: *"số buổi dạy của từng giáo viên được cố định trước khi xếp …
+   đồng loạt giáo viên cả trường chỉ phải dạy trong 7 hoặc 8 buổi / 9 buổi"*.
+
+   ⚠️ ĐIỀU QUYẾT ĐỊNH KHÔNG PHẢI THUẬT TOÁN, LÀ PHÉP TÍNH SỐ Ô. Lưới Diễn Liên
+   có đúng 27/28/30 ô cho 27/28/30 tiết — dư 0 ô. Bỏ một buổi đi là lớp thiếu
+   chỗ, nên cho ai nghỉ cũng là mất tiết. Ba cách rẻ đã đo và đều hỏng; xem
+   chú thích ở `chonBuoiNghi()`. */
+{
+  const DLB = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
+  const mo = (sua) => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.napVaoS(JSON.parse(JSON.stringify(DLB)));
+    if (sua) sua(app);
+    return app;
+  };
+  const anh = app => JSON.stringify(app.S.lop.map(l =>
+    Object.entries(app.S.tkb[l.id] || {}).sort().map(([k, v]) => `${k}|${v.mon}|${v.gvId}`)));
+  const demXep = app => app.S.lop.reduce((n, l) => n + Object.keys(app.S.tkb[l.id] || {}).length, 0);
+  const buoiCua = app => {
+    const c = {};
+    app.S.lop.forEach(l => Object.entries(app.S.tkb[l.id] || {}).forEach(([k, v]) => {
+      const q = k.split('-'); (c[v.gvId] ||= new Set()).add(`${q[0]}-${q[1]}`);
+    }));
+    return c;
+  };
+  /* Mở thêm chiều thứ Tư ba tiết -> mỗi lớp dư 3 ô */
+  const themO = app => {
+    const k = app.S.khungGio.find(x => +x.thu === 4 && x.buoi === 'C');
+    if (k) { k.bat = true; k.tiet = 3; k.tietKhoi = null; }
+    else app.S.khungGio.push({ thu: 4, buoi: 'C', tiet: 3, bat: true, tietKhoi: null });
+  };
+
+  /* --- a) LƯỚI KÍN (dư 0 ô): phải KHÔNG đổi gì --- */
+  const kinA = mo(); kinA.xepTuDong(1200);
+  const kinB = mo(); const kqB = kinB.xepTuDong(1200, { nghiToiThieu: 1 });
+  kt('Lưới dư 0 ô: pha 0 KHÔNG cho ai nghỉ — đúng phép tính, không phải bỏ cuộc',
+     kqB.pha0 && kqB.pha0.datDu === 0, `${kqB.pha0?.datDu}/${kqB.pha0?.tong} người`);
+  kt('Và lưới ra GIỐNG HỆT từng ô như khi không ép gì', anh(kinA) === anh(kinB),
+     `${demXep(kinA)} và ${demXep(kinB)} tiết`);
+  kt('Vẫn xếp trọn 710 tiết — ép trần không được làm mất tiết nào',
+     demXep(kinB) === 710, `${demXep(kinB)}/710`);
+  kt('Và nói ra lớp nào hết ô, để hiệu trưởng biết đường xử lý',
+     (kqB.pha0.hetO || []).length === kinB.S.lop.length,
+     `${(kqB.pha0.hetO || []).length}/${kinB.S.lop.length} lớp hết ô`);
+
+  /* --- b) LƯỚI DƯ 3 Ô: nghỉ được, và vẫn không mất tiết --- */
+  const duA = mo(themO); duA.xepTuDong(1200);
+  const duB = mo(themO); const kqD = duB.xepTuDong(1200, { nghiToiThieu: 1 });
+  kt('Lưới dư 3 ô: MỌI thầy cô được nghỉ một buổi',
+     kqD.pha0.datDu === kqD.pha0.tong, `${kqD.pha0.datDu}/${kqD.pha0.tong} người`);
+  kt('Và vẫn xếp trọn 710 tiết — không đánh đổi tiết lấy buổi nghỉ',
+     demXep(duB) === 710, `${demXep(duB)}/710`);
+  kt('Lưới dư ô thì KHÔNG lớp nào bị kể là hết ô — tên nói sao thì nghĩa vậy',
+     (kqD.pha0.hetO || []).length === 0, `${(kqD.pha0.hetO || []).length} lớp`);
+  kt('Không còn ai phải đến trường cả tuần', (() => {
+    const soBuoi = duB.buoiBat().length;
+    const kin = Object.values(buoiCua(duB)).filter(x => x.size >= soBuoi).length;
+    const kinTruoc = Object.values(buoiCua(duA)).filter(x => x.size >= soBuoi).length;
+    return [kin === 0, `${kinTruoc} → ${kin} người kín tuần`];
+  })());
+
+  /* --- c) Không được làm bẩn buổi bận THẬT của nhà trường --- */
+  kt('Xếp xong thì S.gvNghi trở lại nguyên trạng, không giữ buổi pha 0 đặt', (() => {
+    const app = mo(themO);
+    const truoc = JSON.stringify(app.S.gvNghi);
+    app.xepTuDong(1200, { nghiToiThieu: 1 });
+    return [JSON.stringify(app.S.gvNghi) === truoc, 'buổi bận của trường không đổi'];
+  })());
+
+  /* --- d) Nghỉ 2 buổi mà lưới chỉ dư 3 ô thì phải TỪ CHỐI, không mất tiết --- */
+  kt('Đòi nghỉ 2 buổi khi chỉ dư 3 ô: từ chối, và tiết vẫn trọn', (() => {
+    const app = mo(themO);
+    const kq = app.xepTuDong(1200, { nghiToiThieu: 2 });
+    return [kq.pha0.datDu === 0 && demXep(app) === 710,
+            `${kq.pha0.datDu} người nghỉ đủ 2 buổi · ${demXep(app)}/710 tiết`];
+  })());
+
+  /* --- e) Hàm thuần gọi thẳng được --- */
+  kt('chonBuoiNghi(0) không đụng gì — cửa tắt là tắt hẳn', (() => {
+    const app = mo(themO);
+    const r = app.chonBuoiNghi(0);
+    return [r.datDu === 0 && Object.keys(r.nghi).length === 0, 'không sinh buổi nghỉ nào'];
   })());
 }
 
