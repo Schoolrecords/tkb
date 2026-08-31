@@ -6411,59 +6411,122 @@ const MUC_NHAP = {
 
   khunggio:{
     ten:'Khung giờ học', trang:'KHUNG_GIO', khoaDong:['Thu','Buoi'],
-    /* ⚠️ Mẫu Excel vẫn khai theo KHỐI dù màn hình đã chuyển sang khai theo
-       LỚP (31/8/2026). Cố ý: khối là NỀN mà lớp kế thừa, nên nhập tệp này
-       vẫn đặt đúng thứ nó vốn đặt; còn lớp nào học khác khối thì sửa mấy ô
-       ấy trên bảng — vài ô, không đáng làm thêm một mẫu 40 cột. Trường nào
-       đã điền dở tệp cũ cũng không mất công. */
-    nhac:'Số tiết của TỪNG KHỐI trong mỗi buổi — đây là nền chung; lớp nào học khác thì sửa ở bảng. '
+    can:['lop'],
+    /* ⚠️ MẪU PHẢI CÙNG HÌNH DẠNG VỚI BẢNG TRÊN MÀN HÌNH (31/8/2026).
+       Bản trước giữ mẫu theo KHỐI (K1…K5) trong khi màn hình đã chuyển sang
+       khai theo LỚP — chủ dự án tải về và nói ngay: *"mẫu tải về còn là mẫu
+       cũ chưa phải theo mới cập nhật này"*. Đúng bài học của mẫu Phân công
+       ngày 29/8: tải về một tờ giấy khác hẳn thứ vừa nhìn là bắt người dùng
+       dịch qua lại trong đầu. */
+    nhac:'Mỗi lớp một cột — số tiết lớp ấy học trong mỗi buổi. '
         +'Buổi cả trường nghỉ thì Day_hoc ghi Không.',
-    duThua:6,
-    cot:[{ten:'Thu',     rong:9,  khoa:{kieu:'chon', nguon:'DM_Thu', batBuoc:true}},
-         {ten:'Buoi',    rong:9,  khoa:{kieu:'chon', nguon:'DM_Buoi', batBuoc:true}},
-         {ten:'Day_hoc', rong:11, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
-         {ten:'K1', rong:7, khoa:{kieu:'so', tu:0, den:10}},
-         {ten:'K2', rong:7, khoa:{kieu:'so', tu:0, den:10}},
-         {ten:'K3', rong:7, khoa:{kieu:'so', tu:0, den:10}},
-         {ten:'K4', rong:7, khoa:{kieu:'so', tu:0, den:10}},
-         {ten:'K5', rong:7, khoa:{kieu:'so', tu:0, den:10}}],
-    hang:()=>(S.khungGio?.length?S.khungGio:khungGioMacDinh())
-      .map(k=>[k.thu, k.buoi, k.bat===false?'Không':'Có',
-               ...[1,2,3,4,5].map(x=>k.tietKhoi?.[x] ?? k.tiet ?? 0)]),
+    duThua:0, ghimCot:3,
+    cot:()=>[{ten:'Thu',     rong:8,  khoa:{kieu:'chon', nguon:'DM_Thu', batBuoc:true}},
+             {ten:'Buoi',    rong:8,  khoa:{kieu:'chon', nguon:'DM_Buoi', batBuoc:true}},
+             {ten:'Day_hoc', rong:10, khoa:{kieu:'chon', nguon:'DM_Co_khong'}},
+             ...lopMauKG().map(l=>({ten:cotLopKG(l), rong:8,
+                                    khoa:{kieu:'so', tu:0, den:10}}))],
+    hang:()=>{
+      const ds=lopMauKG();
+      return (S.khungGio?.length?S.khungGio:khungGioMacDinh())
+        .map(k=>[k.thu, k.buoi, k.bat===false?'Không':'Có',
+                 ...ds.map(l=>soTietLop(k,l))]);
+    },
     viDu:[],
-    doc(co, kho, loi){
+    doc(co, kho, loi, canh){
       let them=0, capNhat=0;
+      const ds=lopMauKG(kho);
+      if(!ds.length){ loi.push(`${this.trang}: chưa có lớp nào — khai mục Lớp học trước đã`);
+                      return {them, capNhat}; }
+      /* Cột nào ứng với lớp nào — tra một lần cho cả tệp. `timLopNhap()` nhận
+         cả mã lớp lẫn tên lớp, nên nhà trường gõ "1A" thay vì "1A_DL" vẫn vào. */
+      const cotLop={}, laKhoa=new Set(['Thu','Buoi','Day_hoc']);
+      const tenCot=co[0]?.__cot?.length ? co[0].__cot
+        : [...new Set(co.flatMap(r=>Object.keys(r)))];
+      tenCot.forEach(t=>{
+        if(laKhoa.has(t) || String(t).startsWith('__')) return;
+        const tim=timLopNhap(kho, t);
+        /* `timLopNhap()` đã dựng sẵn câu chỉ đường (gợi ý mã gần nhất, hoặc
+           nói rõ mã đang lệch với tên) — dùng nguyên câu ấy, đừng viết lại
+           một câu thứ hai rồi hai chỗ nói khác nhau. */
+        if(tim?.lop) cotLop[t]=tim.lop;
+        else loi.push(`${this.trang}: cột "${t}" — ${tim?.loi || 'không khớp lớp nào'}`);
+      });
+      if(!Object.keys(cotLop).length){
+        loi.push(`${this.trang}: không cột nào ứng với một lớp — tên cột phải là mã lớp`);
+        return {them, capNhat};
+      }
+      /* Đọc từng dòng vào một bảng tạm: buổi → lớp → số tiết. Chưa đụng vào
+         `kho` cho tới khi cả tệp đọc xong, vì phần gộp nền theo khối bên dưới
+         cần nhìn TOÀN BỘ tệp mới quyết được con số chung của khối. */
+      const oBuoi={}, batBuoi={};
       co.forEach(r=>{
         const thu=+r.Thu, b=String(r.Buoi??'').trim().toUpperCase();
         if(!THU_XL.includes(thu)) return void loi.push({t:this.trang, d:r.__dong,
           v:`Thu phải là 2, 3, 4, 5 hoặc 6 (đang là "${String(r.Thu??'').trim()}")`});
         if(!BUOI_XL.includes(b)) return void loi.push({t:this.trang, d:r.__dong,
           v:`Buoi phải là S (sáng) hoặc C (chiều) (đang là "${String(r.Buoi??'').trim()}")`});
-        const tietKhoi={}; let xau=false;
-        [1,2,3,4,5].forEach(x=>{
-          const n=+r['K'+x];
-          if(!Number.isFinite(n)||n<0||n>10){
-            loi.push({t:this.trang, d:r.__dong,
-              v:`K${x} phải là số từ 0 đến 10 (đang là "${String(r['K'+x]??'').trim()}")`});
-            xau=true;
-          }
-          tietKhoi[x]=Number.isFinite(n)&&n>0?n:0;
+        const kB=`${thu}-${b}`;
+        batBuoi[kB]=laCoXL(r.Day_hoc);
+        oBuoi[kB] ||= {};
+        Object.entries(cotLop).forEach(([t,l])=>{
+          const v=r[t];
+          if(v===null || v===undefined || String(v).trim()==='') return;
+          const n=+v;
+          if(!Number.isFinite(n)||n<0||n>10)
+            return void loi.push({t:this.trang, d:r.__dong,
+              v:`${t} phải là số từ 0 đến 10 (đang là "${String(v).trim()}")`});
+          oBuoi[kB][l.id]=n;
         });
-        if(xau) return;
-        const moi={thu, buoi:b, bat:laCoXL(r.Day_hoc), tietKhoi,
-                   tiet:Math.max(0,...Object.values(tietKhoi))};
-        const i=kho.khungGio.findIndex(k=>k.thu===thu&&k.buoi===b);
-        if(i>=0){ kho.khungGio[i]=moi; capNhat++; } else { kho.khungGio.push(moi); them++; }
       });
-      /* Thiếu chỗ thì cả trường không xếp đủ tiết — phải chặn ngay tại đây,
-         chứ không để tới lúc xếp mới lòi ra "chưa xếp được 40 tiết". */
-      const khoiCo=new Set(kho.lop.map(l=>+l.khoi).filter(k=>k>=1&&k<=5));
-      [...khoiCo].sort().forEach(k=>{
-        const suc=kho.khungGio.filter(x=>x.bat!==false)
-                              .reduce((t,x)=>t+(x.tietKhoi?.[k]||0),0);
-        const can=tietCanTu(kho.monHoc, k);
-        if(suc<can) loi.push(`${this.trang}: khối ${k} chỉ có ${suc} ô mỗi tuần, `
-          +`danh mục môn cần ${can} tiết — thiếu ${can-suc} chỗ, không xếp đủ được`);
+      if(loi.length) return {them, capNhat};
+
+      /* GỘP VỀ NỀN + PHẦN LỆCH. Con số phổ biến nhất trong một khối thành nền
+         của khối (`tietKhoi`), lớp nào khác nền mới ghi riêng (`lopTiet`).
+         Chép nguyên 40 con số vào 40 lớp cũng chạy, nhưng rồi sửa khung của
+         khối sẽ không lớp nào đi theo — đúng chỗ CLAUDE.md dặn chỉ giữ phần
+         LỆCH. */
+      const khoiCo=[...new Set(ds.map(l=>+l.khoi))].filter(k=>k>=1&&k<=5);
+      Object.entries(oBuoi).forEach(([kB,giaTri])=>{
+        const [thu,b]=kB.split('-');
+        let k=kho.khungGio.find(x=>+x.thu===+thu && x.buoi===b);
+        if(!k){ k={thu:+thu, buoi:b, bat:true, tietKhoi:{}, tiet:0}; kho.khungGio.push(k); them++; }
+        else capNhat++;
+        k.bat=batBuoi[kB];
+        k.tietKhoi ||= {};
+        khoiCo.forEach(kh=>{
+          const trong=ds.filter(l=>+l.khoi===kh && giaTri[l.id]!==undefined);
+          if(!trong.length) return;
+          const dem={}; trong.forEach(l=>{ dem[giaTri[l.id]]=(dem[giaTri[l.id]]||0)+1; });
+          const nen=+Object.entries(dem).sort((a,b2)=>b2[1]-a[1] || +a[0]-+b2[0])[0][0];
+          k.tietKhoi[kh]=nen;
+          trong.forEach(l=>{
+            const n=giaTri[l.id];
+            if(n===nen){ if(kho.lopTiet[l.id]) delete kho.lopTiet[l.id][kB]; }
+            else (kho.lopTiet[l.id] ||= {})[kB]=n;
+          });
+        });
+        k.tiet=Math.max(0, ...Object.values(k.tietKhoi),
+          ...Object.values(kho.lopTiet||{}).map(x=>+x?.[kB]).filter(Number.isFinite));
+      });
+      Object.keys(kho.lopTiet||{}).forEach(id=>{
+        if(!Object.keys(kho.lopTiet[id]).length) delete kho.lopTiet[id]; });
+
+      /* Lớp nào không đủ chỗ thì chặn ngay tại đây, chứ đừng để tới lúc xếp
+         mới lòi ra "chưa xếp được 40 tiết". Gom các lớp cùng tình trạng. */
+      const thieu={};
+      ds.forEach(l=>{
+        const suc=kho.khungGio.filter(x=>x.bat!==false).reduce((t,x)=>{
+          const r=kho.lopTiet?.[l.id]?.[`${x.thu}-${x.buoi}`];
+          return t + (Number.isFinite(+r) ? +r : (+x.tietKhoi?.[l.khoi] || 0));
+        },0);
+        const can=tietCanTu(kho.monHoc, l.khoi);
+        if(suc<can) (thieu[`${can-suc}|${suc}|${can}`] ||= []).push(l.ten);
+      });
+      Object.entries(thieu).forEach(([kh,ten])=>{
+        const [d,suc,can]=kh.split('|');
+        loi.push(`${this.trang}: ${ten.length} lớp (${ten.slice(0,6).join(', ')}${ten.length>6?'…':''}) `
+          +`chỉ có ${suc} ô mỗi tuần, danh mục môn cần ${can} tiết — thiếu ${d} chỗ, không xếp đủ được`);
       });
       return {them, capNhat};
     }
@@ -6787,7 +6850,15 @@ function chepKhoNguon(g){
   const n = g || S;
   return {
     diemTruong:(n.diemTruong||[]).map(d=>({...d})),
-    khungGio:(n.khungGio?.length?n.khungGio:khungGioMacDinh()).map(k=>({...k})),
+    /* ⚠️ CHÉP SÂU tới `tietKhoi`. `{...k}` là chép NÔNG: đối tượng `tietKhoi`
+       vẫn là cùng một vật với `S.khungGio`, nên trình soát tệp Excel sửa vào
+       bản sao là sửa thẳng vào dữ liệu đang hiển thị — đúng thứ `duLieuTuMuc()`
+       cam kết không bao giờ làm (hỏng nửa chừng mà đã đổi `S` thì màn hình sau
+       lưng hộp thoại đã khác, người dùng không còn đường lui). Lộ ra 31/8/2026
+       khi mẫu Khung giờ học chuyển sang khai theo lớp: trình đọc mới sửa
+       `k.tietKhoi[khối]` tại chỗ, và hai phép thử liên tiếp nhiễm nhau. */
+    khungGio:(n.khungGio?.length?n.khungGio:khungGioMacDinh())
+      .map(k=>({...k, tietKhoi:{...(k.tietKhoi||{})}})),
     lop:(n.lop||[]).map(l=>({...l})),
     lopDT:{...(n.lopDT||{})},
     lopTiet:Object.fromEntries(Object.entries(n.lopTiet||{}).map(([k,v])=>[k,{...v}])),
@@ -6812,6 +6883,18 @@ function thieuMucTruoc(ma){
 
 /* Đọc một trang tính về đúng MỘT mục, soát trên dữ liệu ĐANG CÓ.
    Trả về bản sao đã trộn (`kho`) chứ không sửa `S` — nơi gọi tự quyết. */
+/* Danh sách cột của một mục. Từ 31/8/2026 `cot` được phép là HÀM: mẫu Khung
+   giờ học có mỗi lớp một cột, mà số lớp thì mỗi trường một khác. Mọi nơi đọc
+   cột phải đi qua đây, không đọc thẳng `m.cot` — bỏ sót một chỗ là mẫu và
+   trình soát lệch nhau, đúng thứ bộ khai `MUC_NHAP` sinh ra để tránh. */
+const cotCua = m => typeof m.cot === 'function' ? m.cot() : m.cot;
+
+/* Lớp bày trên mẫu Khung giờ học, đúng thứ tự bảng trên màn hình. */
+const lopMauKG = kho => xepTheoKhoi((kho||S).lop||[]);
+/* Tên cột của một lớp: MÃ LỚP. Tên gọi ("1A") trùng nhau giữa các phân hiệu
+   sau sáp nhập, mà cột trùng tên thì Excel ghi đè mất một cột. */
+const cotLopKG = l => l.maLop || l.id;
+
 function duLieuTuMuc(ma, hangTho, nguon){
   const m=MUC_NHAP[ma];
   if(!m) return {soLoi:1, loi:[`Không có mục nhập tên "${ma}"`], canh:[], soCanh:0};
@@ -11566,7 +11649,7 @@ function apKhoaXL(ws, cot, dongDau, soDong, danhMuc){
    cần danh sách mã giáo viên; kèm vào chỉ tổ làm tệp nặng và rối. */
 function danhMucCuaMuc(ma){
   const m=MUC_NHAP[ma];
-  const can=new Set(m.cot.map(c=>c.khoa?.nguon).filter(Boolean));
+  const can=new Set(cotCua(m).map(c=>c.khoa?.nguon).filter(Boolean));
   const kho={
     DM_Co_khong:   CO_KHONG,
     DM_Thu:        THU_XL,
@@ -11598,16 +11681,21 @@ async function taiMauMuc(ma){
   wb.creator='Phần mềm Thời khóa biểu';
   wb.created=new Date();
 
-  const ws=trangXL(wb, m.trang, m.cot.length>4?'ngang':'doc');
-  ws.columns=m.cot.map(c=>({width:c.rong||14}));
-  let r=tieuDeXL(ws,1,m.cot.length, m.ten.toUpperCase(), m.nhac);
+  const cot=cotCua(m);
+  /* Trên 12 cột thì A4 ngang cũng hết chỗ — mẫu Khung giờ học của trường 40
+     lớp có 43 cột, phải là khổ rộng. */
+  const ws=trangXL(wb, m.trang, cot.length>12?'rong':(cot.length>4?'ngang':'doc'));
+  ws.columns=cot.map(c=>({width:c.rong||14}));
+  let r=tieuDeXL(ws,1,cot.length, m.ten.toUpperCase(), m.nhac);
   const dCot=r;
-  r=dauCotXL(ws,r,m.cot);
+  r=dauCotXL(ws,r,cot);
   const dongDau=r;
-  r=thanBangXL(ws,r,hang, m.cot.map(c=>c.khoa?.kieu==='so'?'center':'left'));
-  apKhoaXL(ws,m.cot,dongDau,hang.length+(m.duThua||60),danhMuc);
-  ws.views=[{state:'frozen', ySplit:dCot}];
-  ws.autoFilter={from:{row:dCot,column:1}, to:{row:Math.max(dCot,r-1),column:m.cot.length}};
+  r=thanBangXL(ws,r,hang, cot.map(c=>c.khoa?.kieu==='so'?'center':'left'));
+  apKhoaXL(ws,cot,dongDau,hang.length+(m.duThua||60),danhMuc);
+  /* Ghim luôn ba cột đầu: cuộn sang lớp thứ ba mươi mà mất cột Thu · Buoi thì
+     không ai biết mình đang điền dòng nào. */
+  ws.views=[{state:'frozen', xSplit:m.ghimCot||0, ySplit:dCot}];
+  ws.autoFilter={from:{row:dCot,column:1}, to:{row:Math.max(dCot,r-1),column:cot.length}};
 
   /* Trang DANH_MUC chỉ dựng khi trang dữ liệu có ô xổ xuống nào đó */
   const ten=Object.keys(danhMuc).filter(k=>danhMuc[k].length);
@@ -16670,7 +16758,7 @@ function hopNhapExcel(){
       trên màn hình: hàng là giáo viên, cột là môn.</div>`
    :`<div class="bang" style="margin-bottom:13px"><table class="dl">
       <thead><tr><th>Cột</th><th>Ghi gì vào</th></tr></thead><tbody>
-      ${m.cot.map(c=>`<tr><td><b>${esc(c.ten)}</b>${c.khoa?.batBuoc?' <span class="tag do">bắt buộc</span>':''}</td>
+      ${cotCua(m).map(c=>`<tr><td><b>${esc(c.ten)}</b>${c.khoa?.batBuoc?' <span class="tag do">bắt buộc</span>':''}</td>
         <td style="color:var(--chu-mo)">${esc(moTaCotNhap(c))}</td></tr>`).join('')}
       </tbody></table></div>
     <div class="gy">${esc(m.nhac)}</div>`}

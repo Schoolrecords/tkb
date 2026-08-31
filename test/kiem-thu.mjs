@@ -60,7 +60,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien,
   duLieuTuMaTran, bangMauMaTran,
   bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
-  MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
+  MUC_NHAP, cotCua, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
@@ -96,7 +96,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien,
   duLieuTuMaTran, bangMauMaTran,
   bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
-        MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
+        MUC_NHAP, cotCua, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
         datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap, dienGiaiLoi,
@@ -3722,7 +3722,7 @@ console.log('\n19. Mã giáo viên đọc được');
 
 console.log('\n22. Nhập TỪNG MỤC — mỗi màn hình một trang tính');
 const { default: muc22 } = await import('./muc22-nhap-tung-muc.mjs');
-muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
+muc22({ kt, S, MUC_NHAP, cotCua, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, taoUngDung, documentGia });
 }
 

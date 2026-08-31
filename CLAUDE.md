@@ -725,9 +725,28 @@ Sáu điều bắt buộc, cả sáu đều có phép thử (`npm run soi` mục
 là Khung giờ rồi mới Lớp). Nhãn cũng bỏ chữ "Khối". `CHUOI_BUOC` phải đổi cùng
 lúc, không thì nút *tiếp theo ›* đi sai lối — có phép thử canh.
 
-⚠️ **Mẫu Excel `KHUNG_GIO` vẫn khai theo KHỐI**, cố ý: khối là nền mà lớp kế
-thừa, và trường nào đã điền dở tệp cũ không được bỗng mất công. Lớp học khác
-khối thì sửa vài ô trên bảng — không đáng làm thêm một mẫu 40 cột.
+⚠️ **Mẫu Excel `KHUNG_GIO` cũng khai theo LỚP** — mỗi lớp một cột, tên cột là
+**mã lớp** *(sửa 31/8/2026 ngay trong ngày)*. Bản đầu cố ý giữ mẫu theo khối,
+chủ dự án tải về và nói ngay *"mẫu tải về còn là mẫu cũ chưa phải theo mới cập
+nhật này"* — đúng: màn hình một hình dạng, mẫu một hình dạng khác là bắt người
+dùng dịch qua lại trong đầu, cùng bài học mẫu Phân công ngày 29/8.
+
+| Việc | Cách làm |
+|---|---|
+| Cột động | `cot` được phép là **HÀM**; mọi nơi đọc đi qua `cotCua(m)` |
+| Tên cột | `cotLopKG(l)` = mã lớp — tên gọi *1A* trùng nhau giữa các phân hiệu |
+| Đọc ngược | gộp về **nền + phần lệch**: con số phổ biến nhất trong khối thành `tietKhoi`, lớp khác nền mới vào `lopTiet` |
+| Khổ giấy | trên 12 cột thì `trangXL(..., 'rong')`; ghim 3 cột đầu (`ghimCot`) |
+
+⚠️ **Chép nguyên 40 con số vào 40 lớp cũng chạy, nhưng SAI về sau**: sửa khung
+của khối sẽ không lớp nào đi theo. Chỉ giữ phần LỆCH.
+
+⚠️ **`chepKhoNguon()` phải chép SÂU tới `tietKhoi`** *(lỗi thật, lộ ra cùng
+ngày)*. `{...k}` là chép nông nên `tietKhoi` vẫn là cùng một vật với
+`S.khungGio`: trình soát tệp sửa vào bản sao là sửa thẳng dữ liệu đang hiển
+thị, phá đúng cam kết *"`duLieuTuMuc()` không đụng `S`"*. Trình đọc mẫu cũ
+dựng `tietKhoi` mới nên không lộ; trình đọc mới sửa tại chỗ là lộ ngay — hai
+phép thử liên tiếp nhiễm nhau. Có phép thử canh.
 
 ⚠️ Phép thử *"gõ ô cả khối thì mọi lớp nhận"* bản đầu **xanh oan**: nó gõ đúng
 con số mà ba lớp kia đang khai riêng, nên hai cách tính tình cờ ra cùng kết

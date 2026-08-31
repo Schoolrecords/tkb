@@ -10,14 +10,14 @@
    đòi 0 lỗi — cùng khuôn mục 21b, thứ đã bắt lỗi ngay lần chạy đầu.
    ================================================================== */
 
-export default function muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS,
+export default function muc22({ kt, S, MUC_NHAP, cotCua, duLieuTuMuc, napMucVaoS,
                                 chepKhoNguon, thieuMucTruoc, locDongDaDien,
                                 dienGiaiLoiNhap, taoUngDung, documentGia }) {
 
   /* Đổi mảng hai chiều của `hang()` thành dạng sheet_to_json trả về: mỗi dòng
      một object, ô trống bị bỏ qua — đúng như đọc tệp .xlsx thật. */
   const nhuXLSX = (ma, hang) => {
-    const cot = MUC_NHAP[ma].cot.map(c => c.ten);
+    const cot = cotCua(MUC_NHAP[ma]).map(c => c.ten);
     return hang.map(h => {
       const o = {};
       cot.forEach((c, i) => { const v = h[i]; if (v !== '' && v != null) o[c] = v; });
@@ -204,12 +204,76 @@ export default function muc22({ kt, S, MUC_NHAP, duLieuTuMuc, napMucVaoS,
 
   /* ---------- k) Khung giờ thiếu chỗ thì chặn NGAY lúc nhập ---------- */
   {
-    const hang = MUC_NHAP.khunggio.hang().map(h => [h[0], h[1], h[2], 1, 1, 1, 1, 1]);
+    /* Mẫu nay có mỗi LỚP một cột (31/8/2026), nên hạ hết mọi cột lớp xuống 1 */
+    const hang = MUC_NHAP.khunggio.hang().map(h => [h[0], h[1], h[2], ...h.slice(3).map(() => 1)]);
     const r = duLieuTuMuc('khunggio', nhuXLSX('khunggio', hang));
-    kt('Khung giờ không đủ ô cho khối 1 thì BỊ CHẶN, nói rõ thiếu bao nhiêu chỗ',
-       r.soLoi > 0 && r.loi.some(x => /khối 1 chỉ có \d+ ô mỗi tuần/.test(x)),
+    kt('Khung giờ không đủ ô cho lớp thì BỊ CHẶN, nói rõ thiếu bao nhiêu chỗ',
+       r.soLoi > 0 && r.loi.some(x => /lớp .*chỉ có \d+ ô mỗi tuần/.test(x) && /thiếu \d+ chỗ/.test(x)),
        r.loi[0]);
+    /* Gom các lớp cùng tình trạng — 25 lớp cùng thiếu là MỘT dòng, không 25 */
+    kt('Các lớp cùng thiếu một số chỗ gom chung một dòng lỗi',
+       [r.soLoi <= 5, `${r.soLoi} dòng lỗi cho ${S.lop.length} lớp`]);
   }
+
+  /* ---------- k2) Mẫu Khung giờ học có mỗi LỚP một cột (31/8/2026) ----------
+     Chủ dự án tải mẫu về và nói ngay: *"mẫu tải về còn là mẫu cũ chưa phải
+     theo mới cập nhật này"*. Màn hình đã khai theo lớp mà mẫu vẫn K1…K5 thì
+     người dùng phải dịch qua lại trong đầu — đúng bài học mẫu Phân công 29/8. */
+  {
+    const cot = cotCua(MUC_NHAP.khunggio).map(c => c.ten);
+    kt('Mẫu Khung giờ học: ba cột khoá rồi mỗi lớp một cột, không còn K1…K5',
+       [cot.slice(0, 3).join(',') === 'Thu,Buoi,Day_hoc'
+        && cot.length === 3 + S.lop.length && !cot.includes('K1'),
+        `${cot.length} cột · ${cot.slice(3, 5).join(', ')}…`]);
+    kt('Tên cột là MÃ lớp, không phải tên gọi — sau sáp nhập tên trùng nhau',
+       [S.lop.every(l => cot.includes(l.maLop || l.id)),
+        `ví dụ ${S.lop[0].maLop || S.lop[0].id}`]);
+
+    /* Một lớp học khác cả khối → chỉ mình nó vào `lopTiet`, phần còn lại là nền */
+    const hang = MUC_NHAP.khunggio.hang();
+    const iCot = cot.indexOf(S.lop[0].maLop || S.lop[0].id);
+    const i2S = hang.findIndex(h => +h[0] === 2 && h[1] === 'S');
+    hang[i2S] = hang[i2S].slice();
+    hang[i2S][iCot] = hang[i2S][iCot] + 1;
+    const r = duLieuTuMuc('khunggio', nhuXLSX('khunggio', hang));
+    kt('Một lớp lệch thì chỉ mình nó được ghi riêng, cả khối vẫn là nền chung',
+       [r.soLoi === 0
+        && r.kho.lopTiet[S.lop[0].id]?.['2-S'] === hang[i2S][iCot]
+        && Object.keys(r.kho.lopTiet).length === 1,
+        r.soLoi ? r.loi[0] : `${Object.keys(r.kho.lopTiet).length} lớp khai riêng`]);
+    kt('Và nền của khối KHÔNG bị kéo theo con số của một lớp',
+       [r.kho.khungGio.find(k => +k.thu === 2 && k.buoi === 'S').tietKhoi[S.lop[0].khoi]
+          === hang[i2S][iCot] - 1, 'nền giữ nguyên']);
+
+    /* Cả khối cùng đổi → vào NỀN, không đẻ ra ghi đè cho từng lớp */
+    const hang2 = MUC_NHAP.khunggio.hang();
+    hang2[i2S] = hang2[i2S].map((v, i) => i >= 3 && +S.lop[i - 3].khoi === 1 ? +v + 1 : v);
+    const r2 = duLieuTuMuc('khunggio', nhuXLSX('khunggio', hang2));
+    kt('Cả khối cùng đổi thì chỉ nền đổi, không lớp nào bị ghi riêng',
+       [r2.soLoi === 0 && Object.keys(r2.kho.lopTiet).length === 0
+        && r2.kho.khungGio.find(k => +k.thu === 2 && k.buoi === 'S').tietKhoi[1]
+           === hang2[i2S][3],
+        `${Object.keys(r2.kho.lopTiet).length} lớp khai riêng · nền ${r2.kho.khungGio.find(k => +k.thu === 2 && k.buoi === 'S').tietKhoi[1]}`]);
+
+    /* Cột không ứng với lớp nào thì nói rõ, kèm câu chỉ đường của timLopNhap */
+    const hang3 = MUC_NHAP.khunggio.hang();
+    const r3 = duLieuTuMuc('khunggio',
+      nhuXLSX('khunggio', hang3).map(h => ({...h, '9Z_KHONG_CO': 4})));
+    kt('Cột không khớp lớp nào thì báo đúng cột ấy, kèm cách chữa',
+       [r3.soLoi > 0 && r3.loi.some(x => /9Z_KHONG_CO/.test(x)), r3.loi[0]]);
+  }
+
+  /* ⚠️ Bản sao phải CHÉP SÂU. `{...k}` để `tietKhoi` dùng chung một vật với
+     `S.khungGio`, nên trình soát sửa vào bản sao là sửa thẳng dữ liệu đang
+     hiển thị. Hai phép thử ngay trên đây nhiễm nhau vì đúng chuyện này. */
+  kt('Soát tệp Khung giờ học KHÔNG đụng một chữ nào vào S', (() => {
+    const truoc = JSON.stringify(S.khungGio) + '##' + JSON.stringify(S.lopTiet || {});
+    const h = MUC_NHAP.khunggio.hang();
+    h[0] = h[0].map((v, i) => i >= 3 ? +v + 2 : v);
+    duLieuTuMuc('khunggio', nhuXLSX('khunggio', h));
+    return [JSON.stringify(S.khungGio) + '##' + JSON.stringify(S.lopTiet || {}) === truoc,
+            'S nguyên vẹn'];
+  })());
 
   /* ---------- l) napMucVaoS() là đường DUY NHẤT ghi vào S ---------- */
   {

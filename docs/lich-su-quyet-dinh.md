@@ -2620,3 +2620,58 @@ kêu đúng cũng không ai đọc.
 
 Đã thử ngược bằng cách tái hiện đúng lỗi: chèn lại một ghi chú kiểu JS vào
 thanh bên → **2 phép thử đỏ**.
+
+---
+
+## 31/8/2026 (tối) — Mẫu Excel Khung giờ học cũng khai theo LỚP
+
+Chủ dự án tải mẫu về ngay sau khi bảng đổi sang trục lớp: *"em thiết kế lại
+mẫu này nhé; mẫu tải về còn là mẫu cũ chưa phải theo mới cập nhật này."*
+
+Buổi chiều em đã **cố ý giữ mẫu theo khối** với lập luận "khối là nền mà lớp
+kế thừa, không đáng làm thêm một mẫu 40 cột". Lập luận ấy sai ở chỗ nó cân
+nhắc chi phí của người viết mã, không phải của người dùng: **màn hình một hình
+dạng, mẫu một hình dạng khác là bắt nhà trường dịch qua lại trong đầu** — đúng
+bài học đã ghi cho mẫu Phân công ngày 29/8, mà em vừa vi phạm lại sau hai ngày.
+
+### Bốn việc
+
+| Việc | Cách làm |
+|---|---|
+| Cột động | `cot` của một mục được phép là **HÀM**; năm chỗ đọc cột nay đi qua `cotCua(m)` |
+| Tên cột | **mã lớp** (`cotLopKG`) — tên gọi *1A* trùng nhau giữa các phân hiệu, mà hai cột trùng tên thì Excel nuốt mất một |
+| Đọc ngược | gộp về **nền + phần lệch** |
+| Khổ giấy | trên 12 cột thì A3 ngang; ghim ba cột đầu để cuộn tới lớp thứ ba mươi vẫn thấy `Thu · Buoi` |
+
+⚠️ **Gộp về nền + phần lệch, không chép nguyên 40 con số vào 40 lớp.** Con số
+phổ biến nhất trong một khối thành nền của khối; lớp nào khác nền mới ghi
+riêng. Chép nguyên cũng chạy, nhưng rồi sửa khung của khối sẽ không lớp nào đi
+theo — đúng chỗ CLAUDE.md dặn chỉ giữ phần LỆCH.
+
+Cột không ứng với lớp nào thì dùng nguyên câu chỉ đường của `timLopNhap()`
+(gợi ý mã gần nhất, hoặc nói rõ mã đang lệch với tên) — không viết câu thứ hai
+rồi hai chỗ nói khác nhau.
+
+### Và một lỗi THẬT mà phép thử mới lôi ra
+
+Hai phép thử liên tiếp nhiễm nhau: phép thử sau nhận `nền 2` trong khi tệp ghi
+`5`. Gốc không nằm ở phép thử mà ở `chepKhoNguon()`:
+
+```js
+khungGio: (…).map(k => ({...k}))     // chép NÔNG
+```
+
+`{...k}` chép nông, nên `k.tietKhoi` vẫn là **cùng một đối tượng** với
+`S.khungGio`. Trình soát tệp sửa vào bản sao là **sửa thẳng dữ liệu đang hiển
+thị** — phá đúng cam kết *"`duLieuTuMuc()` không đụng `S`"*, thứ giữ cho người
+dùng còn đường lui khi tệp hỏng nửa chừng.
+
+⚠️ Vì sao trước đây không lộ: trình đọc mẫu cũ dựng một `tietKhoi` **mới** rồi
+thay cả đối tượng buổi vào mảng, nên không bao giờ chạm vào vật dùng chung.
+Trình đọc mới sửa tại chỗ `k.tietKhoi[khối]` là lộ ngay. **Một cam kết chỉ
+đúng nhờ cách viết tình cờ của một hàm thì sớm muộn có người viết khác đi.**
+Nay `chepKhoNguon()` chép sâu tới `tietKhoi`, và có phép thử soi `S` trước/sau
+một lần đọc tệp.
+
+**Tám phép thử mới ở mục 22 của `npm test`.** Thử ngược 2/2: chép nông lại →
+3 đỏ; bỏ phép gộp nền → 2 đỏ.
