@@ -2517,3 +2517,69 @@ trang giả lập đúng cách GitHub Pages phục vụ (đổi nội dung nhưn
 Đã thử ngược: bỏ `cache: 'no-store'` → phép thử đỏ với `ban 1 → ban 1`.
 
 **Cho tới khi bản vá này lên máy chủ, cách duy nhất là Ctrl + Shift + R.**
+
+---
+
+## 31/8/2026 (chiều) — Khung giờ học khai theo LỚP, bỏ bảng khối
+
+Chủ dự án, sau khi dùng thử bản khai theo khối cùng ngày: *"Có nên có lưới cụ
+thể để chọn không em? Có thể mỗi khối 1 trang… Có nghĩa là có bản đồ rõ cho
+trực quan, có chốt tổng. Quy trình này, sau khi khai số Phân hiệu, sau đến
+lớp, đến Khung giờ học «bỏ từ khối»."* Chốt: **làm bảng lớp, bỏ bảng khối cũ**.
+
+### Vì sao đúng
+
+Bảng khai theo khối, còn lớp lệch giờ thì vá ở khu *Lớp học khác giờ khối*
+bên dưới — **hai nơi cùng nói về một thứ**, đúng thứ CLAUDE.md vẫn dặn tránh.
+Và giờ học vốn là chuyện của từng lớp; "khối" chỉ là cách gõ cho nhanh.
+
+### Nhưng khối không biến mất — nó xuống thành một CỘT
+
+Điều duy nhất em xin giữ lại, và chủ dự án đồng ý: **cột *cả khối*** ngay
+trong bảng. Lý do là số ô phải gõ — 40 lớp × 10 buổi là **400 ô**, trường ba
+phân hiệu 60 lớp là **600**. Thực tế trong một khối hầu hết các lớp giống hệt
+nhau, chỉ vài lớp lệch: gõ một lần vào ô chung → cả khối nhận, rồi sửa tay
+đúng mấy lớp ấy.
+
+⚠️ Và ô chung phải **dọn ghi đè** của mọi lớp trong khối ở buổi đó. Không dọn
+thì gõ vào ô chung mà mấy lớp trơ ra con số cũ — người dùng gõ đi gõ lại
+không hiểu vì sao.
+
+### Chốt tổng: hai dòng dưới mỗi cột
+
+*Tổng mỗi tuần* (khung giờ mở được mấy ô) và *Số tiết cần*, kèm kết luận
+`✓ đủ` · `thiếu 3` · `trống 2`.
+
+⚠️ **Con số "cần" có HAI nguồn, và thứ tự ưu tiên là chỗ dễ sai.** Bản đầu lấy
+bảng phân công làm mốc duy nhất — nhưng theo đúng trình tự chủ dự án nêu, khung
+giờ được khai **ngay sau khi khai lớp**, lúc bảng phân công còn trống trơn, nên
+cả bảng sẽ toàn dấu gạch đúng lúc người dùng cần con số nhất. Nay: chưa phân
+công thì lấy **danh mục môn của khối**, phân công rồi thì lấy con số **thật của
+chính lớp ấy** — chính xác hơn hẳn mốc khối cũ, vì một lớp lệch không còn làm
+cả khối bị báo sai.
+
+### Chia theo KHỐI, không theo "16 lớp mỗi trang"
+
+Chủ dự án đề xuất mỗi trang 16 lớp. Em chọn chia theo **khối** — đơn vị nhà
+trường vẫn nghĩ, và tiện là mỗi khối chỉ 5–12 lớp nên vừa một màn không phải
+cuộn. Kèm nút *Tất cả N lớp* cho ai muốn nhìn toàn cảnh.
+
+### Kèm theo: thứ tự thanh bên
+
+**Phân hiệu → Lớp học → Khung giờ học** (trước là Khung giờ rồi mới Lớp), nhãn
+bỏ chữ "Khối". `CHUOI_BUOC` đổi cùng lúc, không thì nút *tiếp theo ›* đi sai
+lối — phép thử bắt được ngay.
+
+### Những gì KHÔNG đổi
+
+- `khung_gio.so_tiet_khoi` vẫn là nền lớp kế thừa → **năm trường đang chạy
+  không phải khai lại gì**.
+- Mẫu Excel `KHUNG_GIO` vẫn khai theo khối — trường nào đã điền dở tệp cũ
+  không bỗng mất công, và không đáng làm thêm một mẫu 40 cột cho vài ô lệch.
+
+**14 phép thử ở mục 17z, cộng ba phép thử mới ở 17o.** Đã thử ngược 3/3.
+
+⚠️ Phép thử *"gõ ô cả khối thì mọi lớp nhận"* bản đầu **xanh oan**: nó gõ đúng
+con số 5 mà ba lớp kia đang khai riêng, nên dọn hay không dọn ghi đè cũng ra
+cùng kết quả. Đổi sang gõ 6 là bẻ ngược đỏ ngay. Lại đúng bẫy *"hai thứ tình
+cờ bằng nhau"*, lần thứ tư trong tuần.

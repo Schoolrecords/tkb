@@ -682,6 +682,57 @@ Ba điều bắt buộc, cả ba đều có phép thử (`npm run soi` mục **1
 - **Ô tích xác nhận là hàng rào thật**, không phải trang trí — hộp đếm sẵn số
   dòng phân công, số lớp mất chủ nhiệm và số tiết trên lưới sẽ mất theo.
 
+### Khung giờ học khai theo LỚP — bảng khối đã bỏ *(31/8/2026)*
+
+Chủ dự án, sau khi dùng thử bản khai theo khối: *"Có nên có lưới cụ thể để
+chọn không em? … Có nghĩa là có bản đồ rõ cho trực quan, có chốt tổng"* — rồi
+chốt: **bỏ bảng khối cũ**.
+
+Bảng cũ khai theo khối, còn lớp lệch giờ thì vá ở một khu riêng bên dưới: hai
+nơi cùng nói về một thứ. Nay **một bảng, cột là LỚP** — hàng là buổi học, ô là
+số tiết, dưới cùng là hai dòng chốt tổng.
+
+| Hàm | Việc |
+|---|---|
+| `mKhungGio()` | bảng theo lớp; nút chọn khối · *Tất cả* |
+| `khoiKGDangXem()` | khối đang bày; `S.khoiKG`, `'tat'` = tất cả |
+| `tietCanLop(id)` · `nguonCanLop(id)` | con số lớp CẦN, và nó lấy từ đâu |
+| `datOGioLop(id, kB, n)` | sửa một ô của một lớp, kèm dọn tiết rơi ra ngoài |
+| `datOGioKhoi(khoi, kB, n)` | ô *cả khối* — đặt một lần cho cả khối |
+| `canhGioLop(ds)` | cảnh báo theo lớp, gom lớp cùng tình trạng |
+
+Sáu điều bắt buộc, cả sáu đều có phép thử (`npm run soi` mục **17z**):
+
+- ⚠️ **Cột *cả khối* là bắt buộc phải có, đừng gỡ.** 40 lớp × 10 buổi = **400
+  ô**, 60 lớp là 600 — không ai gõ tay từng ô. Trong một khối hầu hết các lớp
+  giống hệt nhau; gõ một lần vào ô chung rồi sửa tay mấy lớp lệch.
+- ⚠️ **Ô *cả khối* phải DỌN ghi đè của mọi lớp trong khối ở buổi ấy.** Không
+  dọn thì gõ vào ô chung mà mấy lớp trơ ra con số cũ — người dùng gõ đi gõ lại
+  không hiểu vì sao.
+- ⚠️ **Mốc "cần" của một lớp có HAI nguồn, thứ tự ưu tiên có lý do**: khung giờ
+  được khai ngay sau khi khai lớp, lúc bảng phân công còn trống — lấy phân công
+  làm mốc duy nhất thì cả bảng toàn dấu gạch đúng lúc cần con số nhất. Chưa
+  phân công thì lấy **danh mục môn của khối**; phân công rồi thì lấy con số
+  **thật của chính lớp ấy**.
+- **Ô khác con số của khối thì TÔ LÊN** (`.ip.o-lech`) — nhìn ra ngay lớp nào
+  đặc biệt, thay cho khu khai riêng tách rời trước đây.
+- **Cảnh báo gom các lớp cùng tình trạng thành MỘT dòng.** Hai mươi lăm lớp
+  cùng thiếu 3 chỗ là một việc; bày 25 dòng y hệt nhau là bắt người đọc tự gom.
+- **Chưa có lớp nào thì nói thẳng và chỉ đường sang mục Lớp học**, đừng vẽ ra
+  một bảng không có cột nào.
+
+⚠️ **Thứ tự thanh bên đổi theo: Phân hiệu → Lớp học → Khung giờ học** (trước
+là Khung giờ rồi mới Lớp). Nhãn cũng bỏ chữ "Khối". `CHUOI_BUOC` phải đổi cùng
+lúc, không thì nút *tiếp theo ›* đi sai lối — có phép thử canh.
+
+⚠️ **Mẫu Excel `KHUNG_GIO` vẫn khai theo KHỐI**, cố ý: khối là nền mà lớp kế
+thừa, và trường nào đã điền dở tệp cũ không được bỗng mất công. Lớp học khác
+khối thì sửa vài ô trên bảng — không đáng làm thêm một mẫu 40 cột.
+
+⚠️ Phép thử *"gõ ô cả khối thì mọi lớp nhận"* bản đầu **xanh oan**: nó gõ đúng
+con số mà ba lớp kia đang khai riêng, nên hai cách tính tình cờ ra cùng kết
+quả. Lại đúng bẫy *"hai thứ tình cờ bằng nhau"* ở mục 3.
+
 ### Giờ học riêng của LỚP — không phải mọi lớp trong khối học như nhau *(31/8/2026 — `db/gio-hoc-lop.sql`)*
 
 Chủ dự án, từ Trường TH Hưng Vinh 1: *"Lớp 1A, 1B, 1C khung chương trình 35

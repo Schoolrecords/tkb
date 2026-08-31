@@ -246,12 +246,14 @@ kt('Không còn chữ "Bước N" nào lọt ra màn hình, ở bất kỳ trang
   w.chuyen('dieuhanh');
   return [bay.length === 0, bay.join(' · ') || 'sạch cả 12 màn hình'];
 })()));
+/* ⚠️ Thứ tự đổi 31/8/2026: Phân hiệu → Lớp học → Khung giờ học. Từ khi khung
+   giờ khai theo LỚP, mở nó khi chưa có lớp nào là mở ra bảng không có cột nào. */
 kt('Nút “tiếp theo” đi đúng màn hình kế trong chuỗi', (() => {
   w.chuyen('lop');
-  const nut = [...w.document.querySelectorAll('.dhb [data-di]')].find(b => /Giáo viên/.test(b.textContent));
+  const nut = [...w.document.querySelectorAll('.dhb [data-di]')].find(b => /Khung giờ/.test(b.textContent));
   if (!nut) return false;
   nut.dispatchEvent(new w.Event('click', { bubbles: true }));
-  return S.trangHienTai === 'giaovien';
+  return S.trangHienTai === 'khunggio';
 })());
 
 console.log('\n7. Khai báo lớp học từ giao diện');
@@ -3185,6 +3187,13 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
 
   w.eval(`S.khungGio.forEach(k=>{ k.bat = !(k.thu===4 && k.buoi==='C');
     [1,2,3,4,5].forEach(x=>{ k.tietKhoi = k.tietKhoi||{}; k.tietKhoi[x] = k.buoi==='S'?4:3; }); })`);
+  /* ⚠️ Bảng nay đối chiếu theo LỚP, và mốc của một lớp là bảng phân công của
+     chính nó khi đã có. Cảnh thử này nói về DANH MỤC MÔN — con số dùng khi
+     trường vừa khai lớp xong, chưa phân công tiết nào — nên phải dọn bảng
+     phân công đi, không thì đang đo một thứ khác. */
+  const pcGoc17o = w.eval('JSON.stringify(S.phanCong)');
+  w.eval('S.phanCong = []');
+  w.eval("S.khoiKG = 'tat'");
   w.chuyen('khunggio');
   const chu = w.document.querySelector('#noiDung').textContent;
   kt('Khung 9 buổi khớp 32 tiết thì KHÔNG còn báo "thừa ô"',
@@ -3197,6 +3206,14 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
      viết thành câu. */
   kt('Ô tổng chỉ bày kết luận, không bày con số trần không rõ nghĩa',
      /đủ/.test(chu) && !/cần 32/.test(chu));
+  kt('Chốt tổng bày theo TỪNG LỚP, không gộp cả khối', (() => {
+    const cot = [...w.document.querySelectorAll('#noiDung thead th')].map(x => x.textContent);
+    /* Dải nhãn khối vẫn còn (nó gom cột cho dễ đọc) — thứ phải mất là CỘT
+       khai theo khối: giờ mỗi lớp một cột riêng. */
+    const oKhai = [...w.document.querySelectorAll('#noiDung [data-tl]')].length;
+    return [cot.includes('1A') && cot.includes('5E') && oKhai > 0,
+            `${cot.length} cột · ${oKhai} ô khai theo lớp`];
+  })());
   kt('Bảng dưới nói rõ nghĩa từng con số, kèm phần tự chọn vượt mốc CT',
      /Khung giờ đang mở/.test(chu) && /Danh mục môn cộng lại/.test(chu) &&
      /CT GDPT 2018 quy định/.test(chu) && /tự chọn/.test(chu));
@@ -3208,6 +3225,12 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
   kt('Bớt một buổi thì báo THIẾU chỗ, đúng số còn hụt',
      /thiếu 3 chỗ mỗi tuần/.test(w.document.querySelector('#noiDung').textContent),
      (w.document.querySelector('#noiDung').textContent.match(/thiếu \d+ chỗ mỗi tuần/) || [''])[0]);
+  /* Gom các lớp cùng một tình trạng — 25 lớp cùng thiếu 3 chỗ là MỘT việc */
+  kt('Các lớp cùng tình trạng gom thành một dòng, không kể ra 25 lần', (() => {
+    const chu = w.document.querySelector('#noiDung').textContent;
+    const so = (chu.match(/thiếu 3 chỗ mỗi tuần/g) || []).length;
+    return [so <= 5, `${so} dòng cảnh báo cho 25 lớp`];
+  })());
 
   /* ⚠️ Nhãn phải nói HẬU QUẢ. Chủ dự án đọc "thừa 2" rồi vẫn phải hỏi lại
      "chữ thừa 2 ý nghĩa gì đây em" — đó là nhận xét về cái bảng, không phải
@@ -3222,6 +3245,7 @@ console.log('\n17o. Mốc so sánh là DANH MỤC MÔN của trường, không p
     return [/2 ô trống/.test(chu) && /ngồi chơi 2 tiết/.test(chu) && !/thừa 2/.test(chu),
             (chu.match(/có \d+ ô trống mỗi tuần|ngồi chơi \d+ tiết/) || [''])[0]];
   })());
+  w.eval(`S.phanCong = ${pcGoc17o}`);
 
   /* Trường chưa khai môn nào thì lùi về mốc CT GDPT — đường lui phải còn */
   w.eval('S.monHoc = []');
@@ -4097,49 +4121,64 @@ console.log('\n17y. Phân công nhanh: bỏ tích một lớp là GỠ');
   Object.entries(tkbGoc).forEach(([k, v]) => S.tkb[k] = v);
 }
 
-console.log('\n17z. Lớp học khác giờ khối — màn hình');
-/* Chủ dự án 31/8/2026 (TH Hưng Vinh 1): 1A·1B·1C học 35 tiết còn các lớp 1
-   khác 32 — bảng khung giờ khai theo KHỐI không có ô nào gõ chuyện đó. */
+console.log('\n17z. Khung giờ học — bảng theo LỚP');
+/* Chủ dự án 31/8/2026, sau khi dùng thử bản khai theo khối: *"Có nên có lưới
+   cụ thể để chọn không em? … có bản đồ rõ cho trực quan, có chốt tổng"* — và
+   chốt **bỏ bảng khối cũ**. Bài toán gốc là TH Hưng Vinh 1: 1A·1B·1C học 35
+   tiết còn các lớp 1 khác 32, cùng một khối mà hai con số. */
 {
   const pcGoc = JSON.parse(JSON.stringify(S.phanCong));
-  const nut = t => [...w.document.querySelectorAll('#hopC button')].find(b => b.textContent === t);
   const BA = ['lop_1A', 'lop_1B', 'lop_1C'].filter(id => S.lop.some(l => l.id === id));
+  const oLop = (id, kb) => w.document.querySelector(`[data-tl="${id}|${kb}"]`);
+  const dat = (o, v) => { o.value = String(v); o.dispatchEvent(new w.Event('change')); };
 
+  w.eval("S.khoiKG = '1'");
   w.chuyen('khunggio');
-  kt('Màn Khung giờ có khu "Lớp học khác giờ khối" và nút Thêm lớp',
-     /Lớp học khác giờ khối/.test(w.document.body.innerHTML)
-     && !!w.document.querySelector('#btThemGioLop'));
-  kt('Chưa khai thì nói thẳng là mọi lớp theo khung của khối',
-     /Chưa lớp nào khai riêng/.test(w.document.body.innerHTML));
+  kt('Mỗi LỚP một cột, và mỗi ô là một chỗ khai được',
+     [!!oLop('lop_1A', '2-S') && !!oLop('lop_1D', '2-S'),
+      `${w.document.querySelectorAll('[data-tl]').length} ô khai`]);
+  kt('Vẫn có cột "cả khối" để đặt một lần cho cả khối',
+     !!w.document.querySelector('[data-tkhoi="2-S|1"]'));
+  /* ⚠️ Bảng khối cũ phải BIẾN MẤT hẳn, không để hai nơi cùng khai một thứ */
+  kt('Bảng khai theo khối cũ đã bỏ hẳn',
+     [!w.document.querySelector('[data-tk]')
+      && !/Lớp học khác giờ khối/.test(w.document.querySelector('#noiDung').textContent),
+      'không còn ô data-tk nào']);
 
-  /* Khai đúng cảnh Hưng Vinh: ba lớp khối 1 học thêm 3 tiết */
-  w.document.querySelector('#btThemGioLop').click();
-  kt('Hộp khai bày đủ danh sách lớp và một dòng cho mỗi buổi học',
-     [w.document.querySelectorAll('[data-gl]').length === S.lop.length
-      && w.document.querySelectorAll('[data-glt]').length === w.eval('buoiBat().length'),
-      `${w.document.querySelectorAll('[data-gl]').length} lớp · ${w.document.querySelectorAll('[data-glt]').length} buổi`]);
-  BA.forEach(id => { const o = w.document.querySelector(`[data-gl="${id}"]`); o.checked = true;
-                     o.dispatchEvent(new w.Event('change')); });
-  ['2-S', '3-S', '4-S'].forEach(kb => {
-    const o = w.document.querySelector(`[data-glt="${kb}"]`);
-    o.value = '5'; o.dispatchEvent(new w.Event('change'));
-  });
-  kt('Hộp cộng ngay tổng tiết mỗi tuần của nhóm lớp đang chọn',
-     /30 tiết mỗi tuần cho 3 lớp/.test(w.document.querySelector('#glTong').textContent),
-     w.document.querySelector('#glTong').textContent.trim().slice(0, 46));
-  nut('Lưu giờ học').click();
-
-  kt('Cùng khối 1 mà ba lớp học 30 ô, các lớp còn lại vẫn 27',
-     [w.eval("sucChuaLop('lop_1A')") === 30 && w.eval("sucChuaLop('lop_1D')") === 27,
+  /* Đúng cảnh Hưng Vinh: ba lớp học thêm 3 tiết, các lớp 1 khác giữ nguyên */
+  dat(oLop('lop_1A', '2-S'), 5);
+  dat(oLop('lop_1B', '2-S'), 5);
+  dat(oLop('lop_1C', '2-S'), 5);
+  kt('Cùng khối 1 mà ba lớp 28 ô, hai lớp kia vẫn 27',
+     [w.eval("sucChuaLop('lop_1A')") === 28 && w.eval("sucChuaLop('lop_1D')") === 27,
       `1A ${w.eval("sucChuaLop('lop_1A')")} · 1D ${w.eval("sucChuaLop('lop_1D')")} ô`]);
-  kt('Khu khai gom ba lớp thành MỘT dòng, ghi rõ số tiết và số của khối',
-     [/1A · 1B · 1C/.test(w.document.body.innerHTML)
-      && /30<\/b> tiết\/tuần/.test(w.document.body.innerHTML),
-      'một dòng cho cả nhóm']);
+  kt('Ô khác con số của khối thì tô lên, nhìn ra ngay lớp nào đặc biệt',
+     [oLop('lop_1A', '2-S').className.includes('o-lech')
+      && !oLop('lop_1D', '2-S').className.includes('o-lech'),
+      '1A tô · 1D không']);
+  kt('Chốt tổng bày ngay dưới mỗi cột, và nói lớp nào thừa chỗ', (() => {
+    const chu = w.document.querySelector('#noiDung').textContent;
+    return [/Tổng mỗi tuần/.test(chu) && /Số tiết cần/.test(chu) && /trống 1/.test(chu),
+            (chu.match(/\d+ lớp có \d+ ô trống mỗi tuần/) || ['—'])[0]];
+  })());
 
-  /* ⚠️ Phần dôi ra phải hiện thành Ô NGHỈ đúng như khối tan sớm — đây là
-     hình dạng chủ dự án chỉ ra ở ảnh SmartScheduler. */
-  kt('Lưới của lớp 1D bày ô nghỉ ở tiết 5 sáng, lưới 1A thì không', (() => {
+  /* Ô "cả khối" phải kéo theo CẢ những lớp đang khai riêng — nếu không thì
+     gõ vào ô chung mà mấy lớp ấy trơ ra con số cũ, gõ mãi không hiểu vì sao */
+  /* ⚠️ Con số ở đây phải KHÁC con số ba lớp kia đang khai riêng (5). Bản đầu
+     gõ đúng 5 nên hai cách tính tình cờ ra cùng kết quả: bẻ ngược phép dọn
+     ghi đè mà phép thử vẫn xanh. Đúng cái bẫy "hai thứ tình cờ bằng nhau". */
+  dat(w.document.querySelector('[data-tkhoi="2-S|1"]'), 6);
+  kt('Gõ ô "cả khối" thì mọi lớp trong khối nhận, kể cả lớp đang khai riêng',
+     [[...BA, 'lop_1D', 'lop_1E'].every(id => w.eval(`sucChuaLop(${JSON.stringify(id)})`) === 29),
+      `1A ${w.eval("sucChuaLop('lop_1A')")} · 1D ${w.eval("sucChuaLop('lop_1D')")} ô`]);
+  kt('Và lúc ấy không ô nào còn bị tô lệch — cả khối đã bằng nhau',
+     [w.document.querySelectorAll('#noiDung .o-lech').length === 0,
+      `${w.document.querySelectorAll('#noiDung .o-lech').length} ô lệch`]);
+
+  /* Trả về 4 tiết như cũ, rồi soi phần hiển thị dựa trên giờ của lớp */
+  dat(w.document.querySelector('[data-tkhoi="2-S|1"]'), 4);
+  dat(oLop('lop_1A', '2-S'), 5);
+  kt('Lưới của 1D bày ô nghỉ ở tiết 5 sáng, lưới 1A thì không', (() => {
     const dem = id => (w.luoiTuanLop(id).match(/o-nghi/g) || []).length;
     return [dem('lop_1D') > dem('lop_1A'), `1D ${dem('lop_1D')} ô nghỉ · 1A ${dem('lop_1A')}`];
   })());
@@ -4151,33 +4190,38 @@ console.log('\n17z. Lớp học khác giờ khối — màn hình');
     const a = w.luoiToanTruong(S.lop);
     const ten = id => w.eval(`tenLopDay(${JSON.stringify(id)})`);
     const dTen = a.find(r => r.includes(ten('lop_1D')) && r.includes(ten('lop_1A')));
-    const cot1D = dTen ? dTen.indexOf(ten('lop_1D')) : -1, cot1A = dTen ? dTen.indexOf(ten('lop_1A')) : -1;
-    /* Dòng tiết 5 chỉ tồn tại NHỜ ba lớp khai riêng — trước bản vá không có */
-    const hang = a.filter(r => r[2] === 5 && r[1] === 'Sáng' && /^Thứ (Hai|Ba|Tư)$/.test(String(r[0])));
-    const nghi = hang.filter(r => r[cot1D] === 'Nghỉ').length;
-    /* 1A chỉ cần KHÔNG bị ghi "Nghỉ" — ô ấy đang mở, có tiết hay chưa là
-       việc của lần xếp sau; bộ soi này không chạy lại thuật toán. */
-    const mo = hang.filter(r => r[cot1A] !== 'Nghỉ').length;
-    return [cot1D > 0 && hang.length === 3 && nghi === 3 && mo === 3,
-            `${hang.length} dòng tiết 5 đầu tuần · 1D nghỉ ${nghi} · 1A mở ${mo}`];
+    const c1D = dTen ? dTen.indexOf(ten('lop_1D')) : -1, c1A = dTen ? dTen.indexOf(ten('lop_1A')) : -1;
+    const hang = a.filter(r => r[2] === 5 && r[1] === 'Sáng' && r[0] === 'Thứ Hai');
+    return [c1D > 0 && hang.length === 1 && hang[0][c1D] === 'Nghỉ' && hang[0][c1A] !== 'Nghỉ',
+            hang.length ? `1D: ${hang[0][c1D]} · 1A: ${hang[0][c1A] || 'ô mở'}` : 'không có dòng tiết 5'];
   })());
 
-  /* Bỏ khai riêng — nút Bỏ ngay trên khu, không phải mở hộp lần nữa */
-  w.chuyen('khunggio');
-  w.document.querySelector('[data-bogio]').click();
-  /* ⚠️ Soi trong ĐÚNG khu khai, không soi cả body: hộp thoại vừa đóng vẫn
-     để lại markup cũ trong #hopN, nên `body.innerHTML` còn tên ba lớp ấy và
-     phép thử đỏ oan. */
-  kt('Nút Bỏ trả cả nhóm về đúng khung của khối', (() => {
-    const khu = [...w.document.querySelectorAll('#noiDung .the')]
-      .find(x => /Lớp học khác giờ khối/.test(x.textContent));
-    return [w.eval("sucChuaLop('lop_1A')") === 27
-            && w.eval('nhomGioRieng().length') === 0
-            && /Chưa lớp nào khai riêng/.test(khu?.textContent || ''),
-            `1A ${w.eval("sucChuaLop('lop_1A')")} ô · ${w.eval('nhomGioRieng().length')} nhóm còn lại`];
+  /* Nút chọn khối — 40 lớp thì xem từng khối cho vừa màn hình */
+  w.document.querySelector('[data-kkg="2"]').click();
+  kt('Chọn khối nào thì chỉ bày lớp của khối ấy',
+     [!oLop('lop_1A', '2-S') && !!oLop('lop_2A', '2-S'), 'đang bày khối 2']);
+  w.document.querySelector('[data-kkg="tat"]').click();
+  kt('Nút "Tất cả" bày trọn danh sách lớp',
+     [w.document.querySelectorAll('#noiDung thead th').length > S.lop.length,
+      `${w.document.querySelectorAll('#noiDung thead th').length} cột`]);
+
+  /* Trường mới tinh: chưa có lớp thì nói thẳng và chỉ đường, đừng vẽ bảng rỗng */
+  kt('Chưa có lớp nào thì chỉ đường sang mục Lớp học', (() => {
+    const lopGoc = S.lop.slice();
+    S.lop.length = 0;
+    w.chuyen('khunggio');
+    const chu = w.document.querySelector('#noiDung').textContent;
+    const ok = /Chưa có lớp nào để xếp giờ/.test(chu)
+            && !!w.document.querySelector('[data-di="lop"]')
+            && !/NaN|undefined/.test(chu);
+    lopGoc.forEach(l => S.lop.push(l));
+    w.chuyen('khunggio');
+    return [ok, 'có nút sang Lớp học'];
   })());
 
+  w.eval("S.lopTiet = {}; chuanKhungGio();");
   S.phanCong.length = 0; pcGoc.forEach(x => S.phanCong.push(x));
+  w.eval("S.khoiKG = ''");
 }
 
 console.log('\n17aa. Xoá toàn bộ danh sách giáo viên');

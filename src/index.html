@@ -371,6 +371,9 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.2}
 .ts.cam{--tsm:#D97A29}.ts.luc{--tsm:#2E9E63}.ts.lam{--tsm:#2563EB}.ts.tim{--tsm:#7C4DDC}
 .ts.do{--tsm:var(--do)}.ts.canh{--tsm:var(--canh)}
 /* Thẻ số liệu bấm được thì phải trông bấm được */
+/* Ô số tiết khác con số của khối — tô để nhìn ra ngay lớp nào đặc biệt,
+   thay cho khu khai riêng tách rời trước đây. */
+.ip.o-lech{border-color:var(--canh);background:#FFF8E7;font-weight:700;color:#7A4A00}
 .ts[data-di]{cursor:pointer;transition:box-shadow .16s,transform .08s}
 .ts[data-di]:hover{box-shadow:var(--bong2)}
 .ts[data-di]:active{transform:translateY(-2px)}
@@ -1478,8 +1481,11 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <div class="nhom-ds">
       <button class="mi" data-t="thongtin" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V8l7-4.5L19 8v13"/><path d="M9.5 21v-5h5v5M9.5 11h5"/></svg>Thông tin trường</button>
       <button class="mi" data-t="diemtruong" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Phân hiệu <span class="n" id="nDT">0</span></button>
-      <button class="mi" data-t="khunggio" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Khối và khung giờ</button>
+      ${''/* ⚠️ LỚP HỌC ĐỨNG TRƯỚC KHUNG GIỜ (31/8/2026). Từ khi khung giờ khai
+             theo LỚP, mở mục ấy khi chưa có lớp nào là mở ra một bảng không có
+             cột nào. Chủ dự án nói đúng trình tự: Phân hiệu → Lớp → Khung giờ. */''}
       <button class="mi" data-t="lop" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2M9 13h6M9 17h4"/></svg>Lớp học <span class="n" id="nLopDS">0</span></button>
+      <button class="mi" data-t="khunggio" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Khung giờ học</button>
       <button class="mi" data-t="giaovien" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5h13a2 2 0 012 2V19H5a2 2 0 01-2-2V6.5z"/><path d="M18 8.5h3V19h-3"/><path d="M7 10h7M7 14h5"/></svg>Giáo viên <span class="n" id="nGVDS">0</span></button>
       <button class="mi" data-t="monhoc" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4.5A2 2 0 016 3h13v15H6a2 2 0 00-2 2V4.5z"/><path d="M4 20a2 2 0 012-2h13v3H6a2 2 0 01-2-1z"/></svg>Môn học <span class="n" id="nMon">0</span></button>
       <button class="mi" data-t="phancong" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3h8l3 4v14H5V7l3-4z"/><path d="M9 12h6M9 16h6"/></svg>Phân công chuyên môn <span class="n" id="nPC">0</span></button>
@@ -1820,6 +1826,7 @@ let S = {
      nào khác khối. Rỗng = mọi lớp học đúng khung của khối mình, tức đúng
      hành vi trước 31/8/2026. Xem soTietLop(). */
   lopTiet:{},
+  khoiKG:'',            /* khối đang bày ở màn Khung giờ học; 'tat' = tất cả */
   dayThay:[],           /* phân công dạy thay theo ngày — bảng day_thay trên máy chủ */
   baoNghi:[],           /* giáo viên báo nghỉ theo ngày — bảng bao_nghi trên máy chủ */
   giaoVienQL:[],        /* hồ sơ giáo viên của cán bộ quản lý — chỉ vào phương án dự phòng */
@@ -6400,8 +6407,13 @@ const MUC_NHAP = {
   },
 
   khunggio:{
-    ten:'Khối và khung giờ', trang:'KHUNG_GIO', khoaDong:['Thu','Buoi'],
-    nhac:'Số tiết của TỪNG KHỐI trong mỗi buổi — khối nhỏ tan sớm hơn. '
+    ten:'Khung giờ học', trang:'KHUNG_GIO', khoaDong:['Thu','Buoi'],
+    /* ⚠️ Mẫu Excel vẫn khai theo KHỐI dù màn hình đã chuyển sang khai theo
+       LỚP (31/8/2026). Cố ý: khối là NỀN mà lớp kế thừa, nên nhập tệp này
+       vẫn đặt đúng thứ nó vốn đặt; còn lớp nào học khác khối thì sửa mấy ô
+       ấy trên bảng — vài ô, không đáng làm thêm một mẫu 40 cột. Trường nào
+       đã điền dở tệp cũ cũng không mất công. */
+    nhac:'Số tiết của TỪNG KHỐI trong mỗi buổi — đây là nền chung; lớp nào học khác thì sửa ở bảng. '
         +'Buổi cả trường nghỉ thì Day_hoc ghi Không.',
     duThua:6,
     cot:[{ten:'Thu',     rong:9,  khoa:{kieu:'chon', nguon:'DM_Thu', batBuoc:true}},
@@ -8867,8 +8879,8 @@ function thanhBuoc(hienTai){
 const CHUOI_BUOC = [
   {t:'thongtin',   ten:'Thông tin trường',     b:1},
   {t:'diemtruong', ten:'Phân hiệu',          b:1},
-  {t:'khunggio',   ten:'Khối và khung giờ',    b:1},
   {t:'lop',        ten:'Lớp học',              b:1},
+  {t:'khunggio',   ten:'Khung giờ học',        b:1},
   {t:'giaovien',   ten:'Giáo viên',            b:1},
   {t:'monhoc',     ten:'Môn học',              b:1},
   {t:'phonghoc',   ten:'Phòng học',            b:1},
@@ -13551,201 +13563,193 @@ function mPhanCong(){
    vẫn làm (và cách SmartScheduler làm) là mở khung rộng ra rồi cho lớp nào
    ít tiết hơn "nghỉ" mấy tiết cuối buổi — ở đây là khai đúng số tiết của
    lớp, còn phần dôi ra hiện thành ô nghỉ y như khối tan sớm. */
-function khuGioRieng(sua){
-  const nhom = nhomGioRieng();
-  const nhan = ids => ids.map(id=>esc(tenLopDay(id))).join(' · ');
-  return `<div class="the" style="margin-top:16px"><div class="the-t">
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:${nhom.length?'11px':'7px'}">
-      <b style="font-size:14px">Lớp học khác giờ khối</b>
-      ${sua?`<button class="b b-vien b-nho" id="btThemGioLop" style="margin-left:auto">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
-        Thêm lớp</button>`:''}
-    </div>
-    ${nhom.length ? `<div class="bang"><table class="dl gon"><tbody>
-      ${nhom.map(n=>{
-        const l0 = lopId(n.ids[0]);
-        const tong = sucChuaLop(n.ids[0]), tongKhoi = KT.slotKhoi[l0?.khoi] || 0;
-        return `<tr><td><b>${nhan(n.ids)}</b>
-            <div style="color:var(--chu-mo);font-size:12px">${
-              buoiBat().filter(k=>soTietLop(k,l0)!==soTietBuoi(k,l0.khoi))
-                .map(k=>`${TAT_THU[k.thu]} ${k.buoi==='S'?'sáng':'chiều'} ${soTietLop(k,l0)} tiết`).join(' · ')}</div></td>
-          <td class="phai"><b>${tong}</b> tiết/tuần
-            <div style="color:var(--chu-mo);font-size:12px">khối ${l0?.khoi}: ${tongKhoi}</div></td>
-          ${sua?`<td class="phai" style="width:130px">
-            <button class="b b-vien b-nho" data-suagio="${esc(n.ids.join(','))}">Sửa</button>
-            <button class="b b-vien b-nho" data-bogio="${esc(n.ids.join(','))}">Bỏ</button></td>`:''}
-        </tr>`;
-      }).join('')}
-    </tbody></table></div>`
-    : `<div class="gy">Chưa lớp nào khai riêng — mọi lớp học đúng khung giờ của khối mình.
-        ${sua?'Dùng khi trong một khối có lớp học nhiều tiết hơn các lớp khác, ví dụ lớp học hai buổi đầy đủ còn lớp kia tan sớm ba buổi chiều.':''}</div>`}
-  </div></div>`;
+/* ---------- KHUNG GIỜ HỌC — bảng theo LỚP (31/8/2026) ----------
+   Chủ dự án: *"Có nên có lưới cụ thể để chọn không em? … Có nghĩa là có bản
+   đồ rõ cho trực quan, có chốt tổng."* — và chốt: **bỏ bảng khối cũ**.
+
+   Bảng cũ khai theo KHỐI, còn lớp lệch giờ thì vá ở một khu riêng bên dưới:
+   hai nơi cùng nói về một thứ, đúng kiểu sớm muộn lệch nhau. Nay MỘT bảng,
+   cột là LỚP — nhìn phát biết cả trường học ra sao, và chốt tổng nằm ngay
+   dưới mỗi cột, đối chiếu với bảng phân công của chính lớp ấy.
+
+   ⚠️ Khối KHÔNG biến mất khỏi dữ liệu: `khung_gio.so_tiet_khoi` vẫn là nền
+   mà lớp kế thừa khi không khai riêng, nên năm trường đang chạy không phải
+   khai lại gì. Nó chỉ thôi làm CHỖ KHAI, và xuống thành cột *cả khối* —
+   một ô gõ một lần cho cả khối, vì 40 lớp × 10 buổi là 400 ô, không ai gõ
+   tay từng ô được. */
+
+/* Khối đang bày. '' = tất cả. Trường ít lớp thì bày hết luôn cho gọn mắt. */
+function khoiKGDangXem(){
+  const co=khoiDangCo();
+  if(!co.length) return '';
+  if(S.khoiKG==='tat') return '';
+  if(co.includes(+S.khoiKG)) return +S.khoiKG;
+  return lopTrongPV().length<=12 ? '' : co[0];
 }
 
-/* Hộp khai giờ riêng. Nhận sẵn danh sách lớp khi bấm Sửa một nhóm. */
-function hopGioLop(dsSan){
-  const dsL = xepTheoKhoi(S.lop);
-  if(!dsL.length) return bao('Chưa có lớp nào — khai ở mục Lớp học trước.', true);
-  const bb = buoiBat();
-  const chon = new Set(dsSan && dsSan.length ? dsSan : []);
-  const l0 = lopId([...chon][0]) || dsL[0];
-  hop('Giờ học riêng của lớp',
-  `<div class="on-l"><label>Chọn lớp</label>
-     <div class="gy" style="margin-bottom:7px">Các lớp học giống nhau thì tích chung một lượt —
-       nhà trường quyết một lần cho cả nhóm.</div>
-     <div class="bang" style="max-height:26vh"><table class="dl"><tbody>
-       ${dsL.map(l=>`<tr><td style="width:34px"><input type="checkbox" data-gl="${l.id}" ${chon.has(l.id)?'checked':''}></td>
-         <td><b>${esc(tenLopDay(l.id))}</b></td>
-         <td style="color:var(--chu-mo)">Khối ${khoiCuaLop(l)}</td>
-         <td class="phai" style="color:var(--chu-mo);font-size:12px">${sucChuaLop(l.id)} tiết${coGioRieng(l.id)?' · đang khai riêng':''}</td></tr>`).join('')}
-     </tbody></table></div></div>
-   <div class="on-l"><label>Số tiết mỗi buổi</label>
-     <div class="bang"><table class="dl gon"><thead><tr>
-       <th>Buổi học</th><th class="phai" id="glCotKhoi">Khối ${l0.khoi}</th>
-       <th class="giua" style="width:96px">Lớp đã chọn</th></tr></thead><tbody>
-       ${bb.map(k=>`<tr><td>${TAT_THU[k.thu]} · ${k.buoi==='S'?'Sáng':'Chiều'}</td>
-         <td class="phai" style="color:var(--chu-mo)" data-glk="${khoaB(k)}">${soTietBuoi(k,l0.khoi)}</td>
-         <td class="giua"><input class="ip" type="number" min="0" max="8" style="width:64px;text-align:center"
-           data-glt="${khoaB(k)}" value="${soTietLop(k,l0)}"></td></tr>`).join('')}
-     </tbody></table></div></div>
-   <div id="glTong"></div>`,
-  [{ten:'Huỷ',phu:1,lam:dong},
-   {ten:'Theo đúng khối',phu:1,lam:()=>{
-     const ids=[...document.querySelectorAll('[data-gl]')].filter(x=>x.checked).map(x=>x.dataset.gl);
-     if(!ids.length) return bao('Chưa chọn lớp nào.', true);
-     const ra=tietRaNgoai(ids, null);
-     datGioLop(ids, null);
-     ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
-     dong(); bao(`${ids.length} lớp trở lại đúng khung giờ của khối.`
-       +(ra.length?` Gỡ ${ra.length} tiết rơi ra ngoài.`:'')); ve();
-   }},
-   {ten:'Lưu giờ học',lam:()=>{
-     const ids=[...document.querySelectorAll('[data-gl]')].filter(x=>x.checked).map(x=>x.dataset.gl);
-     if(!ids.length) return bao('Chưa chọn lớp nào.', true);
-     const tiet={};
-     document.querySelectorAll('[data-glt]').forEach(x=>{
-       tiet[x.dataset.glt]=Math.max(0,Math.min(8,+x.value||0)); });
-     const ra=tietRaNgoai(ids, tiet);
-     datGioLop(ids, tiet);
-     ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
-     const rieng=ids.filter(id=>coGioRieng(id)).length;
-     dong();
-     bao(rieng ? `Đã đặt giờ học riêng cho ${rieng} lớp — ${sucChuaLop(ids[0])} tiết mỗi tuần.`
-                 +(ra.length?` Gỡ ${ra.length} tiết rơi ra ngoài giờ mới.`:'')
-               : `${ids.length} lớp học đúng khung giờ của khối, không cần khai riêng.`);
-     ve();
-   }}]);
-  /* Cột giữa và dòng tổng đọc theo lớp ĐANG TÍCH — đổi lớp là đổi cả hai,
-     không thì người dùng so số tiết của lớp này với khối của lớp khác. */
-  const veTong=()=>{
-    const ids=[...document.querySelectorAll('[data-gl]')].filter(x=>x.checked).map(x=>x.dataset.gl);
-    const l=lopId(ids[0])||l0;
-    const khoi=[...new Set(ids.map(id=>lopId(id)?.khoi))];
-    $('#glCotKhoi').textContent = khoi.length===1 ? `Khối ${khoi[0]}` : 'Khối';
-    bb.forEach(k=>{ const o=document.querySelector(`[data-glk="${khoaB(k)}"]`);
-      if(o) o.textContent = khoi.length===1 ? soTietBuoi(k,khoi[0]) : '—'; });
-    let tong=0;
-    document.querySelectorAll('[data-glt]').forEach(x=>tong+=Math.max(0,Math.min(8,+x.value||0)));
-    const can=ids.length ? Math.max(...ids.map(id=>
-      S.phanCong.filter(p=>p.lopId===id).reduce((a,p)=>a+p.soTiet,0))) : 0;
-    const ra=ids.length ? tietRaNgoai(ids, Object.fromEntries(
-      [...document.querySelectorAll('[data-glt]')].map(x=>[x.dataset.glt, Math.max(0,Math.min(8,+x.value||0))]))) : [];
-    const d=tong-can;
-    $('#glTong').innerHTML = !ids.length
-      ? `<div class="gy">Tích ít nhất một lớp.</div>`
-      : `<div class="canhbao ${can&&d<0?'do':can&&d?'':'ok'}" style="margin:0 0 4px">
-          <div class="cb-ic">${can&&d<0?'!':can&&d?'~':'✓'}</div><div class="cb-t">
-          <b>${tong} tiết mỗi tuần cho ${ids.length} lớp${can?` · phân công cần ${can}`:''}</b>
-          <div class="cb-g">${
-            !can ? 'Chưa phân công tiết nào cho lớp này nên chưa đối chiếu được.'
-            : d<0 ? `Thiếu ${-d} chỗ — có tiết sẽ không xếp được.`
-            : d ? `Học sinh sẽ ngồi chơi ${d} tiết mỗi tuần.`
-                : 'Vừa đủ chỗ cho bảng phân công của lớp.'}${
-            ra.length?` <b>Gỡ ${ra.length} tiết đã xếp</b> nằm ngoài giờ mới.`:''}</div></div></div>`;
-  };
-  document.querySelectorAll('[data-gl],[data-glt]').forEach(x=>x.onchange=veTong);
-  document.querySelectorAll('[data-glt]').forEach(x=>x.oninput=veTong);
-  veTong();
+/* Số tiết phân công thật của một lớp */
+const tietPCLop = id => S.phanCong.filter(p=>p.lopId===id).reduce((a,p)=>a+p.soTiet,0);
+/* Con số lớp này CẦN — chốt tổng đem ra đối chiếu.
+   ⚠️ Hai nguồn, và thứ tự ưu tiên có lý do: khung giờ được khai NGAY SAU khi
+   khai lớp, lúc bảng phân công còn trống trơn — lấy phân công làm mốc duy
+   nhất thì cả bảng toàn dấu gạch, đúng lúc người dùng cần con số nhất. Nên
+   chưa phân công thì lấy danh mục môn của khối (`tietCanKhoi`), phân công
+   rồi thì lấy con số thật của chính lớp ấy. */
+const tietCanLop = id => tietPCLop(id) || tietCanKhoi(lopId(id)?.khoi);
+const nguonCanLop = id => tietPCLop(id) ? 'phân công' : 'danh mục môn';
+
+/* Đặt số tiết một buổi cho MỘT lớp, kèm dọn tiết rơi ra ngoài giờ mới. */
+function datOGioLop(id, kB, n){
+  const l=lopId(id); if(!l) return 0;
+  const m={}; buoiBat().forEach(k=>{ m[khoaB(k)]=soTietLop(k,l); });
+  m[kB]=Math.max(0,Math.min(8,+n||0));
+  const ra=tietRaNgoai([id], m);
+  datGioLop([id], m);
+  ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
+  return ra.length;
+}
+
+/* Ô *cả khối*: đặt nền cho khối VÀ dọn ghi đè của mọi lớp trong khối ở đúng
+   buổi ấy. Không dọn thì gõ vào ô chung mà mấy lớp vẫn trơ ra con số cũ —
+   người dùng gõ đi gõ lại không hiểu vì sao. */
+function datOGioKhoi(khoi, kB, n){
+  const k=S.khungGio.find(y=>khoaB(y)===kB); if(!k) return 0;
+  k.tietKhoi[+khoi]=Math.max(0,Math.min(8,+n||0));
+  const ds=S.lop.filter(l=>+l.khoi===+khoi).map(l=>l.id);
+  const m={}; ds.forEach(id=>{ if(S.lopTiet[id]) delete S.lopTiet[id][kB]; });
+  ds.forEach(id=>{ if(S.lopTiet[id] && !Object.keys(S.lopTiet[id]).length) delete S.lopTiet[id]; });
+  chuanKhungGio();
+  const ra=ds.flatMap(id=>tietRaNgoai([id], null).filter(x=>x.khoa.startsWith(kB+'-')));
+  ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
+  return ra.length;
 }
 
 function mKhungGio(){
-  const sua=duocSuaNguon(), suc=KT.slotKhoi;
-  const o=(k,x)=>soTietBuoi(k,x);
+  const sua=duocSuaNguon();
+  const khoi=khoiKGDangXem();
+  const dsCo=khoiDangCo();
+  const ds=xepTheoKhoi(lopTrongPV()).filter(l=>khoi===''||+l.khoi===khoi);
+  const nhieuKhoi=[...new Set(ds.map(l=>+l.khoi))].length>1;
+
+  /* Chưa có lớp thì bảng không có cột nào để bày — nói thẳng và chỉ đường,
+     đừng vẽ ra một bảng rỗng rồi để người dùng đoán. Buổi học vẫn bật/tắt
+     được vì đó là chuyện của cả trường, không phụ thuộc lớp. */
+  const chuaCoLop = !S.lop.length;
+
+  const oNhap=(l,k)=>{
+    const n=soTietLop(k,l), nen=soTietBuoi(k,l.khoi);
+    return `<td class="giua"><input class="ip${n!==nen?' o-lech':''}" type="number" min="0" max="8"
+      value="${n}" data-tl="${l.id}|${khoaB(k)}" style="width:52px;text-align:center"
+      title="${esc(tenLopDay(l.id))} · ${TAT_THU[k.thu]} ${k.buoi==='S'?'sáng':'chiều'}${
+        n!==nen?` — khác khối ${l.khoi} (${nen} tiết)`:''}"
+      ${(k.bat&&sua)?'':'disabled'}></td>`;
+  };
+
   return dauTrang('Khung giờ học',
-    sua?'Mỗi khối một số tiết riêng — khối nhỏ tan sớm hơn. Bỏ chọn buổi toàn trường nghỉ, điền 0 nếu riêng khối đó nghỉ.'
-       :'Số tiết mỗi buổi của từng khối.',false)+dieuHuongBuoc('khunggio')+
+    sua?'Mỗi lớp một số tiết riêng cho từng buổi. Gõ vào cột "cả khối" để đặt một lần cho cả khối, rồi sửa tay đúng những lớp học khác.'
+       :'Số tiết mỗi buổi của từng lớp.',false)+dieuHuongBuoc('khunggio')+
   (sua?thanhKhaiBao('')
-      :nhanChiXem('đổi khung giờ')+'<div style="margin-bottom:14px"></div>')+`
-  <div class="bang"><table class="dl"><thead><tr>
-    <th style="width:120px">Buổi học</th>
-    ${[1,2,3,4,5].map(x=>`<th class="giua" style="width:78px">Khối ${x}</th>`).join('')}
+      :nhanChiXem('đổi khung giờ')+'<div style="margin-bottom:14px"></div>')+
+  (chuaCoLop
+    ? `<div class="canhbao" style="margin-bottom:14px"><div class="cb-ic">~</div><div class="cb-t">
+        <b>Chưa có lớp nào để xếp giờ</b>
+        <div class="cb-g">Giờ học tính theo từng lớp, nên khai lớp trước đã.
+          Bên dưới vẫn bật hoặc tắt được buổi học của cả trường.</div>
+        <div style="margin-top:9px"><button class="b b-ch b-nho" data-di="lop">Sang mục Lớp học →</button></div>
+      </div></div>`
+    : `<div class="tkb-thanh">
+        <span style="font-size:12.5px;color:var(--chu-mo)">Xem</span>
+        ${dsCo.map(x=>`<button class="b b-nho ${khoi===x?'b-ch':'b-vien'}" data-kkg="${x}">Khối ${x}</button>`).join('')}
+        <button class="b b-nho ${khoi===''?'b-ch':'b-vien'}" data-kkg="tat">Tất cả ${lopTrongPV().length} lớp</button>
+        <span style="margin-left:auto;font-size:12.5px;color:var(--chu-mo)">${KT.buoi} buổi/tuần · ${ds.length} lớp đang bày</span>
+      </div>`)+`
+  <div class="bang"><table class="dl gon"><thead>
+    ${nhieuKhoi?`<tr><th></th>${!chuaCoLop&&khoi!==''?'<th></th>':''}
+      ${(()=>{ const g=[]; ds.forEach(l=>{ const c=g[g.length-1];
+          if(c && c.k===+l.khoi) c.n++; else g.push({k:+l.khoi,n:1}); });
+        return g.map(x=>`<th class="giua" colspan="${x.n}"
+          style="font-size:11px;color:var(--chu-mo)">Khối ${x.k}</th>`).join(''); })()}
+      <th></th></tr>`:''}
+    <tr><th style="width:118px">Buổi học</th>
+    ${(!chuaCoLop && khoi!=='')?`<th class="giua" style="width:74px">Cả khối ${khoi}</th>`:''}
+    ${ds.map(l=>`<th class="giua" style="width:60px">${esc(lopId(l.id)?.ten||'')}</th>`).join('')}
     <th></th></tr></thead><tbody>
   ${S.khungGio.map(k=>`<tr class="${k.bat?'':'tat-d'}">
     <td><label style="display:flex;gap:9px;align-items:center;cursor:${sua?'pointer':'default'};font-weight:600">
       <input type="checkbox" data-bat="${khoaB(k)}" ${k.bat?'checked':''} ${sua?'':'disabled'}>
       <span>${TAT_THU[k.thu]} · ${k.buoi==='S'?'Sáng':'Chiều'}</span></label></td>
-    ${[1,2,3,4,5].map(x=>`<td class="giua"><input class="ip" type="number" min="0" max="8"
-      value="${o(k,x)}" data-tk="${khoaB(k)}|${x}" style="width:58px;text-align:center"
-      ${(k.bat&&sua)?'':'disabled'}></td>`).join('')}
+    ${(!chuaCoLop && khoi!=='')?`<td class="giua"><input class="ip" type="number" min="0" max="8"
+      value="${soTietBuoi(k,khoi)}" data-tkhoi="${khoaB(k)}|${khoi}" style="width:56px;text-align:center;font-weight:700"
+      title="Đặt một lần cho cả khối ${khoi}" ${(k.bat&&sua)?'':'disabled'}></td>`:''}
+    ${ds.map(l=>oNhap(l,k)).join('')}
     <td style="font-size:12px;color:var(--chu-mo)">${k.bat?'':'toàn trường nghỉ'}</td></tr>`).join('')}
-  </tbody><tfoot><tr style="background:#F4F9FD">
-    <td><b>Tổng mỗi tuần</b></td>
-    ${''/* ⚠️ Dòng phụ cũ ghi "cần 30 / CT 27" — chủ dự án đọc và hỏi thẳng
-          "chữ cần 30, cần 32 là gì thầy chưa hiểu". Hai con số trần không tự
-          nói ra chúng là gì, mà chỗ này rộng có 78px. Nay chỉ bày KẾT LUẬN —
-          đủ, thừa mấy, thiếu mấy — còn ba con số đầy đủ để ở khối dưới bảng,
-          nơi có chỗ viết thành câu. */}
-    ${''/* ⚠️ Nhãn phải tự nói ra HẬU QUẢ, không chỉ nói con số. Bản trước ghi
-          "thừa 2" và chủ dự án vẫn phải hỏi lại "chữ thừa 2 ý nghĩa gì đây" —
-          "thừa" là nhận xét về cái bảng, còn thứ người dùng cần biết là hai ô
-          ấy sẽ TRỐNG, học sinh ngồi chơi giữa buổi. Nói bằng thứ họ nhìn thấy
-          ở lớp, đừng nói bằng phép trừ. */}
-    ${[1,2,3,4,5].map(x=>{
-      const t=suc[x]||0, c=tietCanKhoi(x), d=t-c;
-      return `<td class="giua"><b style="color:var(--${!d?'xanh':d<0?'do':'canh'})">${t}</b>
-        <div style="font-size:11px;color:var(--chu-mo)"
-          title="Khung giờ mở ${t} ô · danh mục môn cần ${c} tiết">${
-          !d?'vừa đủ':d<0?`thiếu ${-d} chỗ`:`${d} ô trống`}</div></td>`;
-    }).join('')}
-    <td style="font-size:12px;color:var(--chu-mo)">${KT.buoi} buổi/tuần</td>
-  </tr></tfoot></table></div>
+  </tbody>${chuaCoLop?'':`<tfoot>
+    ${''/* CHỐT TỔNG — đúng thứ chủ dự án gọi tên. Hai dòng đứng cạnh nhau:
+          khung giờ mở được bao nhiêu ô, và bảng phân công của CHÍNH lớp ấy
+          cần bao nhiêu tiết. Trước đây đối chiếu với chuẩn khối nên một lớp
+          lệch là cả khối bị báo sai. */}
+    <tr style="background:#F4F9FD"><td><b>Tổng mỗi tuần</b></td>
+      ${khoi!==''?'<td></td>':''}
+      ${ds.map(l=>`<td class="giua"><b>${sucChuaLop(l.id)}</b></td>`).join('')}<td></td></tr>
+    <tr style="background:#F4F9FD"><td style="color:var(--chu-mo)">Số tiết cần</td>
+      ${khoi!==''?'<td></td>':''}
+      ${ds.map(l=>{ const t=sucChuaLop(l.id), c=tietCanLop(l.id), d=t-c;
+        return `<td class="giua" style="font-size:11.5px" title="Cần ${c} tiết theo ${nguonCanLop(l.id)}">${
+          c?`<span style="color:var(--chu-mo)">${c}</span>
+          <div style="color:var(--${!d?'xanh':d<0?'do':'canh'})">${!d?'✓ đủ':d<0?`thiếu ${-d}`:`trống ${d}`}</div>`
+          :'<span style="color:var(--chu-mo)">—</span>'}</td>`;
+      }).join('')}<td></td></tr>
+  </tfoot>`}</table></div>
+  ${chuaCoLop?'':canhGioLop(ds)}`;
+}
 
-  ${khuGioRieng(sua)}
-
-  <div class="the" style="margin-top:16px"><div class="the-t">
-    ${[1,2,3,4,5].every(x=>(suc[x]||0)===tietCanKhoi(x))
+/* Cảnh báo theo LỚP, gom các lớp cùng một tình trạng thành một dòng — mười
+   lăm lớp cùng thiếu 5 chỗ là MỘT việc, bày mười lăm dòng y hệt nhau là bắt
+   người đọc tự gom. Đúng bài học của trình soát lỗi nhập ngày 28/8. */
+function canhGioLop(ds){
+  const lech=ds.map(l=>({l, t:sucChuaLop(l.id), c:tietCanLop(l.id)}))
+               .filter(x=>x.c>0 && x.t!==x.c);
+  const chuaPC=ds.filter(l=>!tietCanLop(l.id)).length;
+  const gom={};
+  lech.forEach(x=>{ (gom[x.t-x.c] ||= []).push(x); });
+  return `<div class="the" style="margin-top:16px"><div class="the-t">
+    ${!lech.length
       ? `<div class="canhbao ok"><div class="cb-ic">✓</div><div class="cb-t">
-          <b>Khung giờ khớp đúng danh mục môn của trường</b>
-          <div class="cb-g">Cả năm khối đều đủ chỗ, không thừa không thiếu ô nào.</div></div></div>`
-      : [1,2,3,4,5].filter(x=>(suc[x]||0)!==tietCanKhoi(x)).map(x=>{
-          const t=suc[x]||0, c=tietCanKhoi(x), d=t-c;
-          return `<div class="canhbao ${d<0?'do':''}"><div class="cb-ic">${d<0?'!':'~'}</div><div class="cb-t">
-            <b>Khối ${x} ${d<0?`thiếu ${-d} chỗ mỗi tuần`
-                              :`có ${d} ô trống mỗi tuần`}</b>
-            <div class="cb-g">Khung giờ đang mở <b>${t} ô</b>, mà danh mục môn ở mục
-              <b>Môn học</b> cộng lại <b>${c} tiết</b>.
-              ${d<0?'Thiếu chỗ thì có tiết không xếp được — mở thêm buổi, hoặc bớt tiết ở mục Môn học.'
-                   :`Học sinh khối ${x} sẽ ngồi chơi ${d} tiết mỗi tuần. Bảng này cho phép
-                      <b>mỗi khối một số tiết riêng</b> — hạ ô của khối ${x} ở một buổi chiều
-                      xuống cho các em tan sớm, hoặc khai thêm môn ở mục Môn học.`}</div>
+          <b>Khung giờ khớp đúng danh mục môn của mọi lớp đang bày</b>
+          <div class="cb-g">${ds.length-chuaPC} lớp đủ chỗ, không thừa không thiếu ô nào.${
+            chuaPC?` Còn ${chuaPC} lớp chưa phân công tiết nào nên chưa đối chiếu được.`:''}</div></div></div>`
+      : Object.entries(gom).sort((a,b)=>+a[0]-+b[0]).map(([d,ds2])=>{
+          const am=+d<0, ten=ds2.map(x=>esc(lopId(x.l.id)?.ten||'')).join(', ');
+          return `<div class="canhbao ${am?'do':''}"><div class="cb-ic">${am?'!':'~'}</div><div class="cb-t">
+            <b>${ds2.length} lớp ${am?`thiếu ${-d} chỗ mỗi tuần`:`có ${d} ô trống mỗi tuần`}</b>
+            <div class="cb-g">${ten}. Khung giờ mở <b>${ds2[0].t} ô</b>, mà ${nguonCanLop(ds2[0].l.id)} của
+              các lớp này cộng lại <b>${ds2[0].c} tiết</b>.
+              ${am?'Thiếu chỗ thì có tiết không xếp được — mở thêm ô cho đúng những lớp này, hoặc bớt tiết ở mục Môn học.'
+                  :`Học sinh các lớp này sẽ ngồi chơi ${d} tiết mỗi tuần — hạ ô của riêng chúng ở một buổi chiều cho các em tan sớm.`}</div>
             </div></div>`;
         }).join('')}
-    ${''/* Ba con số dễ lẫn nhau, nên nói rõ từng khối một ở đây — chỗ này có
-          đủ bề ngang để viết thành câu, khác hẳn ô 78px trên bảng. */}
+    ${''/* Bảng đối chiếu CHUẨN — chỉ để đọc, không phải chỗ khai. Giữ lại vì
+          đây là chỗ duy nhất nói ra ba con số dễ lẫn nhau, mà ô 60px trên
+          bảng thì không có chỗ viết thành câu. */}
     <div class="bang" style="margin-top:13px"><table class="dl gon"><thead><tr>
       <th>Khối</th><th class="phai">Khung giờ đang mở</th>
       <th class="phai">Danh mục môn cộng lại</th>
       <th class="phai">CT GDPT 2018 quy định</th></tr></thead><tbody>
-      ${[1,2,3,4,5].map(x=>{
-        const t=suc[x]||0, c=tietCanKhoi(x), ct=CHUAN_KHOI[x];
+      ${khoiDangCo().map(x=>{
+        const t=[...new Set(S.lop.filter(l=>+l.khoi===x).map(l=>sucChuaLop(l.id)))].sort((a,b)=>a-b);
+        const c=tietCanKhoi(x), ct=CHUAN_KHOI[x];
+        const mo=t.length>1?`${t[0]}–${t[t.length-1]}`:(t[0]??0);
+        const dat=t.length===1 && t[0]===c;
         return `<tr><td><b>Khối ${x}</b></td>
-          <td class="phai"><b style="color:var(--${t===c?'xanh':t<c?'do':'canh'})">${t} ô</b></td>
+          <td class="phai"><b style="color:var(--${dat?'xanh':t.length>1?'canh':(t[0]||0)<c?'do':'canh'})">${mo} ô</b>${
+            t.length>1?'<div style="font-size:11px;color:var(--chu-mo)">các lớp khác nhau</div>':''}</td>
           <td class="phai">${c} tiết</td>
           <td class="phai" style="color:var(--chu-mo)">${ct} tiết${c>ct?` <span style="font-size:11px">(+${c-ct} tự chọn)</span>`:''}</td></tr>`;
       }).join('')}
     </tbody></table></div>
-    <div class="gy" style="margin-top:9px"><b>Khung giờ đang mở</b> — tổng số ô của bảng trên.
-      <b>Danh mục môn</b> — cộng số tiết chuẩn từng môn ở mục Môn học; đây là con số phải khớp.
+    <div class="gy" style="margin-top:9px"><b>Khung giờ đang mở</b> — tổng số ô của các lớp trong khối;
+      hai con số nghĩa là trong khối có lớp học nhiều hơn lớp kia.
+      <b>Danh mục môn</b> — cộng số tiết chuẩn từng môn ở mục Môn học.
       <b>CT GDPT 2018</b> — số tiết chính khoá Bộ quy định; trường dạy thêm môn tự chọn thì
       cao hơn mốc này là bình thường.</div>
   </div></div>`;
@@ -14367,16 +14371,21 @@ function noiSuKien(){
   $$('[data-suagv]').forEach(x=>x.onclick=()=>hopSuaGV(x.dataset.suagv));
   $$('[data-xoagv]').forEach(x=>x.onclick=()=>hopXoaGV(x.dataset.xoagv));
 
-  /* Khung giờ — lớp học khác giờ khối */
-  $('#btThemGioLop')&&($('#btThemGioLop').onclick=()=>hopGioLop([]));
-  $$('[data-suagio]').forEach(b=>b.onclick=()=>hopGioLop(b.dataset.suagio.split(',')));
-  $$('[data-bogio]').forEach(b=>b.onclick=()=>{
-    const ids=b.dataset.bogio.split(',');
-    const ra=tietRaNgoai(ids, null);
-    datGioLop(ids, null);
-    ra.forEach(x=>{ delete S.tkb[x.id]?.[x.khoa]; });
-    bao(`${ids.length} lớp trở lại đúng khung giờ của khối.`
-      +(ra.length?` Gỡ ${ra.length} tiết rơi ra ngoài.`:'')); ve();
+  /* Khung giờ học — bảng theo lớp */
+  $$('[data-kkg]').forEach(b=>b.onclick=()=>{ S.khoiKG=b.dataset.kkg; ve(); });
+  /* data-tl = "<mã lớp>|<thứ>-<buổi>" — số tiết một buổi của RIÊNG một lớp */
+  $$('[data-tl]').forEach(x=>x.onchange=e=>{
+    const [id,kb]=x.dataset.tl.split('|');
+    const go=datOGioLop(id, kb, e.target.value);
+    if(go) bao(`Gỡ ${go} tiết của lớp ${lopId(id)?.ten||''} nằm ngoài giờ mới.`);
+    ve();
+  });
+  /* data-tkhoi = "<thứ>-<buổi>|<khối>" — đặt một lần cho cả khối */
+  $$('[data-tkhoi]').forEach(x=>x.onchange=e=>{
+    const [kb,khoi]=x.dataset.tkhoi.split('|');
+    const go=datOGioKhoi(khoi, kb, e.target.value);
+    if(go) bao(`Gỡ ${go} tiết nằm ngoài giờ mới của khối ${khoi}.`);
+    ve();
   });
 
   /* Phân công */
