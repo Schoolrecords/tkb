@@ -4299,6 +4299,35 @@ console.log('\n17aa. Xoá toàn bộ danh sách giáo viên');
   w.chuyen('giaovien');
 }
 
+console.log('\n17ab. HTML tĩnh trong <body> không được lộ mã ra màn hình');
+/* ⚠️ Dính thật 31/8/2026: một ghi chú viết theo lối `${''/* … *​/''}` — đúng
+   cú pháp khi nằm trong template literal của JS — bị đặt vào HTML TĨNH của
+   thanh bên, nơi không có template literal nào chạy. Kết quả: cả đoạn ghi
+   chú hiện nguyên văn lên thanh bên, ngay dưới mục Phân hiệu, và chủ dự án
+   phải chụp màn hình hỏi "bị lỗi gì đây em?".
+
+   Ba bộ soi cũ không thấy vì chúng soi `#noiDung` — phần do JS vẽ ra — còn
+   đây là phần viết cứng trong `<body>`, thứ người dùng nhìn thấy TRƯỚC cả
+   khi `khoiDong()` chạy xong. */
+{
+  const than = w.document.body;
+  /* Lấy chữ của khung app, bỏ mọi <script>/<style> ra ngoài */
+  const chuTinh = [...than.querySelectorAll('#thanhBen, #noiDung, header, aside, nav')]
+    .map(x => x.textContent).join(' ');
+  const bay = ['${', '*/', '/*', '`+', '}}'].filter(x => chuTinh.includes(x));
+  kt('Không mảnh mã nào lọt ra chữ hiển thị', [bay.length === 0, bay.join(' · ') || 'sạch']);
+
+  /* Soi thẳng NGUỒN của thanh bên: chỗ này viết cứng nên phép thử phải nhìn
+     đúng nó, không nhìn qua DOM đã bị JS vẽ đè. */
+  kt('Thanh bên trong mã nguồn chỉ dùng comment HTML, không dùng ${…}', (() => {
+    const m = html.match(/<aside[\s\S]*?<\/aside>|<nav[\s\S]*?<\/nav>/);
+    /* Bỏ comment HTML ra ngoài trước đã: trong đó có ĐÚNG cái ví dụ sai mà
+       phép thử này sinh ra để ngăn, và comment thì không hiện ra màn hình. */
+    const kho = (m ? m[0] : '').replace(/<!--[\s\S]*?-->/g, '');
+    return [!!kho && !kho.includes('${'), kho ? 'thanh bên sạch' : 'không tìm thấy thanh bên'];
+  })());
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');

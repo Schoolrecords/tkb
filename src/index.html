@@ -1481,9 +1481,12 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <div class="nhom-ds">
       <button class="mi" data-t="thongtin" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V8l7-4.5L19 8v13"/><path d="M9.5 21v-5h5v5M9.5 11h5"/></svg>Thông tin trường</button>
       <button class="mi" data-t="diemtruong" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Phân hiệu <span class="n" id="nDT">0</span></button>
-      ${''/* ⚠️ LỚP HỌC ĐỨNG TRƯỚC KHUNG GIỜ (31/8/2026). Từ khi khung giờ khai
-             theo LỚP, mở mục ấy khi chưa có lớp nào là mở ra một bảng không có
-             cột nào. Chủ dự án nói đúng trình tự: Phân hiệu → Lớp → Khung giờ. */''}
+      <!-- ⚠️ LỚP HỌC ĐỨNG TRƯỚC KHUNG GIỜ (31/8/2026). Từ khi khung giờ khai
+           theo LỚP, mở mục ấy khi chưa có lớp nào là mở ra một bảng không có
+           cột nào. Chủ dự án nói đúng trình tự: Phân hiệu → Lớp → Khung giờ.
+           ⚠️ Đây là HTML TĨNH trong <body>, không phải template literal —
+           ghi chú phải là comment HTML, viết ${''/* … */''} ở đây thì chuỗi ấy
+           hiện nguyên văn lên thanh bên. Đã dính thật ngay hôm nay. -->
       <button class="mi" data-t="lop" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 4V2M16 4V2M9 13h6M9 17h4"/></svg>Lớp học <span class="n" id="nLopDS">0</span></button>
       <button class="mi" data-t="khunggio" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Khung giờ học</button>
       <button class="mi" data-t="giaovien" data-nh="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5h13a2 2 0 012 2V19H5a2 2 0 01-2-2V6.5z"/><path d="M18 8.5h3V19h-3"/><path d="M7 10h7M7 14h5"/></svg>Giáo viên <span class="n" id="nGVDS">0</span></button>

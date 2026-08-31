@@ -2583,3 +2583,40 @@ lối — phép thử bắt được ngay.
 con số 5 mà ba lớp kia đang khai riêng, nên dọn hay không dọn ghi đè cũng ra
 cùng kết quả. Đổi sang gõ 6 là bẻ ngược đỏ ngay. Lại đúng bẫy *"hai thứ tình
 cờ bằng nhau"*, lần thứ tư trong tuần.
+
+---
+
+## 31/8/2026 (tối) — Ghi chú kiểu JS lọt vào HTML tĩnh, hiện nguyên văn lên thanh bên
+
+Chủ dự án chụp màn hình hỏi *"Bị lỗi gì đây em?"*: ngay dưới mục **Phân hiệu**
+trên thanh bên hiện ra một khối chữ
+
+```
+${''/* ⚠️ LỚP HỌC ĐỨNG TRƯỚC KHUNG GIỜ (31/8/2026). Từ khi khung giờ khai
+theo LỚP, mở mục ấy khi chưa có lớp nào là mở ra một bảng không có cột nào…
+```
+
+Đó là ghi chú em viết khi đổi thứ tự thanh bên. Lối `${''/* … */''}` đúng cú
+pháp **khi nằm trong template literal của JavaScript** — cả file dùng đầy lối
+này — nhưng chỗ ấy là **HTML tĩnh trong `<body>`**, nơi không có template
+literal nào chạy, nên trình duyệt in ra đúng từng ký tự.
+
+⚠️ **Vì sao không bộ soi nào bắt được.** Cả ba bộ soi giao diện đều soi
+`#noiDung` — phần do JS vẽ ra. Còn đây là phần viết cứng trong `<body>`, đúng
+thứ CLAUDE.md đã dặn phải TRUNG TÍNH vì người dùng nhìn thấy nó **trước cả khi
+`khoiDong()` chạy xong**. Luật ấy có từ 2/8/2026, nhưng phép thử canh nó thì
+chưa bao giờ có.
+
+Nay mục **17ab** của `npm run soi` canh hai chiều:
+- chữ hiển thị của khung app (thanh bên · thanh đầu · nội dung) không được
+  chứa `${` · `/*` · `*/` · `` `+ `` · `}}`;
+- và soi thẳng **mã nguồn** của thanh bên, đòi ghi chú ở đó phải là comment
+  HTML.
+
+⚠️ Phép thử thứ hai bắt ngay chính **ví dụ minh hoạ** trong comment em vừa
+viết — nên nó bỏ `<!-- … -->` ra ngoài trước khi soi. Comment thì không hiện
+lên màn hình; soi cả comment là kêu oan, mà bộ soi kêu oan vài lần thì lần
+kêu đúng cũng không ai đọc.
+
+Đã thử ngược bằng cách tái hiện đúng lỗi: chèn lại một ghi chú kiểu JS vào
+thanh bên → **2 phép thử đỏ**.

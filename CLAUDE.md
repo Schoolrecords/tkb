@@ -2087,6 +2087,12 @@ quyền vượt nó không.
 - Không dùng framework, không build step. Một file `index.html` chạy được ngay.
 - CSS dùng biến trong `:root`, đặt tên tiếng Việt (`--nen`, `--chu`, `--ke`).
 - Mọi chuỗi hiển thị đi qua hàm `esc()` trước khi chèn vào HTML.
+- ⚠️ **HTML tĩnh trong `<body>` KHÔNG phải template literal** *(31/8/2026)*.
+  Ghi chú ở đó phải là comment HTML; viết `${''/* … */''}` — lối dùng đúng ở
+  hàng trăm chỗ khác trong tệp — thì cả đoạn **hiện nguyên văn lên thanh bên**.
+  Đã dính thật và chủ dự án phải chụp màn hình hỏi. Ba bộ soi cũ không thấy vì
+  chúng soi `#noiDung`, phần do JS vẽ. Mục **17ab** của `npm run soi` nay canh
+  cả chữ hiển thị lẫn mã nguồn thanh bên.
 - **HTML tĩnh trong trang phải TRUNG TÍNH** *(2/8/2026)*. Trước khi
   `khoiDong()` chạy xong, người dùng nhìn thấy đúng những gì viết cứng trong
   `<body>` — trên điện thoại mạng chậm là vài giây. Bản cũ viết cứng
