@@ -162,6 +162,24 @@ bị lấp các môn còn lại, cho hàng sát lên, cho đủ 13 + môn"*.
   năng CDS*) có ngày được thay bằng môn khác.
 - **`oKhaiMon()` · `docKhaiMon()` vẫn giữ** cho hộp Thêm — nó từng thiếu đúng
   hai ô *Ưu tiên sáng sớm* và *Tránh đầu cuối buổi* mà bảng vẫn có.
+  ⚠️ **Bẫy này đã sập lần hai ngày 31/8/2026**: thêm cột *Cho xếp 2 tiết
+  liền* vào bảng mà quên hộp, agent rà soát bắt được. Thêm cột vào bảng
+  thì **mở `oKhaiMon()` ra ngay lúc ấy**, đừng để lần sau.
+
+#### Cột *Cho xếp 2 tiết liền* *(31/8/2026)*
+
+Ô tích = môn đó được xếp hai tiết sát nhau trong một buổi. Bảng nay **13 cột**.
+
+- **Chưa khai (`lienTiet === undefined`) = ĐƯỢC PHÉP**, đúng hành vi trước
+  31/8/2026. `dsMonMacDinh()` **cố ý không gieo sẵn** — trường nào chưa từng bấm
+  Lưu ở mục Môn học thì rơi về danh mục mặc định, gieo sẵn là lưới của họ
+  đổi thật vào lần bấm Xếp kế tiếp mà không ai yêu cầu.
+- Gợi ý nằm sau **một cú bấm có ý thức**: nút *Gợi ý môn nên xếp liền*
+  (`goiYLienTiet()`) — chỉ Tiếng Việt và Tiếng Anh được liền.
+- ⚠️ **Vân tay `vanTayNguon()` phải phủ cột này.** Bản đầu bỏ sót: tích xong,
+  tải lại trang là mất ÂM THẦM — không dải đỏ, không `beforeunload`. Agent rà
+  soát bắt được. Thêm trường mới vào đường ghi thì phải thêm vào vân tay,
+  **cùng một lần sửa**.
 - ⚠️ **Đổi TÊN môn thì phải đổi theo ở `phanCong` và `S.tkb`** — hai nơi ấy
   tham chiếu môn bằng chính chuỗi tên. Bỏ bước này là dòng phân công thành môn
   lạ và ô trên lưới mất màu. Có phép thử canh.

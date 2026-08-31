@@ -65,6 +65,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
   viSaoChuaXep, viecGoBiXep, NHOM_CHAN, oTuanLop, tinhTrangGV, aiRanh, nhomCungRanh,
   laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi,
+  choLienTiet, goiYLienTiet, MON_LIEN_TIET,
   thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
@@ -2622,7 +2623,10 @@ console.log('\n18b2. Vân tay dữ liệu nguồn phủ các cột thêm sau');
      beforeunload không chặn, tải lại trang là mất ÂM THẦM. */
   const u = taoUngDung(documentGia);
   const doi = lam => { const truoc = u.vanTayNguon(); lam(); return u.vanTayNguon() !== truoc; };
-  kt('Sửa Gmail giáo viên là vân tay đổi', doi(() => { u.S.giaoVien[0].email = 'a@b.vn'; }));
+  kt('Bật tắt cho-xếp-liền của một môn là vân tay ĐỔI', doi(() => {
+  u.S.monHoc[0].lienTiet = u.S.monHoc[0].lienTiet === false;
+}), 'cột thêm 31/8/2026 — bỏ sót là tích xong tải lại trang mất âm thầm');
+kt('Sửa Gmail giáo viên là vân tay đổi', doi(() => { u.S.giaoVien[0].email = 'a@b.vn'; }));
   kt('Sửa điện thoại · ghi chú · phân hiệu chính · mã GV là vân tay đổi',
      doi(() => { u.S.giaoVien[0].dienThoai = '0987'; })
      && doi(() => { u.S.giaoVien[0].ghiChu = 'ghi chú thử'; })
@@ -3758,15 +3762,31 @@ console.log('\n23. Hai tiết cùng môn LIỀN NHAU — cho phép theo từng m
     return app;
   };
 
-  kt('Danh mục mặc định: Tiếng Việt và Tiếng Anh được xếp liền, Toán thì không', (() => {
-    const ds = dsMonMacDinh();
-    const co = t => ds.find(m => m.ten === t)?.lienTiet;
-    return [co('Tiếng Việt') === true && co('Tiếng Anh') === true
-            && co('Toán') === false && co('Khoa học') === false,
-            `TV ${co('Tiếng Việt')} · Toán ${co('Toán')}`];
+  /* ⚠️ `dsMonMacDinh()` KHÔNG được tự gieo `lienTiet` — trường nào chưa từng
+     bấm Lưu ở mục Môn học thì `taiDuLieu()` rơi về danh mục này, gieo sẵn là
+     lưới của họ đổi thật mà không ai yêu cầu. Agent rà soát bắt được. */
+  kt('Danh mục mặc định KHÔNG tự quyết hộ nhà trường', (() => {
+    const daKhai = dsMonMacDinh().filter(m => m.lienTiet !== undefined).map(m => m.ten);
+    return [daKhai.length === 0, daKhai.join(' · ') || 'không môn nào bị gieo sẵn'];
+  })());
+  kt('Nút Gợi ý mới là thứ đặt cột ấy, và đặt đúng', (() => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.S.monHoc = app.dsMonMacDinh();
+    const n = app.goiYLienTiet();
+    const co = t => app.S.monHoc.find(m => m.ten === t)?.lienTiet;
+    return [n === app.S.monHoc.length && co('Tiếng Việt') === true
+            && co('Tiếng Anh') === true && co('Toán') === false
+            && co('Khoa học') === false && co('LS&ĐL') === false,
+            `đặt ${n} môn · TV ${co('Tiếng Việt')} · Toán ${co('Toán')}`];
+  })());
+  kt('Bấm lần nữa thì không đổi gì thêm', (() => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.S.monHoc = app.dsMonMacDinh();
+    app.goiYLienTiet();
+    return [app.goiYLienTiet() === 0, 'lần hai đổi 0 môn'];
   })());
 
-  const chuan = mo();
+  const chuan = mo(a => a.goiYLienTiet());
   const cap = demCap(chuan);
   kt('Xếp với danh mục mặc định: KHÔNG còn cặp Toán liền nhau',
      (cap['Toán'] || 0) === 0, `Toán ${cap['Toán'] || 0} cặp`);

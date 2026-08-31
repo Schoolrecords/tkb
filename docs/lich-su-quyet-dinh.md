@@ -2180,3 +2180,57 @@ khai giảng thì năm nay không ai cần nữa.**
 Cách giữ an toàn vẫn là khuôn cũ: **mặc định giữ nguyên hành vi**, kèm phép
 thử đòi hai lưới giống hệt từng ô. Trường đang chạy không chịu rủi ro nào cho
 tới khi chính họ tích vào ô ấy.
+
+### Hai agent rà soát bắt được ba lỗi mà tám bộ soi đều xanh
+
+Chủ dự án giao rà soát lại ba việc làm trong ngày. Hai agent chạy độc lập,
+mỗi agent dựng phép thử riêng để tái hiện trước khi kết luận. **Tám bộ soi
+lúc ấy đang xanh hết** — cả ba lỗi đều lọt qua.
+
+**1. `vanTayNguon()` bỏ sót `lienTiet`** — lỗi nặng nhất. Ngay trên hàm ấy có
+đúng lời cảnh báo bị vi phạm: *"Vân tay phải phủ MỌI trường mà
+`ghiDuLieuNguon()` ghi lên máy chủ. Bỏ sót trường nào là sửa trường ấy rồi tải
+lại trang mất ÂM THẦM — không dải đỏ, không `beforeunload`."* Thêm cột mới vào
+đường ghi mà quên vân tay: PHT bỏ tích ba môn, đóng tab, mất sạch, không một
+dấu hiệu. Mục **18b2** của `npm test` sinh ra để canh đúng chuyện này nhưng
+commit không thêm dòng canh cho cột mới — **bộ soi xanh trong khi sản phẩm
+hỏng.**
+
+**2. Nút ghim nuốt góc phải trên của MỌI ô tiết.** Đo bằng Chrome thật ở khổ
+điện thoại 390px: ô tiết 103,7×48px, nút ghim 27,1×23px = **12,5% diện tích
+ô**. Trước đó nút chỉ có ở ô ĐÃ ghim; bản vá "luôn hiện" biến nó thành cái bẫy
+trên **mọi** ô: chạm góc phải trên để CHỌN tiết thì thành GHIM nhầm, và đang
+cầm tiết mà chạm ô đích ở góc ấy thì không đổi được chỗ — chỉ ghim ô đích rồi
+treo tiết đang cầm. Hỏng đúng lối chạm, lối CHÍNH của PHT phụ trách phân hiệu.
+
+⚠️ **Chữa một chỗ khó bấm mà đẻ ra một chỗ bấm nhầm thì là lùi, không phải
+tiến.** Cách đúng: nút chỉ hiện ở ô **đã ghim** hoặc ô **đang chọn**. Ô thường
+chạm đâu cũng là chọn; chạm một cái thì ô sáng lên và dấu ghim hiện ra để bấm.
+Hai cú chạm, nhưng không cú nào ăn nhầm cú nào.
+
+**3. `dsMonMacDinh()` gieo sẵn `lienTiet` là đổi lưới của trường chưa khai
+môn.** `taiDuLieu()` có nhánh `S.monHoc = dl.monHoc?.length ? … : dsMonMacDinh()`
+— trường nào chưa từng bấm Lưu ở mục Môn học sẽ rơi về danh mục mặc định, nên
+gieo sẵn ở đó **không phải** "mặc định cho trường mới" mà là đổi lưới của một
+trường đang chạy. Lời cam kết *"cờ tắt thì lưới giống hệt"* vì thế chỉ đúng
+một nửa. Nay `dsMonMacDinh()` để trống, và gợi ý nằm sau **một cú bấm có ý
+thức**: nút *Gợi ý môn nên xếp liền*.
+
+Ba việc nhỏ hơn cũng vá luôn: câu hướng dẫn màn Theo lớp vẫn nói một chiều
+*"bấm vào dấu ghim là bỏ ghim"*; nút *Khối n* trong hộp Xoá **thay** lựa chọn
+thay vì **cộng dồn** (chủ dự án nêu phạm vi *nhiều lớp*, nên bấm Khối 1 rồi
+Khối 2 phải ra hai khối); và `hopSuaMon`/`oKhaiMon` lại thiếu ô mới — **đúng
+cái bẫy `docs/giao-dien.md` đã ghi ngày 29/8, lặp lại lần hai**.
+
+Cộng thêm: `ghiDuLieuNguon()` nay **nói ra** khi máy chủ chưa chạy
+`db/lien-tiet.sql` thay vì lặng lẽ vứt cột đi, và `tuMayChu()` dò cột ngay lúc
+ĐỌC nên đường ghi không còn phải thử một lượt POST chắc chắn hỏng — lượt hỏng
+ấy nằm sau lệnh DELETE, mỗi lần chạy là một cửa sổ để mạng chớp làm mất sạch
+danh mục môn. `xoaLuoi()` cũng tự kiểm `duocSuaLop()` thay vì tin vào hộp đã
+lọc hộ, cho khớp với `datGhim()`.
+
+**Bài học chung:** ba lỗi này đều **không phải lỗi logic** — chúng là *thiếu
+một chỗ*: thiếu một trường trong vân tay, thiếu một điều kiện hiện nút, thiếu
+suy nghĩ về nhánh dữ liệu thứ hai. Bộ soi chỉ canh được thứ nó biết là có.
+Người thứ hai đọc lại bằng con mắt khác vẫn là thứ không thay bằng phép thử
+được.

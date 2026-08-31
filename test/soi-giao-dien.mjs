@@ -132,27 +132,58 @@ w.ve();
 kt('L\u01b0\u1edbi hi\u1ec7n d\u1ea5u ghim cho ng\u01b0\u1eddi d\u00f9ng th\u1ea5y',
    w.document.querySelectorAll('[data-ghim]').length > 0);
 
-/* --- N\u00fat ghim l\u00e0 B\u1eacT/T\u1eaeT, kh\u00f4ng ph\u1ea3i ch\u1ec9 B\u1ece (31/8/2026) ---------------------
-   Ch\u1ee7 d\u1ef1 \u00e1n: *"B\u1ecf ghim r\u1ed3i th\u00ec b\u1ea5m ghim l\u1ea1i r\u1ea5t kh\u00f3, ch\u1ec9 c\u00f3 c\u00e1ch chuy\u1ec3n ch\u1ed7 m\u1edbi
-   th\u1ef1c hi\u1ec7n ghim"*. B\u1ea3n c\u0169 ch\u1ec9 v\u1ebd d\u1ea5u ghim \u1edf ti\u1ebft \u0110\u00c3 ghim n\u00ean kh\u00f4ng c\u00f3 \u0111\u01b0\u1eddng
-   ghim l\u1ea1i \u2014 m\u1ed9t thao t\u00e1c ch\u1ec9 \u0111i \u0111\u01b0\u1ee3c m\u1ed9t chi\u1ec1u th\u00ec l\u00e0 ng\u00f5 c\u1ee5t. */
+/* --- Nút ghim là BẬT/TẮT, và chỉ hiện ở ô ĐÃ GHIM hoặc ô ĐANG CHỌN --------
+   Chủ dự án: *"Bỏ ghim rồi thì bấm ghim lại rất khó, chỉ có cách chuyển chỗ
+   mới thực hiện ghim"*. Bản cũ chỉ vẽ dấu ghim ở tiết ĐÃ ghim nên không có
+   đường ghim lại — một thao tác chỉ đi được một chiều thì là ngõ cụt.
+
+   ⚠️ Nhưng vẽ nút ở MỌI ô cũng sai, và sai nặng hơn: nút chiếm 12,5% diện
+   tích ô trên điện thoại, nên chạm góc phải trên để CHỌN tiết lại thành GHIM
+   nhầm — hỏng đúng lối chạm, lối CHÍNH của PHT phụ trách phân hiệu. Nay nút
+   chỉ có ở ô đã ghim hoặc ô đang chọn. */
 const oGhim = k => w.document.querySelector(`[data-ghim="${k}"]`);
 const bamGhim = k => oGhim(k)?.dispatchEvent(new w.Event('click', { bubbles: true }));
+const chamO = k => { w.chamO(k); w.ve(); };
 
 bamGhim(k1);
-kt('B\u1ea5m d\u1ea5u ghim l\u00e0 b\u1ecf ghim ti\u1ebft \u0111\u00f3', !S.tkb[lop][k1]?.ghim);
-kt('B\u1ecf ghim r\u1ed3i N\u00daT V\u1eaaN C\u00d2N \u0111\u00f3 \u0111\u1ec3 ghim l\u1ea1i, kh\u00f4ng bi\u1ebfn m\u1ea5t',
-   !!oGhim(k1), oGhim(k1) ? oGhim(k1).getAttribute('title') : '(m\u1ea5t n\u00fat)');
-bamGhim(k1);
-kt('B\u1ea5m l\u1ea7n n\u1eefa l\u00e0 GHIM L\u1ea0I \u2014 kh\u00f4ng ph\u1ea3i chuy\u1ec3n ch\u1ed7 m\u1edbi ghim \u0111\u01b0\u1ee3c',
-   !!S.tkb[lop][k1]?.ghim);
-kt('N\u00fat ghim kh\u00f4ng kh\u1edfi ph\u00e1t k\u00e9o th\u1ea3 \u2014 \u0111\u00f3 l\u00e0 g\u1ed1c c\u1ee7a "l\u00fac \u0111\u01b0\u1ee3c l\u00fac kh\u00f4ng"',
-   oGhim(k1)?.getAttribute('draggable') === 'false');
-kt('Ti\u1ebft ch\u01b0a ghim c\u0169ng c\u00f3 n\u00fat, ch\u1ec9 l\u00e0 m\u1edd h\u01a1n', (() => {
+kt('Bấm dấu ghim là bỏ ghim tiết đó', !S.tkb[lop][k1]?.ghim);
+
+kt('Ô chưa ghim và chưa chọn thì KHÔNG có nút ghim che góc', (() => {
+  w.eval('S.oChon=null'); w.ve();
   const k2 = Object.keys(S.tkb[lop]).find(k => !S.tkb[lop][k].ghim);
-  return [!!k2 && !!oGhim(k2) && /tat/.test(oGhim(k2).className),
-          k2 ? oGhim(k2)?.className : '(l\u1edbp n\u00e0y ghim h\u1ebft)'];
+  return [!!k2 && !oGhim(k2), k2 ? (oGhim(k2) ? 'CÒN nút — che mất góc' : 'sạch') : '(lớp ghim hết)'];
 })());
+kt('Nên chạm vào ô ấy là CHỌN được, không bị ghim nhầm', (() => {
+  const k2 = Object.keys(S.tkb[lop]).find(k => !S.tkb[lop][k].ghim);
+  chamO(k2);
+  return [S.oChon === k2 && !S.tkb[lop][k2].ghim,
+          `oChon=${S.oChon} · ghim=${!!S.tkb[lop][k2].ghim}`];
+})());
+kt('Chạm xong thì dấu ghim HIỆN RA ở đúng ô đang chọn', (() => {
+  const k2 = S.oChon;
+  return [!!oGhim(k2) && /tat/.test(oGhim(k2).className), oGhim(k2)?.className || '(không có)'];
+})());
+kt('Bấm vào đó là GHIM — không phải chuyển chỗ mới ghim được', (() => {
+  const k2 = S.oChon;
+  bamGhim(k2);
+  return [!!S.tkb[lop][k2]?.ghim, `${k2} ${S.tkb[lop][k2]?.ghim ? 'đã ghim' : 'chưa ghim'}`];
+})());
+kt('Ô đã ghim thì nút luôn còn, để bỏ ghim lúc nào cũng được', (() => {
+  w.eval('S.oChon=null'); w.ve();
+  const k3 = Object.keys(S.tkb[lop]).find(k => S.tkb[lop][k].ghim);
+  return [!!k3 && !!oGhim(k3), k3 ? oGhim(k3)?.getAttribute('title') : '(không còn ô ghim)'];
+})());
+kt('Nút ghim không khởi phát kéo thả — gốc của "lúc được lúc không"', (() => {
+  const k3 = Object.keys(S.tkb[lop]).find(k => S.tkb[lop][k].ghim);
+  return oGhim(k3)?.getAttribute('draggable') === 'false';
+})());
+kt('Câu hướng dẫn nói HAI CHIỀU, không chỉ "bấm là bỏ ghim"', (() => {
+  const t = w.document.querySelector('#noiDung').textContent.replace(/\s+/g, ' ');
+  return [/để ghim/.test(t) && /bỏ ghim/.test(t) && !/dấu ghim là bỏ ghim/.test(t),
+          (t.match(/.{0,44}bỏ ghim.{0,16}/) || [''])[0].trim()];
+})());
+w.eval('S.oChon=null'); w.ve();
+
 
 console.log('\n5. Buổi bận');
 w.chuyen('buoiban');

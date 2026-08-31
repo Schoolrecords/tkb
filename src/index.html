@@ -537,7 +537,7 @@ table.tkb tr:last-child td{border-bottom:none}
 .o-tiet.keo{opacity:.4}
 /* Chừa chỗ cho biểu tượng góc phải — thiếu `padding-right` là "Tiếng Việt"
    chạy thẳng vào dưới hình, hai thứ chồng nhau ở đúng ô hẹp nhất. */
-.o-mon{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 82%,#000);padding-right:17px;
+.o-mon{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--mc) 82%,#000);padding-right:26px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Biểu tượng môn: nét mảnh, mờ, nằm dưới chữ về thứ bậc thị giác. Không
    bắt sự kiện chuột — ô này còn phải kéo thả và chạm chọn. */
@@ -1736,6 +1736,20 @@ const choLienTiet = mon => {
   const m = (S.monHoc||[]).find(x=>x.ten===mon);
   return m ? m.lienTiet !== false : true;
 };
+/* ⚠️ `dsMonMacDinh()` CỐ Ý KHÔNG đặt sẵn `lienTiet` (sửa 31/8/2026, do agent
+   rà soát bắt được). Trường nào chưa từng bấm Lưu ở mục Môn học thì
+   `taiDuLieu()` rơi về danh mục mặc định — gieo sẵn ở đó là lưới của họ đổi
+   thật vào lần bấm Xếp kế tiếp, mà không ai yêu cầu. Đúng thứ luật "nâng cấp
+   không được làm một trường đang chạy tốt bỗng xếp khác đi" cấm.
+   Gợi ý vì thế nằm sau MỘT CÚ BẤM có ý thức, không phải mặc định âm thầm. */
+function goiYLienTiet(){
+  let doi=0;
+  (S.monHoc||[]).forEach(m=>{
+    const nen = MON_LIEN_TIET.includes(m.ten);
+    if(m.lienTiet!==nen){ m.lienTiet=nen; doi++; }
+  });
+  return doi;
+}
 
 /* Số tiết chuẩn mỗi tuần theo CT GDPT 2018, tra từ bản kết xuất thật của
    Trường TH Diễn Liên. Khối nào môn đó không học thì bỏ trống. Dùng để gợi ý
@@ -1766,7 +1780,6 @@ function dsMonMacDinh(){
     nang:MON_NANG.includes(ten),          /* ưu tiên tiết đầu buổi sáng */
     nhe :MON_NHE.includes(ten),           /* tránh tiết cuối sáng, tiết 1 chiều */
     phong:ten==='Tin học'?'Tin học':'',   /* cần phòng chức năng loại nào */
-    lienTiet:MON_LIEN_TIET.includes(ten), /* được xếp hai tiết liền nhau không */
     chuan:{...(TIET_CHUAN[ten]||{})}
   }));
 }
@@ -4905,6 +4918,12 @@ function tuMayChu(hang){
 
   /* Hồ sơ giáo viên nào thuộc về một tài khoản cán bộ quản lý. Dùng đúng
      một việc: đẩy họ xuống phương án dự phòng khi gợi ý dạy thay (§13.8). */
+  /* ⚠️ Biết TRƯỚC KHI GHI là máy chủ có cột `lien_tiet` hay chưa. Dò lúc ĐỌC
+     thì đường ghi khỏi phải thử một lượt POST chắc chắn hỏng — mà lượt hỏng
+     ấy nằm SAU lệnh DELETE, nên mỗi lần nó chạy là một cửa sổ để mạng chớp
+     làm mất sạch danh mục môn. Bảng rỗng thì không kết luận gì. */
+  if((hang.mon_hoc||[]).length) KHO.coCotLienTiet = 'lien_tiet' in hang.mon_hoc[0];
+
   const quanLy = new Set((hang.nguoi_dung||[])
     .filter(n=>n.vai_tro && n.vai_tro!=='giao_vien').map(n=>n.id));
   const giaoVienQL = giaoVien.filter(g=>quanLy.has(g.nguoiDungId)).map(g=>g.id);
@@ -6808,6 +6827,14 @@ async function ghiDuLieuNguon(dl, baoBuoc){
           await goiAPI('/rest/v1/mon_hoc', {method:'POST',
             headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangMon(false))});
         }
+        /* ⚠️ Cứu được danh mục nhưng KHÔNG cứu được cột mới — phải NÓI RA.
+           Im lặng ở đây là "báo đã lưu mà chẳng lưu gì": người dùng bỏ tích
+           Toán, bấm Lưu, thấy báo xanh, hôm sau mở lại thì ô vẫn có tích và
+           lưới vẫn xếp Toán hai tiết liền. Đúng khuôn `congBoTKB()` ngày
+           29/8 khi máy chủ thiếu bốn cột số hiệu. */
+        if(KHO.coCotLienTiet===false && dl.monHoc.some(m=>m.lienTiet!==undefined))
+          loiDanhMuc+='Chưa lưu được lựa chọn "Cho xếp 2 tiết liền" — '
+            +'quản trị chạy db/lien-tiet.sql một lần trong SQL Editor. ';
       }catch(e){ if(!thieuBang(e))
         loiDanhMuc='Chưa lưu được danh mục môn học — bấm Lưu lại một lần nữa. '; }
     }
@@ -7243,7 +7270,7 @@ function vanTayNguon(){
     gon(S.phanCong, p=>`${p.gvId}:${p.lopId}:${p.mon}:${p.soTiet}`),
     gon(S.diemTruong, d=>`${d.id}:${d.ten}:${d.phongTin!==false}`),
     gon(S.monHoc, m=>`${m.ten}:${m.nang}:${m.nhe}:${m.phong||''}:${m.mau||''}`
-      +`:${JSON.stringify(m.chuan||null)}`),
+      +`:${JSON.stringify(m.chuan||null)}:${m.lienTiet}`),
     gon(S.phong, p=>`${p.ten}:${p.dtId}:${p.mon||''}`),
     gon(S.khungGio, k=>`${k.thu}:${k.buoi}:${k.tiet}:${k.bat!==false}`
       +`:${JSON.stringify(k.tietKhoi||null)}`),
@@ -9358,13 +9385,22 @@ function mTKBLop(){
     const cham=suaDuoc?` data-cham="${khoa}"`:'';
     if(!v) return `<div class="o-trong${nhan(khoa)}"${cham} ${suaDuoc?`data-tha="${khoa}"`:''}></div>`;
     const g=gvId(v.gvId);
+    /* ⚠️ NÚT GHIM CHỈ HIỆN Ở Ô ĐÃ GHIM HOẶC Ô ĐANG CHỌN (sửa 31/8/2026, do
+       agent rà soát bắt được). Bản trước vẽ nút ở MỌI ô khi sửa được, mà nút
+       chiếm 27×23px = 12,5% diện tích ô trên điện thoại — chạm góc phải trên
+       để CHỌN một tiết thì thành GHIM nhầm, và đang cầm tiết mà chạm ô đích ở
+       góc ấy thì không đổi được chỗ, chỉ ghim ô đích rồi treo tiết đang cầm.
+       Hỏng đúng lối chạm — lối CHÍNH của PHT phụ trách phân hiệu.
+       Nay: ô thường chạm đâu cũng là chọn; chạm một cái là ô sáng lên và dấu
+       ghim hiện ra để bấm. Hai cú chạm, nhưng không cú nào ăn nhầm cú nào. */
+    const coGhim = v.ghim || (suaDuoc && khoa===S.oChon);
     return `<div class="o-tiet ${mLop(v.mon)}${v.ghim?' ghim':''}${khoa===S.oChon?' chon':''}${nhan(khoa)}"
       ${suaDuoc?`draggable="true" data-keo="${khoa}" data-tha="${khoa}"${cham}`:'style="cursor:default"'}
-      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}${esc(nhacCham(khoa))}">${suaDuoc?'':icMon(v.mon)}
+      title="${esc(v.mon)} — ${esc(g?.hoTen||'')}${v.ghim?' · đã ghim':''}${esc(nhacCham(khoa))}">${coGhim?'':icMon(v.mon)}
       <div class="o-mon">${esc(v.mon)}</div><div class="o-gv">${esc(tenTat(g?.hoTen||''))}</div>
-      ${suaDuoc?`<button class="o-ghim${v.ghim?'':' tat'}" data-ghim="${khoa}" draggable="false"
+      ${coGhim && suaDuoc?`<button class="o-ghim${v.ghim?'':' tat'}" data-ghim="${khoa}" draggable="false"
         title="${v.ghim?'Bỏ ghim tiết này':'Ghim tiết này — xếp lại vẫn đứng nguyên chỗ'}">📌</button>`
-        :v.ghim?'<span class="o-ghim">📌</span>':''}</div>`;
+        :coGhim?'<span class="o-ghim">📌</span>':''}</div>`;
   };
   let bang=`<div class="luoi-boc"><table class="tkb"><thead><tr><th class="gt">Buổi</th><th style="width:52px">Tiết</th>
     ${THU.map(t=>`<th>${TEN_THU[t]}</th>`).join('')}</tr></thead><tbody>`;
@@ -9396,7 +9432,8 @@ function mTKBLop(){
   ${suaDuoc?(()=>{
     if(!S.oChon)
       return `<div class="gy" style="margin:-6px 0 12px">Tiết đã chỉnh tay sẽ được
-        <b>ghim 📌</b> để lần xếp tự động sau không đè lên. Bấm vào dấu ghim là bỏ ghim.</div>`;
+        <b>ghim 📌</b> để lần xếp tự động sau không đè lên. Chạm một tiết là dấu ghim hiện ra —
+        bấm vào đó để ghim, bấm lần nữa để bỏ ghim.</div>`;
     /* Đang cầm một tiết: chú giải BA màu, kèm đúng số ô mỗi loại. Đếm thật
        chứ không nói chung chung — người dùng nhìn ra ngay còn mấy chỗ đổi
        tự do trước khi phải động tới lịch đồng nghiệp. */
@@ -12878,7 +12915,8 @@ function mMonHoc(){
   dieuHuongBuoc('monhoc')+
   (sua?thanhKhaiBao(`<button class="b b-ch" id="btThemMon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Thêm môn</button>
-    <button class="b b-vien" id="btMonMacDinh">Khôi phục danh mục chuẩn</button>`)
+    <button class="b b-vien" id="btMonMacDinh">Khôi phục danh mục chuẩn</button>
+    <button class="b b-vien" id="btGoiYLien">Gợi ý môn nên xếp liền</button>`)
    :nhanChiXem('sửa danh mục môn học')+'<div style="margin-bottom:14px"></div>')+`
   ${laMonNgoai.length?`<div class="canhbao"><div class="cb-ic">!</div><div class="cb-t">
       <b>${laMonNgoai.length} môn có trong bảng phân công nhưng chưa có trong danh mục</b>
@@ -13798,6 +13836,17 @@ function noiSuKien(){
 
   /* Môn học */
   $('#btThemMon')&&($('#btThemMon').onclick=hopThemMon);
+  /* Gợi ý CHỈ chạy khi người dùng bấm — xem chú thích ở `goiYLienTiet()`. */
+  $('#btGoiYLien')&&($('#btGoiYLien').onclick=()=>hop('Môn nào được xếp hai tiết liền nhau?',
+    `<p style="font-size:13px">Đặt cột <b>Cho xếp 2 tiết liền</b> theo gợi ý:
+       chỉ <b>${esc(MON_LIEN_TIET.join(' và '))}</b> được xếp liền, các môn còn lại thì không.</p>
+     <div class="gy" style="margin-top:10px">Một bài đọc, một bài viết dạy liên thông hai tiết thì
+       liền nhau mới hợp; còn hai tiết Toán liền nhau là quá tải với học sinh tiểu học.
+       Sau khi đặt, thầy cô vẫn sửa lại từng ô được — đây chỉ là điểm xuất phát.</div>`,
+    [{ten:'Để nguyên',phu:1,lam:dong},{ten:'Đặt theo gợi ý',lam:()=>{
+      const n=goiYLienTiet(); dong();
+      bao(n?`Đã đặt lại ${n} môn — bấm Lưu để giữ lựa chọn này.`:'Danh mục đã đúng gợi ý, không đổi gì.');
+      ve(); }}]));
   $('#btMonMacDinh')&&($('#btMonMacDinh').onclick=()=>hop('Khôi phục danh mục môn chuẩn',
     `<p style="font-size:13px">Đặt lại danh mục về ${dsMonMacDinh().length} môn theo CT GDPT 2018,
        kèm màu và số tiết chuẩn từng khối.</p>
@@ -14147,6 +14196,10 @@ function demXoaLuoi(dsId, giuGhim){
 }
 
 function xoaLuoi(dsId, giuGhim){
+  /* Chốt chặn của CHÍNH hàm này, không dựa vào hộp đã lọc hộ — `datGhim()`
+     có chốt mà hàm này thì không là hai hàm anh em lệch nhau, sớm muộn có
+     người gọi thẳng. Cùng luật `duocSuaLop()` của `kiemTraChuyen()`. */
+  dsId=(dsId||[]).filter(id=>duocSuaLop(id));
   const {xoa, giu}=demXoaLuoi(dsId, giuGhim);
   if(!xoa) return {xoa:0, giu};
   luuLui(`xoá ${xoa} tiết`);
@@ -14202,9 +14255,9 @@ function hopXoaTKB(lopMacDinh){
   /* Tóm tắt sống: người dùng thấy ngay mình sắp xoá bao nhiêu, giữ bao nhiêu.
      Con số đứng trước cú bấm thì không ai xoá nhầm cả trường. */
   const tom=()=>{
+    const o=$('#xTom'); if(!o) return;      /* guard TRƯỚC mọi phép đọc DOM khác */
     const dsId=[...$$('[data-xlop]')].filter(x=>x.checked).map(x=>x.dataset.xlop);
     const {xoa, giu}=demXoaLuoi(dsId, $('#xGiuGhim').checked);
-    const o=$('#xTom'); if(!o) return;
     o.className='canhbao'+(xoa?' do':'');
     /* Đổi cả BIỂU TƯỢNG theo màu. Dải đỏ mà vẫn đeo chữ "i" của thông tin thì
        hai tín hiệu nói hai điều khác nhau, và mắt tin cái nhạt hơn. */
@@ -14220,9 +14273,12 @@ function hopXoaTKB(lopMacDinh){
   $('#xGiuGhim').onchange=tom;
   $$('[data-xchon]').forEach(b=>b.onclick=()=>{
     const v=b.dataset.xchon;
+    /* ⚠️ Nút Khối CỘNG DỒN, không thay thế. Chủ dự án nêu phạm vi "Lớp ·
+       nhiều lớp · Khối · Cả trường" — bấm Khối 1 rồi Khối 2 phải ra hai khối,
+       chứ không phải bỏ khối 1 đi. Muốn chọn lại từ đầu thì có Bỏ chọn hết. */
     $$('[data-xlop]').forEach(x=>{
       x.checked = v==='tat' ? true : v==='khong' ? false
-                : v.startsWith('k') ? x.dataset.k===v.slice(1) : x.checked;
+                : v.startsWith('k') ? (x.checked || x.dataset.k===v.slice(1)) : x.checked;
     });
     tom();
   });
@@ -14898,6 +14954,13 @@ function oKhaiMon(m){
      <label style="display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px">
        <input type="checkbox" id="tmNhe" ${m?.nhe?'checked':''}>
        Tránh đầu cuối buổi — không xếp tiết cuối sáng hay tiết 1 chiều</label></div>
+    ${''/* ⚠️ docs/giao-dien.md ngày 29/8 đã ghi: hộp này TỪNG thiếu đúng hai ô
+          "Ưu tiên sáng sớm" và "Tránh đầu cuối buổi" mà bảng vẫn có. Thêm cột
+          mới vào bảng thì phải thêm cả ở đây, không thì môn tự khai ra một
+          kiểu còn môn sửa trong bảng ra một kiểu. */}
+    <div><label class="hang" style="cursor:pointer"><input type="checkbox" id="tmLien"
+       ${m ? (m.lienTiet!==false?'checked':'') : 'checked'}>
+       Cho xếp 2 tiết liền — hai tiết cùng môn đứng sát nhau trong một buổi</label></div>
    <div class="on-l"><label>Số tiết chuẩn mỗi tuần</label>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
        ${[1,2,3,4,5].map(k=>`<div style="text-align:center">
@@ -14917,6 +14980,7 @@ function docKhaiMon(iBoQua){
   const chuan={};
   [1,2,3,4,5].forEach(k=>{ const n=+$(`[data-tmc="${k}"]`).value; if(n>0) chuan[k]=Math.min(20,n); });
   return {ten, mau:$('#tmMau').value, nang:$('#tmNang').checked, nhe:$('#tmNhe').checked,
+    lienTiet:$('#tmLien').checked,
           phong:$('#tmPhong').value.trim(), chuan};
 }
 
