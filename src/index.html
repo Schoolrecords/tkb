@@ -14142,6 +14142,9 @@ function hopXoaTKB(lopMacDinh){
     const {xoa, giu}=demXoaLuoi(dsId, $('#xGiuGhim').checked);
     const o=$('#xTom'); if(!o) return;
     o.className='canhbao'+(xoa?' do':'');
+    /* Đổi cả BIỂU TƯỢNG theo màu. Dải đỏ mà vẫn đeo chữ "i" của thông tin thì
+       hai tín hiệu nói hai điều khác nhau, và mắt tin cái nhạt hơn. */
+    o.querySelector('.cb-ic').textContent = xoa?'!':'i';
     o.querySelector('.cb-t').innerHTML = dsId.length
       ? `<b>Xoá ${xoa} tiết của ${dsId.length} lớp</b>`
         +(giu?`<div class="cb-g">Giữ lại ${giu} tiết đã ghim.</div>`:'')
