@@ -15335,10 +15335,17 @@ function veHopTaiKhoan(ds){
 
     <div style="border-top:1px solid var(--ke);padding-top:15px">
       <div class="canhbao ok"><div class="cb-ic">i</div><div class="cb-t">
-        <b>Cấp quyền bằng mã mời</b>
-        <div class="cb-g">Thầy cô đăng nhập bằng <b>Gmail của chính mình</b> — nhà trường không cấp
-          mật khẩu cho ai nữa. Bấm <b>Mã mời Google</b> ở dưới để tạo mã 6 ký tự rồi gửi qua Zalo.
-          Xoá tài khoản ở bảng trên là thu quyền ngay, Gmail của thầy cô không bị ảnh hưởng gì.</div>
+        <b>Khai Gmail ở mục Giáo viên là thầy cô vào được ngay</b>
+        <div class="cb-g">Thầy cô bấm <b>Đăng nhập bằng Google</b> đúng địa chỉ nhà trường đã khai
+          là vào thẳng lịch của mình — <b>không cần mã mời</b>, không hạn dùng, không mật khẩu.
+          ${(() => { const n = S.giaoVien.filter(g => g.email && !g.nguoiDungId).length;
+                     return n ? `Đang có <b>${n} thầy cô</b> khai sẵn Gmail mà chưa đăng nhập lần nào.` : ''; })()}
+          <br><b>Mã mời</b> chỉ dành cho hai trường hợp: người <b>chưa khai Gmail</b>, và người cần
+          vai <b>quản lý</b> — hiệu trưởng, phó hiệu trưởng, quản trị.
+          <br>⚠️ Mã mời tạo bằng nút dưới đây luôn mang vai <b>giáo viên</b>. Phát nhầm mã ấy cho
+          một cán bộ quản lý là họ vào với vai giáo viên, và <b>không sửa lại được trong app</b> —
+          mỗi tài khoản chỉ vào một trường một lần.
+          <br>Xoá tài khoản ở bảng trên là thu quyền ngay, Gmail của thầy cô không bị ảnh hưởng gì.</div>
       </div></div>
     </div>`;
   $('#hopC').innerHTML='';

@@ -1982,3 +1982,52 @@ Chốt sau khi tải lại trang, đọc thẳng từ máy chủ: **47 lớp · 
 17 môn · 2 phân hiệu · 47/47 lớp có chủ nhiệm · 0 mã giáo viên trùng · 76
 Gmail · 79 số điện thoại**. `kiemTra()` chỉ còn R04 (chưa phân công) và R09
 (trùng tên gọi, mức gợi ý) — **không mục nào mức "do"**.
+
+### Mã mời quản trị bị mã giáo viên "cướp cò" — và một cửa sau mở sẵn một tháng
+
+Quỳ Hợp 2, 31/8/2026, đọc thẳng từ máy chủ:
+
+| Giờ | Việc |
+|---|---|
+| 10:10 | tạo mã `2ZG8RP` · vai **quản trị** · gắn hồ sơ `Hiền_TTT` |
+| 10:29 | nhà trường bấm nút *Mã mời Google* trong hộp **Tài khoản đăng nhập**, sinh thêm mã · vai **giáo viên** · cùng hồ sơ ấy |
+| 10:30 | cô Hiền dùng **mã thứ hai** → vào với vai giáo viên |
+
+`dung_ma_moi()` từ chối mọi tài khoản đã thuộc một trường, nên mã quản trị
+thành vô dụng. Và **app không có đường nào đổi vai trò của một tài khoản đã
+tạo** — chỗ duy nhất app ghi `vai_tro` là bảng `ma_moi`. Phải sửa bằng SQL.
+
+⚠️ **Chỗ nguy hiểm hơn, suýt bỏ sót:** mã `2ZG8RP` vẫn SỐNG, vai `quan_tri`,
+hạn tới 30/9. Bất kỳ tài khoản Google nào cầm được nó — mà nó đã đi qua Zalo
+— sẽ thành **quản trị toàn trường**, và `dung_ma_moi()` còn trỏ luôn
+`giao_vien.nguoi_dung_id` của cô Hiền sang người lạ ấy, tức cô mất hồ sơ của
+chính mình. **Mã mời đã phát mà không dùng tới thì phải THU HỒI, đừng để hết
+hạn tự nhiên.**
+
+**Nhãn "chưa nối" trên màn hình hôm ấy là BÁO ĐỘNG GIẢ.** Hộp *Tài khoản đăng
+nhập* lấy danh sách `nguoi_dung` **mới tinh từ máy chủ**, rồi ghép với
+`S.giaoVien` **đã nạp từ lúc mở app**. Tài khoản cô Hiền sinh ra sau lần nạp
+ấy nên không tìm được hồ sơ, và ô ấy bày thẻ đỏ. Tải lại trang là hết. Bài
+học: **một bảng trộn dữ liệu mới với dữ liệu cũ thì cột nào cũng đáng ngờ** —
+hoặc nạp lại cả hai, hoặc đừng nạp lại cái nào.
+
+### Vì sao nhà trường đi nhầm đường — lỗi ở CÂU CHỮ, không ở người dùng
+
+Khối chữ xanh trong hộp ấy viết: *"Thầy cô đăng nhập bằng Gmail của chính
+mình… Bấm **Mã mời Google** ở dưới để tạo mã 6 ký tự rồi gửi qua Zalo."*
+
+Nó **không hề nhắc** rằng khai Gmail ở mục Giáo viên là thầy cô vào thẳng —
+tức là đường CHÍNH từ 28/8/2026 (`vao_bang_gmail()`) không được nói ra ở đúng
+chỗ người dùng đứng để phát quyền. Đọc câu ấy thì mã mời là cách duy nhất, nên
+nhà trường phát mã, và phát nhầm loại.
+
+Viết lại, ba ý theo đúng thứ tự người dùng cần:
+- khai Gmail là vào ngay, **không cần mã** — kèm con số *"đang có N thầy cô
+  khai sẵn Gmail mà chưa đăng nhập lần nào"*, để việc phải làm hiện thành một
+  con số chứ không phải một lời khuyên chung chung;
+- mã mời chỉ cho hai trường hợp: chưa khai Gmail, hoặc cần vai quản lý;
+- ⚠️ nút ấy **luôn sinh mã vai giáo viên** — phát nhầm cho cán bộ quản lý là
+  họ vào với vai giáo viên và **không sửa lại được trong app**.
+
+Ý cuối là thứ đắt nhất: nút chỉ tạo được một loại mã, mà chỗ đứng của nó
+(hộp phân quyền) lại gợi ý rằng nó cấp được mọi quyền.
