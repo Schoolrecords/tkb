@@ -1886,3 +1886,56 @@ thật của một trường.
 ⚠️ Một địa chỉ trong biểu mẫu là **`…@gmal.com`** — thiếu chữ *i*. Dạng thư
 vẫn hợp lệ nên không bộ soát nào bắt được; đã báo lại nhà trường, không tự
 sửa hộ vì sửa địa chỉ thư là sửa danh tính của một người.
+
+### Hai dòng cùng một mã là MẤT NGƯỜI, không phải cập nhật
+
+Tiểu học Quỳ Hợp 2 tự gõ tay 79 mã giáo viên vào mẫu `GIAO_VIEN`, và có **năm
+mã trùng**: `Ha_NT` cho hai cô Nguyễn Thị Hà, `Ha_TTT` cho cả *Trương Thị Thúy
+Hà* lẫn *Trần Thị Thu Hà*, `Thuy_NT` cho cả cô *Thúy* lẫn cô *Thủy*, thêm
+`Linh_NTT` và `Thanh_NT`.
+
+Trình đọc dò hồ sơ cũ theo `Ma_GV`, nên dòng sau **tìm thấy dòng trước rồi ghi
+đè lên** và đếm là `capNhat`. Nhập xong ra **74 người thay vì 79**, năm thầy cô
+biến mất không một câu nào báo, và địa chỉ thư còn lại là của người gõ sau —
+tức là cô này đăng nhập vào lại thấy lịch của cô kia.
+
+⚠️ **Phép soát Gmail trùng ở cuối hàm không đỡ được**: hai người khác địa chỉ
+nên nó thấy sạch. Hai phép soát canh hai thứ khác nhau, đừng tưởng có cái này
+là khỏi cái kia.
+
+Nay cả `giaovien.doc` và `lop.doc` nhớ **mã nào tệp này đã dùng, ở dòng Excel
+nào, cho ai**, rồi báo LỖI (không phải cảnh báo — nhập tiếp là mất dữ liệu
+thật): *"GIAO_VIEN dòng 131: mã "Ha_NT" đã dùng ở dòng 130 cho "Nguyễn Thị Hà"
+— mỗi người một Ma_GV riêng, thêm hậu tố cho một trong hai"*. `Ma_lop` cũng
+canh y hệt: sau sáp nhập đó đúng là chỗ dễ đụng nhất, hai phân hiệu cùng có
+lớp tên *1A*.
+
+Phép thử ở `npm run soi-nhap`. ⚠️ Lỗi TỪNG DÒNG hiện trong hộp thoại `#hopN`
+chứ không đi qua `bao()` — bản phép thử đầu soi ở dải thông báo, được chuỗi
+rỗng và **đỏ oan** dù sản phẩm đã đúng. Cùng cái bẫy *"#hopN là nội dung, #hopC
+chỉ là hàng nút"* đã ghi ở đầu tệp soi. Đã thử ngược: gỡ hai chốt ra thì phép
+thử đỏ, và bộ soi in đúng câu tố cáo hành vi cũ — *"Đọc được 8 dòng · Thêm mới
+1 · Cập nhật 7"*.
+
+### Dựng bộ dữ liệu Quỳ Hợp 2 từ chính tệp nhà trường điền
+
+47 lớp · 81 giáo viên · 17 môn. Sáu chỗ phải sửa trước khi nhập, ghi lại vì
+đây là những chỗ **trường nào tự điền mẫu cũng dễ vấp**:
+
+| Chỗ vấp | Cách chữa |
+|---|---|
+| 5 mã giáo viên trùng nhau | sinh lại toàn bộ `Ma_GV` bằng chính `maGVTu()` — giữ dấu nên *Thúy* và *Thủy* tự tách, trùng hệt cả họ tên thì hậu tố `_2` |
+| Tên cột `Dien_thoai` bị gõ đè một **số điện thoại** | trả lại tên cột, 79 số giữ nguyên |
+| Cột `Phan_hieu` bỏ trống ở 47 dòng GV và 28 dòng lớp | điền *Phân hiệu Châu Quang* — danh mục lúc tải mẫu về chỉ có một phân hiệu vì phân hiệu thứ hai chưa lưu được (đúng lỗi nút Lưu ở trên) |
+| Trang `LOP` ghi chủ nhiệm bằng **họ tên**, cột ấy đòi **mã giáo viên** | để trống — tệp `GIAO_VIEN` đã mang đủ 47/47 chủ nhiệm, ghi bằng mã lớp, đúng chiều |
+| *"Võ T Phương Thảo"*, *"Nguyễn T Ngọc Dung"* viết tắt chữ *Thị* | trả lại đủ họ tên — bảng Giáo viên là chỗ phân biệt các cặp trùng tên gọi |
+| App gọi môn là `CN`, nhà trường gọi `Công nghệ` | nhập vào thành **hai môn**, khối 3–5 phồng từ 33 lên 34 tiết; xoá dòng `CN` trong mục Môn học |
+
+⚠️ **Ô Gmail của bốn người Ban giám hiệu và của người quản trị để TRỐNG** —
+xem lý do ở mục trên. Đây là lần thứ hai luật ấy chạm dữ liệu thật.
+
+⚠️ **Khung giờ mặc định chỉ 27–30 ô/tuần, danh mục môn nhà trường khai cần
+33.** Không phải lỗi phần mềm: `CHUAN_KHOI` là **sàn**, trường được dạy thêm
+môn tự chọn (*Tự học · Đọc thư viện · Tiếng Việt \* · Toán \**). Nhà trường
+phải mở thêm buổi ở mục *Khối và khung giờ* trước khi xếp, không thì R05 nổ
+đúng 47 lớp.

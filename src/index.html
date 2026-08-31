@@ -6150,10 +6150,19 @@ const MUC_NHAP = {
     doc(co, kho, loi){
       let them=0, capNhat=0;
       const dtMacDinh=kho.diemTruong.length===1?kho.diemTruong[0]:null;
+      const maTrongTep = new Map();      /* mã nào TỆP NÀY đã dùng, ở dòng Excel nào */
       co.forEach(r=>{
         const ma=String(r.Ma_lop??'').trim(), ten=String(r.Ten_lop??'').trim();
         if(!ma) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ma_lop'});
         if(!ten) return void loi.push({t:this.trang, d:r.__dong, v:'thiếu Ten_lop'});
+        /* ⚠️ Cùng khuôn với Ma_GV ngay dưới: hai dòng cùng một Ma_lop thì dòng
+           sau ghi đè dòng trước và đếm là `capNhat` — mất một lớp, im lặng.
+           Ma_lop là khoá tự nhiên của CẢ TRƯỜNG, nên sau sáp nhập đây đúng là
+           chỗ dễ đụng nhất: hai phân hiệu cùng có lớp tên 1A. */
+        if(maTrongTep.has(ma)) return void loi.push({t:this.trang, d:r.__dong,
+          v:`mã "${ma}" đã dùng ở dòng ${maTrongTep.get(ma)} — Ma_lop phải duy nhất `
+           +'trong cả trường, thêm hậu tố phân hiệu cho một trong hai'});
+        maTrongTep.set(ma, r.__dong);
         const k=+r.Khoi;
         if(!(k>=1&&k<=5)) return void loi.push({t:this.trang, d:r.__dong,
           v:`Khoi phải là số từ 1 đến 5 (đang là "${String(r.Khoi??'').trim()}")`});
@@ -6218,6 +6227,9 @@ const MUC_NHAP = {
          được, bắt ghi Ma_GV. */
       const chuanTen = t => String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
       const daCoMa = new Set(kho.giaoVien.map(g=>g.maGV||g.id).filter(Boolean));
+      /* Mã nào TỆP NÀY đã dùng, ở dòng Excel nào, cho ai — để câu lỗi chỉ
+         thẳng hai dòng đang tranh nhau một mã. */
+      const maTrongTep = new Map(), tenTheoMa = new Map();
       const datMa = hoTen => {
         const g0=maGVTu(hoTen); let m=g0, i=1;
         while(daCoMa.has(m)) m=g0+'_'+(++i);
@@ -6233,6 +6245,19 @@ const MUC_NHAP = {
             v:`có ${trung.length} người tên "${ten}" — ghi Ma_GV vào để máy biết sửa hồ sơ nào`});
           ma = trung.length ? (trung[0].maGV||trung[0].id) : datMa(ten);
         }
+        /* ⚠️ HAI DÒNG CÙNG MỘT Ma_GV LÀ MẤT NGƯỜI, KHÔNG PHẢI CẬP NHẬT
+           (31/8/2026). Tiểu học Quỳ Hợp 2 gõ tay 79 mã và có năm mã trùng —
+           `Ha_NT` cho hai cô Nguyễn Thị Hà, `Ha_TTT` cho cả Trương Thị Thúy Hà
+           lẫn Trần Thị Thu Hà, `Thuy_NT` cho cả cô Thúy lẫn cô Thủy. Dòng sau
+           tìm thấy dòng trước rồi ghi đè lên, đếm là `capNhat`: nhập xong ra
+           74 người, năm thầy cô biến mất không một câu nào báo, và địa chỉ thư
+           còn lại là của người gõ sau. Phép soát Gmail trùng ở cuối hàm không
+           đỡ được — hai người khác địa chỉ nên nó thấy sạch.
+           Đây là LỖI, không phải cảnh báo: nhập tiếp là mất dữ liệu thật. */
+        if(maTrongTep.has(ma)) return void loi.push({t:this.trang, d:r.__dong,
+          v:`mã "${ma}" đã dùng ở dòng ${maTrongTep.get(ma)} cho "${tenTheoMa.get(ma)}" `
+           +'— mỗi người một Ma_GV riêng, thêm hậu tố cho một trong hai'});
+        maTrongTep.set(ma, r.__dong); tenTheoMa.set(ma, ten);
         const mail=String(r.Gmail??r.Email??'').trim().toLowerCase();
         if(mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail))
           return void loi.push({t:this.trang, d:r.__dong,

@@ -564,6 +564,55 @@ kt('Phòng và buổi bận nhập được',
     KHO.cauHinh = k.ch; KHO.phien = k.ph; KHO.nguoiDung = k.nd; })()`);
 }
 
+/* --- Hai dòng cùng một mã là MẤT NGƯỜI, không phải cập nhật ---------------
+   Tiểu học Quỳ Hợp 2 gõ tay 79 mã giáo viên và có NĂM mã trùng: `Ha_NT` cho
+   hai cô Nguyễn Thị Hà, `Ha_TTT` cho cả Trương Thị Thúy Hà lẫn Trần Thị Thu
+   Hà, `Thuy_NT` cho cả cô Thúy lẫn cô Thủy. Dòng sau tìm thấy dòng trước rồi
+   ghi đè lên và đếm là `capNhat` — nhập xong mất năm thầy cô, không một câu
+   nào báo, địa chỉ thư còn lại là của người gõ sau. Phép soát Gmail trùng
+   không đỡ được: hai người khác địa chỉ nên nó thấy sạch. */
+{
+  /* ⚠️ Lỗi TỪNG DÒNG hiện trong hộp thoại `#hopN`, không đi qua `bao()` —
+     soi ở dải thông báo thì được chuỗi rỗng và phép thử đỏ oan. Cùng cái bẫy
+     "#hopN là nội dung, #hopC chỉ là hàng nút" đã ghi ở đầu tệp này. */
+  const nhapHong = async (ma, trang, sua) => {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await taiMau(ma));
+    sua(wb.getWorksheet(trang));
+    const buf = await wb.xlsx.writeBuffer();
+    w.eval(`S.trangHienTai=${JSON.stringify(ma)}`);
+    w.eval('dong()');
+    await w.document.querySelector('#tep').onchange({ target: { files: [tepGia(buf)], value: '' } });
+    const chu = (w.document.querySelector('#hopN')?.textContent || '').replace(/\s+/g, ' ');
+    const nhan = [...w.document.querySelectorAll('#hopC button')]
+      .find(b => /^(Nhập|Đồng ý|Xác nhận)/.test(b.textContent.trim()));
+    return { chu, coNutNhap: !!nhan };
+  };
+
+  const kq = await nhapHong('giaovien', 'GIAO_VIEN', ws => {
+    const n = ws.rowCount + 1;
+    ws.getRow(n).values     = [99, 'Trung_XX', 'Nguyễn Thị Một', 'mot@gmail.com'];
+    ws.getRow(n + 1).values = [100, 'Trung_XX', 'Trần Thị Hai', 'hai@gmail.com'];
+  });
+  kt('Hai dòng cùng một Ma_GV thì BÁO LỖI, không lặng lẽ ghi đè',
+     /Chưa nhập được/.test(kq.chu) && /Trung_XX/.test(kq.chu), kq.chu.slice(0, 120));
+  kt('Câu lỗi chỉ ra dòng Excel và tên người đang tranh mã',
+     /dòng \d+/.test(kq.chu) && /Nguyễn Thị Một/.test(kq.chu), kq.chu.slice(95, 210));
+  kt('Có lỗi thì KHÔNG còn nút Nhập để bấm nhầm', !kq.coNutNhap);
+  kt('Và không người nào trong hai dòng ấy lọt vào dữ liệu',
+     !S.giaoVien.some(g => g.maGV === 'Trung_XX'), `${S.giaoVien.length} giáo viên`);
+
+  const kl = await nhapHong('lop', 'LOP', ws => {
+    const n = ws.rowCount + 1;
+    ws.getRow(n).values     = ['9Z_TT', '9Z', 1, 'Phân hiệu Trung tâm'];
+    ws.getRow(n + 1).values = ['9Z_TT', '9Y', 2, 'Phân hiệu Trung tâm'];
+  });
+  kt('Hai dòng cùng một Ma_lop cũng BÁO LỖI — sau sáp nhập đây là chỗ dễ đụng nhất',
+     /Chưa nhập được/.test(kl.chu) && /9Z_TT/.test(kl.chu), kl.chu.slice(0, 120));
+  kt('Và không lớp nào trong hai dòng ấy lọt vào dữ liệu',
+     !S.lop.some(l => l.maLop === '9Z_TT'), `${S.lop.length} lớp`)
+}
+
 console.log('\n3. Không có lỗi chạy nào trong suốt hai lối khai báo');
 kt('Không lỗi JavaScript nào', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');
