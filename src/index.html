@@ -2665,6 +2665,24 @@ function diemLop(l){
      nặng vào vàng nhờ vậy đủ lời để chấp nhận một xáo trộn nhỏ ở lịch giáo
      viên bộ môn. Lớp hết cặp nào ghép được thì thuế bằng 0, không phạt oan. */
   d += Math.min(nangKet, thuongVang)*7;
+  /* ⚠️ HỌC SINH NGỒI CHƠI GIỮA BUỔI (31/8/2026). `diemGV()` phạt tiết trống
+     kẹp của giáo viên từ đầu, nhưng của LỚP thì chưa bao giờ — vì tới nay mọi
+     trường đều khai khung giờ khít số tiết, không lớp nào có ô thừa để mà
+     kẹp. Từ khi mở khung dư ô (để thầy cô nghỉ được một buổi, 31/8/2026) thì
+     có thật: đo trên trường 25 lớp khung dư 3 ô, **10 tiết ở 8 lớp** rơi vào
+     giữa buổi — cả lớp ngồi chơi một tiết rồi lại học.
+
+     Phạt NẶNG HƠN của giáo viên (12 so với 8): một ô trống của thầy cô là một
+     người chờ, một ô trống của lớp là ba mươi em chờ.
+
+     ⚠️ Khung khít thì khoản này luôn bằng 0 nên lưới ra GIỐNG HỆT như trước —
+     năm trường đang chạy không chịu rủi ro nào. Có phép thử canh. */
+  bb.forEach(k=>{
+    const kB=khoaB(k), n=soTietLop(k,l);
+    let dau=-1, cuoi=-1, co=0;
+    for(let i=0;i<n;i++) if(o[`${kB}-${i}`]){ if(dau<0) dau=i; cuoi=i; co++; }
+    if(co>1) d += (cuoi-dau+1-co)*12;
+  });
   return d;
 }
 
@@ -2809,6 +2827,7 @@ const daoChum = moves => moves.map(m=>({lp:m.lp, tu:m.den, den:m.tu, t:m.t}));
    tính lại điểm toàn trường, nhờ vậy chạy hết nhiều vòng trong một giây. */
 function toiUuHoanDoi(gioiHanMs=1200, dsLop){
   const t0=performance.now();
+  const bbU=buoiBat();
   const dauTien=diemToanCuc();
   const lich=lichTraGV();
   let doi=0, vong=0, hetGio=false;
@@ -2908,9 +2927,54 @@ function toiUuHoanDoi(gioiHanMs=1200, dsLop){
     }
     if(!caiThien) break;
   }
+  /* ---------- Pha DỒN ĐẦU BUỔI — kéo tiết lên lấp chỗ trống ----------
+     ⚠️ Ba pha trên chỉ ĐỔI CHỖ hai tiết ĐÃ CÓ, nên ô trống của lớp nằm im
+     mãi mãi: không nước đi nào lấy ô trống làm đích. Tới nay không lộ vì mọi
+     trường đều khai khung giờ khít số tiết. Từ khi mở khung dư ô — để thầy cô
+     nghỉ được một buổi (31/8/2026) — đo trên trường 25 lớp dư 3 ô: **10 tiết
+     ở 8 lớp** rơi vào giữa buổi, cả lớp ngồi chơi một tiết rồi lại học.
+
+     Dời trong CÙNG một buổi nên buổi bận · phân hiệu · ràng buộc một-buổi-một-
+     nơi đều không đổi; chỉ phải hỏi hai điều: giáo viên có rảnh đúng ô ấy
+     không, và phòng chức năng còn chỗ không.
+
+     Tiết ghim (chào cờ · sinh hoạt lớp · người xếp ghim tay) thì DỪNG, không
+     kéo — thà để một ô trống còn hơn đổi giờ chào cờ. */
+  let donDuoc=0;
+  for(const l of (dsLop||S.lop)){
+    const o=S.tkb[l.id]; if(!o) continue;
+    for(const k of bbU){
+      const kB=khoaB(k), n=soTietLop(k,l);
+      for(let i=0;i<n;i++){
+        if(o[`${kB}-${i}`]) continue;
+        for(let j=i+1;j<n;j++){
+          const tu=`${kB}-${j}`, t=o[tu];
+          if(!t) continue;
+          if(laGhim(l,tu)) break;
+          if(lich[t.gvId]?.[`${kB}-${i}`]) break;
+          const loai=monCanPhong(t.mon);
+          if(loai && coBangPhong()
+             && dangChiemPhong(S.lopDT[l.id],loai,`${kB}-${i}`,l.id) >= soPhong(S.lopDT[l.id],loai)) break;
+          /* Vẫn chấm điểm như mọi nước đi khác: kéo lên đôi khi đẩy GDTC vào
+             tiết 1 chiều hay dồn hai tiết cùng môn liền nhau. Khoản phạt ô
+             trống của lớp (12 điểm/ô) thường thắng, nhưng để phép so quyết
+             chứ không quyết thay nó. */
+          const truoc=diemLop(l)+diemGV(lich[t.gvId]);
+          o[`${kB}-${i}`]=t; delete o[tu];
+          if(lich[t.gvId]){ lich[t.gvId][`${kB}-${i}`]=l.id; delete lich[t.gvId][tu]; }
+          if(diemLop(l)+diemGV(lich[t.gvId]) < truoc-1e-9){ donDuoc++; }
+          else {
+            o[tu]=t; delete o[`${kB}-${i}`];
+            if(lich[t.gvId]){ lich[t.gvId][tu]=l.id; delete lich[t.gvId][`${kB}-${i}`]; }
+          }
+          break;
+        }
+      }
+    }
+  }
   const cuoi=diemToanCuc();
   return {
-    doi, vong, truoc:dauTien, sau:cuoi, hetGio,
+    doi, vong, don:donDuoc, truoc:dauTien, sau:cuoi, hetGio,
     caiThien: dauTien ? Math.round((dauTien-cuoi)/dauTien*100) : 0,
     giay:((performance.now()-t0)/1000).toFixed(1)
   };
