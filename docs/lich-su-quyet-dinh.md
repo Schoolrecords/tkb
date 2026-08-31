@@ -1806,3 +1806,83 @@ mà vẫn báo *0 hỏng* — vì phép thử bị xoá thì không đỏ, nó b
 phải ngắn hơn 4.000 ký tự, không thì dừng. **Con số "đạt" tụt xuống cũng là
 một tín hiệu hỏng**, ngang với dòng đỏ — bộ soi mất phép thử thì im lặng,
 đúng thứ nguy hiểm nhất.
+
+---
+
+## 31/8/2026 — Tiểu học Quỳ Hợp 2: nút Lưu đòi phải có lớp, nên trường mới không lưu được GÌ
+
+Chủ dự án gửi ảnh màn hình *Phân hiệu* của Tiểu học Châu Đình: hai phân hiệu
+vừa khai, dải đỏ **"● Có thay đổi chưa lưu"** sáng bên cạnh nút *Lưu ngay* —
+bấm vào thì nhận **"Chưa có lớp nào để lưu"**. Câu hỏi của ông nói trúng chỗ
+vô lý: *"phải nhập lớp mới thêm được, phải có điểm trường mới thêm lớp được
+chứ?"*
+
+**Gốc:** `luuNguonLenMayChu()` mở đầu bằng
+`if(!S.lop.length) return bao('Chưa có lớp nào để lưu', true)`. Chốt ấy viết
+ngày 1/8/2026, hồi đường ghi duy nhất còn là *nhập tệp Excel trọn gói rồi
+lưu* — mà tệp ấy thì luôn có lớp. Từ 28/8 mỗi màn hình khai báo có mẫu nhập
+riêng, và **nút Lưu là nút DÙNG CHUNG cho cả chín màn hình**. Nên một chốt
+sai ở đây khoá luôn tám màn hình còn lại: tên trường, phân hiệu, khung giờ,
+danh mục môn, danh sách giáo viên — không thứ nào lưu được cho tới khi có
+lớp. Trong khi muốn thêm lớp thì phải chọn phân hiệu trước.
+
+Hậu quả nặng hơn một nút bấm không ăn: mọi thứ nhà trường vừa khai nằm trong
+bộ nhớ trình duyệt, đóng tab là mất sạch — đúng sự cố đã trả giá ngày 2/8 và
+là lý do dải "Có thay đổi chưa lưu" ra đời. Phần mềm vừa giục lưu vừa không
+cho lưu.
+
+**Cách chữa.** `ghiDuLieuNguon()` vốn đã ghi từng bảng một, có gì ghi nấy —
+bước 1 của nó chính là phân hiệu, chạy trước cả lớp. Không có gì phải sửa ở
+đường ghi; chỉ bỏ chốt sai đi. Chốt duy nhất còn đúng là *"màn hình trống
+trơn thì đừng gọi máy chủ 19 lần cho một bộ dữ liệu rỗng"*:
+
+```js
+if(!S.diemTruong.length && !S.lop.length && !S.giaoVien.length)
+  return bao('Chưa khai gì để lưu — thêm phân hiệu, lớp hoặc giáo viên trước đã', true);
+```
+
+⚠️ **Kèm một chốt mới ở bước 5.** Bước phân công là *"xoá sạch rồi ghi lại"*.
+Trước đây nó không bao giờ chạy với 0 lớp vì chốt cũ chặn từ ngoài; bỏ chốt
+ấy là mở ra đường **DELETE trắng bảng phân công** khi màn hình đang giữ bản
+rỗng. Nay `if(dl.lop.length)` bọc cả cụm — không lớp thì cũng không có phân
+công nào để ghi, nên bỏ qua là đúng nghĩa chứ không phải né lỗi.
+
+⚠️ **Và một cái bẫy đã sập ngay tại chỗ:** bản vá đầu khai `const hangPC`
+BÊN TRONG khối `if` mới, trong khi câu tổng kết ở cuối hàm đếm
+`hangPC.length`. **13 phép thử của đường ghi đỏ ngay** với *"hangPC is not
+defined"*. Bọc một đoạn mã vào khối `if` thì phải rà xem bên dưới còn ai đọc
+biến của nó — `npm test` bắt được trong một lần chạy.
+
+**Phép thử canh** ở mục cuối `npm run soi-nhap` (bộ soi của trường MỚI TINH,
+đúng chỗ lỗi này sống): mới khai phân hiệu, chưa lớp chưa giáo viên thì nút
+Lưu **vẫn ghi lên máy chủ**; trống trơn thì mới từ chối, và câu từ chối phải
+nhắc tới phân hiệu. Đã **thử ngược**: trả lại chốt cũ là cả hai phép thử đỏ.
+
+### Đổi tên trường theo quyết định sáp nhập
+
+Quyết định **1944/QĐ-UBND ngày 27/8/2026 của UBND xã Quỳ Hợp** thành lập
+**Trường Tiểu học Quỳ Hợp 2** trên cơ sở sáp nhập Tiểu học Châu Quang và
+Tiểu học Châu Đình. Mã trường **74334 GIỮ NGUYÊN** — cấp mã mới nghĩa là mọi
+giấy tờ nhà trường đã in ra thành sai, cùng luật đã đặt cho `duyet_truong()`.
+
+### 88 cán bộ giáo viên — và vì sao năm ô Gmail phải để TRỐNG
+
+Danh sách lấy từ biểu mẫu nhà trường gửi 30/8/2026, trang *3. Email đăng
+nhập*: 38 người ở cơ sở Châu Đình, 50 người ở phân hiệu Quang Trung. Dựng
+thành một tệp một trang `GIAO_VIEN` đúng khuôn `MUC_NHAP.giaovien`, mã giáo
+viên sinh sẵn bằng **chính `maGVTu()` chép nguyên văn từ app** — nhờ vậy
+nhập lại lần hai ra *"thêm 0, cập nhật 88"*, không nhân đôi ai. Bốn cặp
+trùng họ tên đủ (*Nguyễn Thị Hà · Nguyễn Thị Thanh · Nguyễn Thị Thùy Linh ·
+Phan Thị Trâm*) tách bằng hậu tố `_2`, đúng cách `datLaiMaGV()` vẫn làm.
+
+⚠️ **Ô Gmail của bốn người trong Ban giám hiệu và của người quản trị để
+TRỐNG.** Hai đường vào cạnh tranh nhau: Gmail đã khai ở bảng Giáo viên thì
+lúc họ bấm *Đăng nhập bằng Google*, `vao_bang_gmail()` nối họ vào làm **giáo
+viên** trước, và mã mời quản lý thành vô dụng — `dung_ma_moi()` từ chối
+*"Tài khoản này đã thuộc một trường rồi"*. Gỡ ra thì phải vào SQL. Bài học
+này đã ghi ở `db/tao-ma-moi-quan-ly.sql`; đây là lần đầu nó chạm dữ liệu
+thật của một trường.
+
+⚠️ Một địa chỉ trong biểu mẫu là **`…@gmal.com`** — thiếu chữ *i*. Dạng thư
+vẫn hợp lệ nên không bộ soát nào bắt được; đã báo lại nhà trường, không tự
+sửa hộ vì sửa địa chỉ thư là sửa danh tính của một người.

@@ -1994,14 +1994,22 @@ môn: **`docs/giao-dien.md`**. Năm luật giữ lại đây:
 > có hướng dẫn từng bước: **`docs/huong-dan-may-chu-truoc-khai-giang.md`**
 > *(3/8/2026)* — làm theo đúng thứ tự trong đó, một buổi tối là xong.
 
-- [ ] **Kèm Tiểu học Châu Đình khai báo dữ liệu** *(25/8/2026 — trường
+- [ ] **Kèm Tiểu học Quỳ Hợp 2 khai báo dữ liệu** *(25/8/2026 — trường
       ngoài đầu tiên, mã 74334, quản trị `c1chaudinh.qh@nghean.edu.vn`)*.
+      ⚠️ **Tên cũ là *Tiểu học Châu Đình*.** Từ 27/8/2026 trường mang tên
+      **Trường Tiểu học Quỳ Hợp 2** theo QĐ 1944/QĐ-UBND của UBND xã Quỳ Hợp
+      — sáp nhập TH Châu Quang + TH Châu Đình thành hai phân hiệu. **Mã 74334
+      giữ nguyên**; tệp cũ và nhật ký còn ghi tên Châu Đình là chuyện bình
+      thường, đừng "dọn" cho nhất quán.
       Đường nhanh nhất: **nhập từng mục** — mỗi màn hình khai báo có nút *Tải
       mẫu về điền* của riêng nó, làm theo thứ tự Phân hiệu → Lớp → Giáo viên →
       Phân công. *(Mẫu trọn gói đã bỏ hẳn 28/8/2026, đừng chỉ đường tới nó.)*
       Nhật ký ngày vào hệ thống (bốn chỗ vấp, đã vá cả bốn) ở
       `docs/lich-su-quyet-dinh.md`. Quy tắc rút ra: **trường đăng ký bằng
       Gmail CỦA NHÀ TRƯỜNG**, không dùng Gmail cá nhân.
+      Còn phải làm: nhập **danh sách lớp** (biểu mẫu nhà trường gửi 30/8 để
+      trống phần B), rồi phân công chuyên môn. 88 cán bộ giáo viên đã có tệp
+      sẵn ngoài kho mã (thư mục *TH Châu Đình*), 38 · 50 theo hai phân hiệu.
 - [ ] **Thông báo hai chiều cho khâu duyệt trường** — đơn mới thì báo chủ
       hệ thống, duyệt xong thì báo trường (hiện cả hai đầu đều phải tự mở
       app xem). Chưa gấp ở quy mô vài trường quen; **bắt buộc trước khi

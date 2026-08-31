@@ -6656,16 +6656,28 @@ async function ghiDuLieuNguon(dl, baoBuoc){
     const maLop={}; (lopSv||[]).forEach(l=>maLop[l.ma_lop]=l.id);
 
     buoc(4);
-    /* 5. Phân công: thay mới hoàn toàn */
-    await goiAPI(`/rest/v1/phan_cong?truong_id=eq.${t}`,
-      {method:'DELETE', headers:{Prefer:'return=minimal'}});
+    /* 5. Phân công: thay mới hoàn toàn.
+       ⚠️ CHỈ khi màn hình đang có lớp. Từ 31/8/2026 nút Lưu không còn đòi
+       phải có lớp mới bấm được (trường mới khai phân hiệu trước, xem chốt
+       ở `luuNguonLenMayChu`), mà bước này thì "xoá sạch rồi ghi lại" —
+       0 lớp nghĩa là 0 dòng ghi lại, tức DELETE trắng bảng phân công trên
+       máy chủ. Không lớp thì cũng không có phân công nào để ghi, nên bỏ
+       qua cả cụm là đúng nghĩa, không phải né lỗi. */
     const maLopCua=id=>{ const l=dl.lop.find(x=>x.id===id); return l?maCua(l):id; };
-    const hangPC=dl.phanCong
-      .map(p=>({truong_id:t, giao_vien_id:idSv[p.gvId], lop_id:maLop[maLopCua(p.lopId)],
-                mon:p.mon, so_tiet:p.soTiet}))
-      .filter(r=>r.giao_vien_id && r.lop_id && r.so_tiet>0);
-    if(hangPC.length) await goiAPI('/rest/v1/phan_cong',
-      {method:'POST', body:JSON.stringify(hangPC), headers:{Prefer:'return=minimal'}});
+    /* ⚠️ Khai NGOÀI khối `if` — câu tổng kết ở cuối hàm đếm `hangPC.length`.
+       Bản vá đầu để nó trong khối và cả 13 phép thử của đường ghi đổ ngay
+       với "hangPC is not defined". */
+    let hangPC=[];
+    if(dl.lop.length){
+      await goiAPI(`/rest/v1/phan_cong?truong_id=eq.${t}`,
+        {method:'DELETE', headers:{Prefer:'return=minimal'}});
+      hangPC=dl.phanCong
+        .map(p=>({truong_id:t, giao_vien_id:idSv[p.gvId], lop_id:maLop[maLopCua(p.lopId)],
+                  mon:p.mon, so_tiet:p.soTiet}))
+        .filter(r=>r.giao_vien_id && r.lop_id && r.so_tiet>0);
+      if(hangPC.length) await goiAPI('/rest/v1/phan_cong',
+        {method:'POST', body:JSON.stringify(hangPC), headers:{Prefer:'return=minimal'}});
+    }
 
     /* 6. Thông tin trường, danh mục môn, bảng phòng.
        Ba thứ này thêm sau nên bọc riêng: cơ sở dữ liệu chưa chạy
@@ -14896,7 +14908,19 @@ const nhanBuoc = (b, dau='Đang lưu') => (i, tong, ten) => {
 async function luuNguonLenMayChu(e){
   if(!duocSuaNguon()) return bao('Chỉ người phụ trách toàn trường mới sửa được dữ liệu nguồn',true);
   if(!coMayChu()) return hopMayChu();
-  if(!S.lop.length) return bao('Chưa có lớp nào để lưu',true);
+  /* ⚠️ CHỐT NÀY TỪNG CHẶN OAN CẢ MỘT TRƯỜNG MỚI (vá 31/8/2026). Câu cũ là
+     `if(!S.lop.length) return bao('Chưa có lớp nào để lưu')`, mà nút Lưu thì
+     DÙNG CHUNG cho cả chín màn hình khai báo: Tiểu học Quỳ Hợp 2 khai xong
+     hai phân hiệu, bấm Lưu và nhận đúng câu ấy. Muốn thêm lớp lại phải có
+     phân hiệu trước — hai đường cùng tắc, và trong lúc ấy KHÔNG lưu được
+     thứ gì cả: tên trường, khung giờ, danh mục môn, danh sách giáo viên đều
+     kẹt lại trong bộ nhớ trình duyệt, đóng tab là mất sạch. Dải đỏ "Có thay
+     đổi chưa lưu" vẫn hiện, nên phần mềm vừa giục lưu vừa không cho lưu.
+     Đường ghi vốn đã ghi từng bảng một, có gì ghi nấy (`ghiDuLieuNguon`),
+     nên chốt duy nhất còn đúng là "màn hình trống trơn thì không gọi máy
+     chủ 19 lần cho một bộ dữ liệu rỗng". */
+  if(!S.diemTruong.length && !S.lop.length && !S.giaoVien.length)
+    return bao('Chưa khai gì để lưu — thêm phân hiệu, lớp hoặc giáo viên trước đã', true);
   const b=e?.currentTarget, cu=b?.innerHTML;
   if(b){ b.disabled=true; b.textContent='Đang lưu…'; }
   const kq=await ghiDuLieuNguon(S, nhanBuoc(b));

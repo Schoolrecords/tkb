@@ -520,6 +520,50 @@ kt('Phòng và buổi bận nhập được',
 }
 
 
+/* --- Trường mới: LƯU ĐƯỢC khi mới có phân hiệu, chưa có lớp nào ----------
+   Tiểu học Quỳ Hợp 2 khai xong hai phân hiệu, bấm Lưu và nhận "Chưa có lớp
+   nào để lưu" (31/8/2026). Mà muốn thêm lớp thì lại phải có phân hiệu
+   trước — hai đường cùng tắc. Nút Lưu DÙNG CHUNG cho cả chín màn hình khai
+   báo, nên một chốt sai ở đây khoá luôn tám màn hình còn lại: tên trường,
+   khung giờ, danh mục môn, danh sách giáo viên đều kẹt trong bộ nhớ trình
+   duyệt, đóng tab là mất sạch — trong khi dải đỏ "Có thay đổi chưa lưu"
+   vẫn giục lưu. */
+{
+  const cu = w.eval('JSON.stringify({lop:S.lop, gv:S.giaoVien, pc:S.phanCong,'
+                    + ' dt:S.diemTruong, lopDT:S.lopDT})');
+  const khoCu = w.eval('JSON.stringify({ch:KHO.cauHinh||null, ph:KHO.phien||null,'
+                       + ' nd:KHO.nguoiDung||null})');
+  let goiGhi = 0;
+  w.__demGhi = () => { goiGhi++; };
+  w.eval('__ghiThat = ghiDuLieuNguon;'
+       + ' ghiDuLieuNguon = async () => { globalThis.__demGhi();'
+       + '   return {ok:true, thongBao:"Đã ghi lên máy chủ"}; };'
+       + ' KHO.cauHinh = KHO.cauHinh || {}; KHO.phien = KHO.phien || {};'
+       + ' KHO.nguoiDung = KHO.nguoiDung || {};');
+
+  /* a) Mới khai phân hiệu — chưa lớp, chưa giáo viên */
+  w.eval('S.lop = []; S.giaoVien = []; S.phanCong = []; S.lopDT = {};'
+       + ' if(!S.diemTruong.length) S.diemTruong = [{id:"dt_soi", ten:"Điểm trường chính"}];');
+  bao.length = 0; goiGhi = 0;
+  await w.luuNguonLenMayChu();
+  kt('Mới khai phân hiệu, chưa có lớp nào: nút Lưu VẪN ghi lên máy chủ',
+     goiGhi === 1 && !baoCuoi().loi, baoCuoi().chu.slice(0, 60) || '(không nói gì)');
+
+  /* b) Trống trơn thì mới từ chối — và phải nói ra thứ cần khai */
+  w.eval('S.diemTruong = [];');
+  bao.length = 0; goiGhi = 0;
+  await w.luuNguonLenMayChu();
+  kt('Màn hình trống trơn thì từ chối, và câu từ chối chỉ đúng việc phải làm',
+     goiGhi === 0 && baoCuoi().loi && /phân hiệu/i.test(baoCuoi().chu),
+     baoCuoi().chu.slice(0, 70) || '(không nói gì)');
+
+  w.eval(`(() => { const c = ${cu}, k = ${khoCu};
+    S.lop = c.lop; S.giaoVien = c.gv; S.phanCong = c.pc;
+    S.diemTruong = c.dt; S.lopDT = c.lopDT;
+    ghiDuLieuNguon = __ghiThat;
+    KHO.cauHinh = k.ch; KHO.phien = k.ph; KHO.nguoiDung = k.nd; })()`);
+}
+
 console.log('\n3. Không có lỗi chạy nào trong suốt hai lối khai báo');
 kt('Không lỗi JavaScript nào', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');
