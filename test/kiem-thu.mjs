@@ -356,6 +356,7 @@ const BAN_LUU = {
 async function mangGia(url, opt = {}) {
   const than = opt.body ? JSON.parse(opt.body) : null;
   const co = s => url.includes(s);
+  (GHI.duong ||= []).push(`${opt.method || 'GET'} ${url}`);
 
   if (co('grant_type=password'))
     return than.password === 'dung'
@@ -375,6 +376,31 @@ async function mangGia(url, opt = {}) {
     return dap(GHI.diemTruong.slice(-than.length), 201);
   }
   if (opt.method === 'POST' && co('/khung_gio')) { GHI.khungGio = than; return dap(null, 201); }
+  /* --- Bảng mon_hoc: có ràng buộc unique (truong_id, ten) như máy chủ thật.
+     `GHI.chanMon` dựng lại một lần ghi hỏng giữa chừng. --- */
+  if (co('/mon_hoc')) {
+    GHI.monHoc ||= [];
+    if (opt.method === 'POST') {
+      if (GHI.chanMon) return dap({ message: GHI.chanMon }, 400);
+      GHI.monKhoa = (url.match(/on_conflict=([^&]*)/) || [])[1] || '';
+      const trung = than.map(m => m.ten).filter((x, i, a) => a.indexOf(x) !== i);
+      if (trung.length) return dap({ message:
+        'duplicate key value violates unique constraint "mon_hoc_truong_id_ten_key"' }, 409);
+      than.forEach(m => {
+        const cu = GHI.monHoc.find(x => x.ten === m.ten);
+        if (cu) Object.assign(cu, m); else GHI.monHoc.push({ id: 'mh' + (GHI.monHoc.length + 1), ...m });
+      });
+      return dap(null, 201);
+    }
+    if (opt.method === 'DELETE') {
+      const id = (url.match(/id=eq\.([^&]*)/) || [])[1];
+      if (id) { GHI.xoaMon = (GHI.xoaMon || []).concat(id);
+                GHI.monHoc = GHI.monHoc.filter(m => m.id !== id); }
+      else GHI.xoaCaBangMon = (GHI.xoaCaBangMon || 0) + 1;
+      return dap(null, 204);
+    }
+    return dap(GHI.monHoc.map(m => ({ id: m.id, ten: m.ten })));
+  }
   if (opt.method === 'POST' && co('/giao_vien')) {
     GHI.giaoVien = than;
     /* Nhớ cả KHOÁ upsert: ghi theo `id` hay theo `truong_id,ma_gv` là hai
@@ -1387,6 +1413,47 @@ kt('Bấm xoá thật thì máy chủ xoá thật',
              && !GHI.diemTruong.some(d => d.id === 'dt-cua-nguoi-khac')
              && !(r.dtLa || []).includes('Phân hiệu Diễn Thái'),
              `xoá ${GHI.xoaDT.length} dòng`];
+   })());
+
+/* ---------- Danh mục môn: ghi TRƯỚC, dọn SAU (31/8/2026) ----------
+   Tiểu học Quảng Châu 1 nhập xong nhận dải đỏ *"Chưa lưu được danh mục môn
+   học — bấm Lưu lại một lần nữa"*, bấm lại mấy lần cũng thế. Câu ấy nuốt mất
+   lý do thật, mà đường ghi thì "xoá sạch rồi POST": lệnh POST hỏng là nhà
+   trường mất trắng danh mục, lần tải sau app lùi về 13 môn mặc định. */
+kt('Ghi danh mục môn KHÔNG xoá sạch bảng trước — không lúc nào bảng trống',
+   await (async () => {
+     GHI.monHoc = [{ id: 'mh-cu', ten: 'Môn Cũ Bỏ Đi' }];
+     GHI.xoaMon = []; GHI.xoaCaBangMon = 0;
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       monHoc: [{ ten: 'Toán', chuan: { 1: 3 } }, { ten: 'Tiếng Việt', chuan: { 1: 12 } }] });
+     return [r.ok && GHI.xoaCaBangMon === 0 && /truong_id,ten/.test(GHI.monKhoa || ''),
+             `xoá cả bảng ${GHI.xoaCaBangMon} lần · khoá upsert "${GHI.monKhoa}"`];
+   })());
+kt('Nhưng môn không còn trong danh sách thì vẫn bị xoá hẳn',
+   [(GHI.xoaMon || []).includes('mh-cu') && !GHI.monHoc.some(m => m.ten === 'Môn Cũ Bỏ Đi'),
+    `xoá ${(GHI.xoaMon || []).length} môn thừa`]);
+
+/* ⚠️ Trùng tên môn phải chặn TRƯỚC khi gọi máy chủ: bảng khoá unique
+   (truong_id, ten) nên Postgres từ chối cả lệnh, và câu báo phải nói được
+   TÊN MÔN nào trùng thì nhà trường mới sửa được. */
+kt('Hai môn cùng tên: chặn ngay, nói rõ tên môn, không đụng máy chủ',
+   await (async () => {
+     GHI.duong = [];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [],
+       monHoc: [{ ten: 'Toán' }, { ten: 'Toán' }, { ten: 'Tiếng Việt' }] });
+     const goiMon = GHI.duong.filter(x => /POST .*\/mon_hoc/.test(x)).length;
+     return [/hai môn cùng tên "Toán"/i.test(r.thongBao) && goiMon === 0,
+             `${goiMon} lời gọi mon_hoc · ${(r.thongBao.match(/hai môn[^.]*/) || [''])[0]}`];
+   })());
+
+kt('Máy chủ từ chối thì nói RA LÝ DO, không chỉ "bấm Lưu lại một lần nữa"',
+   await (async () => {
+     GHI.chanMon = 'new row violates row-level security policy for table "mon_hoc"';
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [], monHoc: [{ ten: 'Toán' }] });
+     GHI.chanMon = null;
+     return [/danh mục môn/i.test(r.thongBao) && !/bấm Lưu lại một lần nữa/.test(r.thongBao)
+             && /quyền|không được/i.test(r.thongBao),
+             (r.thongBao.match(/Chưa lưu được danh mục môn học[^.]*\./) || [''])[0]];
    })());
 
 /* Phân hiệu khai trong app rồi xoá ngay thì `dtDaXoa` mang id app

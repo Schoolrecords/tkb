@@ -7182,26 +7182,53 @@ async function ghiDuLieuNguon(dl, baoBuoc){
     let loiDanhMuc='';
     const thieuBang=e=>/does not exist|404|relation/i.test(String(e?.message||''))||e?.ma===404;
     if(dl.monHoc?.length){
+      /* ⚠️ TRÙNG TÊN MÔN phải chặn TRƯỚC khi gọi máy chủ (31/8/2026). Bảng
+         `mon_hoc` khoá `unique (truong_id, ten)`, nên hai môn cùng tên làm
+         Postgres từ chối CẢ lệnh — mà lúc ấy lệnh DELETE đã ăn rồi, danh mục
+         trên máy chủ trắng trơn. Tiểu học Quảng Châu 1 nhận đúng câu
+         "Chưa lưu được danh mục môn học — bấm Lưu lại một lần nữa", bấm lại
+         mấy lần cũng thế vì lý do thật không nằm ở mạng.
+         Chặn ở đây thì nói được TÊN MÔN nào trùng, và không đụng máy chủ. */
+      const tenMon = dl.monHoc.map(m=>String(m.ten||'').trim());
+      const trung = tenMon.filter((x,i)=>x && tenMon.indexOf(x)!==i);
+      const trong = tenMon.filter(x=>!x).length;
+      if(trung.length || trong){
+        loiDanhMuc = trung.length
+          ? `Chưa lưu được danh mục môn học: hai môn cùng tên "${[...new Set(trung)].join('", "')}" — `
+            +'vào mục Môn học đổi tên hoặc xoá bớt một dòng, rồi bấm Lưu lại.'
+          : 'Chưa lưu được danh mục môn học: có dòng môn chưa điền tên — '
+            +'vào mục Môn học xoá dòng trống ấy, rồi bấm Lưu lại.';
+      } else
       try{
-        await goiAPI(`/rest/v1/mon_hoc?truong_id=eq.${t}`,
-          {method:'DELETE', headers:{Prefer:'return=minimal'}});
-        const hangMon = kemLien => dl.monHoc.map((m,i)=>({truong_id:t, ten:m.ten, mau:m.mau||null,
-            nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||null,
+        const hangMon = kemLien => dl.monHoc.map((m,i)=>({truong_id:t, ten:String(m.ten).trim(),
+            mau:m.mau||null, nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||null,
             tiet_chuan:m.chuan||null, thu_tu:i,
             ...(kemLien&&m.lienTiet!==undefined ? {lien_tiet:!!m.lienTiet} : {})}));
+        /* ⚠️ GHI TRƯỚC, DỌN SAU — đừng "xoá sạch rồi ghi lại" (sửa 31/8/2026).
+           Đường cũ DELETE cả bảng rồi mới POST: mạng chớp giữa hai lệnh, hay
+           một lỗi bất kỳ ở lệnh POST, là nhà trường mất trắng danh mục môn —
+           lần tải sau app lùi về 13 môn mặc định và các môn tự chọn họ thêm
+           biến mất không dấu vết. Upsert theo khoá tự nhiên (truong_id, ten)
+           rồi mới xoá những môn không còn trong danh sách: không lúc nào bảng
+           trống, và hỏng giữa chừng thì cùng lắm là thừa một dòng cũ. */
+        const ghiMon = async kemLien => {
+          await gop('mon_hoc', hangMon(kemLien), 'truong_id,ten');
+          const con = new Set(hangMon(false).map(h=>h.ten));
+          const svMon = await goiAPI(`/rest/v1/mon_hoc?truong_id=eq.${t}&select=id,ten`);
+          const thua = (svMon||[]).filter(m=>!con.has(m.ten));
+          for(const m of thua)
+            await goiAPI(`/rest/v1/mon_hoc?id=eq.${m.id}`,
+              {method:'DELETE', headers:{Prefer:'return=minimal'}});
+        };
         /* ⚠️ ĐƯỜNG LUI cho cột thêm ngày 31/8/2026 (db/lien-tiet.sql). Máy chủ
            chưa chạy tệp ấy thì PostgREST từ chối CẢ lệnh chứ không bỏ qua cột
-           thiếu — mất luôn cả danh mục môn, và lần tải sau app lùi về 13 môn
-           mặc định nên các môn tự chọn nhà trường thêm biến mất. Cùng khuôn
-           đường lui của hai cột Gmail ngày 28/8. */
+           thiếu. Cùng khuôn đường lui của hai cột Gmail ngày 28/8. */
         try{
-          await goiAPI('/rest/v1/mon_hoc', {method:'POST',
-            headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangMon(KHO.coCotLienTiet!==false))});
+          await ghiMon(KHO.coCotLienTiet!==false);
         }catch(e2){
           if(!/Could not find the 'lien_tiet' column/i.test(String(e2?.message||''))) throw e2;
           KHO.coCotLienTiet=false;
-          await goiAPI('/rest/v1/mon_hoc', {method:'POST',
-            headers:{Prefer:'return=minimal'}, body:JSON.stringify(hangMon(false))});
+          await ghiMon(false);
         }
         /* ⚠️ Cứu được danh mục nhưng KHÔNG cứu được cột mới — phải NÓI RA.
            Im lặng ở đây là "báo đã lưu mà chẳng lưu gì": người dùng bỏ tích
@@ -7212,7 +7239,11 @@ async function ghiDuLieuNguon(dl, baoBuoc){
           loiDanhMuc+='Chưa lưu được lựa chọn "Cho xếp 2 tiết liền" — '
             +'quản trị chạy db/lien-tiet.sql một lần trong SQL Editor. ';
       }catch(e){ if(!thieuBang(e))
-        loiDanhMuc='Chưa lưu được danh mục môn học — bấm Lưu lại một lần nữa. '; }
+        /* ⚠️ NÓI RA LÝ DO THẬT. Câu cũ chỉ có "bấm Lưu lại một lần nữa" —
+           đúng khi mạng chớp, nhưng vô dụng với mọi lý do khác, mà người dùng
+           thì bấm lại mấy lần rồi mới đi hỏi. `dienGiaiLoi()` đã dịch sẵn
+           trùng khoá · thiếu quyền · hết phiên thành câu người đọc được. */
+        loiDanhMuc=`Chưa lưu được danh mục môn học: ${dienGiaiLoi(e)} `; }
     }
     if(dl.phong?.length){
       try{

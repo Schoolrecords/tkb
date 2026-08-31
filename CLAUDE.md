@@ -161,6 +161,20 @@ dưới — cơ sở dữ liệu chưa chạy tệp SQL vẫn mở app bình th�
 trùng với một enum khác nghĩa là bẫy đọc nhầm cho người sửa sau — `npm run soat`
 bắt đúng chuyện này ngay lần chạy đầu, trước khi kịp dán vào SQL Editor.
 
+⚠️ **Danh mục môn ghi TRƯỚC, dọn SAU — đừng "xoá sạch rồi ghi lại"**
+*(31/8/2026)*. Đường cũ `DELETE` cả bảng rồi mới `POST`: lệnh POST hỏng vì bất
+cứ lý do gì là nhà trường **mất trắng danh mục môn**, lần tải sau app lùi về 13
+môn mặc định và các môn tự chọn họ thêm biến mất không dấu vết. Nay upsert theo
+`(truong_id, ten)` rồi mới xoá những môn không còn — không lúc nào bảng trống.
+Kèm hai điều:
+
+- **Trùng tên môn chặn TRƯỚC khi gọi máy chủ**, và câu báo nêu đúng tên môn
+  trùng. Bảng khoá `unique (truong_id, ten)` nên Postgres từ chối cả lệnh; nói
+  "bấm Lưu lại một lần nữa" thì người dùng bấm mười lần cũng thế.
+- ⚠️ **Câu lỗi phải kèm LÝ DO THẬT** (`dienGiaiLoi(e)`). Tiểu học Quảng Châu 1
+  nhận đúng câu chung chung ấy và không có cách nào biết vì sao. Câu "thử lại"
+  chỉ đúng khi mạng chớp, mà đó là thiểu số các lý do.
+
 **`mon_hoc` và `phong` là hai bảng thêm sau** *(1/8/2026 — `db/mon-hoc-phong.sql`)*.
 Trước đó danh mục môn nằm cứng trong mã (`MON_LOP`, `MON_NANG`, `MON_NHE`) nên
 trường muốn thêm một môn tự chọn là phải sửa mã. Hai bảng này **đọc bằng

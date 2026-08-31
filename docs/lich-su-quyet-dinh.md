@@ -2675,3 +2675,43 @@ một lần đọc tệp.
 
 **Tám phép thử mới ở mục 22 của `npm test`.** Thử ngược 2/2: chép nông lại →
 3 đỏ; bỏ phép gộp nền → 2 đỏ.
+
+---
+
+## 31/8/2026 (tối) — "Chưa lưu được danh mục môn học" mà không nói vì sao
+
+Tiểu học Quảng Châu 1 nhập xong dữ liệu và nhận dải đỏ:
+
+> Đã nhập 25 lớp · 32 giáo viên · 275 dòng phân công.
+> ⚠️ Chưa lưu được danh mục môn học — bấm Lưu lại một lần nữa.
+
+Chủ dự án hỏi *"Lỗi gì đây em?"* — và đó chính là vấn đề: **phần mềm cũng
+không nói**. Câu ấy đúng khi mạng chớp giữa hai lệnh, nhưng mạng chỉ là một
+trong nhiều lý do; các lý do còn lại (trùng tên môn, thiếu quyền, hết phiên,
+thiếu cột) thì bấm lại mười lần cũng thế.
+
+### Ba việc
+
+- **Câu lỗi kèm lý do thật** — `dienGiaiLoi(e)` vốn đã dịch sẵn trùng khoá ·
+  thiếu quyền · hết phiên · mất mạng thành câu người đọc được. Chỉ là đường
+  ghi danh mục môn không dùng nó.
+- **Trùng tên môn chặn TRƯỚC khi gọi máy chủ**, nêu đúng tên môn trùng. Bảng
+  `mon_hoc` khoá `unique (truong_id, ten)`; chặn ở app thì nói được tên môn,
+  còn để Postgres từ chối thì chỉ có tên ràng buộc.
+- ⚠️ **Ghi trước, dọn sau.** Đây mới là chỗ nguy hiểm nhất và nó nằm ngay
+  trong đoạn mã có sẵn một comment cảnh báo về chính nó: đường ghi `DELETE`
+  cả bảng rồi mới `POST`. Lệnh POST hỏng — vì bất cứ lý do gì — là nhà trường
+  **mất trắng danh mục môn**, và lần tải sau app lùi về 13 môn mặc định nên
+  các môn tự chọn họ thêm (ở Quảng Châu 1 là *TC Toán*, *TC TV*) biến mất
+  không dấu vết. Nay upsert theo `(truong_id, ten)` rồi mới xoá những môn
+  không còn trong danh sách: không lúc nào bảng trống, hỏng giữa chừng thì
+  cùng lắm thừa một dòng cũ.
+
+**Bốn phép thử ở mục đường ghi của `npm test`**, kèm bảng `mon_hoc` dựng đủ
+ràng buộc unique trong máy chủ giả. Thử ngược 3/3 đỏ.
+
+⚠️ Bài học rộng hơn: **một comment cảnh báo không phải một hàng rào.** Đoạn mã
+ấy đã ghi rõ *"DELETE đã ăn mà POST hỏng thì máy chủ mất sạch danh mục"* từ
+lâu — nhưng chỉ ghi rồi để nguyên cách làm nguy hiểm, và không phép thử nào
+canh. Viết được câu ấy ra tức là đã thấy vấn đề; lúc ấy phải sửa, chứ không
+phải chú thích nó.
