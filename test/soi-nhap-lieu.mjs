@@ -613,6 +613,26 @@ kt('Phòng và buổi bận nhập được',
      !S.lop.some(l => l.maLop === '9Z_TT'), `${S.lop.length} lớp`)
 }
 
+/* --- Dải chỉ số Bảng điều hành: ba dòng cuối là QUY MÔ TRƯỜNG ------------
+   Quỳ Hợp 2 nhập xong 81 giáo viên mà Bảng điều hành vẫn ghi "0 giáo viên"
+   ngay cạnh "47 lớp học" — vì ô ấy đếm NGƯỜI ĐÃ CÓ PHÂN CÔNG, còn hai ô kia
+   đếm thẳng bảng. Đọc ra thành "bảng giáo viên rỗng", đúng kết luận sai, và
+   là điều đầu tiên nhà trường nhìn thấy sau khi nhập. */
+{
+  const cu = w.eval('JSON.stringify({pc:S.phanCong, pv:S.phamVi})');
+  w.eval('S.phanCong = []; S.phamVi = ""; tinhLai();');
+  w.chuyen('dieuhanh');
+  const so = [...w.document.querySelectorAll('#noiDung .cs-d')]
+    .map(e => e.textContent.replace(/\s+/g, ' ').trim());
+  const oGV = so.find(t => /giáo viên$/.test(t)) || '';
+  const oLop = so.find(t => /lớp học$/.test(t)) || '';
+  kt('Chưa có phân công nào thì dải chỉ số VẪN đếm đủ giáo viên',
+     oGV === `${S.giaoVien.length}giáo viên`, `"${oGV}" · có ${S.giaoVien.length} hồ sơ`);
+  kt('Và đếm cùng kiểu với ô lớp học ngay trên nó',
+     oLop === `${S.lop.length}lớp học`, `"${oLop}" · có ${S.lop.length} lớp`);
+  w.eval(`(() => { const c = ${cu}; S.phanCong = c.pc; S.phamVi = c.pv; tinhLai(); })()`);
+}
+
 console.log('\n3. Không có lỗi chạy nào trong suốt hai lối khai báo');
 kt('Không lỗi JavaScript nào', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');

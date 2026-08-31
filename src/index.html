@@ -8626,7 +8626,14 @@ function mDieuHanh(){
   const daXep=ds.reduce((s,l)=>s+Object.keys(S.tkb[l.id]||{}).length,0);
   const pt=tongCan?Math.round(daXep/tongCan*100):0;
   const nay=new Date();
-  const gvTrongPV=new Set(S.phanCong.filter(p=>ds.some(l=>l.id===p.lopId)).map(p=>p.gvId));
+  /* ⚠️ Ổ "giáo viên" của dải chỉ số từng đếm NGƯỜI ĐÃ CÓ PHÂN CÔNG, bằng một
+     biến cục bộ che mất hàm toàn cục `gvTrongPV()` cùng tên (vá 31/8/2026).
+     Ba dòng cuối của dải là QUY MÔ TRƯỜNG — "lớp học" và "phân hiệu" đều
+     đếm thẳng bảng, riêng ô giữa thì không. Quỳ Hợp 2 nhập xong 81 giáo viên
+     mà Bảng điều hành vẫn ghi **0 giáo viên** ngay cạnh "47 lớp học" — đọc ra
+     thành "bảng giáo viên rỗng", đúng kết luận sai, và là điều đầu tiên họ
+     nhìn thấy sau khi nhập. Hàm toàn cục đã lo đúng phạm vi, và còn giữ chủ
+     nhiệm của lớp chưa có dòng phân công nào. */
   /* Thẻ cảnh báo tự cuộn bên trong nên bày hết, không cắt bớt còn 4 mục */
   const canhBao=KT.vm.filter(v=>v.muc!=='goi');
   const vc=vieccanXuLy();
@@ -8670,7 +8677,7 @@ function mDieuHanh(){
           </div>
         </div>
         <div class="tien" style="margin-top:16px"><i style="width:${pt}%"></i></div>
-        ${kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV.size, vc)}
+        ${kheSoLieu(ds.length, pt, daXep, tongCan, gvTrongPV().length, vc)}
         <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap">
           ${duocXep()?`<button class="b b-vien b-nho" data-di="xep">Xếp thời khóa biểu</button>`:''}
           <button class="b b-vien b-nho" data-di="tkblop">Xem theo lớp</button>

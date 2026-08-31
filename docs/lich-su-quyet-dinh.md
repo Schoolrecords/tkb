@@ -1939,3 +1939,46 @@ xem lý do ở mục trên. Đây là lần thứ hai luật ấy chạm dữ li
 môn tự chọn (*Tự học · Đọc thư viện · Tiếng Việt \* · Toán \**). Nhà trường
 phải mở thêm buổi ở mục *Khối và khung giờ* trước khi xếp, không thì R05 nổ
 đúng 47 lớp.
+
+### Bảng điều hành ghi "0 giáo viên" ngay sau khi nhập 81 người
+
+Nhập xong 81 hồ sơ, mở Bảng điều hành, dải chỉ số ghi **`0 giáo viên`** ngay
+dưới **`47 lớp học`**. Không mất dữ liệu — nhưng đó là điều ĐẦU TIÊN nhà
+trường nhìn thấy sau khi nhập, và nó đọc ra thành *"bảng giáo viên rỗng"*,
+đúng kết luận sai.
+
+Gốc: `mDieuHanh()` khai một biến cục bộ `const gvTrongPV = new Set(…)` **che
+mất hàm toàn cục cùng tên**, và cái Set ấy chỉ gom `gvId` từ bảng **phân
+công**. Ba dòng cuối của dải là *quy mô trường* — `lớp học` và `phân hiệu`
+đều đếm thẳng bảng, riêng ô ở giữa thì không. Chưa phân công dòng nào là ô ấy
+về 0.
+
+Vá bằng cách gọi đúng hàm toàn cục `gvTrongPV()`: nó vốn đã lo phạm vi của
+PHT một phân hiệu, và còn giữ chủ nhiệm của lớp chưa có dòng phân công nào.
+
+⚠️ Bài học lặp lại: **một biến cục bộ trùng tên một hàm toàn cục thì không có
+gì báo cho biết** — không lỗi cú pháp, không cảnh báo, chỉ là một con số sai
+lặng lẽ. Đặt tên trùng với hàm đang có là tự dựng bẫy cho người sửa sau, đúng
+khuôn bài học cột `buoi_nghi` và `trang_thai_duyet`.
+
+Phép thử ở `npm run soi-nhap`: xoá sạch phân công rồi đòi ô ấy vẫn đếm đủ hồ
+sơ, và đếm **cùng kiểu** với ô lớp học ngay trên nó. Đã thử ngược.
+
+### Đưa dữ liệu Quỳ Hợp 2 lên máy chủ thật — qua chính giao diện
+
+Chủ dự án chọn cách lái trình duyệt thay vì nạp bằng SQL. Ghi lại vì nó lộ ra
+mấy điều đáng nhớ:
+
+- **Đường nhập Excel TỰ GHI LÊN MÁY CHỦ khi đang nối máy chủ** — `lenMayChu`
+  thì `hopXacNhanMuc()` gọi luôn `ghiDuLieuNguon()` rồi `chotVanTay()`, không
+  phải bấm Lưu. Chỉ thao tác sửa tay trong app (xoá môn `CN`) mới cần bấm.
+- Nhà trường trong lúc ấy đã **tự mở khung giờ lên 9 buổi · 33 ô/tuần** cho cả
+  năm khối, khớp đúng danh mục môn 33 tiết. Cảnh báo *"khung giờ chỉ 27–30 ô"*
+  nêu ở mục trên vì thế đã tự hết.
+- Lớp 1D được chuyển sang Phân hiệu Châu Quang, nên chuyện *chủ nhiệm ở phân
+  hiệu khác* (cô Vi Ngọc Quỳnh) cũng hết. R07 không còn nổ.
+
+Chốt sau khi tải lại trang, đọc thẳng từ máy chủ: **47 lớp · 81 giáo viên ·
+17 môn · 2 phân hiệu · 47/47 lớp có chủ nhiệm · 0 mã giáo viên trùng · 76
+Gmail · 79 số điện thoại**. `kiemTra()` chỉ còn R04 (chưa phân công) và R09
+(trùng tên gọi, mức gợi ý) — **không mục nào mức "do"**.
