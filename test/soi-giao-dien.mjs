@@ -4328,6 +4328,35 @@ console.log('\n17ab. HTML tĩnh trong <body> không được lộ mã ra màn h�
   })());
 }
 
+console.log('\n17ac. Trần số buổi dạy nói bằng SỐ BUỔI PHẢI ĐẾN TRƯỜNG');
+/* Chủ dự án 31/8/2026 nhìn thẻ "8 buổi có mặt" của một cô giáo rồi hỏi *"có
+   nút nào chọn GV dạy trong 7 buổi hoặc 8 buổi không em?"* — tính năng đã có
+   từ hôm trước, nhưng nhãn chỉ ghi "được nghỉ ít nhất N buổi", bắt người dùng
+   tự lấy 8 trừ đi. Một tính năng người dùng không nhận ra thì bằng không có. */
+{
+  const nghiGoc = w.eval('S.buoiNghiToiThieu');
+  const chu = () => w.document.querySelector('#noiDung').textContent;
+  w.eval('S.buoiNghiToiThieu = 0');
+  w.chuyen('xep');
+  kt('Chưa ép gì thì nói rõ đang là "đến trường cả N buổi"',
+     [/đến trường cả \d+ buổi/.test(chu()), (chu().match(/đến trường cả \d+ buổi/) || [''])[0]]);
+
+  const so = w.eval('KT.buoi');
+  w.eval('S.buoiNghiToiThieu = 1');
+  w.chuyen('xep');
+  kt('Đặt nghỉ 1 buổi thì bày ngay con số thầy cô nhìn ở màn Theo giáo viên',
+     [chu().includes(`dạy nhiều nhất ${so - 1}/${so} buổi`),
+      (chu().match(/dạy nhiều nhất \d+\/\d+ buổi/) || [''])[0]]);
+  kt('Và chỉ đường sang mục Buổi bận cho ai cần chỉ định đúng buổi',
+     /mục Buổi bận/.test(chu()));
+  /* Nhãn nhắc phải theo tên mục hiện hành — mục đổi tên 31/8/2026 */
+  kt('Không còn nhắc tới tên mục cũ "Khối và khung giờ"',
+     !/Khối và khung giờ/.test(chu()));
+
+  w.eval(`S.buoiNghiToiThieu = ${nghiGoc || 0}`);
+  w.chuyen('dieuhanh');
+}
+
 console.log('\n18. Không có lỗi chạy nào');
 kt('Không lỗi JavaScript nào trong suốt phép thử', loiChay.length === 0,
    loiChay.slice(0, 3).join(' | ') || 'sạch');

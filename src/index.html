@@ -9630,16 +9630,25 @@ function mXep(){
         ${(()=>{
           const du=[...new Set(khoiDangCo().map(k=>sucChuaKhoi()[k]-tietCanKhoi(k)))].sort((a,b)=>a-b);
           const duIt=du.length?du[0]:0;
+          /* ⚠️ NÓI BẰNG SỐ BUỔI PHẢI ĐẾN TRƯỜNG, không chỉ nói số buổi nghỉ
+             (31/8/2026). Chủ dự án nhìn thẻ "8 buổi có mặt" của cô Hoè rồi hỏi
+             *"có nút nào chọn GV dạy trong 7 buổi hoặc 8 buổi không em?"* —
+             tính năng đã có đúng từ hôm trước, nhưng nhãn bắt người dùng tự
+             lấy 8 trừ đi. Nay bày thẳng con số họ đang nhìn ở màn Theo giáo viên. */
+          const nghi=S.buoiNghiToiThieu||0, day=Math.max(0, KT.buoi-nghi);
           return `<label class="hang" style="margin-top:14px;cursor:pointer">
             <span>Mỗi thầy cô được nghỉ ít nhất
               <input class="ip" type="number" min="0" max="4" id="ipNghi"
-                value="${S.buoiNghiToiThieu||0}" style="width:58px;text-align:center">
-              buổi mỗi tuần</span></label>
+                value="${nghi}" style="width:58px;text-align:center">
+              buổi mỗi tuần</span>
+            <b>${nghi?`dạy nhiều nhất ${day}/${KT.buoi} buổi`:`đến trường cả ${KT.buoi} buổi`}</b></label>
           <div class="gy" style="margin-top:7px">${duIt>0
-            ? `Khung giờ đang dư <b>${duIt} ô</b> mỗi lớp, nên còn chỗ để dồn tiết lại.`
+            ? `Khung giờ đang dư <b>${duIt} ô</b> mỗi lớp, nên còn chỗ để dồn tiết lại.
+               Đặt <b>1</b> là mỗi thầy cô có một buổi không phải đến trường.`
             : `⚠️ Khung giờ đang <b>dư 0 ô</b> — số ô vừa khít số tiết. Bỏ một buổi đi là lớp
                thiếu chỗ, nên đặt số này lớn hơn 0 cũng không ai nghỉ được. Muốn thầy cô có
-               buổi trống thì mở thêm ô ở mục <b>Khối và khung giờ</b>.`}</div>`;
+               buổi trống thì mở thêm ô ở mục <b>Khung giờ học</b>.`}
+            Muốn chỉ định đúng buổi nào cho riêng một thầy cô thì dùng mục <b>Buổi bận</b>.</div>`;
         })()}
         <div class="gy" style="margin-top:12px"><b>Xếp nhanh</b> cho một phương án dùng được trong khoảng một giây.
           <b>Xếp kỹ</b> chạy vài phút, thử hàng chục cách rồi giữ lại vài phương án đẹp nhất để thầy cô tự chọn.
