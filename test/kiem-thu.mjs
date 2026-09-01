@@ -3912,10 +3912,11 @@ console.log('\n24. Trần số buổi dạy — pha 0 chọn buổi nghỉ TRƯ�
 /* Chủ dự án: *"số buổi dạy của từng giáo viên được cố định trước khi xếp …
    đồng loạt giáo viên cả trường chỉ phải dạy trong 7 hoặc 8 buổi / 9 buổi"*.
 
-   ⚠️ ĐIỀU QUYẾT ĐỊNH KHÔNG PHẢI THUẬT TOÁN, LÀ PHÉP TÍNH SỐ Ô. Lưới Diễn Liên
-   có đúng 27/28/30 ô cho 27/28/30 tiết — dư 0 ô. Bỏ một buổi đi là lớp thiếu
-   chỗ, nên cho ai nghỉ cũng là mất tiết. Ba cách rẻ đã đo và đều hỏng; xem
-   chú thích ở `chonBuoiNghi()`. */
+   ⚠️ SỬA NGỮ NGHĨA 1/9/2026 (bài toán Quảng Châu 1): buổi thầy cô nghỉ KHÔNG
+   phải buổi lớp nghỉ — đồng nghiệp vẫn dạy lớp buổi ấy, nên lưới dư 0 ô vẫn
+   cấp được buổi nghỉ cho MỘT PHẦN thầy cô, miễn sổ cam kết phủ buổi còn chỗ.
+   Hai điều bất biến: KHÔNG bao giờ mất thêm tiết so với bản không ép (thang
+   khoá luỹ tiến + van trả về bản gốc), và không ép gì thì lưới y như cũ. */
 {
   const DLB = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
   const mo = (sua) => {
@@ -3941,15 +3942,26 @@ console.log('\n24. Trần số buổi dạy — pha 0 chọn buổi nghỉ TRƯ�
     else app.S.khungGio.push({ thu: 4, buoi: 'C', tiet: 3, bat: true, tietKhoi: null });
   };
 
-  /* --- a) LƯỚI KÍN (dư 0 ô): phải KHÔNG đổi gì --- */
+  /* --- a) LƯỚI KÍN (dư 0 ô): cấp được một phần, tuyệt đối không mất tiết --- */
   const kinA = mo(); kinA.xepTuDong(1200);
   const kinB = mo(); const kqB = kinB.xepTuDong(1200, { nghiToiThieu: 1 });
-  kt('Lưới dư 0 ô: pha 0 KHÔNG cho ai nghỉ — đúng phép tính, không phải bỏ cuộc',
-     kqB.pha0 && kqB.pha0.datDu === 0, `${kqB.pha0?.datDu}/${kqB.pha0?.tong} người`);
-  kt('Và lưới ra GIỐNG HỆT từng ô như khi không ép gì', anh(kinA) === anh(kinB),
-     `${demXep(kinA)} và ${demXep(kinB)} tiết`);
+  kt('Lưới dư 0 ô: nhờ đồng nghiệp phủ buổi, VẪN cấp được buổi nghỉ cho một số người',
+     kqB.pha0 && kqB.pha0.datDu > 0, `${kqB.pha0?.datDu}/${kqB.pha0?.tong} người`);
+  kt('Và bớt HẲN người phải đến trường cả tuần (đo 1/9: 17 → 1)', (() => {
+    /* Ngưỡng −4 canh khoản phạt vượt trần trong diemGV: tắt nó đi thì kín
+       tuần đứng nguyên 17/17 dù pha 0 vẫn cấp 5 người — đã thử ngược. Chừa
+       biên rộng vì bước hoán đổi dừng theo đồng hồ, máy chậm dồn được ít hơn. */
+    const soBuoi = kinB.buoiBat().length;
+    const kinSau = Object.values(buoiCua(kinB)).filter(x => x.size >= soBuoi).length;
+    const kinTruoc = Object.values(buoiCua(kinA)).filter(x => x.size >= soBuoi).length;
+    return [kinSau <= kinTruoc - 4, `${kinTruoc} → ${kinSau} người kín tuần`];
+  })());
   kt('Vẫn xếp trọn 710 tiết — ép trần không được làm mất tiết nào',
      demXep(kinB) === 710, `${demXep(kinB)}/710`);
+  kt('Không ép gì thì lưới GIỐNG HỆT từng ô như trước nay', (() => {
+    const c = mo(); c.xepTuDong(1200);
+    return [anh(kinA) === anh(c), 'cờ tắt là tắt hẳn'];
+  })());
   kt('Và nói ra lớp nào hết ô, để hiệu trưởng biết đường xử lý',
      (kqB.pha0.hetO || []).length === kinB.S.lop.length,
      `${(kqB.pha0.hetO || []).length}/${kinB.S.lop.length} lớp hết ô`);
@@ -3991,6 +4003,15 @@ console.log('\n24. Trần số buổi dạy — pha 0 chọn buổi nghỉ TRƯ�
     const app = mo(themO);
     const r = app.chonBuoiNghi(0);
     return [r.datDu === 0 && Object.keys(r.nghi).length === 0, 'không sinh buổi nghỉ nào'];
+  })());
+
+  /* --- f) Xếp kỹ cũng phải tôn trọng trần (vá 1/9/2026) --- */
+  kt('Xếp kỹ truyền trần buổi xuống từng lần thử — đặt trần rồi bấm Xếp kỹ không còn bị bỏ qua', (() => {
+    const app = mo(themO);
+    app.xepDai({ giay: 6, soPhuongAn: 2, nghiToiThieu: 1 });
+    const soBuoi = app.buoiBat().length;
+    const kin = Object.values(buoiCua(app)).filter(x => x.size >= soBuoi).length;
+    return [kin === 0, `${kin} người kín tuần sau xếp kỹ`];
   })());
 }
 

@@ -2765,3 +2765,71 @@ thì vẫn là mục **Buổi bận** — ràng buộc cứng, chính xác hơn 
 
 **Sáu phép thử ở mục 17ac**, soi cả hai nhánh: khung vừa khít thì nói thẳng
 là đặt số cũng vô ích; có ô dư thì nói rõ còn thiếu mấy ô.
+
+---
+
+## 1/9/2026 — Trần số buổi dạy hoạt động THẬT trên lưới kín (bài toán Quảng Châu 1)
+
+Chủ dự án đặt *"Mỗi thầy cô được nghỉ ít nhất 1 buổi"* trên trường Quảng Châu 1
+(lưới dư 0 ô), bấm Xếp kỹ 60 giây, mở màn *Theo giáo viên*: cô Chu Thị Thắm
+vẫn **8 buổi có mặt**. Hai lỗi độc lập cùng gây ra:
+
+1. **Xếp kỹ không truyền trần.** Chỉ nút *Xếp nhanh* truyền `nghiToiThieu`
+   vào `xepTuDong()`; `xepDaiTung()` và cả đường Worker đều bỏ quên — đặt
+   trần rồi bấm Xếp kỹ là trần lặng lẽ biến mất. Nay truyền đủ ở cả ba chỗ,
+   có phép thử canh (mục 24f).
+2. **Kết luận 31/8 "dư 0 ô → không ai nghỉ được" SAI về bản chất.** Phép
+   tính cũ trừ hẳn ô của buổi nghỉ khỏi sức chứa của lớp — tức coi *giáo
+   viên nghỉ buổi k* là *cả lớp nghỉ buổi k*. Nhưng buổi ấy đồng nghiệp vẫn
+   dạy: cô chủ nhiệm 24 tiết ở lớp 27 ô nghỉ trọn được chiều thứ Hai nếu 3
+   tiết bộ môn dồn cả vào đó. Đo lại trên chính Diễn Liên dư 0 ô: **17 → 1
+   người kín tuần, vẫn 710/710 tiết**.
+
+### Ba tầng làm cho điều ấy an toàn — thiếu tầng nào cũng ĐÃ ĐO là hỏng
+
+| Tầng | Thiếu nó thì sao (đo thật) |
+|---|---|
+| **Sổ cam kết phủ buổi** (`camBuoi · camLop · phuLop · cam3`) — sức gánh của đồng nghiệp là tài nguyên chung, cấp buổi nghỉ nào ghi nợ buổi ấy | cấp 31/31 ở Quảng Châu 1 rồi **mất 29 tiết** |
+| **Sổ theo về thang điểm**: `cs.cam3` thưởng −70 trong `diemO()` cho đúng (người · lớp · buổi) đã hứa; `TRAN_BUOI` phạt +90/buổi vượt trần trong `diemGV()` để bước hoán đổi chủ động DỒN buổi | tắt phạt vượt trần: kín tuần đứng nguyên **17/17** dù pha 0 vẫn cấp 5 người |
+| **Thang khoá luỹ tiến + van cuối** trong `xepTuDong()`: đo mốc không ép trước; còn thiếu hơn mốc thì khoá dần người dính lớp kẹt; bế tắc thì trả về ĐÚNG bản không ép | bỏ van: **683/710**, mất 27 tiết |
+
+Số đo chốt (dữ liệu thật Quảng Châu 1, bóc từ bản sao lưu 31/8 —
+25 lớp · 32 GV · 710 tiết · dư 0 ô):
+
+| | Không trần | Xếp nhanh + trần | Xếp kỹ 30s + trần |
+|---|---|---|---|
+| Người còn 8 buổi | 17 | 9 | **4** |
+| Tiết xếp được | 705/710 | 705/710 (= mốc) | 708/710 |
+| Trống kẹp | 8 | 17 | 17 |
+
+(5 tiết thiếu của trường này — Âm nhạc · Mỹ thuật · CN khối 3 — là chuyện của
+chính bảng phân công, không liên quan trần buổi; Xếp kỹ thu về còn 2.)
+
+### Bẫy đã trả giá trong ngày
+
+- ⚠️ **Gọi lại `chonBuoiNghi()` khi `S.gvNghi` còn dính buổi nghỉ lượt
+  trước**: hàm coi đó là bận THẬT, người bị khoá vẫn giữ buổi cũ — thiếu 25
+  thành 61. Phải trả `S.gvNghi = nghiGoc` trước mỗi lần chọn lại.
+- ⚠️ **Chạy thử từng lớp độc lập trên cùng một sổ** là hai lớp cùng rút một
+  nguồn sức gánh mà không thấy nhau — phải chạy tuần tự trên `chepSo(SO)`.
+- ⚠️ **Chủ nhiệm không được cấp nghỉ buổi 2-S / 6-S** — chào cờ và sinh hoạt
+  ghim ở đó; cấp là lớp mất tiết chào cờ không lời báo nào.
+- **Chỉ tiêu thật là SỐ NGƯỜI ≤ TRẦN TRÊN LƯỚI CUỐI, không phải số pha 0
+  cấp**: pha 0 cấp 4 người mà lưới cuối 22 người đạt — bước hoán đổi (có
+  `TRAN_BUOI`) mới là lực chính. Thông báo sau xếp nay đếm thẳng trên lưới.
+- Tiện tay vá: `duLieuChoWorker()` thiếu `lopTiet` — lớp khai giờ riêng bị
+  Worker xếp trên khung của khối.
+
+Đã thử ngược **4/4 tầng** (tắt từng tầng, phép thử đỏ đúng chỗ). Toàn bộ
+7 bộ soi xanh: test 585 · kiemdinh 22 · soi 598 · soi-mau 81 · soi-worker 9
+· soi-nhap 70 · soat sạch.
+
+### Việc máy chủ nhìn thấy khi bóc sao lưu — cần chủ dự án xử lý
+
+- **Bản v9 đang công bố của Quảng Châu 1 đã MỒ CÔI**: nhập lại danh sách
+  31/8 làm lớp và giáo viên mang id mới, lưới v9 tham chiếu id cũ nên
+  `docTKB()` nạp được **0/710 ô** — thầy cô mở *Thời khóa biểu của tôi* sẽ
+  thấy trống. Xếp lại → Lưu → Công bố bản mới là xong.
+- **Bảng `mon_hoc` của trường đang RỖNG trên máy chủ** (di chứng lỗi "chưa
+  lưu được danh mục môn" tối 31/8, đã vá cùng tối): mở mục *Môn học*, soát
+  lại TC Toán · TC TV rồi bấm Lưu một lần.

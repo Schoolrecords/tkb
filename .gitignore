@@ -25,3 +25,9 @@ desktop.ini
 /*.jpg
 /*.jpeg
 /*.png
+
+# Cơ sở dữ liệu và bộ cài SmartScheduler chủ dự án chép vào để đối chiếu.
+# Phần mềm thương mại có bản quyền + dữ liệu thật của trường — không bao
+# giờ đưa lên kho công khai (CLAUDE.md mục 10 còn cấm cả việc đọc tệp .sdb).
+*.sdb
+Phan mem TKB PC/
