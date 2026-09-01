@@ -3578,6 +3578,10 @@ function* xepDaiTung(tuyChon={}){
 
   for(let iN=0;iN<nhom.length;iN++){
     const ds=nhom[iN];
+    /* Tổng tiết của nhóm — để hộp tiến độ nói "xếp được bao nhiêu %" thay
+       cho điểm phạt (chủ dự án 1/9/2026: điểm phạt khó hiểu với người xếp) */
+    const tapDs=new Set(ds);
+    const tongCanNhom=S.phanCong.filter(p=>tapDs.has(p.lopId)).reduce((s,p)=>s+p.soTiet,0);
     const hanNhom = t0 + (giay*1000) * (ds.length/tongLop) * (iN+1) / 1;
     const moc = performance.now() + (giay*1000) * (ds.length/tongLop);
     const tot = [];            /* [{diem, chuaXep, anh}] xếp theo diem tăng dần */
@@ -3612,7 +3616,8 @@ function* xepDaiTung(tuyChon={}){
          duyệt báo "trang không phản hồi" và người dùng đóng luôn tab. */
       const tin={nhom:iN+1, tongNhom:nhom.length, lanThu:lan, lanThuTong,
                  giayConLai:Math.max(0, giay-(performance.now()-t0)/1000),
-                 diemTotNhat:tot[0]?.diem, thieu:tot[0]?.thieu, soLop:ds.length};
+                 diemTotNhat:tot[0]?.diem, thieu:tot[0]?.thieu, soLop:ds.length,
+                 tongCanNhom};
       if(tienDo(tin)===false) break;
       if((yield tin)===false) break;
     } while(performance.now()<moc && !hetHan());
@@ -14652,7 +14657,7 @@ function noiSuKien(){
   $$('[data-dungpa]').forEach(b=>b.onclick=()=>{
     const p=PA_TIM?.phuongAn[+b.dataset.dungpa]; if(!p) return;
     luuLui('đổi phương án'); napNhom(p.anh); KQ_XEP=null;
-    bao(`Đã dùng phương án ${+b.dataset.dungpa+1} — điểm phạt ${p.diem}`); ve();
+    bao(`Đã dùng phương án ${+b.dataset.dungpa+1}${p.thieu?` — còn thiếu ${p.thieu} tiết`:' — đủ tiết'}`); ve();
   });
   /* HỎI TRƯỚC khi xoá (§7: cảnh báo trước thao tác ảnh hưởng nhiều tiết).
      Trước đây bấm một cái là bay sạch 710 tiết, chỉ còn dòng thông báo nhỏ
@@ -16524,11 +16529,19 @@ async function chayXepKy(giay, soPhuongAn){
   const veTien=t=>{
     const pt=Math.min(100, Math.round((performance.now()-t0)/(giay*10)));
     if($('#xkThanh')) $('#xkThanh').style.width=pt+'%';
+    /* Nói bằng TỶ LỆ % XẾP ĐƯỢC, không nói điểm phạt (chủ dự án 1/9/2026:
+       "khó hiểu") — điểm phạt là con số của máy, phần trăm là câu trả lời
+       cho đúng câu người xếp đang hỏi: được bao nhiêu rồi. Viết số kiểu
+       Việt: 99,7% chứ không 99.7%. */
+    const co = t.thieu!=null && t.tongCanNhom>0;
+    const ptXep = co ? Math.round(1000*(t.tongCanNhom-t.thieu)/t.tongCanNhom)/10 : null;
     if($('#xkTien')) $('#xkTien').innerHTML=
       `Nhóm <b>${t.nhom}/${t.tongNhom}</b> — ${t.soLop} lớp<br>`+
       `Đã thử <b>${t.lanThuTong}</b> cách xếp<br>`+
-      `Phương án tốt nhất hiện tại: <b>${t.thieu?`còn thiếu ${t.thieu} tiết`:'đủ tiết'}</b>, `+
-      `điểm phạt <b>${t.diemTotNhat ?? '—'}</b><br>`+
+      `Phương án tốt nhất hiện tại: `+(ptXep==null?'<b>đang thử…</b>'
+        : t.thieu===0
+          ? `<b>xếp trọn 100% số tiết</b> ✓ — máy đang tìm bản đẹp hơn`
+          : `xếp được <b>${String(ptXep).replace('.',',')}%</b> số tiết (còn thiếu ${t.thieu})`)+`<br>`+
       `Còn khoảng <b>${Math.ceil(t.giayConLai)} giây</b>`;
   };
 

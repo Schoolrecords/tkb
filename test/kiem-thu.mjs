@@ -4412,6 +4412,29 @@ console.log('\n27. R14 — nút thắt buổi nghỉ, đích danh trước khi x
   })());
 }
 
+console.log('\n28. Hộp tiến độ Xếp kỹ nói bằng TỶ LỆ %, không nói điểm phạt');
+/* Chủ dự án 1/9/2026: "chuyển thành tỷ lệ % đang chạy… bỏ từ điểm phạt
+   (khó hiểu)". Phần trăm tính từ tổng tiết của nhóm, nên tin tiến độ mỗi
+   nhịp phải mang con số ấy. */
+{
+  const DLT2 = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
+  const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+  app.napVaoS(JSON.parse(JSON.stringify(DLT2)));
+  const g = app.xepDaiTung({ giay: 5, soPhuongAn: 2, giayHoanDoi: 0 });
+  const b = g.next();
+  const tin = b.value;
+  /* huỷ ngay — chỉ cần một nhịp tin để soi */
+  let c = g.next(false); while (!c.done) c = g.next(false);
+  kt('Tin tiến độ mang tổng tiết của nhóm — nguyên liệu tính "xếp được bao nhiêu %"',
+     tin && tin.tongCanNhom === 710, `tongCanNhom = ${tin?.tongCanNhom}`);
+  kt('Câu chữ hộp tiến độ: nói "xếp được …%" và KHÔNG còn chữ "điểm phạt"', (() => {
+    const nguon = readFileSync(join(goc, 'src/index.html'), 'utf8');
+    const veTien = nguon.slice(nguon.indexOf('const veTien=t=>'), nguon.indexOf('Còn khoảng <b>'));
+    return [/xếp được <b>/.test(veTien) && !/điểm phạt <b>/.test(veTien),
+            veTien.includes('điểm phạt <b>') ? 'vẫn còn điểm phạt' : 'sạch'];
+  })());
+}
+
 /* ---------- Tổng kết ---------- */
 console.log(`\n\x1b[1mKết quả: ${dat} đạt, ${hong} hỏng\x1b[0m\n`);
 process.exit(hong ? 1 : 0);
