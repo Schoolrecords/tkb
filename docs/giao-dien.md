@@ -23,6 +23,7 @@
 - [Mở app là thấy TỪNG LỚP, và cột lớp bên trái lưới *(16/8/2026)*](#mở-app-là-thấy-từng-lớp-và-cột-lớp-bên-trái-lưới-1682026)
 - [Sản phẩm lên trước, quy trình lùi sau *(2/8/2026)*](#sản-phẩm-lên-trước-quy-trình-lùi-sau-282026)
 - [Ô tìm kiếm trong danh sách dài *(2/8/2026)*](#ô-tìm-kiếm-trong-danh-sách-dài-282026)
+- [Chạm không làm màn hình xê dịch — `ve()` giữ chỗ cuộn *(1/9/2026)*](#chạm-không-làm-màn-hình-xê-dịch--ve-giữ-chỗ-cuộn-192026)
 - [Mức tín hiệu thứ BA khi chỉnh tay *(30/8/2026)*](#mức-tín-hiệu-thứ-ba-khi-chỉnh-tay-3082026)
 - [Tệp Excel phải đọc được bằng mắt *(1/8/2026)*](#tệp-excel-phải-đọc-được-bằng-mắt-182026)
 - [Ô lưới trong tệp .xlsx xuất ra: HAI DÒNG *(24/8/2026)*](#ô-lưới-trong-tệp-xlsx-xuất-ra-hai-dòng-2482026)
@@ -144,6 +145,24 @@ Năm điều bắt buộc, cả năm đều có phép thử (`npm run soi` mục
 viên bộ môn xếp theo họ tên (`thuTuHangGV()`). Xếp A–Z thì cô chủ nhiệm 1A nằm
 giữa bảng, không ai dò được lớp nào đã đủ người — mà đó chính là thứ tự người
 xếp rà soát, và cũng là thứ tự tờ phân công nhà trường vẫn kẻ.
+
+#### Tiêu đề dính hai ĐẦU, cột hẹp, chữ thập soi cột *(1/9/2026)*
+
+Chủ dự án, khi trường lên 86 giáo viên: *"trang dài, không thấy dòng tiêu đề
+các môn học... cố gắng cố định hoặc làm hẹp cột để ít phải trượt ngang xem
+những môn cuối"*. Ba việc, cả ba có phép thử ở cuối mục 17p của `npm run soi`:
+
+- **Khung cuộn là CHÍNH `.mt-khung`** (`max-height:76vh`). ⚠️ `table.dl th`
+  vốn khai sẵn `position:sticky;top:0` nhưng chưa bao giờ ăn ở bảng này:
+  `.bang` không giới hạn chiều cao nên cả TRANG cuộn thay cho bảng — sticky
+  chỉ dính trong khung cuộn của chính nó. Nay dòng tiêu đề môn dính ĐỈNH,
+  hàng đếm độ phủ dính ĐÁY — kéo tới đâu cũng thấy môn nào còn lớp thiếu.
+- **Cột môn 56px, tên môn ở tiêu đề được xuống dòng.** ⚠️ Phải khai lại
+  `white-space:normal` cho `.mt-mon` vì `table.dl th` chung là `nowrap` —
+  quên là cột không hẹp đi được dù đã hạ `min-width`.
+- **Chữ thập soi cột** (`.cot-soi`, gắn ở `noiSuKien`): rê chuột tới ô nào
+  thì cả cột môn ấy sáng lên, ô `.co` trong cột đậm hơn một nấc để vẫn phân
+  biệt với ô trống. Chỉ đổi lớp CSS trên đúng một cột, không vẽ lại gì.
 
 ---
 
@@ -503,6 +522,27 @@ Chỗ đã gắn: Lớp học · Giáo viên · Môn học · Phòng học · Bu
 TKB theo lớp · TKB theo giáo viên · Dạy thay · Xuất và in.
 
 ---
+
+### Chạm không làm màn hình xê dịch — `ve()` giữ chỗ cuộn *(1/9/2026)*
+
+Chủ dự án: *"khi chạm và chỉnh sửa, còn di chuyển cảm giác khó chịu"*. Hai gốc:
+
+1. **`ve()` thay toàn bộ ruột `#noiDung`** nên mọi khung cuộn reset về 0 —
+   chạm một tiết là cột lớp giật, sửa một ô phân công là mất chỗ đang xem
+   trong bảng 86 hàng. Nay `luuViTriCuon()` / `traViTriCuon()` ghi vị trí
+   (cửa sổ + `.bang` · `.tt-boc` · `.cl-ds`) trước khi thay ruột, trả lại sau.
+   - ⚠️ **Chỉ trả khi VẪN Ở màn hình cũ.** Màn mà DOM đang bày ghi ở
+     `#noiDung[data-trang]`, KHÔNG đọc `S.trangHienTai` — `chuyen()` đổi
+     biến ấy TRƯỚC khi gọi `ve()`, đọc nó là trả nhầm vị trí màn cũ vào màn
+     mới. Có phép thử canh cả hai chiều.
+   - **Trả SAU `cuonToiLopDangXem()`** — lần vẽ đầu hàm ấy canh giữa lớp
+     đang mở; các lần sau vị trí người dùng tự cuộn tới thắng.
+   - ⚠️ Dựng khung cuộn MỚI thì nó chỉ được giữ khi mang một trong ba lớp
+     trên hoặc có id — xem `dsKhungCuon()`.
+2. **Dải hướng dẫn/chú giải màn chỉnh tay cao khác nhau giữa hai trạng thái**
+   (chưa cầm tiết = đoạn hướng dẫn, đang cầm = chú giải ba màu) nên lưới bị
+   đẩy lên xuống theo từng cú chạm — ô định chạm tiếp trượt khỏi chỗ ngón
+   tay. Nay cả hai trạng thái nằm trong `.khu-chon{min-height:74px}`.
 
 ### Mức tín hiệu thứ BA khi chỉnh tay *(30/8/2026)*
 

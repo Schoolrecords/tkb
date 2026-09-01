@@ -3402,6 +3402,71 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
     const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
     return /\.mt-o\{[^}]*border-left/.test(src);
   })());
+
+  /* ---- Tiêu đề dính hai ĐẦU, cột hẹp, chữ thập soi cột (1/9/2026) ----
+     Chủ dự án: trường 86 giáo viên thì "trang dài, không thấy dòng tiêu đề
+     các môn học", và "cố gắng cố định hoặc làm hẹp cột để ít phải trượt
+     ngang xem những môn cuối". Khung cuộn phải là CHÍNH .mt-khung — sticky
+     top của `table.dl th` vốn có sẵn nhưng chưa bao giờ ăn vì .bang không
+     giới hạn chiều cao, cả trang cuộn thay cho bảng. */
+  const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+  kt('Ma trận nằm trong khung cuộn riêng có giới hạn chiều cao (.mt-khung)',
+     bang.closest('.bang')?.classList.contains('mt-khung') &&
+     /\.mt-khung\{[^}]*max-height/.test(src));
+  kt('Dòng tiêu đề môn DÍNH ĐỈNH khung cuộn khi kéo xuống',
+     /\.mt-bang thead th\{[^}]*position:sticky;top:0/.test(src));
+  kt('Hàng đếm độ phủ DÍNH ĐÁY — kéo tới đâu cũng thấy môn nào còn lớp thiếu người',
+     /\.mt-bang tfoot td\{[^}]*position:sticky;bottom:0/.test(src));
+  kt('Cột môn hẹp lại (56px) và tên môn được xuống dòng — bớt trượt ngang', (() => {
+    return [/\.mt-mon\{min-width:56px[^}]*white-space:normal/.test(src) &&
+            /\.mt-o\{min-width:56px/.test(src),
+            (src.match(/\.mt-mon\{[^}]*\}/) || [''])[0].slice(0, 40)];
+  })());
+
+  /* Chữ thập soi cột: rê chuột tới ô nào thì cả cột môn ấy sáng lên. Bảng
+     15 cột × 86 hàng thì mắt dò dọc rất dễ lạc sang cột bên. */
+  kt('Rê chuột tới một ô là CẢ CỘT của ô ấy sáng lên', (() => {
+    const td = bang.querySelector('tbody tr .mt-o');
+    td.dispatchEvent(new w.Event('mouseover', { bubbles: true }));
+    const soi = [...bang.querySelectorAll('.cot-soi')];
+    return [soi.length >= 3 && soi.every(x => x.cellIndex === td.cellIndex),
+            `${soi.length} ô cột ${td.cellIndex}`];
+  })());
+  kt('Rê sang cột khác thì cột cũ TẮT, chỉ một cột sáng một lúc', (() => {
+    const hang = bang.querySelector('tbody tr');
+    const td1 = hang.querySelector('.mt-o'), td2 = hang.cells[td1.cellIndex + 1];
+    td2.dispatchEvent(new w.Event('mouseover', { bubbles: true }));
+    const soi = [...bang.querySelectorAll('.cot-soi')];
+    return [soi.length >= 3 && soi.every(x => x.cellIndex === td2.cellIndex),
+            `cột ${td1.cellIndex} → ${td2.cellIndex}`];
+  })());
+  kt('Rời bảng là tắt hết — không để lại vệt sáng nào', (() => {
+    bang.dispatchEvent(new w.Event('mouseleave'));
+    return bang.querySelectorAll('.cot-soi').length === 0;
+  })());
+
+  /* ---- ve() giữ chỗ cuộn (1/9/2026) ----
+     Vẽ lại toàn màn hình làm mọi khung cuộn reset về 0: sửa một ô phân công
+     là mất chỗ đang xem trong bảng 86 hàng, chạm một tiết trên màn chỉnh tay
+     là màn hình giật một cái. Chủ dự án: "khi chạm và chỉnh sửa, còn di
+     chuyển cảm giác khó chịu". */
+  kt('Vẽ lại CÙNG màn hình thì khung cuộn trở về đúng chỗ cũ', (() => {
+    const khung = w.document.querySelector('.mt-khung');
+    khung.scrollTop = 137; khung.scrollLeft = 41;
+    w.ve();
+    const moi = w.document.querySelector('.mt-khung');
+    return [moi !== khung && moi.scrollTop === 137 && moi.scrollLeft === 41,
+            `dọc ${moi.scrollTop} · ngang ${moi.scrollLeft}`];
+  })());
+  kt('Sang màn hình KHÁC thì không trả nhầm vị trí cũ vào khung mới', (() => {
+    const khung = w.document.querySelector('.mt-khung');
+    khung.scrollTop = 220;
+    w.chuyen('lop');
+    const sai = [...w.document.querySelectorAll('#noiDung .bang, #noiDung .tt-boc')]
+      .filter(x => x.scrollTop || x.scrollLeft);
+    w.chuyen('phancong');
+    return [sai.length === 0, sai.length ? `${sai.length} khung bị cuộn lạc` : 'sạch'];
+  })());
 }
 
   /* Hộp nhập của mục Phân công nay CHỈ mời mẫu MA TRẬN — màn hình đã là bảng
@@ -4422,6 +4487,24 @@ console.log('\n17ad. Ghim môn vào ô trống — chạm ô trống là chọn 
     w.chamO(kCo); w.ve();
     return [!!w.document.querySelector('#btDoiMonO') && !!w.document.querySelector('#btXoaTietO'),
             `oChon=${S.oChon}`];
+  })());
+  /* Khung hướng dẫn/chú giải có CHIỀU CAO SÀN (1/9/2026): hai trạng thái cao
+     khác nhau nên mỗi cú chạm là cả lưới bị đẩy lên đẩy xuống — ô định chạm
+     tiếp trượt khỏi chỗ ngón tay. Chủ dự án: "khi chạm và chỉnh sửa, còn di
+     chuyển cảm giác khó chịu". */
+  kt('Dải chú giải nằm trong khung .khu-chon có chiều cao sàn — lưới không bị đẩy', (() => {
+    const src = readFileSync(join(goc, 'src/index.html'), 'utf8');
+    const dangCam = !!w.document.querySelector('.khu-chon .gy.chu-mau');
+    w.chamO(S.oChon); w.ve();          /* bỏ chọn — trạng thái nghỉ */
+    const nghi = !!w.document.querySelector('.khu-chon .gy');
+    return [dangCam && nghi && /\.khu-chon\{min-height/.test(src),
+            'cả hai trạng thái cùng một khung'];
+  })());
+  kt('…và chọn lại được để các phép thử sau tiếp tục', (() => {
+    const kCo = Object.keys(S.tkb[lp]).find(k => S.tkb[lp][k].mon !== 'HDTN' && !S.tkb[lp][k].ghim)
+      || Object.keys(S.tkb[lp])[0];
+    w.chamO(kCo); w.ve();
+    return [!!w.document.querySelector('#btDoiMonO'), `oChon=${S.oChon}`];
   })());
   kt('Bấm "Đổi môn ô này" mở hộp Xếp tay có nút Xoá tiết này', (() => {
     w.document.querySelector('#btDoiMonO').dispatchEvent(new w.Event('click', { bubbles: true }));

@@ -2933,3 +2933,55 @@ Edit đích danh vẫn an toàn hơn.
 
 Phép thử: `npm test` mục 26 (9 phép) · 27 (5 phép), `npm run soi` 17ad
 (10 phép); thử ngược chế độ thay, phím Delete, và cả hai chiều của R14.
+
+## 1/9/2026 (đêm) — Chạm không làm màn hình xê dịch, và ma trận phân công dính tiêu đề
+
+Chủ dự án nêu hai chuyện cùng lúc: màn chỉnh tay *"khi chạm và chỉnh sửa,
+còn di chuyển cảm giác khó chịu"*, và bảng Phân công chuyên môn *"nay có quá
+nhiều giáo viên, trang dài, không thấy dòng tiêu đề các môn học... cố gắng
+cố định hoặc làm hẹp cột để ít phải trượt ngang xem những môn cuối"*.
+
+**Gốc của cảm giác khó chịu là HAI thứ cộng lại**, đều nằm ở `ve()`:
+
+1. `ve()` thay toàn bộ ruột `#noiDung` nên mọi khung cuộn (cột lớp, bảng
+   ma trận, lưới rộng) reset về 0 — chạm một tiết là cột lớp giật một cái,
+   sửa một ô phân công là mất chỗ đang xem trong bảng 86 hàng. Nay
+   `luuViTriCuon()` / `traViTriCuon()` ghi vị trí (cửa sổ + `.bang` ·
+   `.tt-boc` · `.cl-ds`) trước khi thay ruột, vẽ xong trả về đúng chỗ.
+2. Dải hướng dẫn/chú giải của màn chỉnh tay cao khác nhau giữa hai trạng
+   thái (chưa cầm tiết = đoạn hướng dẫn dài, đang cầm = chú giải ba màu),
+   nên mỗi cú chạm là cả lưới bị đẩy lên đẩy xuống — ô định chạm tiếp
+   trượt khỏi chỗ ngón tay. Nay cả hai trạng thái nằm trong
+   `.khu-chon{min-height:74px}`.
+
+Ba bẫy của phần giữ chỗ cuộn, cả ba đều có phép thử:
+
+- ⚠️ **Chỉ trả lại khi VẪN Ở màn hình cũ.** Màn mà DOM đang bày ghi ở
+  `#noiDung[data-trang]`, KHÔNG đọc `S.trangHienTai` — `chuyen()` đổi biến
+  ấy TRƯỚC khi gọi `ve()`, đọc nó là trả nhầm vị trí màn cũ vào màn mới.
+- **Trả SAU `cuonToiLopDangXem()`**: lần vẽ đầu (chưa có gì để trả) hàm ấy
+  canh giữa lớp đang mở; các lần sau vị trí người dùng tự cuộn tới thắng.
+- **Khung không có id nhớ theo THỨ TỰ trong danh sách riêng** của ba lớp
+  `.bang` · `.tt-boc` · `.cl-ds` — nút bấm mọc thêm/mất đi giữa hai lần vẽ
+  (Hoàn tác, Bỏ ghim…) không làm lệch chỉ số.
+
+**Ma trận phân công** — ba việc:
+
+- **Khung cuộn là CHÍNH `.mt-khung`** (`max-height:76vh`). Phát hiện đáng
+  ghi: `table.dl th` vốn khai sẵn `position:sticky;top:0` từ lâu nhưng chưa
+  bao giờ ăn ở bảng này — `.bang` không giới hạn chiều cao nên cả TRANG cuộn
+  thay cho bảng, mà sticky chỉ dính trong khung cuộn của chính nó. Nay dòng
+  tiêu đề môn dính ĐỈNH, hàng đếm độ phủ dính ĐÁY — kéo tới đâu cũng thấy
+  cột nào là môn nào, môn nào còn lớp thiếu người.
+- **Cột môn 74px → 56px, tên môn ở tiêu đề được xuống dòng** — phải khai lại
+  `white-space:normal` vì `table.dl th` chung là `nowrap`. 13–15 môn vừa màn
+  hình thường, bớt hẳn trượt ngang.
+- **Chữ thập soi cột** (`.cot-soi`): rê chuột tới ô nào thì cả cột môn ấy
+  sáng lên, ô có phân công trong cột đậm hơn một nấc. Bảng 15 cột × 86 hàng
+  thì mắt dò dọc rất dễ lạc cột. Chỉ đổi lớp CSS trên đúng một cột, không
+  vẽ lại gì.
+
+Phép thử: `npm run soi` cuối mục 17p (8 phép) + hai phép ở cụm Xếp tay;
+**thử ngược 8/8** — bỏ từng đoạn vá (mt-khung, max-height, sticky đáy, cột
+74px, chữ thập, trả vị trí cuộn, chốt khác-trang, khu-chon) đều làm phép
+thử đỏ. Chụp lại `docs/anh-giao-dien/` bằng Chrome thật, không lỗi nào.

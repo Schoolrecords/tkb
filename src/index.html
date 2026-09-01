@@ -572,6 +572,13 @@ table.tkb tr:last-child td{border-bottom:none}
    xuống dòng riêng ở màn hẹp. Ảnh chụp Chrome thật bắt được lỗi này —
    `npm run soi` chỉ đọc textContent nên không thấy. */
 .chu-mau{line-height:1.55}
+/* Khung hướng dẫn/chú giải có CHIỀU CAO SÀN (1/9/2026 — chủ dự án: "khi chạm
+   và chỉnh sửa, còn di chuyển cảm giác khó chịu"). Hai trạng thái — chưa cầm
+   tiết là đoạn hướng dẫn, đang cầm là chú giải ba màu — cao khác nhau, nên
+   mỗi cú chạm là cả lưới bị đẩy lên đẩy xuống và ô định chạm tiếp trượt khỏi
+   chỗ ngón tay. Sàn 74px giữ lưới đứng yên giữa hai trạng thái. */
+.khu-chon{min-height:74px;margin:-6px 0 12px}
+.khu-chon .gy{margin:0}
 .chu-mau .cm{display:inline;margin-right:14px}
 .cm-o{display:inline-block;width:11px;height:11px;border-radius:4px;
   border:1.5px solid;vertical-align:-1px;margin-right:5px}
@@ -1157,24 +1164,40 @@ tr.pa-tot td{background:var(--xanh-nen)}
    không thì cuộn sang môn thứ mười là không còn biết đang ở hàng của ai. */
 .mt-bang{border-collapse:separate;border-spacing:0}
 .mt-bang th,.mt-bang td{border-bottom:1px solid #EAF5FB}
+/* Khung cuộn là CHÍNH .mt-khung (1/9/2026 — chủ dự án: trường 86 giáo viên
+   thì kéo tới giữa bảng là mất dòng tên môn). Giới hạn chiều cao để dòng
+   tiêu đề môn dính ĐỈNH và hàng đếm độ phủ dính ĐÁY — cuộn tới đâu cũng
+   biết cột nào là môn nào, môn nào còn lớp thiếu người. */
+.mt-khung{max-height:76vh}
+.mt-bang thead th{position:sticky;top:0;background:#F4F9FD;z-index:3;box-shadow:0 1px 0 var(--ke)}
 .mt-dinh{position:sticky;background:var(--the);z-index:2}
-.mt-bang thead .mt-dinh{background:#F4F9FD;z-index:3}
+.mt-bang thead .mt-dinh{background:#F4F9FD;z-index:4}
 .mt-tt{left:0;width:34px;text-align:center;color:var(--chu-mo);font-size:11.5px}
 .mt-ten{left:34px;min-width:150px;box-shadow:1px 0 0 var(--ke)}
 .mt-cn{min-width:66px;font-size:12px;color:var(--nav);border-left:1px solid var(--ke-2)}
 .mt-tiet{white-space:nowrap;min-width:56px}
-.mt-mon{min-width:74px;font-size:10px;line-height:1.25}
+/* 56px chứ không phải 74px (1/9/2026): tên môn ở tiêu đề được XUỐNG DÒNG
+   (`table.dl th` chung khai nowrap nên phải mở lại ở đây), cột hẹp lại thì
+   15 môn vừa màn hình thường — bớt hẳn phải trượt ngang xem môn cuối. */
+.mt-mon{min-width:56px;font-size:10px;line-height:1.25;white-space:normal}
 /* ⚠️ Ô môn phải có VIỀN thật. Chủ dự án 29/8/2026: "các ô cột môn cần có
    đường kẻ, hoặc phân ô cho rõ ràng để chọn trực tiếp" — bảng chỉ kẻ ngang thì
    15 cột trông như một mảng trắng, không ai đoán được ô nào bấm được. */
-.mt-o{min-width:74px;font-size:12px;line-height:1.3;border-left:1px solid var(--ke-2)}
+.mt-o{min-width:56px;font-size:12px;line-height:1.3;border-left:1px solid var(--ke-2)}
 .mt-bang th.mt-mon{border-left:1px solid var(--ke-2)}
 .mt-o.co{background:var(--nav-nhat)}
 .mt-o[data-mt]{cursor:pointer}
 .mt-o[data-mt]:hover{background:var(--nav-vien)}
+/* Chữ thập soi CỘT (1/9/2026): rê tới ô nào là cả cột môn ấy sáng lên —
+   15 cột × 86 hàng thì mắt dò dọc rất dễ lạc sang cột bên. Ô có phân công
+   trong cột soi đậm hơn một nấc để vẫn phân biệt được với ô trống. */
+.mt-bang .cot-soi{background:var(--nen)}
+.mt-bang .mt-o.co.cot-soi{background:var(--nav-vien)}
 .mt-t{display:block;font-size:10.5px;color:var(--chu-mo)}
 .mt-trong{color:var(--ke-2)}
-.mt-bang tfoot td{background:#F4F9FD;border-top:2px solid var(--nav-vien)}
+.mt-bang tfoot td{background:#F4F9FD;border-top:2px solid var(--nav-vien);
+  position:sticky;bottom:0;z-index:2}
+.mt-bang tfoot .mt-dinh{z-index:3}
 
 .dai-xem{display:flex;gap:8px;background:transparent;border:0;
   border-radius:var(--r2);padding:0;margin-bottom:12px;flex-wrap:wrap}
@@ -9005,10 +9028,44 @@ function tinhLai(){ KT=kiemTra(); }
 
 function soTietDaXep(){ return Object.values(S.tkb).reduce((s,o)=>s+Object.keys(o).length,0); }
 
+/* ---------- Giữ chỗ cuộn qua mỗi lần vẽ lại (1/9/2026) ----------
+   `ve()` thay toàn bộ ruột #noiDung, nên mọi khung cuộn — cột lớp, bảng ma
+   trận, lưới rộng — reset về 0: mỗi cú chạm trên màn chỉnh tay là màn hình
+   giật một cái, sửa một ô phân công là mất chỗ đang xem trong bảng 86 hàng.
+   Chủ dự án 1/9/2026: "khi chạm và chỉnh sửa, còn di chuyển cảm giác khó
+   chịu". Ghi lại vị trí trước khi thay ruột, vẽ xong trả về đúng chỗ cũ.
+
+   ⚠️ Chỉ trả lại khi VẪN Ở màn hình cũ — sang trang khác thì các khung là
+   của màn mới, trả nhầm vị trí cũ vào là cuộn lung tung. Màn hình mà DOM
+   đang bày ghi ở `#noiDung[data-trang]`, không đọc `S.trangHienTai` vì
+   `chuyen()` đã đổi nó TRƯỚC khi gọi `ve()`.
+   ⚠️ Khung không có id (`.bang`, `.tt-boc`) nhớ theo THỨ TỰ trong danh sách
+   riêng của chúng — nút bấm mọc thêm/mất đi giữa hai lần vẽ không làm lệch. */
+function dsKhungCuon(){
+  return [...document.querySelectorAll('#noiDung .bang, #noiDung .tt-boc, #noiDung .cl-ds')];
+}
+function luuViTriCuon(){
+  const kq={trang:$('#noiDung')?.dataset.trang, cuaSo:[window.scrollX||0, window.scrollY||0], khung:{}};
+  dsKhungCuon().forEach((el,i)=>{
+    if(el.scrollTop||el.scrollLeft) kq.khung[el.id?'#'+el.id:'~'+i]=[el.scrollLeft, el.scrollTop];
+  });
+  return kq;
+}
+function traViTriCuon(c, t){
+  if(!c || c.trang!==t) return;
+  const ds=dsKhungCuon();
+  for(const [k, [l, top]] of Object.entries(c.khung)){
+    const el=k[0]==='#' ? document.getElementById(k.slice(1)) : ds[+k.slice(1)];
+    if(el){ el.scrollLeft=l; el.scrollTop=top; }
+  }
+  if(c.cuaSo[0]||c.cuaSo[1]) window.scrollTo(c.cuaSo[0], c.cuaSo[1]);
+}
+
 function ve(){
   apDungQuyen();
   tinhLai();
   const t=S.trangHienTai;
+  const cuon=luuViTriCuon();
   $('#noiDung').innerHTML =
       t==='chao'      ? mChao()
     : t==='dieuhanh'  ? mDieuHanh()
@@ -9042,9 +9099,13 @@ function ve(){
     : t==='phancong'  ? mPhanCong()
     : t==='buoiban'   ? mBuoiBan()
     : mKhungGio();
+  $('#noiDung').dataset.trang=t;
   capNhatDem(); noiSuKien();
   veTheDemo(); veTheXemTruong();
   cuonToiLopDangXem();
+  /* Trả SAU `cuonToiLopDangXem()`: lần vẽ đầu (chưa có gì để trả) thì hàm ấy
+     canh giữa lớp đang mở; các lần sau vị trí người dùng tự cuộn tới thắng. */
+  traViTriCuon(cuon, t);
 }
 
 /* Cột lớp 60 nút thì lớp đang mở rất dễ nằm ngoài tầm nhìn — nhất là trên
@@ -10310,9 +10371,9 @@ function mTKBLop(){
       <button class="b b-vien b-nho" id="btInLop">In / lưu PDF</button>
     </div>
   </div>
-  ${suaDuoc?(()=>{
+  ${suaDuoc?'<div class="khu-chon">'+(()=>{
     if(!S.oChon)
-      return `<div class="gy" style="margin:-6px 0 12px">Tiết đã chỉnh tay sẽ được
+      return `<div class="gy">Tiết đã chỉnh tay sẽ được
         <b>ghim 📌</b> để lần xếp tự động sau không đè lên. Chạm một tiết là dấu ghim hiện ra —
         bấm vào đó để ghim, bấm lần nữa để bỏ ghim. Chạm một <b>ô trống</b> để chọn môn
         ghim sẵn vào đúng ô ấy; chạm một <b>tiết đang có môn</b> thì ngoài chuyển chỗ còn
@@ -10332,7 +10393,7 @@ function mTKBLop(){
     /* Chính tiết đang cầm là của giáo viên liên lớp thì nói ngay từ đầu —
        dời nó đi đâu cũng đụng lịch người ấy, không riêng ô đích nào. */
     const tuCham=chamGVKhac(lp,S.oChon);
-    return `<div class="gy chu-mau" style="margin:-6px 0 12px">
+    return `<div class="gy chu-mau">
       <span>Đang chọn tiết <b>${esc(o[S.oChon]?.mon||'')}</b> — chạm lại chính nó để bỏ chọn.
         <button class="b b-vien b-nho" id="btDoiMonO" style="margin:0 4px">Đổi môn ô này…</button>
         <button class="b b-vien b-nho" id="btXoaTietO" title="Phím Delete cũng xoá được">Xoá tiết</button></span>
@@ -10344,7 +10405,7 @@ function mTKBLop(){
       ${tuCham?`<div style="margin-top:5px;color:var(--canh)">⚠️ Tiết đang cầm là của
         <b>${esc(tuCham.hoTen)}</b> (dạy ${tuCham.soLop} lớp) — dời đi đâu cũng đổi lịch của người ấy.</div>`:''}
     </div>`;
-  })():''}
+  })()+'</div>':''}
   <div class="cl-boc">${cotLopHTML(ds, lp, 'clTKBLop')}
     <div class="cl-phai">${bang}</div></div>`;
 }
@@ -14081,7 +14142,7 @@ function bangMaTran(){
   const sua=duocSuaNguon();
   const soLop=lopTrongPV().length;
   if(!dsGV.length) return `<div class="trong-hop">Chưa có giáo viên nào.</div>`;
-  return `<div class="bang"><table class="dl gon mt-bang" id="bMT"><thead><tr>
+  return `<div class="bang mt-khung"><table class="dl gon mt-bang" id="bMT"><thead><tr>
     <th class="mt-dinh mt-tt">TT</th>
     <th class="mt-dinh mt-ten">Họ và tên</th>
     <th class="phai">Tiết</th>
@@ -14801,6 +14862,22 @@ function noiSuKien(){
       const g=gvId(S.pcGV); S.pcGV=null;
       if(g){ o.value=g.hoTen; locBang(o); }
     }
+    /* Chữ thập soi CỘT (1/9/2026): rê chuột tới ô nào thì cả cột môn ấy sáng
+       lên — bảng 15 cột × 86 hàng thì dò dọc bằng mắt trần rất dễ lạc cột.
+       Chỉ đổi lớp CSS trên đúng một cột, không vẽ lại gì. */
+    const bMT=$('#bMT');
+    let cotSoi=-1;
+    const soiCot=i=>{
+      if(i===cotSoi) return;
+      bMT.querySelectorAll('.cot-soi').forEach(x=>x.classList.remove('cot-soi'));
+      cotSoi=i;
+      if(i>=0) bMT.querySelectorAll('tr').forEach(r=>r.cells[i]?.classList.add('cot-soi'));
+    };
+    bMT.addEventListener('mouseover',e=>{
+      const oC=e.target.closest('td,th');
+      soiCot(oC && oC.closest('table')===bMT ? oC.cellIndex : -1);
+    });
+    bMT.addEventListener('mouseleave',()=>soiCot(-1));
   }
   /* buổi bận — data-ban = "<mã giáo viên>|<thứ>-<buổi>" */
   $$('[data-ban]').forEach(x=>x.onchange=e=>{
