@@ -3966,8 +3966,12 @@ console.log('\n24. Trần số buổi dạy — pha 0 chọn buổi nghỉ TRƯ�
   kt('Vẫn xếp trọn 710 tiết — ép trần không được làm mất tiết nào',
      demXep(kinB) === 710, `${demXep(kinB)}/710`);
   kt('Không ép gì thì lưới GIỐNG HỆT từng ô như trước nay', (() => {
-    const c = mo(); c.xepTuDong(1200);
-    return [anh(kinA) === anh(c), 'cờ tắt là tắt hẳn'];
+    /* ⚠️ So bằng hạn tối ưu 0 (tất định) — so hai lượt chạy qua bước hoán
+       đổi dừng theo đồng hồ thì máy CI bận cắt hai điểm khác nhau, đỏ oan.
+       Cùng bài học phép thử mục 23 ngày 1/9. */
+    const a0 = mo(); a0.xepTuDong(0);
+    const c0 = mo(); c0.xepTuDong(0);
+    return [anh(a0) === anh(c0), 'cờ tắt là tắt hẳn'];
   })());
   kt('Và nói ra lớp nào hết ô, để hiệu trưởng biết đường xử lý',
      (kqB.pha0.hetO || []).length === kinB.S.lop.length,
