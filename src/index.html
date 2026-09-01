@@ -2361,8 +2361,12 @@ function diemO(o,lp,mon,gv,cs){
      không ép thì khoá dần người dính lớp kẹt, cùng đường trả về ĐÚNG bản
      không ép — ép trần không bao giờ làm mất thêm tiết.
 
-   Muốn MỌI thầy cô được nghỉ thì vẫn phải mở thêm ô ở mục *Khung giờ học*
-   (dư ≥ buổi ngắn nhất là 35/35 đạt); lưới kín chỉ cấp được một phần. */
+   Lưới kín chỉ cấp được MỘT PHẦN — về mặt số học dư ≥ buổi ngắn nhất là
+   35/35 đạt, nhưng ⚠️ ĐỪNG khuyên nhà trường "mở thêm ô" (chủ dự án chốt
+   1/9/2026): khung giờ theo quy định Chương trình là cố định, sáng 4 tiết
+   chiều 2–3 tuỳ lớp. Đòn bẩy hợp lệ duy nhất là PHÂN CÔNG CHUYÊN MÔN —
+   chia bớt lớp của giáo viên bộ môn đang là nút thắt (ví dụ Quảng Châu 1:
+   cô Tiếng Anh phải có mặt trong buổi nghỉ của cả 10 lớp khối 1–2). */
 function chonBuoiNghi(soNghi, khoaGV){
   const bb = buoiBat();
   if(!(soNghi>0) || !bb.length) return {nghi:{}, datDu:0, tong:0, hetO:[]};
@@ -4666,6 +4670,38 @@ function viecGoBiXep(dsChuaXep){
       return {...ds[0], viec, soTruongHop:ds.length, tiet, ds};
     })
     .sort((a,b)=>b.tiet-a.tiet);
+}
+
+/* ---------- Ghim môn vào ô trống (1/9/2026) — phần THUẦN của tính năng
+   "xếp tay trước, máy điền phần còn lại". Hộp thoại và bước lui nằm ở
+   `hopGhimO()` ngoài vùng này; hai hàm dưới không đụng DOM để `npm test`
+   gọi thẳng. ---------- */
+
+/* Môn còn thiếu của một lớp so với phân công */
+function monConLop(lp){
+  const daXep={};
+  Object.values(S.tkb[lp]||{}).forEach(v=>{
+    const k=v.gvId+'|'+v.mon; daXep[k]=(daXep[k]||0)+1;
+  });
+  return S.phanCong.filter(p=>p.lopId===lp)
+    .map(p=>({gvId:p.gvId, mon:p.mon, con:p.soTiet-(daXep[p.gvId+'|'+p.mon]||0)}))
+    .filter(x=>x.con>0);
+}
+
+/* Đặt một môn vào ô trống và ghim. Hàng rào thật nằm Ở ĐÂY chứ không ở
+   thuộc tính disabled của nút trong hộp thoại — cùng bài học "hàng rào
+   thật nằm ở nút Thêm". Dùng lại chính datDuoc(), không viết lại điều kiện. */
+function ghimMonVaoO(lp, khoa, gv, mon){
+  if(!duocSuaLop(lp)) return {ok:false, loi:'Lớp này ngoài phạm vi phụ trách của thầy cô'};
+  /* Hộp thoại chỉ mở từ ô thật trên lưới, nhưng hàm thuần thì ai gọi cũng
+     được — ô ngoài khung của lớp mà ghi vào là tiết vô hình: lưới không vẽ,
+     bản in không bày, docTKB() lần tải sau lặng lẽ bỏ. */
+  if(!oTuanLop(lp).some(x=>x.khoa===khoa)) return {ok:false, loi:'Ô này ngoài khung giờ của lớp'};
+  const [t,b,i]=khoa.split('-');
+  const loi=datDuoc({khoa, kB:`${t}-${b}`, thu:+t, buoi:b, i:+i}, lp, gv, chiSo(), mon);
+  if(loi) return {ok:false, loi};
+  S.tkb[lp][khoa]={gvId:gv, mon, ghim:true};
+  return {ok:true};
 }
 
 /*#endregion LOGIC*/
@@ -9883,14 +9919,17 @@ function mXep(){
                 hơn — kể cả dư 0 — thì vẫn cấp được cho MỘT PHẦN, vì buổi
                 người này nghỉ do đồng nghiệp của lớp dạy đỡ, nhưng sức gánh
                 của bộ môn là có hạn nên không thể tất cả cùng nghỉ. */}
+          ${''/* ⚠️ KHÔNG khuyên "mở thêm ô" (chủ dự án chốt 1/9/2026): khung giờ
+                theo quy định Chương trình là cố định — sáng 4 tiết, chiều 2–3
+                tuỳ lớp. Đòn bẩy hợp lệ duy nhất là PHÂN CÔNG CHUYÊN MÔN. */}
           ${(()=>{ const nganNhat=Math.min(...buoiBat().map(k=>+k.tiet||0).filter(x=>x>0)); return `
           <div class="gy" style="margin-top:7px">${duIt>=nganNhat
-            ? `Khung giờ đang dư <b>${duIt} ô</b> mỗi lớp — đủ để mọi thầy cô có buổi nghỉ.`
-            : `Khung giờ đang dư <b>${duIt} ô</b> mỗi lớp. Máy vẫn dồn được buổi nghỉ cho
-               <b>một phần</b> thầy cô bằng cách nhờ đồng nghiệp dạy đỡ đúng buổi ấy, nhưng
-               muốn <b>tất cả</b> cùng được nghỉ thì cần dư ít nhất <b>${nganNhat} ô</b>
-               (buổi ngắn nhất ${nganNhat} tiết) — mở thêm ô ở mục <b>Khung giờ học</b>.
-               Ai chưa được nghỉ sẽ thấy rõ ở màn <b>Theo giáo viên</b>.`}
+            ? `Khung giờ đang dư <b>${duIt} ô</b> mỗi lớp — đủ chỗ để mọi thầy cô có buổi nghỉ.`
+            : `Khung giờ vừa khít số tiết (dư ${duIt} ô), nên máy dồn được buổi nghỉ cho
+               <b>một phần</b> thầy cô — buổi họ nghỉ do đồng nghiệp của lớp dạy đỡ, mà sức
+               dạy đỡ của giáo viên bộ môn là có hạn. Ai chưa được nghỉ sẽ thấy rõ ở màn
+               <b>Theo giáo viên</b>; muốn thêm người được nghỉ thì điều chỉnh
+               <b>Phân công chuyên môn</b> — chia bớt lớp của người đang kín lịch.`}
             Máy chọn buổi nghỉ theo tính toán chứ không bốc thăm, nên chạy lại vẫn ra đúng bản ấy.
             Muốn chỉ định đúng buổi nào cho riêng một thầy cô thì dùng mục <b>Buổi bận</b>.</div>`; })()}`;
         })()}
@@ -10111,7 +10150,8 @@ function mTKBLop(){
     if(!S.oChon)
       return `<div class="gy" style="margin:-6px 0 12px">Tiết đã chỉnh tay sẽ được
         <b>ghim 📌</b> để lần xếp tự động sau không đè lên. Chạm một tiết là dấu ghim hiện ra —
-        bấm vào đó để ghim, bấm lần nữa để bỏ ghim.</div>`;
+        bấm vào đó để ghim, bấm lần nữa để bỏ ghim. Chạm một <b>ô trống</b> để chọn môn
+        ghim sẵn vào đúng ô ấy rồi cho máy xếp phần còn lại.</div>`;
     /* Đang cầm một tiết: chú giải BA màu, kèm đúng số ô mỗi loại. Đếm thật
        chứ không nói chung chung — người dùng nhìn ra ngay còn mấy chỗ đổi
        tự do trước khi phải động tới lịch đồng nghiệp. */
@@ -14495,8 +14535,8 @@ function noiSuKien(){
       bao(dat===dsDay.length
         ? `Cả ${dsDay.length} thầy cô đều chỉ phải đến trường tối đa ${tran} buổi`
         : `${dat}/${dsDay.length} thầy cô đã được dồn về tối đa ${tran} buổi — `
-          +`${dsDay.length-dat} người còn kín tuần. Muốn tất cả được nghỉ thì `
-          +'mở thêm ô ở mục Khung giờ học, hoặc chạy Xếp kỹ để máy thử thêm nhiều cách.',
+          +`${dsDay.length-dat} người còn kín tuần. Chạy Xếp kỹ để máy thử thêm nhiều cách, `
+          +'hoặc chia bớt lớp của người kín lịch ở mục Phân công chuyên môn.',
         dat<dsDay.length);
     }, 2600);
     ve();
@@ -14982,7 +15022,8 @@ function chamO(khoa){
   if(!duocSuaLop(S.lopXem)) return;
   const o=S.tkb[S.lopXem]||{};
   if(!S.oChon){
-    if(!o[khoa]) return;                      /* ô trống thì chưa có gì để chuyển */
+    /* Ô trống mà tay không cầm gì → hộp ghim môn vào đúng ô này (1/9/2026) */
+    if(!o[khoa]) return hopGhimO(S.lopXem, khoa);
     S.oChon=khoa; return ve();
   }
   if(S.oChon===khoa){ S.oChon=null; return ve(); }
@@ -14990,6 +15031,56 @@ function chamO(khoa){
   if(loi) return bao(loi,true);
   chuyenTiet(S.oChon,khoa);
   S.oChon=null; ve();
+}
+
+/* ================= GHIM MÔN VÀO Ô TRỐNG (1/9/2026) =================
+   Chủ dự án: *"kích chọn vào từng ô … sẽ có sự lựa chọn các môn, chọn xong
+   môn ghim lại — sau khi ghim các tiết cố định mong muốn, sẽ chuyển sang xếp
+   tự động chạy, các ô trống còn lại được thuật toán tiếp tục rà cho vào"*.
+   KHÔNG đụng thuật toán: cơ chế ghim (`ghim:true`) vốn được `xepTuDong()`
+   giữ nguyên — đây chỉ là lối vào mới từ chính ô trống trên lưới.
+
+   ⚠️ Danh sách chỉ gồm môn CÒN THIẾU theo phân công của lớp. Môn vướng ràng
+   buộc cứng vẫn hiện nhưng KHOÁ kèm lý do (dùng lại chính `datDuoc()`, không
+   viết lại điều kiện) — giấu hẳn thì người dùng tưởng mình quên phân công.
+   Nút bấm to chứ không phải ô chọn xổ xuống — cùng quy ước hộp Báo nghỉ:
+   thầy cô thao tác bằng ngón cái. */
+
+function hopGhimO(lp, khoa){
+  const [t,b,i]=khoa.split('-');
+  const tenO=`${TEN_THU[t]||('thứ '+t)} · ${b==='S'?'sáng':'chiều'} · tiết ${+i+1}`;
+  const ds=monConLop(lp);
+  if(!ds.length)
+    return hop('Ghim môn vào ô trống',
+      `<p>Lớp <b>${esc(tenLopDay(lp))}</b> đã xếp đủ mọi môn theo phân công — không còn
+       tiết nào để đặt thêm. Muốn dời một tiết sang ô này thì chạm tiết ấy trước
+       rồi chạm ô này.</p>`,
+      [{ten:'Đóng', lam:dong, phu:true}]);
+  const cs=chiSo();
+  const oX={khoa, kB:`${t}-${b}`, thu:+t, buoi:b, i:+i};
+  const hang=ds.map((x,ix)=>{
+    const g=gvId(x.gvId);
+    const loi=datDuoc(oX, lp, x.gvId, cs, x.mon);
+    return `<button class="b b-vien" data-ghimmon="${ix}" ${loi?'disabled':''}
+      style="width:100%;justify-content:flex-start;text-align:left;gap:8px;margin-bottom:7px;
+             min-height:44px;flex-wrap:wrap${loi?';opacity:.55;cursor:not-allowed':''}">
+      <b>${esc(x.mon)}</b><span style="color:var(--chu-mo)">${esc(tenTat(g?.hoTen||''))} · còn ${x.con} tiết</span>
+      ${loi?`<span style="flex-basis:100%;font-size:12px;color:var(--do)">${esc(loi)}</span>`:''}</button>`;
+  }).join('');
+  hop('Ghim môn vào ô trống',
+    `<p style="margin-bottom:10px">Ô <b>${esc(tenO)}</b> của lớp <b>${esc(tenLopDay(lp))}</b> —
+      chọn môn để đặt vào và <b>ghim 📌</b>. Lần xếp tự động sau, máy giữ nguyên mọi tiết đã
+      ghim và chỉ điền các ô còn lại.</p>${hang}`,
+    [{ten:'Đóng', lam:dong, phu:true}]);
+  $$('[data-ghimmon]').forEach(nut=>nut.onclick=()=>{
+    const x=ds[+nut.dataset.ghimmon];
+    luuLui(`ghim ${x.mon} vào ô trống`);
+    const kq=ghimMonVaoO(lp, khoa, x.gvId, x.mon);
+    if(!kq.ok){ LUI.pop(); return bao(kq.loi, true); }
+    dong();
+    bao(`Đã ghim ${x.mon} vào ${tenO} 📌 — xếp lại tiết này vẫn đứng nguyên chỗ`);
+    ve();
+  });
 }
 
 /* BẬT/TẮT ghim một tiết (31/8/2026).

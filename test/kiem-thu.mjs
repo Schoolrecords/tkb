@@ -67,7 +67,8 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi,
   choLienTiet, goiYLienTiet, MON_LIEN_TIET, chonBuoiNghi, khoaB, khoiDangCo,
   thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId,
-  soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai };`;
+  soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai,
+  monConLop, ghimMonVaoO };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -4220,6 +4221,76 @@ console.log('\n25. Lớp học khác giờ khối — bài toán TH Hưng Vinh 1
     const kq = app.kiemTra();
     const v = kq.vm.find(x => x.ma === 'R05');
     return [!!v && /1A/.test(v.m), v ? v.t : 'không nổ'];
+  })());
+}
+
+console.log('\n26. Ghim môn vào ô trống — xếp tay trước, máy điền phần còn lại');
+/* Chủ dự án 1/9/2026: *"kích chọn vào từng ô … sẽ có sự lựa chọn các môn,
+   chọn xong môn ghim lại — sau đó xếp tự động chạy, các ô trống còn lại
+   được thuật toán tiếp tục rà cho vào"*. */
+{
+  const DL3 = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
+  const mo3 = () => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.napVaoS(JSON.parse(JSON.stringify(DL3)));
+    return app;
+  };
+
+  kt('Lưới trắng: danh sách môn còn thiếu đúng bằng phân công của lớp', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const tongCon = ds.reduce((s, x) => s + x.con, 0);
+    const tongPC = app.S.phanCong.filter(p => p.lopId === 'lop_1A').reduce((s, p) => s + p.soTiet, 0);
+    return [tongCon === tongPC && ds.every(x => x.con > 0), `${tongCon}/${tongPC} tiết còn thiếu`];
+  })());
+
+  kt('Ghim một môn vào ô trống: tiết mang cờ ghim, danh sách thiếu giảm đúng 1', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const x = ds.find(m => m.mon === 'Toán') || ds[0];
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-1', x.gvId, x.mon);
+    const v = app.S.tkb['lop_1A']['3-S-1'];
+    const sau = app.monConLop('lop_1A').find(m => m.mon === x.mon && m.gvId === x.gvId);
+    return [kq.ok && v?.ghim === true && v.mon === x.mon
+            && (sau ? sau.con : 0) === x.con - 1,
+            `${x.mon} vào 3-S-1, còn ${sau ? sau.con : 0}/${x.con}`];
+  })());
+
+  kt('Xếp tự động SAU khi ghim: tiết ghim đứng nguyên chỗ, trường vẫn trọn 710', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const x = ds.find(m => m.mon === 'Toán') || ds[0];
+    app.ghimMonVaoO('lop_1A', '3-S-1', x.gvId, x.mon);
+    const kq = app.xepTuDong(1200);
+    const v = app.S.tkb['lop_1A']['3-S-1'];
+    const tong = app.S.lop.reduce((n, l) => n + Object.keys(app.S.tkb[l.id] || {}).length, 0);
+    return [v?.mon === x.mon && v?.ghim === true && kq.daXep === 710 && tong === 710,
+            `ô ghim giữ ${v?.mon} · ${kq.daXep}/710`];
+  })());
+
+  kt('Ô đã có tiết thì từ chối, kèm lý do của chính datDuoc()', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    app.ghimMonVaoO('lop_1A', '3-S-1', ds[0].gvId, ds[0].mon);
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-1', ds[0].gvId, ds[0].mon);
+    return [!kq.ok && /đã có tiết/i.test(kq.loi || ''), kq.loi || 'không có lý do'];
+  })());
+
+  kt('Giáo viên bận buổi ấy thì từ chối — ràng buộc cứng số 7 giữ cả ở lối ghim tay', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const x = ds[0];
+    app.S.gvNghi[x.gvId] = ['3-S'];
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-1', x.gvId, x.mon);
+    return [!kq.ok && !!kq.loi, kq.loi || 'không có lý do'];
+  })());
+
+  kt('Ô ngoài khung giờ của lớp thì từ chối — không sinh tiết vô hình', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-9', ds[0].gvId, ds[0].mon);
+    return [!kq.ok && /ngoài khung/i.test(kq.loi || '') && !app.S.tkb['lop_1A']['3-S-9'],
+            kq.loi || 'không có lý do'];
   })());
 }
 

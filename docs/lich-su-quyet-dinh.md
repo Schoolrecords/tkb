@@ -2833,3 +2833,56 @@ chính bảng phân công, không liên quan trần buổi; Xếp kỹ thu về 
 - **Bảng `mon_hoc` của trường đang RỖNG trên máy chủ** (di chứng lỗi "chưa
   lưu được danh mục môn" tối 31/8, đã vá cùng tối): mở mục *Môn học*, soát
   lại TC Toán · TC TV rồi bấm Lưu một lần.
+
+---
+
+## 1/9/2026 (chiều) — Ghim môn vào Ô TRỐNG, và nguyên tắc "không mở thêm ô"
+
+### Nguyên tắc chủ dự án chốt — ghi thành luật
+
+*"Không thể mở thêm ô nào cả theo quy định khung Chương trình. Buổi sáng 4
+tiết, buổi chiều 2 hoặc 3 tùy từng lớp. Không thể mở môn mà chỉ điều chỉnh
+phân công chuyên môn."*
+
+⚠️ **Từ nay KHÔNG câu chữ nào — trên màn hình hay trong lời khuyên — được
+gợi ý "mở thêm ô ở mục Khung giờ học".** Hai câu vừa viết sáng cùng ngày
+(dải gợi ý màn Xếp, thông báo sau xếp) đã sửa lại: chỉ đường sang **Phân
+công chuyên môn** — chia bớt lớp của người kín lịch. Phép thử 17ac nay canh
+cả chiều ngược: thấy chữ "mở thêm ô" là đỏ.
+
+### Ghim môn vào ô trống — xếp tay trước, máy điền phần còn lại
+
+Chủ dự án: *"kích chọn vào từng ô … sẽ có sự lựa chọn các môn, chọn xong môn
+ghim lại — sau đó xếp tự động chạy, các ô trống còn lại được thuật toán tiếp
+tục rà cho vào."* Trước đó ô trống trên màn *Theo lớp* chỉ nhận tiết CHUYỂN
+tới, không có đường đặt tiết MỚI — muốn cố định trước khi xếp phải đi vòng
+qua hộp *Cố định môn vào giờ* (theo môn, cả loạt lớp), không theo từng ô.
+
+**KHÔNG đụng thuật toán**: cơ chế `ghim:true` vốn được `xepTuDong()` giữ
+nguyên — đây chỉ là lối vào mới. Ba mảnh:
+
+| Hàm | Việc |
+|---|---|
+| `monConLop(lp)` | vùng LOGIC — môn còn thiếu so với phân công của lớp |
+| `ghimMonVaoO(lp, khoa, gv, mon)` | vùng LOGIC — soát rồi đặt tiết ghim; hàng rào thật |
+| `hopGhimO(lp, khoa)` | hộp thoại; `chamO()` ô trống tay không cầm gì thì mở |
+
+Năm điều bắt buộc, đều có phép thử (`npm test` mục **26**, `npm run soi`
+mục **17ad**, đã thử ngược cả hai chiều):
+
+- **Danh sách chỉ gồm môn CÒN THIẾU theo phân công** — đủ rồi thì hộp nói
+  thẳng, không bày danh sách rỗng.
+- **Dùng lại chính `datDuoc()`**, không viết lại điều kiện: môn vướng ràng
+  buộc cứng hiện nhưng KHOÁ kèm đúng câu lý do. Hàng rào thật nằm ở
+  `ghimMonVaoO()`, không ở thuộc tính disabled.
+- ⚠️ **Chặn ô ngoài khung giờ của lớp** — hàm thuần ai gọi cũng được, ghi
+  vào ô lưới không vẽ là tiết vô hình: bản in không bày, `docTKB()` lần tải
+  sau lặng lẽ bỏ.
+- **Nút bấm to, không phải ô chọn xổ xuống** — cùng quy ước hộp Báo nghỉ,
+  thầy cô thao tác bằng ngón cái.
+- **Có bước lui**: `luuLui()` ghi trước khi đặt, đặt hỏng thì `LUI.pop()`
+  trả lại — không để bước lui rác trong ngăn xếp.
+
+⚠️ Bẫy khi viết phép thử nhánh "đủ ô dư" của 17ac: nâng ĐỀU mọi buổi chiều
+thì chính ngưỡng "buổi ngắn nhất" cũng tăng theo và nhánh đủ không bao giờ
+tới — phải nâng DỒN vào một buổi.

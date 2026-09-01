@@ -4349,22 +4349,27 @@ console.log('\n17ac. Trần số buổi dạy nói bằng SỐ BUỔI PHẢI Đ�
       (chu().match(/dạy nhiều nhất \d+\/\d+ buổi/) || [''])[0]]);
   kt('Và chỉ đường sang mục Buổi bận cho ai cần chỉ định đúng buổi',
      /mục Buổi bận/.test(chu()));
-  /* ⚠️ Nói NGƯỠNG THẬT: đo được dư 1 ô thì vẫn 0/35 người nghỉ được, nên câu
-     "đang dư 1 ô, còn chỗ đấy" là lạc quan sai. Ngưỡng là buổi ngắn nhất.
-     Dữ liệu vàng dư 0 ô nên phải nâng khung lên mới soi được nhánh ấy. */
-  kt('Khung vừa khít thì nói thẳng là đặt số này cũng không ai nghỉ được',
-     [/dư 0 ô/.test(chu()), (chu().match(/dư 0 ô/) || [''])[0]]);
-  kt('Có ô dư thì nói rõ cần dư mấy ô mọi thầy cô mới nghỉ được', (() => {
+  /* ⚠️ SỬA NGỮ NGHĨA 1/9/2026: lưới kín vẫn cấp được buổi nghỉ cho MỘT PHẦN
+     thầy cô (đồng nghiệp phủ buổi), và ⚠️ KHÔNG được khuyên "mở thêm ô" —
+     chủ dự án chốt: khung giờ theo quy định Chương trình là cố định, đòn
+     bẩy hợp lệ duy nhất là phân công chuyên môn. */
+  kt('Khung vừa khít thì nói đúng mức: MỘT PHẦN được nghỉ, chỉ đường Phân công chuyên môn',
+     [/một phần/.test(chu()) && /Phân công chuyên môn/.test(chu()),
+      (chu().match(/một phần[^.]*/) || [''])[0].slice(0, 60)]);
+  kt('Và KHÔNG còn khuyên "mở thêm ô" — khung Chương trình là cố định',
+     [!/mở thêm ô/i.test(chu()), (chu().match(/.{0,30}mở thêm ô.{0,20}/i) || ['sạch'])[0]]);
+  kt('Đủ ô dư (dữ liệu khác) thì nói thẳng là đủ chỗ cho mọi thầy cô', (() => {
     const kgGoc = w.eval('JSON.stringify(S.khungGio)');
-    /* Phải nâng cho MỌI khối: `duIt` lấy khối dư ít nhất, nâng mình khối 1
-       thì con số ấy vẫn là 0 và phép thử đỏ oan. */
+    /* Nâng dồn +3 vào MỘT buổi cho mọi khối: dư 3 ô mỗi lớp mà ngưỡng "buổi
+       ngắn nhất" vẫn là 3 (các buổi chiều khác giữ nguyên) — nâng đều mọi
+       buổi thì chính ngưỡng cũng tăng theo và nhánh "đủ" không bao giờ tới. */
     w.eval("const k=S.khungGio.find(x=>x.thu===2&&x.buoi==='C');"
-         + "[1,2,3,4,5].forEach(x=>k.tietKhoi[x]++); chuanKhungGio()");
+         + "[1,2,3,4,5].forEach(x=>{k.tietKhoi[x]+=3;}); chuanKhungGio()");
     w.chuyen('xep');
     const c = chu();
     w.eval(`S.khungGio = ${kgGoc}; chuanKhungGio()`);
     w.chuyen('xep');
-    return [/cần dư ít nhất \d+ ô/.test(c), (c.match(/cần dư ít nhất \d+ ô[^.]*/) || [''])[0].slice(0, 70)];
+    return [/đủ chỗ để mọi thầy cô/.test(c), (c.match(/dư \d+ ô[^.]*/) || [''])[0].slice(0, 70)];
   })());
   kt('Và nói rõ máy chọn buổi theo tính toán, không bốc thăm',
      /không bốc thăm/.test(chu()));
@@ -4374,6 +4379,61 @@ console.log('\n17ac. Trần số buổi dạy nói bằng SỐ BUỔI PHẢI Đ�
 
   w.eval(`S.buoiNghiToiThieu = ${nghiGoc || 0}`);
   w.chuyen('dieuhanh');
+}
+
+console.log('\n17ad. Ghim môn vào ô trống — chạm ô trống là chọn được môn');
+/* Chủ dự án 1/9/2026: *"kích chọn vào từng ô … sẽ có sự lựa chọn các môn,
+   chọn xong môn ghim lại"* — rồi bấm Xếp tự động cho máy điền phần còn lại. */
+{
+  w.chuyen('tkblop');
+  if (!S.lopXem) { w.eval('S.lopXem = S.lop[0].id'); w.ve(); }
+  const lp = S.lopXem;
+  /* Dựng một ô trống chắc chắn: gỡ một tiết chưa ghim ra khỏi lưới */
+  const kTrong = Object.keys(S.tkb[lp]).find(k => !S.tkb[lp][k].ghim);
+  w.eval(`delete S.tkb[S.lopXem]['${kTrong}']; S.oChon=null;`); w.ve();
+
+  w.chamO(kTrong);
+  kt('Chạm ô trống (tay không cầm gì) là mở hộp chọn môn',
+     w.document.querySelector('#man').classList.contains('on')
+     && /Ghim môn vào ô trống/.test(w.document.querySelector('#hopT').textContent));
+  const nut = [...w.document.querySelectorAll('[data-ghimmon]')];
+  kt('Hộp liệt kê đúng các môn còn thiếu theo phân công', (() => {
+    const ds = w.monConLop(lp);
+    return [nut.length === ds.length && ds.length > 0, `${nut.length} môn`];
+  })());
+  kt('Bấm một môn là tiết vào đúng ô và được ghim 📌', (() => {
+    const bam = nut.find(n => !n.disabled);
+    if (!bam) return [false, 'không còn nút bấm được'];
+    bam.dispatchEvent(new w.Event('click', { bubbles: true }));
+    const v = S.tkb[lp][kTrong];
+    return [!!v && v.ghim === true && !w.document.querySelector('#man').classList.contains('on'),
+            v ? `${v.mon} — đã ghim` : 'ô vẫn trống'];
+  })());
+  kt('Hoàn tác trả ô về trống như trước', (() => {
+    w.hoanTac();
+    return [!S.tkb[lp][kTrong], 'ô lại trống'];
+  })());
+  kt('Lớp đã đủ tiết thì hộp nói thẳng, không bày danh sách rỗng', (() => {
+    /* trả tiết về chỗ cũ cho lớp đủ như trước rồi mở lại hộp trên một ô nghỉ?
+       — không: mở trên chính ô ấy sau khi lớp đã đủ (hoàn tác đã trả đủ về?
+       hoàn tác trả về TRẠNG THÁI TRƯỚC KHI GHIM tức ô trống — nên ghim lại
+       một môn cho đủ, rồi thử chạm một ô trống khác nếu còn, hoặc dựng đủ). */
+    const ds = w.monConLop(lp);
+    ds.forEach(x => { /* điền nốt cho đủ mọi môn của lớp */
+      for (let n = 0; n < x.con; n++) {
+        const o = w.oTuanLop(lp).find(c => !S.tkb[lp][c.khoa]
+          && !w.ghimMonVaoO(lp, c.khoa, x.gvId, x.mon).loi);
+        if (!o) break;
+      }
+    });
+    if (w.monConLop(lp).length) return [true, '(lớp còn thiếu môn kẹt ràng buộc — bỏ qua nhánh này)'];
+    const oTrong = w.oTuanLop(lp).find(c => !S.tkb[lp][c.khoa]);
+    if (!oTrong) return [true, '(lớp kín lưới — không còn ô trống để thử)'];
+    w.chamO(oTrong.khoa);
+    const noiDung = w.document.querySelector('#hopN').textContent;
+    return [/đã xếp đủ mọi môn/.test(noiDung), noiDung.slice(0, 60)];
+  })());
+  w.eval("dong(); S.oChon=null;"); w.ve();
 }
 
 console.log('\n18. Không có lỗi chạy nào');
