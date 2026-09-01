@@ -136,6 +136,46 @@ xong bảng vẫn trắng.
 
 ---
 
+## 4b. Ghim tiết cố định — chào cờ, sinh hoạt lớp
+
+*(làm cho Thần Lĩnh 1 ngày 1/9/2026: HĐTN vào thứ Hai tiết 1 và thứ Sáu tiết 4)*
+
+⚠️ **SmartScheduler KHÔNG có ràng buộc "cố định môn vào tiết X".** Mục *Ràng buộc
+TKB › Yêu cầu của môn học* chỉ có ràng buộc **cấm**, nên đừng tìm ở đó.
+
+Chỗ đúng là **Soạn thảo › Xếp môn học** — nó đặt một môn vào đúng thứ/tiết cho
+**tất cả lớp trong một lần**, có ô tích *Cố định*. Không phải xếp tay 30 lần.
+
+```
+① Soạn thảo › Xóa TKB › Xóa TKB toàn trường     (giữ nguyên tiết đã cố định)
+② Soạn thảo › Xếp môn học → HĐTN · Buổi sáng · Thứ 2 · Tiết 1 · ☑ Cố định
+③ Soạn thảo › Xếp môn học → HĐTN · Buổi sáng · Thứ 6 · Tiết 4 · ☑ Cố định
+④ Soạn thảo › Soạn thảo TKB tự động             → xếp nốt phần còn lại
+⑤ Soạn thảo › Tối ưu TKB tự động                → bấm **Có** để GHI
+```
+
+Tiết cố định hiện **chữ xanh đậm** trên lưới, và hộp *Xóa TKB* mặc định chừa
+chúng ra — nên xếp lại bao nhiêu lần cũng không mất.
+
+Ba điều dễ vấp:
+
+- ⚠️ **Mục trong các ô chọn KHÔNG mang tên trơn** mà là chuỗi kỹ thuật
+  `Item { ID = 17, Code = HĐTN, Name = HĐTN }`. Khớp `Name -eq 'HĐTN'` là trượt;
+  phải khớp `Code = HĐTN,`. Cẩn thận `HĐTN` · `HĐTC` · `HDTH` rất giống nhau.
+- ⚠️ **Xếp xong CHƯA chắc đã ghi xuống tệp.** Phần mềm giữ lưới trong bộ nhớ và
+  chỉ ghi khi hộp *"Bạn muốn ghi TKB đã được sắp xếp?"* được bấm **Có**. Ctrl+S
+  không có tác dụng, và không có tệp `.wal`/`.journal` nào để cứu. Đã suýt mất
+  một lần: lưới hiển thị đủ 32/32 mà `.sdb` vẫn giữ nội dung cũ mười phút trước.
+  **Luôn so `LastWriteTime` của `.sdb` trước và sau.**
+- ⚠️ Hộp MessageBox của phần mềm hay không tìm được bằng UI Automation — bấm
+  theo tọa độ nút (nút *Có* ở khoảng `x=1001, y=637` trên màn 1920×1200).
+
+**Kiểm kết quả bằng chính tệp phần mềm xuất ra**, đừng tin mắt nhìn một lớp:
+*Hệ thống › Chuyển đổi dữ liệu sang Excel* → trang `TKB_LOP_S` / `TKB_LOP_C`,
+mỗi thứ 5 dòng, cột từ thứ ba trở đi là từng lớp. Đọc bằng script rồi đếm.
+
+---
+
 ## 5. Tên môn — bảng phải nhớ
 
 SmartScheduler có **17 môn dựng sẵn** và chỉ nhận đúng tên của nó:
@@ -196,9 +236,14 @@ Cùng bộ dữ liệu Thần Lĩnh 1, chạy thuật toán của app cho ra b�
 | | SmartScheduler | App mình |
 |---|---|---|
 | Xếp được | 100% (480/480) | 100% (480/480) |
-| Toán · Tiếng Việt vào tiết 1–3 sáng | không đo được | **95%** |
+| Toán · Tiếng Việt vào tiết 1–3 sáng | **47%** | **95%** |
 | Tiết trống kẹp giữa buổi | không đo được | **1** |
 | Kiểm khả thi trước khi xếp | không có | R01–R14 |
+
+⚠️ **Khoảng cách 47% so với 95% là thật và đáng kể.** SmartScheduler xếp *đủ*
+nhưng không ưu tiên môn nặng vào đầu buổi sáng — nó không có khái niệm ấy.
+Thuật toán của app mình phạt nặng việc đẩy Toán và Tiếng Việt ra khỏi tiết 1–3
+sáng, nên gần gấp đôi. Đo bằng cùng một script trên tệp cả hai bên xuất ra.
 
 Giữ cả hai bản: bản trong `.sdb` để nhà trường dùng tiếp bằng phần mềm họ quen,
 bản Excel của app mình để đối chiếu chất lượng.
