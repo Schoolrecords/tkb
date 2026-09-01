@@ -4298,6 +4298,118 @@ console.log('\n26. Ghim môn vào ô trống — xếp tay trước, máy điề
     return [!kq.ok && /ngoài khung/i.test(kq.loi || '') && !app.S.tkb['lop_1A']['3-S-9'],
             kq.loi || 'không có lý do'];
   })());
+
+  /* --- Đổi môn của ô ĐÃ CÓ TIẾT (chủ dự án 1/9/2026: "kể cả tiết đang có
+     môn học có thể bấm vào lựa chọn môn khác") --- */
+  kt('Chế độ THAY: ô có tiết đổi được sang môn khác, môn cũ trở lại danh sách thiếu', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const a = ds.find(m => m.mon === 'Toán'), b = ds.find(m => m.mon === 'TNXH');
+    app.ghimMonVaoO('lop_1A', '3-S-1', a.gvId, a.mon);
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-1', b.gvId, b.mon, true);
+    const v = app.S.tkb['lop_1A']['3-S-1'];
+    const toanLai = app.monConLop('lop_1A').find(m => m.mon === 'Toán');
+    return [kq.ok && v?.mon === 'TNXH' && v.ghim === true && toanLai?.con === a.con,
+            `${v?.mon} thế chỗ · Toán còn ${toanLai?.con}/${a.con}`];
+  })());
+  kt('THAY mà môn mới vướng ràng buộc thì ô giữ NGUYÊN tiết cũ, không ở trạng thái dở', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    const a = ds.find(m => m.mon === 'Toán'), b = ds.find(m => m.mon === 'Âm nhạc') || ds.find(m => m.gvId !== a.gvId);
+    app.ghimMonVaoO('lop_1A', '3-S-1', a.gvId, a.mon);
+    app.S.gvNghi[b.gvId] = ['3-S'];
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-1', b.gvId, b.mon, true);
+    const v = app.S.tkb['lop_1A']['3-S-1'];
+    return [!kq.ok && !!kq.loi && v?.mon === 'Toán', `${kq.loi || ''} · ô vẫn là ${v?.mon}`];
+  })());
+  kt('KHÔNG truyền cờ thay thì ô có tiết vẫn được bảo vệ như cũ', (() => {
+    const app = mo3();
+    const ds = app.monConLop('lop_1A');
+    app.ghimMonVaoO('lop_1A', '3-S-1', ds[0].gvId, ds[0].mon);
+    const kq = app.ghimMonVaoO('lop_1A', '3-S-1', ds[1].gvId, ds[1].mon);
+    return [!kq.ok && app.S.tkb['lop_1A']['3-S-1']?.mon === ds[0].mon, kq.loi || ''];
+  })());
+}
+
+console.log('\n27. R14 — nút thắt buổi nghỉ, đích danh trước khi xếp');
+/* Chủ dự án 1/9/2026: đặt trần "nghỉ ≥1 buổi" trên lưới kín thì muốn biết
+   TRƯỚC khi xếp: ai không thể nghỉ, và vì ai — để đi điều chỉnh phân công
+   chuyên môn (KHÔNG mở thêm ô, khung Chương trình cố định). */
+{
+  const DLR = JSON.parse(readFileSync(join(goc, 'data/truong-dien-lien.json'), 'utf8'));
+  const mo4 = (sua) => {
+    const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+    app.napVaoS(JSON.parse(JSON.stringify(DLR)));
+    if (sua) sua(app);
+    return app;
+  };
+  const r14 = app => app.kiemTra().vm.filter(v => v.ma === 'R14');
+
+  kt('Chưa đặt trần thì KHÔNG một dòng R14 nào — chưa ai hỏi thì đừng báo', (() => {
+    const app = mo4();
+    return [r14(app).length === 0, `${r14(app).length} dòng`];
+  })());
+
+  kt('Diễn Liên dư 0 ô + trần 1 buổi: vẫn im lặng — thực đo chỉ 1 người kín tuần, báo là báo oan', (() => {
+    const app = mo4(a => { a.S.buoiNghiToiThieu = 1; });
+    return [r14(app).length === 0, r14(app).map(v => v.t).join(' | ') || 'im lặng đúng'];
+  })());
+
+  /* Dựng đúng cảnh Quảng Châu 1: dồn phân công cho chủ nhiệm khối 1 tới khi
+     các môn còn lại của lớp chỉ còn 3 tiết (Tiếng Anh 2 + một môn 1 tiết) —
+     buổi nghỉ rẻ nhất cần 2 tiết phủ, nên nghỉ kiểu gì cũng cần cô Tiếng Anh. */
+  const donChoCN = (app, dsLop) => {
+    let duoc = 0;
+    dsLop.forEach(lp => {
+      const cn = app.cnCuaLop(lp); if (!cn) return;
+      const tLop = app.S.phanCong.filter(p => p.lopId === lp).reduce((s, p) => s + p.soTiet, 0);
+      let pool = tLop - app.S.phanCong.filter(p => p.lopId === lp && p.gvId === cn.id)
+        .reduce((s, p) => s + p.soTiet, 0);
+      for (const p of app.S.phanCong.filter(x => x.lopId === lp && x.gvId !== cn.id
+             && x.mon !== 'Tiếng Anh' && x.soTiet === 1)) {
+        if (pool <= 3) break;
+        p.gvId = cn.id; pool -= 0;              /* đổi người, tổng pool giảm theo tiết */
+        pool = tLop - app.S.phanCong.filter(x => x.lopId === lp && x.gvId === cn.id)
+          .reduce((s, x) => s + x.soTiet, 0);
+      }
+      if (pool === 3) duoc++;
+    });
+    return duoc;
+  };
+  const LOP1 = ['lop_1A', 'lop_1B', 'lop_1C', 'lop_1D', 'lop_1E'];
+
+  kt('Dồn tải cho 5 chủ nhiệm khối 1: R14 chỉ ĐÍCH DANH cô Tiếng Anh là nút thắt', (() => {
+    const app = mo4(a => { a.S.buoiNghiToiThieu = 1; });
+    const duoc = donChoCN(app, LOP1);
+    if (duoc < 3) return [false, `chỉ dựng được ${duoc}/5 lớp về pool 3`];
+    const taCua = new Set(app.S.phanCong
+      .filter(p => LOP1.includes(p.lopId) && p.mon === 'Tiếng Anh').map(p => p.gvId));
+    const nut = r14(app).filter(v => /nút thắt/.test(v.t));
+    const dungTen = nut.some(v => [...taCua].some(id => v.t.includes(app.S.giaoVien.find(g => g.id === id)?.hoTen)));
+    return [nut.length > 0 && dungTen, nut.map(v => v.t).join(' | ') || 'không dòng nào'];
+  })());
+
+  kt('Và lời gỡ chỉ sang Phân công chuyên môn, tuyệt không khuyên mở thêm ô', (() => {
+    const app = mo4(a => { a.S.buoiNghiToiThieu = 1; });
+    donChoCN(app, LOP1);
+    const ds = r14(app);
+    return [ds.length > 0 && ds.every(v => /Phân công chuyên môn/.test(v.g) && !/mở thêm ô/i.test(v.g + v.m)),
+            ds[0]?.g?.slice(0, 60) || ''];
+  })());
+
+  kt('Chủ nhiệm ôm gần trọn lớp: R14 mức CANH nói thẳng "không thể có buổi nghỉ" kèm số tiết cần chuyển', (() => {
+    const app = mo4(a => { a.S.buoiNghiToiThieu = 1; });
+    const cn = app.cnCuaLop('lop_1A');
+    /* dồn mọi môn (trừ 1 tiết) về chủ nhiệm — pool còn 1 < buổi rẻ nhất 2 ô */
+    const khac = app.S.phanCong.filter(p => p.lopId === 'lop_1A' && p.gvId !== cn.id);
+    khac.forEach((p, i) => { if (i < khac.length - 1 || p.soTiet > 1) p.gvId = cn.id; });
+    const pool = app.S.phanCong.filter(p => p.lopId === 'lop_1A' && p.gvId !== cn.id)
+      .reduce((s, p) => s + p.soTiet, 0);
+    if (pool > 1) return [false, `pool còn ${pool}, chưa dựng được cảnh`];
+    const v = r14(app).find(x => x.muc === 'canh');
+    return [!!v && v.t.includes(cn.hoTen) && /Chuyển bớt ít nhất \d+ tiết/.test(v.g),
+            v ? v.t : 'không dòng canh nào'];
+  })());
 }
 
 /* ---------- Tổng kết ---------- */

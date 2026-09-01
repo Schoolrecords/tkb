@@ -4393,9 +4393,9 @@ console.log('\n17ad. Ghim môn vào ô trống — chạm ô trống là chọn 
   w.eval(`delete S.tkb[S.lopXem]['${kTrong}']; S.oChon=null;`); w.ve();
 
   w.chamO(kTrong);
-  kt('Chạm ô trống (tay không cầm gì) là mở hộp chọn môn',
+  kt('Chạm ô trống (tay không cầm gì) là mở hộp Xếp tay',
      w.document.querySelector('#man').classList.contains('on')
-     && /Ghim môn vào ô trống/.test(w.document.querySelector('#hopT').textContent));
+     && /Xếp tay — ghim môn vào ô trống/.test(w.document.querySelector('#hopT').textContent));
   const nut = [...w.document.querySelectorAll('[data-ghimmon]')];
   kt('Hộp liệt kê đúng các môn còn thiếu theo phân công', (() => {
     const ds = w.monConLop(lp);
@@ -4413,6 +4413,46 @@ console.log('\n17ad. Ghim môn vào ô trống — chạm ô trống là chọn 
     w.hoanTac();
     return [!S.tkb[lp][kTrong], 'ô lại trống'];
   })());
+  /* --- Ô ĐÃ CÓ MÔN: đổi môn hoặc xoá (chủ dự án 1/9/2026) --- */
+  kt('Chọn một tiết thì dải chú giải có nút "Đổi môn ô này" và "Xoá tiết"', (() => {
+    /* Chọn tiết KHÔNG phải HDTN để lát nữa còn môn khác (HDTN đang thiếu 1)
+       mà đổi sang — chọn trúng HDTN thì danh sách không còn môn nào khác. */
+    const kCo = Object.keys(S.tkb[lp]).find(k => S.tkb[lp][k].mon !== 'HDTN' && !S.tkb[lp][k].ghim)
+      || Object.keys(S.tkb[lp])[0];
+    w.chamO(kCo); w.ve();
+    return [!!w.document.querySelector('#btDoiMonO') && !!w.document.querySelector('#btXoaTietO'),
+            `oChon=${S.oChon}`];
+  })());
+  kt('Bấm "Đổi môn ô này" mở hộp Xếp tay có nút Xoá tiết này', (() => {
+    w.document.querySelector('#btDoiMonO').dispatchEvent(new w.Event('click', { bubbles: true }));
+    const t = w.document.querySelector('#hopT').textContent;
+    const coXoa = [...w.document.querySelectorAll('#hopC button')].some(b => /Xoá tiết này/.test(b.textContent));
+    return [/Xếp tay — đổi môn/.test(t) && coXoa, t];
+  })());
+  kt('Chọn môn khác trong hộp là ô ĐỔI môn và ghim, môn cũ về danh sách thiếu', (() => {
+    const kCo = S.oChon;
+    const monCu = S.tkb[lp][kCo].mon;
+    const truocCu = (w.monConLop(lp).find(m => m.mon === monCu) || { con: 0 }).con;
+    const nutKhac = [...w.document.querySelectorAll('[data-ghimmon]')]
+      .find(n => !n.disabled && n.querySelector('b')?.textContent !== monCu);
+    if (!nutKhac) return [true, '(không còn môn khác hợp lệ — bỏ qua)'];
+    nutKhac.dispatchEvent(new w.Event('click', { bubbles: true }));
+    const v = S.tkb[lp][kCo];
+    const sauCu = (w.monConLop(lp).find(m => m.mon === monCu) || { con: 0 }).con;
+    return [v?.mon !== monCu && v?.ghim === true && sauCu === truocCu + 1,
+            `${monCu} → ${v?.mon} · ${monCu} còn ${sauCu}`];
+  })());
+  kt('Phím Delete xoá tiết đang chọn', (() => {
+    const kCo = Object.keys(S.tkb[lp]).find(k => !S.tkb[lp][k].ghim) || Object.keys(S.tkb[lp])[0];
+    w.chamO(kCo); w.ve();
+    w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+    return [!S.tkb[lp][kCo] && S.oChon === null, `${kCo} đã trống`];
+  })());
+  kt('Hộp mở từ ô có tiết cũng đóng được và hoàn tác trả lại như cũ', (() => {
+    while (coLui()) w.hoanTac();
+    return [true, 'dọn trạng thái'];
+  })());
+
   kt('Lớp đã đủ tiết thì hộp nói thẳng, không bày danh sách rỗng', (() => {
     /* trả tiết về chỗ cũ cho lớp đủ như trước rồi mở lại hộp trên một ô nghỉ?
        — không: mở trên chính ô ấy sau khi lớp đã đủ (hoàn tác đã trả đủ về?

@@ -1975,7 +1975,7 @@ trường" được thoả một cách TẦM THƯỜNG nếu không ép tồn t�
 
 ---
 
-## 6. Bộ quy tắc kiểm tra khả thi (13 quy tắc)
+## 6. Bộ quy tắc kiểm tra khả thi (14 quy tắc)
 
 Chạy **trước** khi xếp. Đây là tính năng có giá trị bán hàng cao nhất — nó cho
 hiệu trưởng biết vấn đề nhân sự từ tháng 8, lúc còn kịp xử lý.
@@ -1995,11 +1995,24 @@ hiệu trưởng biết vấn đề nhân sự từ tháng 8, lúc còn kịp x�
 | R11 | Chủ nhiệm báo bận đúng buổi có tiết cố định | canh |
 | R12 | Có phòng chức năng nhưng **không đủ chỗ** cho số tiết cần | do |
 | R13 | Vùng vàng (tiết 1–3 sáng) không đủ chỗ cho Toán, Tiếng Việt | goi |
+| R14 | Nút thắt buổi nghỉ — ai không thể nghỉ, và vì ai | canh / goi |
 
 R12 là quy tắc chỉ lộ ra sau sáp nhập: ba trường gộp lại mà vẫn một phòng máy
 thì số tiết Tin học vượt hẳn sức chứa (số phòng × số ô giờ). Nó phải báo từ
 tháng 8, lúc còn kịp xin thêm phòng — chứ không phải để tới lúc xếp mới biết.
 Chỉ chạy khi trường đã khai bảng phòng.
+
+R14 *(1/9/2026)* — chỉ chạy khi trường ĐÃ đặt trần số buổi dạy
+(`S.buoiNghiToiThieu > 0`), cùng luật "số 0 không tô đỏ". Dùng lại phép tính
+phủ-buổi của pha 0: (a) người không còn buổi nghỉ khả thi nào → mức **canh**,
+đích danh kèm số tiết cần chuyển bớt; (b) đồng nghiệp mà MỌI buổi nghỉ khả
+thi của ≥3 người ở **≥3 lớp khác nhau** đều bắt buộc cần → mức **goi**, đó
+là nút thắt thật (điều kiện ≥3 lớp lọc nhiễu: chủ nhiệm nào cũng "được cần"
+bởi bộ môn của chính lớp mình nhưng phục vụ được đồng thời). ⚠️ Lời gỡ CHỈ
+trỏ về Phân công chuyên môn — tuyệt đối không khuyên mở thêm ô, khung giờ
+theo quy định Chương trình là cố định (chủ dự án chốt 1/9/2026). Có phép thử
+canh cả chiều không-báo-oan: Diễn Liên dư 0 ô đặt trần 1 thì R14 im lặng,
+vì thực đo sau xếp chỉ 1 người kín tuần.
 
 R13 *(3/8/2026)* sinh từ đợt kiểm định thuật toán: trần 88,5% của "Toán/TV
 vào tiết 1–3 sáng" là **trần cấu trúc** — giáo viên bộ môn kín lịch (cô

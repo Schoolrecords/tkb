@@ -3346,6 +3346,100 @@ function kiemTra(){
     }
   }
 
+  /* R14 — NÚT THẮT BUỔI NGHỈ *(1/9/2026)*. Chủ dự án đặt trần "mỗi thầy cô
+     nghỉ ≥1 buổi" trên lưới kín và muốn biết TRƯỚC KHI XẾP: ai không thể
+     nghỉ, và vì ai. Chỉ chạy khi trường ĐÃ đặt trần (S.buoiNghiToiThieu>0)
+     — chưa ai hỏi thì đừng báo, cùng luật "số 0 không tô đỏ".
+
+     Dùng lại đúng phép tính phủ-buổi của pha 0 (chonBuoiNghi): buổi g nghỉ
+     thì đồng nghiệp của lớp dạy đỡ. Hai điều rút ra được một cách CHẮC CHẮN
+     từ số học, không cần xếp thử:
+     a) g không còn buổi nào khả thi → không cách xếp nào cho g nghỉ. Đích
+        danh + số tiết cần chuyển bớt.
+     b) đồng nghiệp j mà MỌI buổi nghỉ khả thi của g đều bắt buộc cần j góp
+        tiết → j là điều kiện cứng của g. Một j bị ≥3 người ở ≥3 LỚP KHÁC
+        NHAU cùng cần là nút thắt thật — điều kiện "≥3 lớp khác nhau" lọc
+        đúng nhiễu: chủ nhiệm nào cũng "được cần" bởi bộ môn của chính lớp
+        mình, nhưng đó là một lớp, phục vụ được đồng thời, không phải thắt.
+     ⚠️ KHÔNG khuyên mở thêm ô — khung Chương trình cố định; đường gỡ duy
+     nhất được nêu là Phân công chuyên môn. */
+  if(S.buoiNghiToiThieu>0){
+    const tGVLop={}, tLop={}, gvLop={}, tongG={};
+    S.phanCong.forEach(p=>{
+      (tGVLop[p.gvId] ||= {})[p.lopId]=(tGVLop[p.gvId][p.lopId]||0)+p.soTiet;
+      tLop[p.lopId]=(tLop[p.lopId]||0)+p.soTiet;
+      (gvLop[p.lopId] ||= new Set()).add(p.gvId);
+      tongG[p.gvId]=(tongG[p.gvId]||0)+p.soTiet;
+    });
+    const oL={};
+    S.lop.forEach(l=>{ oL[l.id]={}; bb.forEach(k=>{ oL[l.id][khoaB(k)]=soTietLop(k,l); }); });
+    const canBoi={};                       /* canBoi[j] = {nguoi:Set, lop:Set} */
+    const khongThe=[];
+    S.giaoVien.filter(g=>tongG[g.id]>0).forEach(g=>{
+      const nghi=new Set(S.gvNghi[g.id]||[]);
+      let ung=bb.filter(k=>!nghi.has(khoaB(k)));
+      if(g.cn) ung=ung.filter(k=>khoaB(k)!=='2-S'&&khoaB(k)!=='6-S');  /* chào cờ · sinh hoạt */
+      const theoBuoi=[];                   /* mỗi buổi khả thi: Map j → lp buộc cần j */
+      let viDu=null;                       /* con số của lần trượt sát nhất, để nói lý do */
+      for(const k of ung){
+        if(bb.filter(x=>x!==k&&!nghi.has(khoaB(x))).reduce((s,x)=>s+x.tiet,0) < tongG[g.id]) continue;
+        let okCa=true; const canJ=new Map();
+        for(const lp of Object.keys(tGVLop[g.id])){
+          const conO=bb.reduce((s,x)=>(nghi.has(khoaB(x))||x===k)?s:s+oL[lp][khoaB(x)],0);
+          const canDung=(tLop[lp]||0)-conO;
+          if(canDung>0){
+            const pool=(tLop[lp]||0)-(tGVLop[g.id][lp]||0);
+            const phu=[...gvLop[lp]].reduce((s,j)=>j===g.id?s:s+Math.min(tGVLop[j]?.[lp]||0, oL[lp][khoaB(k)]),0);
+            if(Math.min(pool,phu)<canDung){
+              okCa=false;
+              if(!viDu || canDung-pool<viDu.thieu) viDu={lp, canDung, pool, thieu:canDung-pool};
+              break;
+            }
+            /* j bắt buộc góp khi thiếu j thì phần còn lại không đủ phủ */
+            [...gvLop[lp]].forEach(j=>{
+              if(j!==g.id && pool-(tGVLop[j]?.[lp]||0) < canDung) canJ.set(j, lp);
+            });
+          }
+          const cho=bb.reduce((s,x)=>(nghi.has(khoaB(x))||x===k)?s:s+Math.min(tGVLop[g.id][lp],oL[lp][khoaB(x)]),0);
+          if(cho<tGVLop[g.id][lp]){ okCa=false; break; }
+        }
+        if(okCa) theoBuoi.push(canJ);
+      }
+      if(!theoBuoi.length){ khongThe.push({g, viDu}); return; }
+      /* đồng nghiệp cần trong MỌI buổi khả thi = giao của các tập */
+      [...theoBuoi[0].keys()]
+        .filter(j=>theoBuoi.every(m=>m.has(j)))
+        .forEach(j=>{
+          (canBoi[j] ||= {nguoi:new Set(), lop:new Set()});
+          canBoi[j].nguoi.add(g.hoTen); canBoi[j].lop.add(theoBuoi[0].get(j));
+        });
+    });
+
+    if(khongThe.length){
+      const d=khongThe[0], ten=d.g.hoTen, l=lopId(d.viDu?.lp);
+      const chuyen=d.viDu ? Math.max(1, d.viDu.thieu) : 1;
+      V('R14', 'canh',
+        khongThe.length===1
+          ? `${ten} không thể có buổi nghỉ nào với phân công hiện tại`
+          : `${khongThe.length} thầy cô không thể có buổi nghỉ nào — ${khongThe.slice(0,3).map(x=>x.g.hoTen).join(' · ')}${khongThe.length>3?'…':''}`,
+        `Buổi thầy cô nghỉ phải do đồng nghiệp của lớp dạy đỡ trọn, mà ở lớp ${l?.ten||''} `
+        +`các môn còn lại chỉ có ${d.viDu?.pool??0} tiết trong khi buổi rẻ nhất cần ${d.viDu?.canDung??0} — `
+        +`không cách xếp nào bù được chỗ hụt ấy.`,
+        `Chuyển bớt ít nhất ${chuyen} tiết của ${ten} ở lớp ${l?.ten||'ấy'} sang giáo viên khác — mục Phân công chuyên môn.`);
+    }
+    Object.entries(canBoi)
+      .map(([j,x])=>({j:gvId(j), soNguoi:x.nguoi.size, soLop:x.lop.size, nguoi:[...x.nguoi]}))
+      .filter(x=>x.j && x.soNguoi>=3 && x.soLop>=3)
+      .sort((a,b)=>b.soNguoi-a.soNguoi).slice(0,3)
+      .forEach(x=>V('R14','goi',
+        `${x.j.hoTen} là nút thắt buổi nghỉ của ${x.soNguoi} thầy cô`,
+        `Buổi nghỉ của ${x.nguoi.slice(0,3).join(', ')}${x.soNguoi>3?` và ${x.soNguoi-3} người nữa`:''} `
+        +`đều bắt buộc phải có ${x.j.hoTen} đứng lớp dạy đỡ — mà mỗi buổi một người chỉ đứng được `
+        +`tối đa số tiết của buổi, ai cũng cần thì không chiều hết được, sẽ có người phải đến trường cả tuần.`,
+        `Chia bớt lớp của ${x.j.hoTen} cho giáo viên khác dạy cùng môn ở mục Phân công chuyên môn — `
+        +`mỗi lớp san được là một thầy cô nữa dễ có buổi nghỉ.`));
+  }
+
   const uu={do:0,canh:1,goi:2}; vm.sort((a,b)=>uu[a.muc]-uu[b.muc]);
   return {gv,vm,slot,slotKhoi,buoi:bb.length};
 }
@@ -4688,18 +4782,23 @@ function monConLop(lp){
     .filter(x=>x.con>0);
 }
 
-/* Đặt một môn vào ô trống và ghim. Hàng rào thật nằm Ở ĐÂY chứ không ở
+/* Đặt một môn vào ô và ghim. Hàng rào thật nằm Ở ĐÂY chứ không ở
    thuộc tính disabled của nút trong hộp thoại — cùng bài học "hàng rào
-   thật nằm ở nút Thêm". Dùng lại chính datDuoc(), không viết lại điều kiện. */
-function ghimMonVaoO(lp, khoa, gv, mon){
+   thật nằm ở nút Thêm". Dùng lại chính datDuoc(), không viết lại điều kiện.
+   `thay=true` (1/9/2026, chủ dự án: "kể cả tiết đang có môn học có thể bấm
+   vào lựa chọn môn khác") thì ô đang có tiết được ĐỔI: gỡ tiết cũ ra trước
+   khi soát — hỏng thì trả lại y nguyên, không lúc nào ô ở trạng thái dở. */
+function ghimMonVaoO(lp, khoa, gv, mon, thay){
   if(!duocSuaLop(lp)) return {ok:false, loi:'Lớp này ngoài phạm vi phụ trách của thầy cô'};
   /* Hộp thoại chỉ mở từ ô thật trên lưới, nhưng hàm thuần thì ai gọi cũng
      được — ô ngoài khung của lớp mà ghi vào là tiết vô hình: lưới không vẽ,
      bản in không bày, docTKB() lần tải sau lặng lẽ bỏ. */
   if(!oTuanLop(lp).some(x=>x.khoa===khoa)) return {ok:false, loi:'Ô này ngoài khung giờ của lớp'};
+  const cu=S.tkb[lp][khoa];
+  if(cu && thay) delete S.tkb[lp][khoa];    /* chiSo() phải đếm khi ô đã trống */
   const [t,b,i]=khoa.split('-');
   const loi=datDuoc({khoa, kB:`${t}-${b}`, thu:+t, buoi:b, i:+i}, lp, gv, chiSo(), mon);
-  if(loi) return {ok:false, loi};
+  if(loi){ if(cu && thay) S.tkb[lp][khoa]=cu; return {ok:false, loi}; }
   S.tkb[lp][khoa]={gvId:gv, mon, ghim:true};
   return {ok:true};
 }
@@ -10151,7 +10250,9 @@ function mTKBLop(){
       return `<div class="gy" style="margin:-6px 0 12px">Tiết đã chỉnh tay sẽ được
         <b>ghim 📌</b> để lần xếp tự động sau không đè lên. Chạm một tiết là dấu ghim hiện ra —
         bấm vào đó để ghim, bấm lần nữa để bỏ ghim. Chạm một <b>ô trống</b> để chọn môn
-        ghim sẵn vào đúng ô ấy rồi cho máy xếp phần còn lại.</div>`;
+        ghim sẵn vào đúng ô ấy; chạm một <b>tiết đang có môn</b> thì ngoài chuyển chỗ còn
+        <b>đổi môn</b> hoặc <b>xoá</b> được (phím Delete) — xếp tay xong bấm Xếp tự động
+        cho máy điền phần còn lại.</div>`;
     /* Đang cầm một tiết: chú giải BA màu, kèm đúng số ô mỗi loại. Đếm thật
        chứ không nói chung chung — người dùng nhìn ra ngay còn mấy chỗ đổi
        tự do trước khi phải động tới lịch đồng nghiệp. */
@@ -10167,7 +10268,9 @@ function mTKBLop(){
        dời nó đi đâu cũng đụng lịch người ấy, không riêng ô đích nào. */
     const tuCham=chamGVKhac(lp,S.oChon);
     return `<div class="gy chu-mau" style="margin:-6px 0 12px">
-      <span>Đang chọn tiết <b>${esc(o[S.oChon]?.mon||'')}</b> — chạm lại chính nó để bỏ chọn.</span>
+      <span>Đang chọn tiết <b>${esc(o[S.oChon]?.mon||'')}</b> — chạm lại chính nó để bỏ chọn.
+        <button class="b b-vien b-nho" id="btDoiMonO" style="margin:0 4px">Đổi môn ô này…</button>
+        <button class="b b-vien b-nho" id="btXoaTietO" title="Phím Delete cũng xoá được">Xoá tiết</button></span>
       <span class="cm"><i class="cm-o cm-hop"></i>${tuDo} ô đổi tự do</span>
       ${chamAi?`<span class="cm"><i class="cm-o cm-cham"></i>${chamAi} ô chạm tiết của
         ${esc(dsAi.slice(0,2).map(c=>c.hoTen).join(', '))}${dsAi.length>2?` và ${dsAi.length-2} người nữa`:''}
@@ -14507,6 +14610,8 @@ function noiSuKien(){
   });
   $$('[data-ghim]').forEach(el=>el.onclick=e=>{ e.stopPropagation(); datGhim(el.dataset.ghim); });
   $('#btBoGhimHet')&&($('#btBoGhimHet').onclick=boGhimCaLop);
+  $('#btDoiMonO')&&($('#btDoiMonO').onclick=()=>hopGhimO(S.lopXem, S.oChon));
+  $('#btXoaTietO')&&($('#btXoaTietO').onclick=()=>xoaTietO(S.lopXem, S.oChon));
   /* Mở đúng hộp ấy, tích sẵn lớp đang xem — một đường xọc, hai lối vào. */
   $('#btXoaLopNay')&&($('#btXoaLopNay').onclick=()=>hopXoaTKB(S.lopXem));
   $('#btHoanTac')&&($('#btHoanTac').onclick=hoanTac);
@@ -15046,39 +15151,64 @@ function chamO(khoa){
    Nút bấm to chứ không phải ô chọn xổ xuống — cùng quy ước hộp Báo nghỉ:
    thầy cô thao tác bằng ngón cái. */
 
+/* Xoá một tiết khỏi lưới — phím Delete hoặc nút trong hộp Xếp tay đều về đây */
+function xoaTietO(lp, khoa){
+  const v=S.tkb[lp]?.[khoa]; if(!v) return;
+  if(!duocSuaLop(lp)) return bao('Lớp này ngoài phạm vi phụ trách của thầy cô',true);
+  luuLui(`xoá tiết ${v.mon}`);
+  delete S.tkb[lp][khoa];
+  if(S.oChon===khoa) S.oChon=null;
+  bao(`Đã xoá tiết ${v.mon} — môn này trở lại danh sách chưa xếp`);
+  ve();
+}
+
+/* Hộp XẾP TAY (chủ dự án đặt tên 1/9/2026): mở từ ô TRỐNG là ghim môn vào;
+   mở từ ô ĐÃ CÓ MÔN là đổi sang môn khác hoặc xoá tiết đi. */
 function hopGhimO(lp, khoa){
   const [t,b,i]=khoa.split('-');
   const tenO=`${TEN_THU[t]||('thứ '+t)} · ${b==='S'?'sáng':'chiều'} · tiết ${+i+1}`;
+  const cu=S.tkb[lp][khoa]||null;
+  /* Soát và đếm "còn thiếu" trên trạng thái ô ĐÃ TRỐNG: đổi môn nghĩa là
+     tiết cũ rời đi trước — môn cũ vì thế quay lại danh sách chọn được. */
+  if(cu) delete S.tkb[lp][khoa];
   const ds=monConLop(lp);
-  if(!ds.length)
-    return hop('Ghim môn vào ô trống',
-      `<p>Lớp <b>${esc(tenLopDay(lp))}</b> đã xếp đủ mọi môn theo phân công — không còn
-       tiết nào để đặt thêm. Muốn dời một tiết sang ô này thì chạm tiết ấy trước
-       rồi chạm ô này.</p>`,
-      [{ten:'Đóng', lam:dong, phu:true}]);
   const cs=chiSo();
   const oX={khoa, kB:`${t}-${b}`, thu:+t, buoi:b, i:+i};
+  const loiCua=ds.map(x=>datDuoc(oX, lp, x.gvId, cs, x.mon));
+  if(cu) S.tkb[lp][khoa]=cu;
+
+  const tieuDe=cu?'Xếp tay — đổi môn của ô':'Xếp tay — ghim môn vào ô trống';
+  const nutHop=[{ten:'Đóng', lam:dong, phu:true}];
+  if(cu) nutHop.unshift({ten:'Xoá tiết này', phu:true, lam:()=>{ dong(); xoaTietO(lp, khoa); }});
+  if(!ds.length)
+    return hop(tieuDe,
+      `<p>Lớp <b>${esc(tenLopDay(lp))}</b> đã xếp đủ mọi môn theo phân công — không còn
+       tiết nào để đặt thêm.${cu?'':` Muốn dời một tiết sang ô này thì chạm tiết ấy trước
+       rồi chạm ô này.`}</p>`, nutHop);
+
   const hang=ds.map((x,ix)=>{
     const g=gvId(x.gvId);
-    const loi=datDuoc(oX, lp, x.gvId, cs, x.mon);
+    const loi=loiCua[ix];
     return `<button class="b b-vien" data-ghimmon="${ix}" ${loi?'disabled':''}
       style="width:100%;justify-content:flex-start;text-align:left;gap:8px;margin-bottom:7px;
              min-height:44px;flex-wrap:wrap${loi?';opacity:.55;cursor:not-allowed':''}">
       <b>${esc(x.mon)}</b><span style="color:var(--chu-mo)">${esc(tenTat(g?.hoTen||''))} · còn ${x.con} tiết</span>
       ${loi?`<span style="flex-basis:100%;font-size:12px;color:var(--do)">${esc(loi)}</span>`:''}</button>`;
   }).join('');
-  hop('Ghim môn vào ô trống',
-    `<p style="margin-bottom:10px">Ô <b>${esc(tenO)}</b> của lớp <b>${esc(tenLopDay(lp))}</b> —
-      chọn môn để đặt vào và <b>ghim 📌</b>. Lần xếp tự động sau, máy giữ nguyên mọi tiết đã
-      ghim và chỉ điền các ô còn lại.</p>${hang}`,
-    [{ten:'Đóng', lam:dong, phu:true}]);
+  hop(tieuDe,
+    `<p style="margin-bottom:10px">Ô <b>${esc(tenO)}</b> của lớp <b>${esc(tenLopDay(lp))}</b>${cu
+      ?` đang có <b>${esc(cu.mon)}</b> — chọn môn khác để THAY (tiết ${esc(cu.mon)} trở lại
+         danh sách chưa xếp), hoặc bấm <b>Xoá tiết này</b>.`
+      :` — chọn môn để đặt vào và <b>ghim 📌</b>.`}
+      Lần xếp tự động sau, máy giữ nguyên mọi tiết đã ghim và chỉ điền các ô còn lại.</p>${hang}`,
+    nutHop);
   $$('[data-ghimmon]').forEach(nut=>nut.onclick=()=>{
     const x=ds[+nut.dataset.ghimmon];
-    luuLui(`ghim ${x.mon} vào ô trống`);
-    const kq=ghimMonVaoO(lp, khoa, x.gvId, x.mon);
+    luuLui(cu?`đổi ô sang ${x.mon}`:`ghim ${x.mon} vào ô trống`);
+    const kq=ghimMonVaoO(lp, khoa, x.gvId, x.mon, !!cu);
     if(!kq.ok){ LUI.pop(); return bao(kq.loi, true); }
-    dong();
-    bao(`Đã ghim ${x.mon} vào ${tenO} 📌 — xếp lại tiết này vẫn đứng nguyên chỗ`);
+    dong(); S.oChon=null;
+    bao(`Đã ${cu?'đổi sang':'ghim'} ${x.mon} vào ${tenO} 📌 — xếp lại tiết này vẫn đứng nguyên chỗ`);
     ve();
   });
 }
@@ -15375,6 +15505,12 @@ document.addEventListener('keydown',e=>{
   /* Ctrl+Z quen tay như Excel — thứ đầu tiên người dùng thử khi lỡ tay */
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z' && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){
     e.preventDefault(); if(duocLuu()) hoanTac();
+  }
+  /* Delete xoá tiết đang chọn ở màn Theo lớp (chủ dự án 1/9/2026: "bấm vào
+     đó có thể xóa — nút Delete trên bàn phím — để chọn môn khác") */
+  if((e.key==='Delete'||e.key==='Backspace') && S.oChon && S.trangHienTai==='tkblop'
+     && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){
+    e.preventDefault(); xoaTietO(S.lopXem, S.oChon);
   }
 });
 
@@ -17396,7 +17532,7 @@ function hopXacNhanNhap(dl, tim){
      }}]);
 }
 
-/* Bước ④ — nhập xong thì CHẠY LUÔN 13 quy tắc khả thi, đừng bắt người dùng
+/* Bước ④ — nhập xong thì CHẠY LUÔN 14 quy tắc khả thi, đừng bắt người dùng
    đi tìm. Đây là thứ có giá trị nhất của phần mềm: nó cho hiệu trưởng biết
    vấn đề nhân sự từ tháng 8, lúc còn kịp xử lý. Bắt họ tự nhớ vào mục Kiểm
    tra khả thi nghĩa là phần lớn sẽ không bao giờ thấy nó.

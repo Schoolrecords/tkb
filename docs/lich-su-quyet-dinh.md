@@ -2886,3 +2886,50 @@ mục **17ad**, đã thử ngược cả hai chiều):
 ⚠️ Bẫy khi viết phép thử nhánh "đủ ô dư" của 17ac: nâng ĐỀU mọi buổi chiều
 thì chính ngưỡng "buổi ngắn nhất" cũng tăng theo và nhánh đủ không bao giờ
 tới — phải nâng DỒN vào một buổi.
+
+---
+
+## 1/9/2026 (tối) — R14 nút thắt buổi nghỉ, và Xếp tay trọn vòng (đổi môn · xoá tiết)
+
+### R14 — ai không thể nghỉ, và vì ai (trước khi xếp)
+
+Chủ dự án muốn biết TRƯỚC khi xếp: trần buổi đặt rồi thì ai sẽ không có
+buổi nghỉ, nút thắt nằm ở ai — để đi điều chỉnh phân công chuyên môn.
+Chỉ chạy khi `S.buoiNghiToiThieu > 0`; hai loại dòng:
+
+- **canh** — người không còn buổi nghỉ khả thi nào (số học phủ-buổi của
+  pha 0): đích danh, kèm đúng số tiết cần chuyển bớt khỏi lớp.
+- **goi** — nút thắt: đồng nghiệp mà MỌI buổi nghỉ khả thi của ≥3 người ở
+  **≥3 lớp khác nhau** đều bắt buộc cần. ⚠️ Điều kiện "≥3 lớp khác nhau"
+  là thứ lọc nhiễu quyết định: chủ nhiệm nào cũng "được cần" bởi bộ môn
+  của chính lớp mình, nhưng đó là MỘT lớp — phục vụ được đồng thời, không
+  phải thắt. Thiếu điều kiện này thì 25 chủ nhiệm đều thành "nút thắt".
+
+Phép thử nặng nhất là chiều KHÔNG BÁO OAN: Diễn Liên dư 0 ô đặt trần 1 thì
+R14 phải im lặng — thực đo sau xếp chỉ 1 người kín tuần, báo trước là báo
+láo. Cảnh nổ dựng đúng khuôn Quảng Châu 1: dồn tải 5 chủ nhiệm khối 1 về
+pool 3 tiết thì R14 chỉ đích danh đúng cô Tiếng Anh. `npm test` mục 27.
+
+### Xếp tay trọn vòng — ô có môn cũng đổi được, phím Delete xoá
+
+Chủ dự án dùng thử hộp ghim ô trống rồi yêu cầu ngay: *"cả ô đã có tên môn,
+bấm vào đó có thể xóa (nút Delete trên bàn phím) để chọn môn khác"*, và đặt
+tên tính năng: **Xếp tay**.
+
+- `ghimMonVaoO(..., thay)` — chế độ THAY: gỡ tiết cũ trước khi soát
+  `datDuoc()`, hỏng thì trả lại y nguyên — không lúc nào ô ở trạng thái dở.
+  Không truyền cờ thì ô có tiết vẫn được bảo vệ như cũ.
+- Hộp Xếp tay mở từ ô có môn: liệt kê môn thiếu TÍNH CẢ tiết sắp rời đi
+  (môn cũ quay lại danh sách), kèm nút *Xoá tiết này*.
+- Dải "Đang chọn tiết" thêm hai nút *Đổi môn ô này…* · *Xoá tiết*; phím
+  **Delete/Backspace** xoá tiết đang chọn (chỉ ở màn Theo lớp, không cướp
+  phím của ô nhập liệu).
+
+⚠️ Bẫy tự gây trong lúc thử ngược: khôi phục bằng `sed` với mẫu
+`e.preventDefault();$` bắt NHẦM handler đầu tiên trùng mẫu trong tệp (nút
+Về-trường-của-tôi ở dòng 9026) — may có phép thử "Không lỗi JavaScript nào"
+và soát tay diff bắt lại. Sửa mã bằng sed thì mẫu phải đủ dài để duy nhất;
+Edit đích danh vẫn an toàn hơn.
+
+Phép thử: `npm test` mục 26 (9 phép) · 27 (5 phép), `npm run soi` 17ad
+(10 phép); thử ngược chế độ thay, phím Delete, và cả hai chiều của R14.
