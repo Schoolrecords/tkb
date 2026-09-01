@@ -3008,3 +3008,20 @@ TÊN MÔN — môn tên dài phình ra, môn tên ngắn tóp lại.
 Phép thử: 3 phép mới cuối mục 17p (`table-layout:fixed` · sàn theo số môn
 · tiêu đề xuống dòng); thử ngược 3/3 đều đỏ. Dựng đúng cảnh 19 môn của
 Vinh Hưng bằng Chrome thật để soi ảnh trước và sau.
+
+## 1/9/2026 (đêm, tiếp 2) — Kẻ dọc đủ mọi cột ma trận, cột Tiết căn giữa
+
+Chủ dự án, vẫn từ bảng TH Vinh Hưng 1: tiêu đề *"cho dòng kẻ rõ hơn, hoặc
+cho màu khác một chút"*, và *"Giữa Cột thứ tự - Cột Họ và Tên - Cột Tiết
+phải có dòng kẻ dễ phân biệt, chữ số 27/23 cần căn giữa cột"*.
+
+- **Kẻ dọc cho MỌI cột** (`.mt-bang th,td{border-left}`): trước chỉ các cột
+  môn có kẻ, ba cột trái dính liền một mảng. ⚠️ Cột đầu bỏ kẻ — viền khung
+  `.bang` đã có sẵn, kẻ nữa thành vạch đôi.
+- **Kẻ giữa các ô tiêu đề đậm hơn một tông** (`#AECEE6`, cùng mã với thanh
+  cuộn): nền tiêu đề `#F4F9FD` nhạt nên kẻ `--ke-2` chìm nghỉm.
+- **Cột Tiết căn GIỮA** ở cả tiêu đề · thân · hàng đáy — căn phải thì con
+  số dính sát vạch kẻ vừa thêm, đọc thành một khối với cột Chủ nhiệm.
+
+Phép thử: 3 phép cuối mục 17p, thử ngược 4/4 đỏ (kể cả chiều "trả Tiết về
+căn phải"). Soi bằng Chrome thật trên đúng cảnh 19 môn.

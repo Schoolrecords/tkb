@@ -3434,6 +3434,23 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
      "TIẾNG V". Chỉ ảnh Chrome thật nhìn ra, phép thử này canh bằng CSS. */
   kt('Tiêu đề ma trận xuống dòng được, không bị nowrap chung cắt cụt',
      /\.mt-bang thead th\{[^}]*white-space:normal/.test(src));
+
+  /* Kẻ dọc và căn giữa (1/9/2026 — chủ dự án): "Giữa Cột thứ tự - Cột Họ và
+     Tên - Cột Tiết phải có dòng kẻ dễ phân biệt, chữ số 27/23 cần căn giữa
+     cột"; tiêu đề "cho dòng kẻ rõ hơn, hoặc cho màu khác một chút". */
+  kt('MỌI cột có kẻ dọc, riêng cột đầu bỏ để không thành vạch đôi với khung',
+     /\.mt-bang th,\.mt-bang td\{[^}]*border-left/.test(src) &&
+     /\.mt-bang th:first-child,\.mt-bang td:first-child\{border-left:0\}/.test(src));
+  kt('Kẻ giữa các ô tiêu đề đậm hơn một tông so với thân bảng',
+     /\.mt-bang thead th\{[^}]*border-left-color:#AECEE6/.test(src));
+  kt('Cột Tiết căn GIỮA ở cả tiêu đề, thân và hàng đáy', (() => {
+    const thTiet = bang.querySelectorAll('thead th')[2];
+    const tdTiet = bang.querySelector('tbody td.mt-tiet');
+    const tfTiet = bang.querySelectorAll('tfoot td')[2];
+    return [thTiet.classList.contains('giua') && tdTiet.classList.contains('giua') &&
+            tfTiet.classList.contains('giua') && !tdTiet.classList.contains('phai'),
+            thTiet.textContent.trim()];
+  })());
   kt('Sàn bề ngang của bảng tăng theo SỐ MÔN — màn hẹp trượt ngang, không bóp chữ', (() => {
     const soMon = w.eval('dsMonDung()').length;
     const doi = 306 + soMon * 60;
