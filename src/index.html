@@ -7610,10 +7610,21 @@ async function ghiDuLieuNguon(dl, baoBuoc){
             +'vào mục Môn học xoá dòng trống ấy, rồi bấm Lưu lại.';
       } else
       try{
+        /* ⚠️ MỌI DÒNG PHẢI CÙNG BỘ KHOÁ (1/9/2026). PostgREST đòi các object
+           trong một lệnh POST có y hệt tập khoá, lệch một cái là từ chối CẢ
+           lệnh với câu "All object keys must match" — mà câu ấy chẳng chỉ ra
+           môn nào. Đường cũ chỉ gắn `lien_tiet` cho dòng nào có giá trị, nên
+           hỏng ngay khi danh mục vừa có môn cũ vừa có môn mới: cột `lien_tiet`
+           thêm ngày 31/8 để NULL ở các dòng cũ, lúc đọc quy về "không có
+           trường", còn môn thêm qua hộp Thêm môn thì luôn có. Quảng Châu 1
+           thêm lại TC Toán · TC TV là dính đúng thế, không lưu nổi danh mục.
+           Nay dòng nào cũng mang khoá; chưa đặt thì gửi `null` — giữ nguyên
+           nghĩa "chưa quyết", không hoá thành false (false là CẤM xếp liền,
+           đổi lưới cả trường mà không ai yêu cầu). */
         const hangMon = kemLien => dl.monHoc.map((m,i)=>({truong_id:t, ten:String(m.ten).trim(),
             mau:m.mau||null, nang:!!m.nang, nhe:!!m.nhe, phong:m.phong||null,
             tiet_chuan:m.chuan||null, thu_tu:i,
-            ...(kemLien&&m.lienTiet!==undefined ? {lien_tiet:!!m.lienTiet} : {})}));
+            ...(kemLien ? {lien_tiet: m.lienTiet===undefined ? null : !!m.lienTiet} : {})}));
         /* ⚠️ GHI TRƯỚC, DỌN SAU — đừng "xoá sạch rồi ghi lại" (sửa 31/8/2026).
            Đường cũ DELETE cả bảng rồi mới POST: mạng chớp giữa hai lệnh, hay
            một lỗi bất kỳ ở lệnh POST, là nhà trường mất trắng danh mục môn —

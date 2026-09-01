@@ -384,6 +384,14 @@ async function mangGia(url, opt = {}) {
     if (opt.method === 'POST') {
       if (GHI.chanMon) return dap({ message: GHI.chanMon }, 400);
       GHI.monKhoa = (url.match(/on_conflict=([^&]*)/) || [])[1] || '';
+      GHI.monGui = than;
+      /* ⚠️ PostgREST đòi MỌI object trong một lệnh POST cùng tập khoá, lệch
+         một cái là từ chối cả lệnh trước khi chạm tới cơ sở dữ liệu. Máy chủ
+         giả thiếu luật này nên lỗi thật của Quảng Châu 1 (danh mục nửa cũ
+         nửa mới, chỉ vài dòng mang `lien_tiet`) không bộ nào bắt được. */
+      const bo = than.map(m => Object.keys(m).sort().join(','));
+      if (new Set(bo).size > 1)
+        return dap({ message: 'All object keys must match' }, 400);
       const trung = than.map(m => m.ten).filter((x, i, a) => a.indexOf(x) !== i);
       if (trung.length) return dap({ message:
         'duplicate key value violates unique constraint "mon_hoc_truong_id_ten_key"' }, 409);
@@ -1542,6 +1550,41 @@ kt('Hai môn cùng tên: chặn ngay, nói rõ tên môn, không đụng máy ch
      const goiMon = GHI.duong.filter(x => /POST .*\/mon_hoc/.test(x)).length;
      return [/hai môn cùng tên "Toán"/i.test(r.thongBao) && goiMon === 0,
              `${goiMon} lời gọi mon_hoc · ${(r.thongBao.match(/hai môn[^.]*/) || [''])[0]}`];
+   })());
+
+/* ⚠️ MỌI DÒNG CÙNG BỘ KHOÁ (1/9/2026). PostgREST đòi các object trong một
+   lệnh POST có y hệt tập khoá, lệch một cái là từ chối cả lệnh — "All object
+   keys must match", câu chẳng chỉ ra môn nào. Cột `lien_tiet` thêm 31/8 để
+   NULL ở các dòng cũ nên lúc đọc quy về "không có trường", còn môn thêm qua
+   hộp Thêm môn thì luôn có. Danh mục vừa có môn cũ vừa có môn mới là hỏng —
+   Quảng Châu 1 khai lại TC Toán · TC TV không lưu nổi. */
+kt('Danh mục nửa cũ nửa mới: mọi dòng gửi lên đều cùng bộ khoá',
+   await (async () => {
+     GHI.monHoc = []; GHI.xoaMon = [];
+     const r = await MC.ghiDuLieuNguon({ ...tep, phanCong: [], monHoc: [
+       { ten: 'Toán', chuan: { 1: 3 } },                        /* môn cũ: chưa có lienTiet */
+       { ten: 'TC Toán', chuan: { 1: 1 }, lienTiet: true }      /* môn vừa thêm tay */
+     ] });
+     const hang = GHI.monGui || [];
+     const bo = hang.map(h => Object.keys(h).sort().join(','));
+     const dongBo = bo.length > 1 && new Set(bo).size === 1;
+     return [r.ok && dongBo && hang.every(h => 'lien_tiet' in h),
+             dongBo ? `${hang.length} dòng cùng ${bo[0].split(',').length} khoá`
+                    : `lệch khoá: ${[...new Set(bo)].join('  ≠  ')}`];
+   })());
+
+/* Chưa đặt thì gửi null — KHÔNG hoá thành false, vì false nghĩa là CẤM xếp
+   hai tiết liền, đổi lưới cả trường mà không ai yêu cầu. */
+kt('Môn chưa đặt "2 tiết liền" gửi null, không bị ép thành false',
+   await (async () => {
+     GHI.monHoc = []; GHI.xoaMon = [];
+     await MC.ghiDuLieuNguon({ ...tep, phanCong: [], monHoc: [
+       { ten: 'Toán' }, { ten: 'TC TV', lienTiet: true }, { ten: 'GDTC', lienTiet: false }
+     ] });
+     const h = GHI.monGui || [];
+     const cua = t => h.find(x => x.ten === t)?.lien_tiet;
+     return [cua('Toán') === null && cua('TC TV') === true && cua('GDTC') === false,
+             `Toán=${cua('Toán')} · TC TV=${cua('TC TV')} · GDTC=${cua('GDTC')}`];
    })());
 
 kt('Máy chủ từ chối thì nói RA LÝ DO, không chỉ "bấm Lưu lại một lần nữa"',
