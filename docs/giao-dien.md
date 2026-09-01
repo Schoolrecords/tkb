@@ -173,6 +173,13 @@ những môn cuối"*. Ba việc, cả ba có phép thử ở cuối mục 17p c
     `.mt-bang thead th` — `table.dl th` chung khai nowrap + padding 15px,
     cột ~60px giữ nguyên là "TIẾNG VIỆT" cụt thành "TIẾNG V". Chỉ ảnh
     Chrome thật nhìn ra; jsdom xanh suốt.
+- **Kẻ dọc cho MỌI cột, kể cả ba cột trái** *(1/9/2026)* — trước chỉ cột môn
+  có kẻ, TT · Họ tên · Tiết dính liền một mảng. Cột đầu bỏ kẻ (viền khung
+  `.bang` đã có, kẻ nữa thành vạch đôi); kẻ giữa các ô **tiêu đề** đậm hơn
+  một tông (`#AECEE6`) vì nền tiêu đề nhạt làm kẻ thường chìm nghỉm.
+- **Cột Tiết căn GIỮA** ở cả tiêu đề · thân · hàng đáy — căn phải thì con số
+  dính sát vạch kẻ, đọc thành một khối với cột Chủ nhiệm. Có phép thử canh
+  cả chiều "trả về căn phải".
 
 ---
 
