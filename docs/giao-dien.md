@@ -163,6 +163,16 @@ những môn cuối"*. Ba việc, cả ba có phép thử ở cuối mục 17p c
 - **Chữ thập soi cột** (`.cot-soi`, gắn ở `noiSuKien`): rê chuột tới ô nào
   thì cả cột môn ấy sáng lên, ô `.co` trong cột đậm hơn một nấc để vẫn phân
   biệt với ô trống. Chỉ đổi lớp CSS trên đúng một cột, không vẽ lại gì.
+- **Cột môn chia ĐỀU bằng `table-layout:fixed`** *(1/9/2026, ảnh TH Vinh
+  Hưng 1)*. Để trình duyệt tự chia thì cột rộng hẹp theo ĐỘ DÀI TÊN MÔN —
+  *Tin tăng cường* phình ra, *Toán* tóp lại. Fixed chia đều phần dư cho các
+  cột môn; bốn cột trái khai `width` cứng nên giữ nguyên cỡ. Hai điều kèm:
+  - **Sàn bề ngang đặt inline theo SỐ MÔN** (`306 + n × 60` px, trong
+    `bangMaTran()`) — màn hẹp thì bảng trượt ngang, không bóp nát chữ.
+  - ⚠️ **Tiêu đề phải mở lại `white-space:normal` và padding gọn** ở
+    `.mt-bang thead th` — `table.dl th` chung khai nowrap + padding 15px,
+    cột ~60px giữ nguyên là "TIẾNG VIỆT" cụt thành "TIẾNG V". Chỉ ảnh
+    Chrome thật nhìn ra; jsdom xanh suốt.
 
 ---
 

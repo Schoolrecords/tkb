@@ -2985,3 +2985,26 @@ Phép thử: `npm run soi` cuối mục 17p (8 phép) + hai phép ở cụm Xế
 **thử ngược 8/8** — bỏ từng đoạn vá (mt-khung, max-height, sticky đáy, cột
 74px, chữ thập, trả vị trí cuộn, chốt khác-trang, khu-chon) đều làm phép
 thử đỏ. Chụp lại `docs/anh-giao-dien/` bằng Chrome thật, không lỗi nào.
+
+## 1/9/2026 (đêm, tiếp) — Cột ma trận chia ĐỀU, không theo độ dài tên môn
+
+Ảnh TH Vinh Hưng 1 (19 môn, có *Công nghệ số* · *Tin tăng cường*): *"các cột
+có kích thước không đều nhau... cân đối cho đều để không cột lớn quá, cột
+nhỏ quá"*. Gốc: bảng để trình duyệt tự chia nên cột rộng hẹp theo ĐỘ DÀI
+TÊN MÔN — môn tên dài phình ra, môn tên ngắn tóp lại.
+
+- **`table-layout:fixed`** cho `.mt-bang`: phần bề ngang dư chia đều tăm
+  tắp cho mọi cột môn; bốn cột trái (TT · Họ tên · Tiết · Chủ nhiệm) khai
+  `width` cứng nên giữ nguyên cỡ.
+- **Sàn bề ngang inline theo SỐ MÔN** (`306 + n × 60` px) — trường 19 môn
+  trên màn hẹp thì bảng trượt ngang trong `.mt-khung`, không bóp nát chữ.
+- ⚠️ **Bẫy lộ ra ngay trong ảnh chụp đầu**: cột chia đều xong thì tiêu đề
+  bị CẮT CỤT ("TIẾNG V", "CHỦ NHI") — `table.dl th` chung khai
+  `white-space:nowrap` + padding 15px, mà cột fixed chỉ ~60px. Phải mở lại
+  `white-space:normal` và hạ padding ngang còn 6px ở `.mt-bang thead th`.
+  jsdom không thấy (nó không đo bố cục); chỉ Chrome thật nhìn ra — đúng
+  bài học "kiểm bằng mắt ở cỡ ô thật" của bảng màu môn.
+
+Phép thử: 3 phép mới cuối mục 17p (`table-layout:fixed` · sàn theo số môn
+· tiêu đề xuống dòng); thử ngược 3/3 đều đỏ. Dựng đúng cảnh 19 môn của
+Vinh Hưng bằng Chrome thật để soi ảnh trước và sau.

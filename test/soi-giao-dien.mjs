@@ -3423,6 +3423,23 @@ console.log('\n17p. Bảng phân công dạng MA TRẬN giáo viên × môn');
             (src.match(/\.mt-mon\{[^}]*\}/) || [''])[0].slice(0, 40)];
   })());
 
+  /* Cột môn phải ĐỀU nhau (1/9/2026 — ảnh TH Vinh Hưng 1): để trình duyệt tự
+     chia thì cột rộng hẹp theo độ dài TÊN MÔN — "Tin tăng cường" phình ra,
+     "Toán" tóp lại. table-layout:fixed chia đều phần dư; sàn bề ngang đặt
+     inline theo số môn để màn hẹp trượt ngang thay vì bóp nát chữ. */
+  kt('Cột môn chia ĐỀU nhau, không theo độ dài tên môn (table-layout:fixed)',
+     /\.mt-bang\{[^}]*table-layout:fixed/.test(src));
+  /* Cột chia đều thì tiêu đề PHẢI xuống dòng được — `table.dl th` chung khai
+     nowrap + padding 15px, cột ~60px giữ nguyên là "TIẾNG VIỆT" cụt thành
+     "TIẾNG V". Chỉ ảnh Chrome thật nhìn ra, phép thử này canh bằng CSS. */
+  kt('Tiêu đề ma trận xuống dòng được, không bị nowrap chung cắt cụt',
+     /\.mt-bang thead th\{[^}]*white-space:normal/.test(src));
+  kt('Sàn bề ngang của bảng tăng theo SỐ MÔN — màn hẹp trượt ngang, không bóp chữ', (() => {
+    const soMon = w.eval('dsMonDung()').length;
+    const doi = 306 + soMon * 60;
+    return [bang.style.minWidth === doi + 'px', `${bang.style.minWidth} cho ${soMon} môn`];
+  })());
+
   /* Chữ thập soi cột: rê chuột tới ô nào thì cả cột môn ấy sáng lên. Bảng
      15 cột × 86 hàng thì mắt dò dọc rất dễ lạc sang cột bên. */
   kt('Rê chuột tới một ô là CẢ CỘT của ô ấy sáng lên', (() => {

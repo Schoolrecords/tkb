@@ -1162,20 +1162,29 @@ tr.pa-tot td{background:var(--xanh-nen)}
    nút đang mở — hai tín hiệu chứ không chỉ một. */
 /* Bảng phân công dạng ma trận: 15 môn × 86 giáo viên. Ba cột trái DÍNH lại,
    không thì cuộn sang môn thứ mười là không còn biết đang ở hàng của ai. */
-.mt-bang{border-collapse:separate;border-spacing:0}
+/* table-layout:fixed (1/9/2026 — ảnh TH Vinh Hưng 1): để trình duyệt tự chia
+   thì cột rộng hẹp theo ĐỘ DÀI TÊN MÔN — "Tin tăng cường" phình ra, "Toán"
+   tóp lại. Fixed chia đều phần còn lại cho mọi cột môn; bốn cột trái khai
+   width cứng nên giữ nguyên cỡ. Sàn bề ngang đặt inline theo SỐ MÔN
+   (`bangMaTran()`) — màn hẹp thì bảng trượt ngang, không bóp nát chữ. */
+.mt-bang{border-collapse:separate;border-spacing:0;table-layout:fixed}
 .mt-bang th,.mt-bang td{border-bottom:1px solid #EAF5FB}
 /* Khung cuộn là CHÍNH .mt-khung (1/9/2026 — chủ dự án: trường 86 giáo viên
    thì kéo tới giữa bảng là mất dòng tên môn). Giới hạn chiều cao để dòng
    tiêu đề môn dính ĐỈNH và hàng đếm độ phủ dính ĐÁY — cuộn tới đâu cũng
    biết cột nào là môn nào, môn nào còn lớp thiếu người. */
 .mt-khung{max-height:76vh}
-.mt-bang thead th{position:sticky;top:0;background:#F4F9FD;z-index:3;box-shadow:0 1px 0 var(--ke)}
+/* Tiêu đề ma trận phải XUỐNG DÒNG được và padding gọn: `table.dl th` chung
+   khai nowrap + padding 15px, mà cột môn chia đều chỉ ~60px — giữ nguyên là
+   "TIẾNG VIỆT" bị cắt cụt thành "TIẾNG V". */
+.mt-bang thead th{position:sticky;top:0;background:#F4F9FD;z-index:3;box-shadow:0 1px 0 var(--ke);
+  white-space:normal;padding-left:6px;padding-right:6px}
 .mt-dinh{position:sticky;background:var(--the);z-index:2}
 .mt-bang thead .mt-dinh{background:#F4F9FD;z-index:4}
 .mt-tt{left:0;width:34px;text-align:center;color:var(--chu-mo);font-size:11.5px}
-.mt-ten{left:34px;min-width:150px;box-shadow:1px 0 0 var(--ke)}
-.mt-cn{min-width:66px;font-size:12px;color:var(--nav);border-left:1px solid var(--ke-2)}
-.mt-tiet{white-space:nowrap;min-width:56px}
+.mt-ten{left:34px;width:150px;min-width:150px;box-shadow:1px 0 0 var(--ke)}
+.mt-cn{width:66px;min-width:66px;font-size:12px;color:var(--nav);border-left:1px solid var(--ke-2)}
+.mt-tiet{white-space:nowrap;width:56px;min-width:56px}
 /* 56px chứ không phải 74px (1/9/2026): tên môn ở tiêu đề được XUỐNG DÒNG
    (`table.dl th` chung khai nowrap nên phải mở lại ở đây), cột hẹp lại thì
    15 môn vừa màn hình thường — bớt hẳn phải trượt ngang xem môn cuối. */
@@ -14142,7 +14151,11 @@ function bangMaTran(){
   const sua=duocSuaNguon();
   const soLop=lopTrongPV().length;
   if(!dsGV.length) return `<div class="trong-hop">Chưa có giáo viên nào.</div>`;
-  return `<div class="bang mt-khung"><table class="dl gon mt-bang" id="bMT"><thead><tr>
+  /* Sàn bề ngang = 4 cột trái (306px) + mỗi môn 60px. table-layout:fixed
+     chia ĐỀU phần dư cho các cột môn nên rộng hẹp không còn theo độ dài
+     tên môn; sàn này giữ cho màn hẹp trượt ngang thay vì bóp nát chữ. */
+  return `<div class="bang mt-khung"><table class="dl gon mt-bang" id="bMT"
+    style="min-width:${306+dsMon.length*60}px"><thead><tr>
     <th class="mt-dinh mt-tt">TT</th>
     <th class="mt-dinh mt-ten">Họ và tên</th>
     <th class="phai">Tiết</th>
