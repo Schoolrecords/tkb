@@ -58,7 +58,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
   maGVTu, maGVXau, datLaiMaGV, chuanMaGV, maXauChuoi,
   xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien,
-  duLieuTuMaTran, bangMauMaTran,
+  duLieuTuMaTran, bangMauMaTran, bangTuMaTran,
   bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
   MUC_NHAP, cotCua, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
   locDongDaDien, dienGiaiLoiNhap, canhDongBo, truongTrang, tomTatMau,
@@ -95,7 +95,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         taoDuLieuThu, chiaLopTheoKhoi, tenGVSinh, maXauXi, tienToDT, datLaiMaLop,
         maGVTu, maGVXau, datLaiMaGV, maXauChuoi,
         xepDai, xepDaiTung, nhomDocLap, diemNhom, taoNgauNhien,
-  duLieuTuMaTran, bangMauMaTran,
+  duLieuTuMaTran, bangMauMaTran, bangTuMaTran,
   bangMauTronGoi, duLieuTuTronGoi, docTrang, CHUAN_KHOI,
         MUC_NHAP, cotCua, duLieuTuMuc, napMucVaoS, chepKhoNguon, thieuMucTruoc,
         locDongDaDien, dienGiaiLoiNhap, truongTrang,
@@ -1250,9 +1250,106 @@ const doiObj = a => { const dau = a[0]; return a.slice(1).map(h => {
   const o = {}; dau.forEach((c, i) => { const v = h[i]; if (v !== '' && v != null) o[c] = v; }); return o; }); };
 
 const mMT = bangMauMaTran();
-kt('Mẫu dựng từ dữ liệu thật: 35 dòng giáo viên, mỗi môn một cột',
-   mMT.coThat && mMT.mt.length === 36 && mMT.mt[0].length === 6 + mMT.dsMon.length,
-   `${mMT.mt.length - 1} dòng · ${mMT.dsMon.length} cột môn`);
+kt('Mẫu dựng từ dữ liệu thật: 35 dòng giáo viên, mỗi môn một cột, cuối là Tong_tiet',
+   mMT.coThat && mMT.mt.length === 36 &&
+   mMT.mt[0].length === 6 + mMT.dsMon.length + 1 &&
+   mMT.mt[0][mMT.mt[0].length - 1] === 'Tong_tiet',
+   `${mMT.mt.length - 1} dòng · ${mMT.dsMon.length} cột môn · cột cuối "${mMT.mt[0][mMT.mt[0].length - 1]}"`);
+
+/* ⚠️ Mẫu KHÔNG được bỏ sót môn đang dạy thật (1/9/2026). Cột môn từng lấy
+   theo mỗi danh mục Môn học, nên trường nào có dòng phân công mang môn chưa
+   kịp khai vào danh mục là mẫu mất hẳn cột ấy — Quảng Châu 1 tải về thiếu
+   *TC Toán* và *TC TV*, 10 tiết biến mất, điền xong nhập ngược lại là năm cô
+   chủ nhiệm khối 1 mất tiết tăng cường. Bảng trên màn hình đếm đủ bằng
+   `dsMonDung()`; mẫu phải nhìn cùng một thứ. */
+{
+  const dangDay = new Set(S.phanCong.map(p => p.mon));
+  const thieu = [...dangDay].filter(m => !mMT.dsMon.includes(m));
+  kt('Mẫu mang đủ MỌI môn đang có trong phân công, kể cả môn chưa khai vào danh mục',
+     thieu.length === 0,
+     thieu.length ? `thiếu: ${thieu.join(' · ')}`
+                  : `${mMT.dsMon.length} cột môn, phủ hết ${dangDay.size} môn đang dạy`);
+
+  const tongCot = mMT.mt[0].length - 1;
+  const theoTen = new Map(S.giaoVien.map(g => [g.hoTen, g.id]));
+  const dungTong = mMT.mt.slice(1).every(h => {
+    const id = theoTen.get(h[2]);
+    const that = S.phanCong.filter(p => p.gvId === id).reduce((s, p) => s + p.soTiet, 0);
+    return (h[tongCot] || 0) === (that || '');
+  });
+  kt('Cột Tong_tiet ghi đúng tổng tiết thật của từng người',
+     dungTong, dungTong ? 'khớp cả 35 dòng' : 'có dòng lệch');
+}
+
+/* Dựng ĐÚNG ca đã xảy ra ở Quảng Châu 1: một môn được phân công thật nhưng
+   chưa có trong danh mục Môn học. Bộ dữ liệu mẫu không có ca này nên phép
+   thử trên vẫn xanh cả khi mã sai — phải tự tạo ra mới canh được. */
+{
+  const luuPC = S.phanCong.slice(), luuMon = (S.monHoc || []).slice();
+  const gv1 = S.giaoVien[0], lop1 = S.lop[0];
+  S.phanCong = [...luuPC, { gvId: gv1.id, lopId: lop1.id, mon: 'TC TV', soTiet: 1 }];
+
+  const m2 = bangMauMaTran();
+  kt('Môn CÓ trong phân công nhưng CHƯA khai danh mục vẫn được mẫu mang theo',
+     m2.dsMon.includes('TC TV') && m2.mt[0].includes('TC TV'),
+     m2.dsMon.includes('TC TV') ? `${m2.dsMon.length} cột môn, có cả TC TV`
+                                : 'mẫu bỏ sót TC TV — đúng lỗi cũ');
+
+  /* Nhập lại: cột ấy KHÔNG được bị chặn vì "không có trong danh mục môn" —
+     nó do chính app sinh ra. Câu lỗi phải chỉ đúng chỗ sửa: khai số tiết
+     chuẩn ở mục Môn học. */
+  const r2 = duLieuTuMaTran(doiObj(m2.mt), doiObj(m2.lop));
+  const loiCu = r2.loi.some(l => /không có trong danh mục môn/.test(String(l)));
+  const loiDung = r2.loi.some(l => /chưa khai số tiết cho khối/.test(String(l)));
+  kt('Nhập lại KHÔNG chặn oan cột do app sinh ra, mà chỉ đúng chỗ phải sửa',
+     !loiCu && loiDung,
+     loiCu ? 'vẫn chặn oan: ' + String(r2.loi.find(l => /danh mục môn/.test(String(l)))).slice(0, 60)
+           : String(r2.loi.find(l => /chưa khai số tiết/.test(String(l))) || '').slice(0, 70));
+
+  S.phanCong = luuPC; S.monHoc = luuMon;
+}
+
+/* ⚠️ TÊN MÔN KẾT THÚC BẰNG DẤU SAO (1/9/2026). `bangTuMaTran` cắt dấu sao ở
+   cuối tên cột — dấu ấy do app gắn cho cột bắt buộc (`Ma_lop *`). Cắt tuốt
+   thì Tiểu học Quỳ Hợp 2, vốn đặt hai môn tăng cường là "Tiếng Việt *" và
+   "Toán *", tải mẫu về nhập lại là cả hai hoá thành môn chính khoá: trùng
+   tên với cột có sẵn, ô sau đè ô trước, 1 tiết/lớp thành 12 tiết/lớp. Mất
+   dữ liệu mà không một câu cảnh báo — với máy thì tệp vẫn hợp lệ. */
+{
+  const luuPC = S.phanCong.slice(), luuMon = (S.monHoc || []).slice();
+  S.monHoc = [...luuMon, { ten: 'Tiếng Việt *', chuan: { 1: 1 } }];
+  S.phanCong = [...luuPC,
+    { gvId: S.giaoVien[0].id, lopId: S.lop[0].id, mon: 'Tiếng Việt *', soTiet: 1 }];
+
+  const m3 = bangMauMaTran();
+  const cot = m3.mt[0];
+  /* Dựng lại đúng đường của tệp thật: bangTuMaTran mới là chỗ cắt dấu sao,
+     doiObj() không đi qua đó nên không bao giờ thấy lỗi này. */
+  const nhuTep = [Array(cot.length).fill(''), Array(cot.length).fill(''), cot, ...m3.mt.slice(1)];
+  const hang = bangTuMaTran(nhuTep);
+  kt('Tên môn kết thúc bằng dấu sao KHÔNG bị cắt mất sao khi đọc tệp',
+     (hang.__cot || []).includes('Tiếng Việt *'),
+     (hang.__cot || []).includes('Tiếng Việt *') ? 'giữ nguyên "Tiếng Việt *"'
+                                                 : 'đã bị cắt thành "Tiếng Việt"');
+
+  const r3 = duLieuTuMaTran(hang, doiObj(m3.lop));
+  const sauTC = r3.phanCong.filter(p => (p.mon ?? p.Mon) === 'Tiếng Việt *').length;
+  kt('Môn tăng cường không bị gộp vào môn chính khoá qua vòng xuất — nhập',
+     r3.soLoi === 0 && sauTC === 1 && r3.tongTiet === 711,
+     `${sauTC} dòng "Tiếng Việt *" · ${r3.tongTiet} tiết · ${r3.soLoi} lỗi`);
+
+  S.phanCong = luuPC; S.monHoc = luuMon;
+}
+
+/* Hai cột trùng tên thì phải CHẶN, không được lặng lẽ để ô sau đè ô trước */
+{
+  const cot = ['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban','Toán','Toán'];
+  const hang = bangTuMaTran([[], [], cot, [1,'GV01','Nguyễn Văn A','1A','1A','','x','2A']]);
+  const r = duLieuTuMaTran(hang, null);
+  kt('Hai cột cùng tên bị chặn kèm hướng sửa, không âm thầm ghi đè',
+     r.loi.some(l => /hai cột cùng tên|2 cột cùng tên/i.test(String(l))),
+     String(r.loi.find(l => /cột cùng tên/i.test(String(l))) || 'không báo gì').slice(0, 72));
+}
 
 const rtDL = duLieuTuMaTran(doiObj(mMT.mt), doiObj(mMT.lop));
 kt('Vòng khép kín: xuất ma trận rồi nhập lại — 0 lỗi, đủ 35 GV · 25 lớp · 265 dòng · 710 tiết',

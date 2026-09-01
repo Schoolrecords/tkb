@@ -6146,7 +6146,18 @@ function bangTuMaTran(a){
      ca ấy thì câu báo lỗi sai hẳn — mẫu trống bị mắng là "tệp không đọc
      được". */
   if(dong < 0) return null;
-  const cot = (a[dong]||[]).map(o => String(o??'').trim().replace(/\s*\*$/,''));
+  /* ⚠️ Dấu sao CHỈ được cắt ở tên cột kỹ thuật (1/9/2026). Dấu ấy do app gắn
+     vào cột bắt buộc — `Ma_lop *`, `Ma_GV *` — nên chỉ những tên dạng chữ
+     không dấu mới cần gỡ. Cắt tuốt thì TÊN MÔN kết thúc bằng sao cũng mất
+     sao: Tiểu học Quỳ Hợp 2 đặt hai môn tăng cường là *"Tiếng Việt *"* và
+     *"Toán *"*, tải mẫu về nhập lại thì cả hai biến thành *Tiếng Việt* và
+     *Toán* chính khoá — trùng tên với cột có sẵn, ô sau ghi đè ô trước, tiết
+     tăng cường 1 tiết/lớp bị tính thành 12 tiết/lớp của môn chính. Mất dữ
+     liệu mà KHÔNG một câu cảnh báo nào, vì với máy thì tệp vẫn hợp lệ. */
+  const cot = (a[dong]||[]).map(o => {
+    const t = String(o??'').trim();
+    return TEN_COT_XL.test(t) ? t.replace(/\s*\*$/,'') : t;
+  });
   const r = [];
   /* Nhớ luôn TÊN CỘT của tệp. Từng dòng chỉ mang khoá cho ô ĐÃ ĐIỀN, nên
      một cột trống suốt (trường mới chưa có mã giáo viên) biến mất hoàn toàn
@@ -6323,7 +6334,11 @@ function duLieuTuMaTran(hangMT, hangLop){
   hangLop = chuanTenCot(hangLop);
   const loi=[];
   const chu=x=>String(x??'').trim();
-  const CO_DINH=['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban'];
+  /* `Tong_tiet` là cột CHỈ ĐỂ XEM mà mẫu mang theo (1/9/2026) — phải nằm ở
+     đây, nếu không dòng dưới coi nó là một môn và chặn cả tệp do "không có
+     trong danh mục môn": người dùng tải mẫu về, không sửa gì, nhập lại cũng
+     hỏng. */
+  const CO_DINH=['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban','Tong_tiet'];
   const laTick=v=>/^(x|✓|✔|v)$/i.test(chu(v));
   const tach=s=>chu(s).split(/[,;·]+/).map(x=>x.trim()).filter(Boolean);
 
@@ -6334,7 +6349,27 @@ function duLieuTuMaTran(hangMT, hangLop){
      chặn cả tệp — Tiểu học Thần Lĩnh 1 gặp đúng thế ngày 29/8/2026. Máy tự
      thêm khoá gì thì máy phải tự biết mà bỏ qua, đừng bắt người dùng đi sửa
      một cột họ chưa từng gõ. */
-  const monDung=new Map((S.monHoc||[]).map(m=>[m.ten, m.chuan||{}]));
+  /* Môn hợp lệ = danh mục Môn học HỢP môn đang có trong phân công — cùng bộ
+     mà `bangMauMaTran()` dùng để sinh cột (1/9/2026). Chỉ soi theo danh mục
+     thì một môn đã dạy thật nhưng chưa khai vào danh mục sẽ bị chặn ngay ở
+     câu "không có trong danh mục môn", trong khi cột ấy do CHÍNH app vừa
+     sinh ra. Vẫn chặn tên gõ sai, vì tên gõ sai không nằm trong cả hai tập.
+     Môn thiếu số tiết chuẩn sẽ rơi vào câu lỗi ở dưới — câu ấy chỉ đúng chỗ
+     phải sửa: mục Môn học, cột K1…K5. */
+  const monDung=new Map(dsMonDung().map(t=>[t, monTen(t)?.chuan||{}]));
+  /* ⚠️ HAI CỘT CÙNG TÊN thì `bangTuMaTran` chỉ giữ được một — ô sau ghi đè ô
+     trước, lặng lẽ, không ai biết (1/9/2026). Trước đây chuyện này sinh ra từ
+     chính app: tên môn kết thúc bằng dấu sao bị cắt sao rồi trùng với môn
+     chính khoá. Chỗ ấy đã chữa, nhưng người dùng vẫn có thể tự chèn thêm một
+     cột trùng tên, nên phải có chốt chặn ở đây: thà chặn tệp còn hơn nhập vào
+     một bảng phân công sai mà nhìn thì vẫn đủ dòng. */
+  {
+    const dem={};
+    (hangMT.__cot||[]).forEach(c=>{ dem[c]=(dem[c]||0)+1; });
+    Object.entries(dem).filter(([,n])=>n>1).forEach(([c,n])=>
+      loi.push(`PHAN_CONG: có ${n} cột cùng tên "${c}" — máy chỉ đọc được một, `
+        +`cột sau đè lên cột trước. Đổi tên cho khác nhau rồi chọn lại tệp`));
+  }
   const cotMon=[...new Set(hangMT.flatMap(r=>Object.keys(r)))]
     .filter(c=>!CO_DINH.includes(c) && !String(c).startsWith('__'));
   cotMon.filter(c=>!monDung.has(c)).forEach(c=>
@@ -8474,8 +8509,16 @@ function bangMauMaTran(){
   const trang  = truongTrang();
   const coThat = !trang;
   const nhieuDiem = S.diemTruong.length>1;
-  const dsMon = (S.monHoc||[]).map(m=>m.ten);
-  const mt=[['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban',...dsMon]];
+  /* ⚠️ Cột môn lấy theo `dsMonDung()` — danh mục Môn học HỢP với những môn
+     đang thật sự có trong bảng phân công (1/9/2026). Trước đây chỉ lấy danh
+     mục, nên trường nào có dòng phân công mang môn chưa kịp khai vào danh mục
+     là mẫu thiếu hẳn cột ấy: Quảng Châu 1 tải mẫu về thấy đủ 32 giáo viên mà
+     mất sạch *TC Toán* và *TC TV* — 10 tiết biến mất, điền xong nhập ngược
+     lại là năm cô chủ nhiệm khối 1 mất tiết tăng cường, còn dòng của Phó Hiệu
+     trưởng có Lop_day mà không môn nào được đánh dấu. Bảng trên màn hình vốn
+     đã đếm đủ 15 môn bằng chính hàm này; mẫu tải về phải nhìn cùng một thứ. */
+  const dsMon = dsMonDung();
+  const mt=[['TT','Ma_GV','Ho_ten','Chu_nhiem','Lop_day','Buoi_ban',...dsMon,'Tong_tiet']];
   const lop=[['Ma_lop','Ten_lop','Khoi','Phan_hieu']];
 
   /* Chưa có dòng phân công nào thì vẫn dựng đủ danh sách giáo viên, các cột
@@ -8489,7 +8532,9 @@ function bangMauMaTran(){
     [...S.giaoVien].sort(thuTuHangGV()).forEach((g,i)=>{
       /* bộ lớp của từng môn; bộ xuất hiện nhiều môn nhất làm Lop_day */
       const theoMon={};
+      let tongTiet=0;
       S.phanCong.filter(p=>p.gvId===g.id).forEach(p=>{
+        tongTiet+=p.soTiet;
         (theoMon[p.mon]=theoMon[p.mon]||new Set()).add(maCuaLop(p.lopId)); });
       const dem={};
       Object.values(theoMon).forEach(s=>{
@@ -8501,8 +8546,12 @@ function bangMauMaTran(){
         oMon[mon]= ds===goc ? 'x' : ds;
       });
       const ban=(S.gvNghi[g.id]||[]).map(k=>{const p=k.split('-');return `T${p[0]}-${p[1]}`;}).join(', ');
+      /* Cột cuối `Tong_tiet` CHỈ ĐỂ XEM — người kẻ bảng phân công cần biết
+         ngay ai đủ, ai vượt định mức mà không phải cộng tay 15 cột. Trình đọc
+         bỏ qua cột này (nằm trong CO_DINH của `duLieuTuMaTran`), nên sửa hay
+         xoá nó đều không đổi kết quả nhập: số tiết vẫn là tiết chuẩn theo khối. */
       mt.push([i+1, g.maGV||g.id, g.hoTen, g.cn?(lopId(g.cn)?.maLop||g.cn):'',
-               goc, ban, ...dsMon.map(m=>oMon[m]||'')]);
+               goc, ban, ...dsMon.map(m=>oMon[m]||''), tongTiet||'']);
     });
     S.lop.forEach(l=>lop.push([l.maLop||l.id, l.ten, l.khoi,
       nhieuDiem?(dtId(S.lopDT[l.id])?.ten||''):'']));
@@ -8511,7 +8560,7 @@ function bangMauMaTran(){
     /* Ví dụ đủ ba kiểu người: chủ nhiệm đánh x theo lớp mình, bộ môn một môn
        nhiều lớp, và người có một ô ghi riêng danh sách lớp khác Lop_day */
     const vd=(tt,ma,ten,cn,ld,ban,oMon)=>
-      mt.push([tt,ma,ten,cn,ld,ban,...dsMon.map(m=>oMon[m]||'')]);
+      mt.push([tt,ma,ten,cn,ld,ban,...dsMon.map(m=>oMon[m]||''),'']);
     vd(1,'GV01','Nguyễn Thị An','1A','1A','',
        {'Tiếng Việt':'x','Toán':'x','GDTC':'x','HDTN':'x','TNXH':'x'});
     vd(2,'GV02','Trần Văn Bình','1B','1B','T5-C',
@@ -12169,38 +12218,48 @@ async function taiMauMaTran(){
   wb.creator='Phần mềm Thời khóa biểu';
   wb.created=new Date();
   const SO_CD=6;                                    /* sáu cột cố định trước các cột môn */
-  const tongCot=SO_CD+m.dsMon.length;
+  const cotTong=SO_CD+m.dsMon.length;               /* cột Tong_tiet, chỉ để xem */
+  const tongCot=cotTong+1;
 
   /* --- Trang chính: PHAN_CONG --- */
   const ws=trangXL(wb,'PHAN_CONG','ngang');
   ws.columns=[{width:5},{width:9},{width:26},{width:11},{width:30},{width:13},
-              ...m.dsMon.map(()=>({width:5}))];
+              ...m.dsMon.map(()=>({width:5})), {width:10}];
   let r=tieuDeXL(ws,1,tongCot,'BẢNG PHÂN CÔNG CHUYÊN MÔN — KIỂU MA TRẬN',
-    `${S.tenTruong} · Đánh "x" = dạy môn đó ở các lớp trong cột Lop_day · Số tiết máy tự lấy chuẩn theo khối`);
+    `${S.tenTruong} · Đánh "x" = dạy môn đó ở các lớp trong cột Lop_day · Số tiết máy tự lấy chuẩn theo khối · Cột Tong_tiet chỉ để xem`);
   const dCot=r;
   const rTen=ws.getRow(r);
   m.mt[0].forEach((v,j)=>{
     const o=rTen.getCell(j+1);
     o.value=v; o.border=VIEN_MANH;
     o.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.xanh}};
-    o.font={name:'Times New Roman',size:j<SO_CD?11:10,bold:true,color:{argb:'FFFFFFFF'}};
-    o.alignment=j<SO_CD
+    o.font={name:'Times New Roman',size:(j<SO_CD||j===cotTong)?11:10,bold:true,color:{argb:'FFFFFFFF'}};
+    /* Chỉ TÊN MÔN mới dựng đứng. `Tong_tiet` nằm sau các môn nhưng là cột đọc
+       số, xoay 90° là phải nghiêng đầu mới đọc được. */
+    o.alignment=(j<SO_CD||j===cotTong)
       ? {horizontal:'center',vertical:'middle',wrapText:true}
       : {horizontal:'center',vertical:'bottom',textRotation:90};  /* tên môn dựng đứng */
   });
   rTen.height=88; r++;
   const dauThan=r;
   r=thanBangXL(ws,r,m.mt.slice(1),
-    ['center','left','left','center','left','center',...m.dsMon.map(()=>'center')]);
+    ['center','left','left','center','left','center',...m.dsMon.map(()=>'center'),'center']);
   /* Dấu x tô đậm màu navy; ô ghi danh sách lớp thu chữ nhỏ để không vỡ cột */
   for(let i=dauThan;i<r;i++){
     const row=ws.getRow(i);
-    for(let j=SO_CD;j<tongCot;j++){
+    for(let j=SO_CD;j<cotTong;j++){
       const o=row.getCell(j+1), v=String(o.value??'').trim();
       if(!v) continue;
       if(/^x$/i.test(v)) o.font={name:'Times New Roman',size:12,bold:true,color:{argb:MAU_XL.navy}};
       else o.font={name:'Times New Roman',size:8};
       o.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    }
+    /* Tổng tiết in đậm, nền nhạt — để mắt bắt được ngay cột cuối giữa rừng x */
+    const oT=row.getCell(cotTong+1);
+    if(String(oT.value??'').trim()){
+      oT.font={name:'Times New Roman',size:11,bold:true};
+      oT.fill={type:'pattern',pattern:'solid',fgColor:{argb:MAU_XL.nhat}};
+      oT.alignment={horizontal:'center',vertical:'middle'};
     }
   }
   ws.views=[{state:'frozen',xSplit:3,ySplit:dCot}];  /* khoá tới cột Họ tên + dòng tên cột */
@@ -12226,6 +12285,7 @@ async function taiMauMaTran(){
     ['Ô ghi danh sách lớp','Dạy môn đó ở đúng các lớp ghi trong ô, ví dụ: 3A, 3B — dùng khi khác với Lop_day.'],
     ['Số tiết','KHÔNG PHẢI GHI. Máy tự lấy tiết chuẩn CT GDPT 2018 theo khối của từng lớp. Lệch chuẩn thì sửa trong app sau khi nhập, hoặc dùng mẫu 3 trang.'],
     ['Cột Buoi_ban','Các buổi giáo viên KHÔNG dạy được, ghi kiểu T2-S (thứ Hai sáng), T5-C (thứ Năm chiều), cách nhau dấu phẩy.'],
+    ['Cột Tong_tiet','CHỈ ĐỂ XEM — tổng số tiết mỗi người đang được phân công, để đối chiếu với định mức. Máy bỏ qua cột này khi nhập, sửa hay xoá đều không sao.'],
     ['Cột Ma_GV','Được phép bỏ trống — máy tự đặt GV01, GV02… Họ tên trùng nhau thì PHẢI ghi mã.'],
     ['Một người nhiều dòng','Được. Dùng khi một người dạy các môn ở những bộ lớp khác nhau — mỗi dòng một Lop_day, ghi CÙNG Ma_GV.'],
     ['Trang DANH_SACH_LOP','Một phân hiệu: xoá cũng được. Nhiều phân hiệu: bắt buộc, và Ma_lop nên có tiền tố (DL-1A, DD-1A…).']

@@ -45,14 +45,16 @@ const oGia = () => ({ textContent: '', className: '', value: '', style: {},
 const documentGia = { querySelector: oGia, querySelectorAll: () => [],
   createElement: oGia, body: { appendChild() {} }, addEventListener() {} };
 
-let TEP = null;
+let TEP = null, TEP_MT = null;
 const NGUON = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}
 ${catHam('trangXL')}${catHam('tieuDeXL')}${catHam('dauCotXL')}${catHam('thanBangXL')}
 ${catHam('apKhoaXL')}${catHam('danhMucCuaMuc')}${catHam('taiMauMuc')}${catHam('xuatExcel')}
+${catHam('taiMauMaTran')}
 async function ghiTepXL(wb, ten){ ghiRa(wb, ten); }
 async function sanSangExcelJS(){ return true; }
 function bao(){}
 ; return { taiMauMuc, danhMucCuaMuc, MUC_NHAP, duLieuTuMuc, duLieuTuTronGoi, xuatExcel,
+           taiMauMaTran, bangMauMaTran, duLieuTuMaTran,
            S, napVaoS, NGUON, maGVTu, xepTuDong, tenTepXuat, bangTuMaTran };`;
 
 const app = new Function('document', 'window', 'fetch', 'ExcelJS',
@@ -448,6 +450,74 @@ console.log('\n\x1b[1mTrường mới khai DỞ — mẫu phải mang theo phầ
      String(wP.getWorksheet('DANH_MUC').getCell('A2').value));
 }
 
+/* ---------- Mẫu MA TRẬN: soi TỆP GHI RA, không chỉ mảng dựng trong bộ nhớ ----------
+   `kiem-thu.mjs` đã canh phần nội dung (bangMauMaTran). Còn phần ghi ra
+   .xlsx — bề rộng cột, dòng tên cột xoay dọc, cột Tong_tiet — thì trước
+   1/9/2026 không bộ nào nhìn tới: mẫu thiếu hẳn hai cột môn suốt nhiều tuần
+   mà cả 81 phép thử vẫn xanh, chỉ chủ dự án mở tệp bằng Excel mới thấy. */
+console.log('\n\x1b[1mSoi mẫu MA TRẬN ghi ra tệp\x1b[0m');
+{
+  /* Khối "trường khai dở" ở trên để lại một S rỗng phân công — nạp lại bộ
+     dữ liệu thật, không thì phép thử cột Tong_tiet soi một tệp không có
+     dòng nào và vẫn xanh. */
+  app.napVaoS(JSON.parse(JSON.stringify(app.NGUON)));
+  TEP = null;
+  await app.taiMauMaTran();
+  kt('taiMauMaTran() chạy trọn, không ném lỗi', !!TEP, TEP?.ten);
+
+  const buf = await TEP.wb.xlsx.writeBuffer();
+  const lai = new ExcelJS.Workbook();
+  await lai.xlsx.load(buf);
+  const ws = lai.getWorksheet('PHAN_CONG');
+  const mt = app.bangMauMaTran();
+
+  /* Dòng tên cột do tieuDeXL đẩy xuống — dò bằng chính tên cột đầu tiên */
+  let dTen = 0;
+  ws.eachRow((row, i) => { if (!dTen && String(row.getCell(1).value ?? '').trim() === 'TT') dTen = i; });
+  const tenCot = [];
+  ws.getRow(dTen).eachCell({ includeEmpty: true }, c => tenCot.push(String(c.value ?? '').trim()));
+
+  kt('Tệp mẫu có đủ cột: 6 cột cố định + mọi môn đang dùng + Tong_tiet',
+     tenCot.length === 6 + mt.dsMon.length + 1 && tenCot[tenCot.length - 1] === 'Tong_tiet',
+     `${tenCot.length} cột · cuối là "${tenCot[tenCot.length - 1]}"`);
+
+  const thieuCot = mt.dsMon.filter(m => !tenCot.includes(m));
+  kt('Không môn nào đang dạy bị bỏ sót khỏi tệp',
+     thieuCot.length === 0,
+     thieuCot.length ? `thiếu: ${thieuCot.join(' · ')}` : `${mt.dsMon.length} môn đủ cả`);
+
+  const oTong = ws.getRow(dTen).getCell(tenCot.length);
+  kt('Tên cột Tong_tiet KHÔNG xoay dọc như tên môn — đọc số phải nghiêng đầu là hỏng',
+     !oTong.alignment?.textRotation,
+     `textRotation = ${oTong.alignment?.textRotation ?? 'không đặt'}`);
+
+  const oMon = ws.getRow(dTen).getCell(7);
+  kt('Tên môn thì vẫn dựng đứng cho vừa cột hẹp',
+     oMon.alignment?.textRotation === 90, `"${oMon.value}" · ${oMon.alignment?.textRotation}`);
+
+  /* Số trong cột Tong_tiet phải là SỐ, không phải chuỗi — người dùng còn
+     kéo cột cộng thử trong Excel. */
+  const soTong = [];
+  for (let i = dTen + 1; i <= ws.rowCount; i++) {
+    const v = ws.getRow(i).getCell(tenCot.length).value;
+    if (v !== null && v !== undefined && v !== '') soTong.push(v);
+  }
+  kt('Cột Tong_tiet ghi bằng SỐ, cộng được ngay trong Excel',
+     soTong.length > 0 && soTong.every(v => typeof v === 'number'),
+     `${soTong.length} dòng có số · tổng ${soTong.reduce((a, b) => a + b, 0)} tiết`);
+
+  /* Vòng tròn cuối: đọc lại chính tệp vừa ghi. Cột Tong_tiet do app sinh ra
+     mà làm hỏng lượt nhập thì người dùng không sửa gì cũng gặp lỗi. */
+  const hangMT = app.bangTuMaTran(maTranXL(ws));
+  const hangLop = app.bangTuMaTran(maTranXL(lai.getWorksheet('DANH_SACH_LOP')));
+  const dl = app.duLieuTuMaTran(hangMT, hangLop);
+  kt('Tải mẫu ma trận rồi nhập lại ngay: không một lỗi nào',
+     dl.soLoi === 0,
+     dl.soLoi ? String(dl.loi[0]).slice(0, 70) : `${dl.phanCong.length} dòng · ${dl.tongTiet} tiết`);
+
+  TEP_MT = { ten: TEP.ten, buf };          /* để --ghi mang ra xem bằng mắt */
+}
+
 /* ⚠️ Dòng tổng kết phải nằm SAU cả hai phần. Bản đầu để nó ở cuối phần 1
    nên nó báo "25 đạt" trong khi phần 2 còn tám phép nữa chưa chạy — con số
    đúng nhưng nói dối về phạm vi. Mã thoát thì vẫn đúng vì `hong` đọc ở dòng
@@ -466,5 +536,9 @@ if (iGhi > 0) {
     writeFileSync(join(thuMuc, TEP_MUC[ma].ten), Buffer.from(TEP_MUC[ma].buf));
     console.log('Đã ghi ' + join(thuMuc, TEP_MUC[ma].ten));
   });
+  if (TEP_MT) {                                                  /* mẫu MA TRẬN */
+    writeFileSync(join(thuMuc, TEP_MT.ten), Buffer.from(TEP_MT.buf));
+    console.log('Đã ghi ' + join(thuMuc, TEP_MT.ten));
+  }
 }
 process.exit(hong ? 1 : 0);
