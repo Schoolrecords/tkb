@@ -3824,12 +3824,12 @@ console.log('\n23. Hai tiết cùng môn LIỀN NHAU — cho phép theo từng m
   const anhChup = app => JSON.stringify(app.S.lop.map(l =>
     Object.entries(app.S.tkb[l.id] || {}).sort().map(([k, v]) => `${k}|${v.mon}|${v.gvId}`)));
 
-  const mo = (sua) => {
+  const mo = (sua, gioiHan = 1200) => {
     const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
     app.napVaoS(JSON.parse(JSON.stringify(DLT)));
     app.S.monHoc = app.dsMonMacDinh();
     if (sua) sua(app);
-    app.xepTuDong(1200);
+    app.xepTuDong(gioiHan);
     return app;
   };
 
@@ -3873,9 +3873,15 @@ console.log('\n23. Hai tiết cùng môn LIỀN NHAU — cho phép theo từng m
     return [n === 710, `${n}/710`];
   })());
 
-  /* --- Đường lui: chưa khai thì ĐƯỢC PHÉP, y hệt hành vi trước 31/8/2026 --- */
-  const chuaKhai = mo(a => a.S.monHoc.forEach(m => { delete m.lienTiet; }));
-  const khaiCo   = mo(a => a.S.monHoc.forEach(m => { m.lienTiet = true; }));
+  /* --- Đường lui: chưa khai thì ĐƯỢC PHÉP, y hệt hành vi trước 31/8/2026 ---
+     ⚠️ Hạn tối ưu đặt 0 CÓ CHỦ ĐÍCH (1/9/2026): phép so "giống hệt từng ô"
+     mà cho bước hoán đổi chạy theo đồng hồ 1200ms thì máy CI đang bận sẽ cắt
+     hai lần chạy ở hai điểm khác nhau — đỏ oan hai lần liên tiếp trên GitHub
+     trong khi máy nhà xanh. Hạn 0 vẫn chạy đúng 255 lượt đầu (phép kiểm giờ
+     nằm ở `(++dem & 255)`) nên tất định, và ngữ nghĩa cần canh — hai cấu
+     hình cho CÙNG thang điểm — không đổi. */
+  const chuaKhai = mo(a => a.S.monHoc.forEach(m => { delete m.lienTiet; }), 0);
+  const khaiCo   = mo(a => a.S.monHoc.forEach(m => { m.lienTiet = true; }), 0);
   kt('Chưa khai cột này = ĐƯỢC PHÉP xếp liền, không phải cấm',
      anhChup(chuaKhai) === anhChup(khaiCo), 'hai lưới giống hệt từng ô');
   kt('Và lúc ấy Toán lại có cặp liền như trước — chứng tỏ luật thật sự tắt',
