@@ -6063,6 +6063,20 @@ async function soHieuKeTiep(){
   }catch(e){ return 1; }   /* máy chủ chưa có cột — coi như bản đầu */
 }
 
+/* Số hiệu ấy đã có bản nào mang chưa. Nhà trường sửa tay được số hiệu (nhiều
+   nơi đánh theo sổ văn bản riêng, không theo thứ tự máy đề nghị), nên phải
+   canh: hai tờ cùng số thì thầy cô không biết tờ nào mới hơn — đúng thứ số
+   hiệu sinh ra để trả lời. Trả về `version` của bản đang giữ số, hoặc null. */
+async function soHieuDaDung(so, boQuaVersion){
+  const t=truongDangXem();
+  try{
+    const ds=await goiAPI(`/rest/v1/tkb_phien_ban?truong_id=eq.${t}`
+      +`&so_hieu=eq.${+so}&select=version&limit=2`);
+    const d=(ds||[]).find(x=>+x.version !== +boQuaVersion);
+    return d ? +d.version : null;
+  }catch(e){ return null; }   /* máy chủ chưa có cột — không canh được thì thôi */
+}
+
 async function congBoTKB(version, bat=true, vb=null){
   if(!coMayChu()) return {ok:false, thongBao:'Chưa nối máy chủ.'};
   if(!duocLuu()) return {ok:false, thongBao:'Thầy cô chỉ xem, không công bố được.'};
@@ -13752,10 +13766,12 @@ async function hopBanHanh(){
   const so = await soHieuKeTiep();
   const hkCu = KHO.vanBan?.hocKy || 'Học kỳ 1';
   hop('Ban hành thời khóa biểu',
-  `<div class="hang">Số hiệu văn bản
-     <b style="font-size:19px">Số ${String(so).padStart(2,'0')}</b></div>
-   <div class="gy" style="margin:4px 0 13px">Máy tự đánh liên tiếp trong cả năm học, không
-     đánh lại theo học kỳ — thầy cô cầm tờ số lớn hơn là biết ngay tờ ấy mới hơn.</div>
+  `<div class="on-l"><label>Số hiệu văn bản</label>
+     <input class="ip" type="number" id="bhSo" min="1" max="99" step="1"
+       value="${so}" style="width:100%;font-size:19px;font-weight:700">
+     <div class="gy">Máy đánh liên tiếp trong cả năm học, không đánh lại theo học kỳ —
+       thầy cô cầm tờ số lớn hơn là biết ngay tờ ấy mới hơn. <b>Sửa được</b>: trường nào
+       đánh theo sổ văn bản riêng thì gõ đè số của mình vào đây.</div></div>
    <div class="on-l"><label>Thực hiện từ ngày</label>
      <input class="ip" type="date" id="bhNgay" value="${thuHaiToi()}" style="width:100%">
      <div class="gy">Mốc <b>pháp lý</b> in ở đầu mỗi tờ thời khóa biểu. Thường là thứ Hai của
@@ -13773,9 +13789,18 @@ async function hopBanHanh(){
   [{ten:'Huỷ',phu:1,lam:dong},
    {ten:'Ban hành',lam:async()=>{
      const ngay=$('#bhNgay').value, hk=$('#bhHK').value;
+     const soVB=Math.trunc(+$('#bhSo').value);
+     if(!Number.isFinite(soVB) || soVB<1 || soVB>99)
+       return bao('Số hiệu văn bản phải là số nguyên từ 1 đến 99',true);
      if(!ngay) return bao('Chọn ngày bắt đầu thực hiện',true);
+     /* Canh trùng số TRƯỚC khi ghi: ghi xong mới phát hiện thì đã có hai tờ
+        cùng số nằm trên máy chủ, mà tờ cũ có thể thầy cô đã in ra rồi. */
+     const trung=await soHieuDaDung(soVB, KHO.version);
+     if(trung) return bao(`Số ${String(soVB).padStart(2,'0')} đã dùng cho bản `
+       +`phiên bản ${trung}. Chọn số khác, hoặc gỡ số hiệu của bản ấy ở mục `
+       +'Phiên bản và công bố rồi ban hành lại.',true);
      dong();
-     const kq=await congBoTKB(KHO.version, true, {soHieu:so, ngayThucHien:ngay, hocKy:hk});
+     const kq=await congBoTKB(KHO.version, true, {soHieu:soVB, ngayThucHien:ngay, hocKy:hk});
      bao(kq.thongBao, !kq.ok); ve();
    }}]);
 }
