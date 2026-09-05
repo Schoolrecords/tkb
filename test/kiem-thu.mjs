@@ -50,7 +50,7 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   dongGio, lichGV, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
   khongDau, tenTepXuat,
   oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, cnCuaLop, tenCN, tenDiemNgan,
-  diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
+  diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV, diemGV, diemLop,
   duLieuTuBang, ghiDuLieuNguon, congBoTKB, luuBuoiBan, datTaiKhoanGV,
   tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung, tietCanTu, tietCanKhoi,
   chuanMon, laMonNang, laMonNhe, monCanPhong,
@@ -67,8 +67,8 @@ const NGUON_MA = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung(
   laGVLienLop, chamGVKhac, datCoDinh, gomLyDoCoDinh, timLopNhap, dienGiaiLoi,
   choLienTiet, goiYLienTiet, MON_LIEN_TIET, chonBuoiNghi, khoaB, khoiDangCo,
   thuTuHangGV, lopCN, bangMauMaTran, gvId, lopId,
-  soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai,
-  monConLop, ghimMonVaoO };`;
+  soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai, demTietRoi,
+  tenGVIn, soSanhLuoi, docLuoiSS, khopLuoiSS, napLuoiSS, suaItNhat, monConLop, ghimMonVaoO };`;
 
 /* Mỗi lần gọi là một bản ứng dụng độc lập — dựng được cả bản chạy ngoại tuyến
    lẫn bản nối vào máy chủ giả mà hai bên không đụng trạng thái của nhau. */
@@ -87,7 +87,7 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         dongGio, luoiTheoLop, luoiTheoGV, bangXuatPC, bangXuatDT,
         khongDau, tenTepXuat,
         oTuan, soTietBuoi, sucChuaKhoi, chuanKhungGio, tenLopDay, tenDiemNgan,
-        diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV,
+        diemToanCuc, toiUuHoanDoi, laGhim, lichTraGV, diemGV, diemLop,
         duLieuTuBang, ghiDuLieuNguon, luuBuoiBan,
         tienDo, sinhLop, coPhong, dongBoPhongTin, dsMonMacDinh, dsMonDung, tietCanTu, tietCanKhoi,
         chuanMon, laMonNang, laMonNhe, monCanPhong,
@@ -102,7 +102,9 @@ const { S, xepTuDong, kiemTra, KHO, NGUON, buoiBat,
         luoiToanTruong, luoiTheoKhoiHoc, lopTheoKhoi, khoiDangCo, xepTheoKhoi,
         datCoDinh, gomLyDoCoDinh, oTuanLop, timLopNhap, dienGiaiLoi,
         thuTuHangGV, lopCN,
-        soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai
+        soTietLop, sucChuaLop, coGioRieng, nhomGioRieng, datGioLop, tietRaNgoai,
+        demTietRoi, tenGVIn, soSanhLuoi, docLuoiSS, khopLuoiSS, napLuoiSS,
+        cnCuaLop, gvId, lopId
         } = taoUngDung(documentGia);
 
 /* ---------- khung kiểm thử tối giản ---------- */
@@ -914,6 +916,189 @@ kt('Bản xuất ghi họ tên đầy đủ, không dùng tên gọi rút gọn'
    capTrung.length > 1
      ? `${capTrung.length} giáo viên cùng tên gọi ghi rõ họ tên: ${capTrung.map(g => g.hoTen).join(' · ')}`
      : 'không tìm được cặp trùng tên gọi nào trong lưới');
+
+/* Trùng CẢ HỌ TÊN (chuyện có thật sau sáp nhập ~100 giáo viên) — họ tên khi
+   ấy không còn phân biệt được ai, ô in phải TỰ ghi kèm lớp chủ nhiệm hoặc mã.
+   Cặp trùng DỰNG RA trong phép thử vì bộ mẫu cố ý không có cặp nào — và nhờ
+   thế các phép thử phía trên vẫn soi được dạng ô bình thường. */
+{
+  const gDay = S.giaoVien.find(g => Object.values(S.tkb)
+    .some(o => Object.values(o).some(v => v.gvId === g.id)));
+  const gKhac = S.giaoVien.find(g => g.id !== gDay.id);
+  const cu = gKhac.hoTen;
+  gKhac.hoTen = gDay.hoTen;
+  const oTrung = luoiTheoLop(S.lop).slice(4).flatMap(h => h.slice(3))
+    .filter(x => String(x).includes(' — ' + gDay.hoTen + ' ('));
+  kt('Trùng cả họ tên thì ô xuất tự ghi kèm lớp chủ nhiệm hoặc mã',
+     oTrung.length > 0 && tenGVIn(gDay) !== gDay.hoTen,
+     oTrung.length ? String(oTrung[0]) : 'không ô nào mang phân biệt');
+  gKhac.hoTen = cu;
+  kt('Trả tên về như cũ thì ô xuất gọn lại, không ghi kèm gì nữa',
+     tenGVIn(gDay) === gDay.hoTen, tenGVIn(gDay));
+}
+
+/* soSanhLuoi — nền của nút "So sánh" trong Lịch sử phiên bản. Bốn dạng khác
+   nhau phải bắt đủ: đổi người dạy · đổi môn cùng người · tiết mất · tiết thêm;
+   ô giống hệt thì bỏ qua. Giáo viên đứng cả hai đầu một ô chỉ đếm MỘT lần. */
+{
+  const A = { lopX: { '2-S-0': {gvId:'g1', mon:'Toán'},
+                      '2-S-1': {gvId:'g1', mon:'Tiếng Việt'},
+                      '3-S-0': {gvId:'g2', mon:'Đạo đức'},
+                      '3-C-0': {gvId:'g4', mon:'Toán'} } };
+  const B = { lopX: { '2-S-0': {gvId:'g1', mon:'Toán'},
+                      '2-S-1': {gvId:'g3', mon:'Tiếng Việt'},
+                      '4-S-0': {gvId:'g2', mon:'Đạo đức'},
+                      '3-C-0': {gvId:'g4', mon:'Mỹ thuật'} } };
+  const ss = soSanhLuoi({v:9, tkb:A}, B);   /* bản đóng gói ↔ lưới trần */
+  kt('soSanhLuoi bắt đủ bốn dạng khác nhau, bỏ qua ô giống hệt',
+     ss.doi.length === 4 && ss.soLop === 1
+       && ss.gv.g1 === 1 && ss.gv.g3 === 1 && ss.gv.g2 === 2 && ss.gv.g4 === 1,
+     `${ss.doi.length} ô khác · giáo viên ảnh hưởng: ${JSON.stringify(ss.gv)}`);
+  kt('soSanhLuoi chỉ đọc, không đụng lưới nào',
+     Object.keys(A.lopX).length === 4 && Object.keys(B.lopX).length === 4, 'hai lưới còn nguyên');
+}
+
+/* ---------- Nhập lưới TKB từ bản SmartScheduler xuất ra ----------
+   Bảng thô dựng ĐÚNG khuôn tệp thật (data/ketxuat-smartscheduler-2026-07-31.xlsx):
+   dải tiêu đề phía trên, dòng tên cột THỨ · TIẾT, tên lớp kèm chủ nhiệm xuống
+   dòng trong một ô, ô tiết dạng "Môn - Cô X", ô thứ để trống ở dòng gộp. */
+{
+  const cnA = cnCuaLop('lop_1A');
+  const goi = g => g.hoTen.trim().split(/\s+/).pop();
+  const pcCua = mon => S.phanCong.find(p => p.lopId === 'lop_1A' && p.mon === mon);
+  const pTV = pcCua('Tiếng Việt'), pHD = pcCua('HDTN');
+  const aoa = [
+    ['Trường tiểu học Diễn Liên\nNăm học 2026 - 2027', null, null],
+    [null, null, null],
+    ['THỨ', 'TIẾT', `1A\n(Cô ${goi(cnA)})`],
+    [2, 1, `Tiếng Việt - Cô ${goi(gvId(pTV.gvId))}`],
+    [null, 2, 'Hoạt động trải nghiệm - Cô nào đó'],   /* thứ trống = ô gộp; môn theo tên SmartScheduler */
+    [2, 3, 'Môn Lạ Hoắc - Cô X'],                     /* môn không có trong danh mục */
+    [2, 9, `Tiếng Việt - Cô ${goi(gvId(pTV.gvId))}`], /* tiết 9 — ngoài khung, napLuoiSS phải bỏ và đếm */
+  ];
+  const d = docLuoiSS(aoa, 'S');
+  kt('docLuoiSS: bắt đúng dòng tên cột, tên lớp cắt khỏi tên chủ nhiệm, ô gộp thứ vẫn đọc',
+     d.dong.length === 4 && d.dong.every(x => x.lopTen === '1A' && x.thu === 2 && x.buoi === 'S')
+       && d.dong[1].i === 1 && d.dong[1].monSS === 'Hoạt động trải nghiệm',
+     `${d.dong.length} dòng · dòng 2: ${d.dong[1]?.monSS} tiết ${(d.dong[1]?.i ?? -9) + 1}`);
+  kt('docLuoiSS: không thấy dòng THỨ · TIẾT thì nói thẳng, không đoán mò',
+     docLuoiSS([['a', 'b'], [1, 2]], 'S').loi.length === 1, 'có lời báo');
+
+  const k = khopLuoiSS(d.dong);
+  kt('khopLuoiSS: người dạy tra theo PHÂN CÔNG, tên môn SmartScheduler dịch về danh mục trường',
+     k.o.length === 3 && k.o[0].gvId === pTV.gvId && k.o[1].mon === 'HDTN'
+       && k.o[1].gvId === (pHD ? pHD.gvId : k.o[1].gvId) && k.theoPC >= 2,
+     `${k.o.length} ô khớp · ${k.theoPC} theo phân công · HĐTN → ${k.o[1]?.mon}`);
+  kt('khopLuoiSS: môn lạ bị nêu ĐÍCH DANH chứ không lặng lẽ bỏ',
+     k.monLa.length === 1 && k.monLa[0] === 'Môn Lạ Hoắc', k.monLa.join(' · '));
+  kt('khopLuoiSS: lớp không có trong trường thì vào danh sách lớp lạ',
+     khopLuoiSS([{lopTen: '9Z', thu: 2, buoi: 'S', i: 0, monSS: 'Toán', gvNhan: ''}]).lopLa[0] === '9Z',
+     'lớp 9Z bị nêu tên');
+
+  const tkbGoc = JSON.parse(JSON.stringify(S.tkb['lop_1A'] || {}));
+  const r = napLuoiSS(k);
+  kt('napLuoiSS: thay TOÀN BỘ lưới của lớp trong tệp, ô ngoài khung bỏ và ĐẾM ra',
+     r.nap === 2 && r.boQua === 1 && r.soLop === 1
+       && Object.keys(S.tkb['lop_1A']).length === 2
+       && S.tkb['lop_1A']['2-S-0']?.mon === 'Tiếng Việt'
+       && S.tkb['lop_1A']['2-S-0']?.gvId === pTV.gvId,
+     `nạp ${r.nap} · bỏ ${r.boQua} ô ngoài khung · lưới 1A còn ${Object.keys(S.tkb['lop_1A']).length} ô`);
+  S.tkb['lop_1A'] = tkbGoc;
+
+  /* Nhãn "Cô DungB" của phần mềm kia (hậu tố phân biệt trùng tên) phải vẫn
+     tra ra người, qua phép "tên gọi là khúc đầu của nhãn" — trong phạm vi
+     ứng viên của phân công nên không sợ vơ nhầm người trùng tên khác lớp. */
+  const gDung = S.giaoVien.find(g => S.giaoVien.some(x => x.id !== g.id && goi(x) === goi(g))
+      && S.phanCong.some(p => p.gvId === g.id));
+  if (gDung) {
+    const pD = S.phanCong.find(p => p.gvId === gDung.id);
+    const kD = khopLuoiSS([{lopTen: lopId(pD.lopId).ten, thu: 3, buoi: 'S', i: 0,
+                            monSS: pD.mon, gvNhan: `Cô ${goi(gDung)}B`}]);
+    kt('khopLuoiSS: nhãn có hậu tố kiểu "Cô DungB" vẫn tra ra đúng người',
+       kD.o.length === 1 && (kD.o[0].gvId === gDung.id
+         || S.phanCong.some(p => p.lopId === pD.lopId && p.mon === pD.mon && p.gvId === kD.o[0].gvId)),
+       `${gDung.hoTen} → ${gvId(kD.o[0]?.gvId)?.hoTen || 'không ra'}`);
+  }
+}
+
+/* ---------- Hai cờ chấm điểm mới (5/9/2026) — mặc định TẮT ----------
+   Tắt thì khoản phạt/thưởng không tồn tại: cùng một lịch, điểm y hệt.
+   Bật thì lệch ĐÚNG bằng trọng số khai — không hơn, không kém. */
+{
+  /* diemGV không có trong danh sách xuất — chấm qua diemToanCuc thì phải dựng
+     cả lưới; đơn giản hơn: soi thẳng qua toiUuHoanDoi tốn kém. Nên xuất diemGV
+     là gọn nhất — nó đã nằm trong return của NGUON_MA phía trên. */
+  const oGV = { '2-S-0': 'lop_1A' };               /* một buổi đúng MỘT tiết */
+  const t1 = diemGV(oGV);
+  S.phatBuoiLe = true;
+  const t2 = diemGV(oGV);
+  S.phatBuoiLe = false;
+  kt('Cờ phạt buổi lẻ: tắt không tính gì, bật phạt đúng 45 điểm một buổi lẻ',
+     t2 - t1 === 45 && diemGV(oGV) === t1, `lệch ${t2 - t1} điểm`);
+
+  const l = S.lop.find(x => x.id === 'lop_1A');
+  const gBM = S.giaoVien.find(g => !lopCN(g));      /* bộ môn — không chủ nhiệm lớp nào */
+  const tkbGoc = S.tkb['lop_1A'];
+  const ke   = { '2-S-0': {gvId: gBM.id, mon: 'Tin học'}, '2-S-1': {gvId: gBM.id, mon: 'CN'} };
+  const cach = { '2-S-0': {gvId: gBM.id, mon: 'Tin học'}, '2-S-2': {gvId: gBM.id, mon: 'CN'} };
+  const cham = o => { S.tkb['lop_1A'] = o; return diemLop(l); };
+  const keTat = cham(ke), cachTat = cham(cach);
+  S.ghepMonGV = true;
+  const keBat = cham(ke), cachBat = cham(cach);
+  S.ghepMonGV = false;
+  S.tkb['lop_1A'] = tkbGoc;
+  kt('Cờ ghép môn cùng giáo viên: hai môn liền tiết được thưởng 30, đứng cách thì không',
+     keTat - keBat === 30 && cachBat === cachTat,
+     `liền: ${keTat} → ${keBat} · cách: ${cachTat} → ${cachBat}`);
+
+  /* Lựa chọn xếp phải đi theo bản lưu — đặt trần buổi nghỉ xong tải lại
+     trang mà mất là người dùng không bao giờ biết vì sao lưới đổi. */
+  S.buoiNghiToiThieu = 2; S.phatBuoiLe = true; S.ghepMonGV = true;
+  const goiCH = dongGoiTKB();
+  S.buoiNghiToiThieu = 0; S.phatBuoiLe = false; S.ghepMonGV = false;
+  docTKB(goiCH);
+  kt('Ba lựa chọn xếp theo bản lưu về đủ: trần nghỉ · phạt buổi lẻ · ghép môn',
+     S.buoiNghiToiThieu === 2 && S.phatBuoiLe === true && S.ghepMonGV === true,
+     `nghỉ ${S.buoiNghiToiThieu} · lẻ ${S.phatBuoiLe} · ghép ${S.ghepMonGV}`);
+  /* Bản lưu CŨ không mang cauHinhXep thì giữ nguyên thứ đang đặt */
+  docTKB({tkb: goiCH.tkb});
+  kt('Bản lưu cũ không có cấu hình thì GIỮ NGUYÊN, không kéo về 0',
+     S.buoiNghiToiThieu === 2 && S.phatBuoiLe === true, 'giữ nguyên');
+  S.buoiNghiToiThieu = 0; S.phatBuoiLe = false; S.ghepMonGV = false;
+}
+
+/* ---------- Sửa ít nhất — tối ưu BÁM LƯỚI hiện có ----------
+   Bài học TH Thần Lĩnh 1 (5/9/2026): thêm ràng buộc giữa năm học mà xếp lại
+   từ đầu là đổi 230–242 ô; bám lưới gốc thì 8 ô. Ở đây soi ba lời hứa:
+   không tệ đi · con số báo ra đúng sự thật · đổi ít hơn hẳn tối ưu tự do. */
+{
+  /* ⚠️ Bản app mới dựng có LƯỚI TRỐNG — soi trên đó là "đổi 0 ô" xanh oan.
+     Phải xếp cho đầy lưới trước, và phép thử đầu ĐÒI lưới không trống. */
+  const dayLuoi = u => { u.xepTuDong(150); return Object.values(u.S.tkb)
+    .reduce((s, o) => s + Object.keys(o).length, 0); };
+  const u1 = taoUngDung(documentGia);
+  const tiet1 = dayLuoi(u1);
+  const goc1 = JSON.parse(JSON.stringify(u1.S.tkb));
+  u1.S.phatBuoiLe = true;                /* bật một lựa chọn mới cho có việc để sửa */
+  const r = u1.suaItNhat(700);
+  const thucDoi = u1.soSanhLuoi(goc1, u1.S.tkb).doi.length;
+  kt('Sửa ít nhất: soi trên lưới ĐẦY, điểm không tệ đi, "đổi N ô" nói đúng sự thật',
+     tiet1 > 600 && r.diemSau <= r.diemTruoc && r.doi === thucDoi,
+     `lưới ${tiet1} tiết · đổi ${r.doi} ô (đếm lại ${thucDoi}) · điểm ${r.diemTruoc} → ${r.diemSau}`);
+  kt('Sửa ít nhất không đụng tiết ghim theo quy định (chào cờ sáng thứ Hai)',
+     u1.S.lop.every(l => JSON.stringify(u1.S.tkb[l.id]['2-S-0']) === JSON.stringify(goc1[l.id]['2-S-0'])),
+     'chào cờ nguyên vẹn cả 25 lớp');
+
+  const u2 = taoUngDung(documentGia);
+  dayLuoi(u2);                           /* cùng đường xếp tất định → cùng lưới gốc */
+  u2.S.phatBuoiLe = true;
+  const goc2 = JSON.parse(JSON.stringify(u2.S.tkb));
+  u2.toiUuHoanDoi(700);
+  const doiTuDo = u2.soSanhLuoi(goc2, u2.S.tkb).doi.length;
+  kt('Bám lưới gốc đổi ít ô hơn tối ưu tự do cùng thời lượng',
+     r.doi < doiTuDo || (r.doi === 0 && doiTuDo === 0),
+     `bám gốc ${r.doi} ô · tự do ${doiTuDo} ô`);
+}
 
 const aPC = bangXuatPC(S.lop);
 const dongTong = aPC[aPC.length - 1];
@@ -4202,7 +4387,17 @@ console.log('\n25. Lớp học khác giờ khối — bài toán TH Hưng Vinh 1
 
   /* --- a) Chốt an toàn: không khai gì thì mọi thứ y như trước --- */
   kt('Không lớp nào khai riêng thì lưới ra GIỐNG HỆT từng ô', (() => {
-    const a = mo2(), b = mo2();
+    /* ⚠️ So bằng hạn tối ưu 0 — cùng bài học phép thử "cờ tắt là tắt hẳn"
+       phía trên: hai lượt qua bước hoán đổi dừng theo đồng hồ bị máy bận
+       cắt hai điểm khác nhau, từng ô lệch, đỏ oan. */
+    const dung = () => {
+      const app = taoUngDung(documentGia, {}, async () => { throw new Error('không mạng'); });
+      app.napVaoS(JSON.parse(JSON.stringify(DL2)));
+      app.S.monHoc = app.dsMonMacDinh();
+      app.xepTuDong(0);
+      return app;
+    };
+    const a = dung(), b = dung();
     const cot = app => app.S.lop.map(l => l.id + ':' +
       Object.entries(app.S.tkb[l.id] || {}).sort()
         .map(([k, v]) => `${k}=${v.mon}/${v.gvId}`).join(',')).join('|');
@@ -4271,6 +4466,16 @@ console.log('\n25. Lớp học khác giờ khối — bài toán TH Hưng Vinh 1
   kt('tietRaNgoai đếm đúng số tiết sẽ rơi ra khi trở lại giờ của khối', (() => {
     const ra = hv.tietRaNgoai(BA, null);
     return [ra.length === 9 && ra.every(x => /-S-4$/.test(x.khoa)), `${ra.length} tiết`];
+  })());
+  /* demTietRoi là nền của hộp hỏi TRƯỚC khi thu giờ — nó phải đếm đúng số
+     tiết của đúng buổi ấy, và tuyệt đối không được đụng vào lưới. */
+  kt('demTietRoi chỉ ĐẾM tiết sẽ rơi, không xoá gì khỏi lưới', (() => {
+    const truoc = tongXep(hv);
+    const dem = hv.demTietRoi(BA, '2-S', 0).length;
+    const that = BA.reduce((s, id) =>
+      s + Object.keys(hv.S.tkb[id] || {}).filter(k => k.startsWith('2-S-')).length, 0);
+    return [dem === that && dem > 0 && tongXep(hv) === truoc,
+            `đếm ${dem} tiết sáng thứ Hai · lưới vẫn ${tongXep(hv)} tiết`];
   })());
   kt('Bỏ giờ riêng thì ba lớp trở lại đúng khung khối', (() => {
     const ra = hv.tietRaNgoai(BA, null);

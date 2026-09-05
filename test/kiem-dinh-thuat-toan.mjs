@@ -255,8 +255,12 @@ console.log('\nA. Trường thật Diễn Liên — 25 lớp · 710 tiết');
 /* ---------- B. Tất định ---------- */
 console.log('\nB. Tất định — cùng dữ liệu, hai lần chạy phải ra y hệt');
 {
-  const a = taoUngDung(); a.xepTuDong();
-  const b = taoUngDung(); b.xepTuDong();
+  /* ⚠️ So bằng hạn tối ưu 0. Bước hoán đổi dừng THEO ĐỒNG HỒ, nên hai lượt
+     1200ms bị máy bận cắt ở hai điểm khác nhau là từng ô lệch — đỏ oan
+     ~1/3 lần chạy. Cùng bài học phép thử mục 23 và mục 25 của kiem-thu:
+     phần tất định (tham lam + ghim + pha 0) mới là thứ phải y hệt. */
+  const a = taoUngDung(); a.xepTuDong(0);
+  const b = taoUngDung(); b.xepTuDong(0);
   kt('Từng ô của hai lần chạy giống nhau tuyệt đối',
      JSON.stringify(a.S.tkb) === JSON.stringify(b.S.tkb));
 }

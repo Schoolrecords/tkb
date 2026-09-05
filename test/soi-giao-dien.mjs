@@ -2922,7 +2922,7 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
      chữ Bước 1". Sót một nút thì cái sót ấy ghi đè dữ liệu trường khác. */
   const MAN = ['dieuhanh','thongtin','diemtruong','khunggio','lop','giaovien',
                'monhoc','phonghoc','phancong','buoiban','xep','tkblop'];
-  const NUT_GHI = /^(Lưu|Lưu ngay|Xếp|Xếp nhanh|Xếp kỹ|Thêm|Tạo|Xoá|Đặt lại|Công bố|Nhập từ Excel|Khôi phục)/;
+  const NUT_GHI = /^(Lưu|Lưu ngay|Xếp|Xếp nhanh|Xếp kỹ|Thêm|Tạo|Xoá|Đặt lại|Công bố|Nhập từ Excel|Khôi phục|Sửa ít nhất)/;
   const lot = [];
   for (const t of MAN) {
     w.chuyen(t);
@@ -4318,9 +4318,52 @@ console.log('\n17z. Khung giờ học — bảng theo LỚP');
     return [ok, 'có nút sang Lớp học'];
   })());
 
+  /* Thu hẹp giờ khi ô ĐANG CÓ TIẾT thì phải HỎI trước — trước đây gỡ ngay
+     rồi mới báo, lỡ tay là mất tiết không đòi lại được. */
+  (() => {
+    const oGoc = JSON.parse(JSON.stringify(S.tkb['lop_1A'] || {}));
+    w.eval("S.tkb['lop_1A']['2-S-3'] = {gvId: S.giaoVien[0].id, mon: 'Toán'}");
+    const dem = () => Object.keys(S.tkb['lop_1A']).length;
+    const truoc = dem();
+    dat(oLop('lop_1A', '2-S'), 3);
+    kt('Thu giờ làm rơi tiết: hộp hỏi trước, lưới còn nguyên',
+       [/Thu hẹp giờ học/.test(w.document.querySelector('#hopT').textContent) && dem() === truoc,
+        `${w.document.querySelector('#hopT').textContent} · ${dem()} ô`]);
+    [...w.document.querySelectorAll('#hopC button')]
+      .find(b => /Giữ nguyên/.test(b.textContent)).click();
+    kt('Bấm "Giữ nguyên giờ cũ": không mất tiết, giờ của lớp không đổi',
+       [dem() === truoc && w.eval("sucChuaLop('lop_1A')") === 28,
+        `${dem()} ô · sức chứa ${w.eval("sucChuaLop('lop_1A')")}`]);
+    dat(oLop('lop_1A', '2-S'), 3);
+    [...w.document.querySelectorAll('#hopC button')]
+      .find(b => /^Gỡ \d+ tiết/.test(b.textContent)).click();
+    kt('Bấm "Gỡ … tiết và đổi giờ": tiết rơi được gỡ thật, giờ đổi thật',
+       [!S.tkb['lop_1A']['2-S-3'] && dem() < truoc && w.eval("sucChuaLop('lop_1A')") === 26,
+        `${truoc} → ${dem()} ô · sức chứa ${w.eval("sucChuaLop('lop_1A')")}`]);
+    S.tkb['lop_1A'] = oGoc;
+  })();
+
   w.eval("S.lopTiet = {}; chuanKhungGio();");
   S.phanCong.length = 0; pcGoc.forEach(x => S.phanCong.push(x));
   w.eval("S.khoiKG = ''");
+}
+
+console.log('\n17ac. Lựa chọn xếp mới trên màn Xếp');
+/* Hai cờ chấm điểm (buổi lẻ · ghép môn) và nút Sửa ít nhất — 5/9/2026 */
+{
+  w.chuyen('xep');
+  kt('Màn Xếp có đủ hai lựa chọn mới và nút Sửa ít nhất',
+     !!w.document.querySelector('#ipBuoiLe') && !!w.document.querySelector('#ipGhepMon')
+       && !!w.document.querySelector('#btSuaIt')
+       && !!w.document.querySelector('#btNhapSS'), 'đủ 4 mối mới');
+  const o = w.document.querySelector('#ipBuoiLe');
+  o.checked = true; o.dispatchEvent(new w.Event('change'));
+  kt('Tích "Tránh buổi chỉ dạy 1 tiết": cờ bật và ĐI VÀO bản đóng gói để lưu',
+     S.phatBuoiLe === true && w.eval('dongGoiTKB()').cauHinhXep.phatBuoiLe === true,
+     `cờ ${S.phatBuoiLe} · gói ${w.eval('dongGoiTKB()').cauHinhXep.phatBuoiLe}`);
+  const o2 = w.document.querySelector('#ipBuoiLe');
+  o2.checked = false; o2.dispatchEvent(new w.Event('change'));
+  kt('Bỏ tích thì cờ tắt lại', S.phatBuoiLe === false, 'về mặc định');
 }
 
 console.log('\n17aa. Xoá toàn bộ danh sách giáo viên');

@@ -3025,3 +3025,53 @@ phải có dòng kẻ dễ phân biệt, chữ số 27/23 cần căn giữa cộ
 
 Phép thử: 3 phép cuối mục 17p, thử ngược 4/4 đỏ (kể cả chiều "trả Tiết về
 căn phải"). Soi bằng Chrome thật trên đúng cảnh 19 môn.
+
+## 5/9/2026 — Đợt nâng cấp năm việc (từ trải nghiệm xếp TKB thật hai trường)
+
+Chủ dự án tổng kết sau hai tuần nạp TKB thật cho Diễn Liên (714 tiết) và
+Thần Lĩnh 1 (480 tiết), chốt làm cả năm việc trong một đợt:
+
+**1. Nhập lưới TKB từ bản SmartScheduler xuất ra** — nút *Nhập từ Excel
+(SmartScheduler)* ở màn Xếp. Đọc trang `TKB_LOP_S`/`TKB_LOP_C` (dòng tên cột
+THỨ · TIẾT, tên lớp kèm chủ nhiệm xuống dòng trong một ô, ô dạng
+`Môn - Cô X`). Ba hàm thuần ở vùng DULIEU: `docLuoiSS` · `khopLuoiSS` ·
+`napLuoiSS`.
+- ⚠️ **Người dạy tra theo PHÂN CÔNG trước, nhãn tên gọi chỉ là phụ** — nhãn
+  "Cô Dung"/"Cô DungB" của phần mềm kia không tin được khi trường có bốn cặp
+  trùng tên gọi; phân công (lớp + môn → người) gần như luôn chỉ đúng một người.
+- Tên môn đối chiếu qua `chuanSS()` (bỏ dấu, thường hoá) + bảng `MON_SS`
+  (Ngoại ngữ → Tiếng Anh, Hoạt động trải nghiệm → HDTN, Chào cờ/SHL → HDTN…).
+- Nhập là **THAY TOÀN BỘ lưới của lớp có trong tệp**, lớp khác giữ nguyên;
+  hộp xem trước nói đủ ba con số và nêu đích danh thứ chưa nhận ra.
+
+**2. "Sửa ít nhất" — tối ưu bám lưới hiện có** (`suaItNhat`, nút ở màn Xếp).
+Mỗi ô lệch khỏi lưới gốc cõng phạt `PHAT_LECH_GOC=10` (đếm trong `diemLop`,
+mỗi ô một lớp nên không đếm trùng). Đo thật ở Thần Lĩnh 1: bám gốc 8/480 ô
+đổi, tối ưu tự do 230–242 ô. Dùng cho chỉnh giữa năm học.
+
+**3. Hai cờ chấm điểm mới, mặc định TẮT** (đúng luật "cờ tắt là lưới y hệt"):
+- `S.phatBuoiLe` — phạt 45đ mỗi buổi giáo viên đi dạy chỉ 1 tiết (`diemGV`).
+- `S.ghepMonGV` — thưởng 30đ khi hai môn KHÁC nhau của cùng một giáo viên
+  BỘ MÔN đứng liền tiết (`diemLop` + `diemO`, chủ nhiệm không tính kẻo méo).
+- ⚠️ **`cauHinhXep` đi theo bản lưu** (`dongGoiTKB`/`docTKB`): trần buổi nghỉ
+  + hai cờ. Trước đây đặt trần xong tải lại trang là về 0 mà không ai hay.
+  Bản lưu cũ không có `cauHinhXep` thì GIỮ NGUYÊN thứ đang đặt.
+- ⚠️ Hai cờ phải theo sang worker qua `duLieuChoWorker()` — thiếu là Xếp kỹ
+  chấm khác Xếp nhanh, đúng bẫy `lopTiet` ngày 1/9.
+
+**4. Hai vá giao diện:**
+- Thu hẹp khung giờ làm rơi tiết thì **HỎI TRƯỚC** (`demTietRoi` chỉ đếm +
+  `hopGoTiet`), không gỡ ngay rồi mới báo như trước. Huỷ thì `ve()` trả ô
+  nhập về số cũ.
+- Ô in/xuất TKB đi qua `tenGVIn()`: trùng CẢ họ tên (chuyện thật sau sáp
+  nhập) thì tự ghi kèm lớp chủ nhiệm hoặc mã — cùng khuôn `tenLopDay()`,
+  chỉ ghi kèm khi thật sự trùng. Lời gỡ R09 đổi theo.
+
+**5. Nút "So sánh" trong Lịch sử phiên bản** — `soSanhLuoi(a,b)` (thuần, vùng
+XUAT, nhận cả bản đóng gói lẫn lưới trần) + `hopSoSanh(v)`: bản v khác gì bản
+đang mở, lớp nào đổi ô nào, thầy cô nào phải báo. Chỉ đọc, không nạp vào S.
+
+Phép thử: ~25 phép mới ở `kiem-thu.mjs` (docLuoiSS/khopLuoiSS/napLuoiSS,
+soSanhLuoi, demTietRoi, tenGVIn, hai cờ, cauHinhXep đi–về, suaItNhat) và
+`soi-giao-dien.mjs` (hộp hỏi trước khi gỡ tiết ở 17z, mục 17ac màn Xếp).
+`NUT_GHI` của phép thử chỉ-xem 17k thêm `Sửa ít nhất`.
