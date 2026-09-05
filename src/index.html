@@ -975,6 +975,19 @@ table.tt.co-khoi thead tr:nth-child(2) th{top:26px}
 table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#AFCBE0;letter-spacing:.04em;
   background:repeating-linear-gradient(135deg,#F2F8FD,#F2F8FD 5px,#ECF5FC 5px,#ECF5FC 10px)}
 
+/* ---------- Bàn xếp: lưới rộng thao tác trực tiếp ---------- */
+/* Ba mức tín hiệu KHI ĐANG CẦM tiết — cùng ngữ nghĩa màn Theo lớp (xanh đặt
+   được · vàng nhắc · mờ vướng); hậu tố 2 vì ô ở đây là td, không phải div. */
+.bx-thanh{position:sticky;top:0;z-index:8;display:flex;gap:8px;flex-wrap:wrap;
+  align-items:center;background:var(--nen);padding:8px 0 10px;margin-bottom:4px}
+.bx-bo{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:14px;align-items:start}
+#bxKhe{position:sticky;top:58px;max-height:calc(100dvh - 240px);overflow:auto}
+table.tt td.o-bam{cursor:pointer}
+table.tt td.o-bx-on{box-shadow:inset 0 0 0 3px var(--cam);cursor:grabbing}
+table.tt td.o-hop2{box-shadow:inset 0 0 0 2px var(--luc)}
+table.tt td.o-cham2{box-shadow:inset 0 0 0 2px var(--vang)}
+table.tt td.o-cam2{opacity:.32}
+
 /* Dải nút chuyển phân hiệu trên các màn hình lưới rộng */
 .dai-dt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
 /* Cùng hệ màu với .xem-nut — xem giải thích ở đó. Dải phân hiệu và dải
@@ -1386,6 +1399,11 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
   .tuan{grid-template-columns:1fr}
   .dh-duoi{grid-template-columns:1fr}
   .cot2{grid-template-columns:1fr}
+  /* Bàn xếp trên điện thoại: khe gợi ý lên TRÊN lưới và chốt chiều cao tối
+     thiểu — hai trạng thái (chưa cầm / đang cầm) cao khác nhau mà nhảy là ô
+     định chạm trượt khỏi ngón tay, đúng bài học .khu-chon của màn Theo lớp. */
+  .bx-bo{grid-template-columns:1fr}
+  #bxKhe{order:-1;position:static;max-height:none;min-height:118px}
   .the-so{grid-template-columns:1fr}
   .dau-trang{flex-wrap:wrap;gap:10px}
   .pham-vi{width:100%}
@@ -1501,6 +1519,7 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
     <div class="nhom-ds">
       <button class="mi" data-t="dieuhanh" data-nh="dh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Bảng điều hành</button>
       <button class="mi" data-t="xep" data-nh="dh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/><circle cx="12" cy="12" r="3"/></svg>Xếp thời khóa biểu <span class="n" id="nChua">0</span></button>
+      <button class="mi" data-t="banxep" data-nh="dh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/><path d="M13.5 13l3 3M16.5 13l-3 3"/></svg>Bàn xếp</button>
       <button class="mi" data-t="daythay" data-nh="dh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 9a8 8 0 0114-3.5"/><path d="M20 4v4h-4"/><path d="M20 15a8 8 0 01-14 3.5"/><path d="M4 20v-4h4"/></svg>Dạy thay <span class="n" id="nDayThay">0</span></button>
       <button class="mi" data-t="thongbao" data-nh="dh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8.5a6 6 0 10-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg>Thông báo <span class="n" id="nThongBao">0</span></button>
       <button class="mi" data-t="baonghi" data-nh="dh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 4.5v-2M16 4.5v-2"/><path d="M12 12.5v4M12 18.5h.01"/></svg>Báo nghỉ</button>
@@ -1889,6 +1908,7 @@ let S = {
   phatBuoiLe:false,
   ghepMonGV:false,
   oChon:null,           /* ô đang chọn trong lưới lớp — lối chỉnh tay trên điện thoại */
+  bxChon:null,          /* {lop, khoa} — tiết đang cầm trên Bàn xếp (lưới cả trường) */
   bnXem:null,           /* thông báo nghỉ đang mở phương án dạy thay */
   paChon:0,             /* phương án dạy thay đang chọn: 0 · 1 · 2 */
   paRieng:false,        /* true = bố trí riêng từng tiết thay vì cả buổi */
@@ -9366,6 +9386,7 @@ function ve(){
     : t==='nguoidung' ? mNguoiDung()
     : t==='saoluu'    ? mSaoLuu()
     : t==='toantruong'? mToanTruong()
+    : t==='banxep'    ? mBanXep()
     : t==='tkbkhoi'   ? mTKBKhoi()
     : t==='airanh'    ? mAiRanh()
     : t==='xuatin'    ? mXuatIn()
@@ -11831,7 +11852,9 @@ function daiDiemLuoi(){
    Tham số chứ không đọc thẳng S.soiGV — ba nơi khác đang gọi hàm này
    (Bảng điều hành, Theo khối) không được đổi hành vi vì một trạng thái
    của màn hình Toàn trường. */
-function luoiRongHTML(ds, ghiKhoi, cao, soi){
+/* bx=true: lưới của BÀN XẾP — ô mang data-bxo để bấm cầm/đặt tiết, tô ba
+   mức tín hiệu qua bxNhan(). Không truyền thì y hệt như trước (chỉ đọc). */
+function luoiRongHTML(ds, ghiKhoi, cao, soi, bx){
   if(!ds.length) return `<div class="canhbao"><div class="cb-ic">i</div><div class="cb-t">
     <b>Không có lớp nào trong phạm vi đang xem</b></div></div>`;
   const bb=buoiBat();
@@ -11868,16 +11891,127 @@ function luoiRongHTML(ds, ghiKhoi, cao, soi){
           if(k && o.tiet>soTietLop(k,l))
             return '<td class="o-nghi-t">nghỉ</td>';
           const v=S.tkb[l.id]?.[o.khoa];
-          if(!v) return '<td></td>';
+          const bxAt = bx && duocSuaLop(l.id) ? ` data-bxo="${l.id}|${o.khoa}"` : '';
+          if(!v) return `<td class="${bx?bxNhan(l.id,o.khoa):''}${bxAt?' o-bam':''}"${bxAt}></td>`;
           const g=gvId(v.gvId);
           /* Đang soi thì ô của người ấy giữ nguyên màu môn và nổi thêm
              viền; ô còn lại mờ hẳn. Hai tín hiệu, không chỉ một. */
-          const dau = soi ? (v.gvId===soi ? ' o-soi' : ' o-mo') : '';
-          return `<td class="${mLop(v.mon)} o-mau${dau}"><b>${esc(v.mon)}</b>`
+          const dau = soi ? (v.gvId===soi ? ' o-soi' : ' o-mo') : (bx ? bxNhan(l.id,o.khoa) : '');
+          return `<td class="${mLop(v.mon)} o-mau${dau}${bxAt?' o-bam':''}"${bxAt}><b>${esc(v.mon)}</b>`
             +`<span>${esc(g?tenTat(g.hoTen):'')}</span></td>`;
         }).join('')}
       </tr>`;}).join('')}
   </tbody></table></div>`;
+}
+
+/* ---------- BÀN XẾP — một màn hình làm hết (5/9/2026) ----------
+   Chủ dự án so với SmartScheduler và chốt ba thứ phần mềm kia dễ hơn:
+   "một màn hình làm hết · bấm thẳng vào ô · thanh công cụ rõ ràng".
+   Bàn xếp trả lời cả ba: lưới cả trường luôn hiện, bấm tiết để cầm lên —
+   bấm ô đích để đặt xuống, hàng nút lệnh dính trên đầu.
+
+   ⚠️ HAI LỐI VÀO, MỘT BỘ LUẬT: mọi phép kiểm và phép chuyển DÙNG CHUNG với
+   màn Theo lớp (kiemTraChuyen · chuyenTiet · xoaTietO · hopGhimO · luuLui),
+   qua bxVoiLop() đặt tạm S.lopXem quanh lời gọi — đúng lời dặn "hai nơi
+   cùng sửa một thứ thì sớm muộn lệch hành vi" trong giao-dien.md.
+
+   Tiết chỉ chuyển trong CÙNG MỘT LỚP (một cột) — tiết thuộc về lớp, kéo
+   sang cột khác là vô nghĩa; bấm tiết ở cột khác là đổi sang cầm tiết ấy. */
+function bxVoiLop(lop, ham){
+  const cu=S.lopXem; S.lopXem=lop;
+  try{ return ham(); } finally{ S.lopXem=cu; }
+}
+
+/* Ba mức tín hiệu của một ô khi ĐANG CẦM tiết — cùng ngữ nghĩa màn Theo lớp:
+   xanh đặt được · vàng NHẮC chạm giáo viên liên lớp (không cấm) · mờ là vướng.
+   Chưa cầm gì thì không bày màu nào. */
+function bxNhan(lop, khoa){
+  const c=S.bxChon; if(!c) return '';
+  if(c.lop===lop && c.khoa===khoa) return ' o-bx-on';
+  if(c.lop!==lop) return S.tkb[lop]?.[khoa] ? '' : ' o-mo';
+  if(bxVoiLop(lop, ()=>kiemTraChuyen(c.khoa, khoa))) return ' o-cam2';
+  return chamGVKhac(lop, khoa) ? ' o-cham2' : ' o-hop2';
+}
+
+/* Bấm một ô trên Bàn xếp — cùng nhịp chamO() của màn Theo lớp */
+function bxCham(m){
+  const [lop, khoa]=m.split('|');
+  if(!duocSuaLop(lop)) return;
+  const o=S.tkb[lop]||{};
+  const c=S.bxChon;
+  if(!c){
+    if(!o[khoa]) return hopGhimO(lop, khoa);   /* ô trống → hộp xếp tay */
+    S.bxChon={lop, khoa}; return ve();
+  }
+  if(c.lop===lop && c.khoa===khoa){ S.bxChon=null; return ve(); }
+  if(c.lop!==lop){
+    if(o[khoa]){ S.bxChon={lop, khoa}; return ve(); }
+    return bao(`Tiết thuộc về lớp — đang cầm tiết của lớp ${lopId(c.lop)?.ten||''}, `
+      +'chỉ đặt được trong cột của chính lớp ấy.', true);
+  }
+  const loi=bxVoiLop(lop, ()=>kiemTraChuyen(c.khoa, khoa));
+  if(loi) return bao(loi, true);
+  bxVoiLop(lop, ()=>chuyenTiet(c.khoa, khoa));
+  S.bxChon=null; ve();
+}
+
+/* Khe gợi ý bên cạnh lưới: mọi thứ về ô đang cầm nằm ngay đây, không phải
+   rời màn đi tra — đúng cái "trực quan" của phần mềm bàn làm việc. */
+function bxKheHTML(){
+  const c=S.bxChon, v=c?S.tkb[c.lop]?.[c.khoa]:null;
+  if(!v){
+    const thieu=lopChoLuoi().map(l=>({l, con:monConLop(l.id).reduce((s,m)=>s+m.con,0)}))
+      .filter(x=>x.con>0);
+    return `<h2 style="font-size:14px;margin-bottom:8px">Chưa cầm tiết nào</h2>
+      <div class="gy">Bấm vào một tiết trên lưới để cầm lên — ô đặt được tô xanh,
+        ô vướng mờ đi và nói lý do khi bấm. Bấm ô trống để xếp tay một môn vào đúng chỗ ấy.
+        Phím Delete xoá tiết đang cầm, Ctrl+Z hoàn tác.</div>
+      ${thieu.length?`<div style="margin-top:12px"><b style="font-size:13px">Lớp còn thiếu tiết so với phân công</b>
+        ${thieu.slice(0,8).map(x=>`<div class="hang"><span>${esc(x.l.ten)}</span><b>${x.con} tiết</b></div>`).join('')}
+        ${thieu.length>8?`<div class="gy">… và ${thieu.length-8} lớp nữa</div>`:''}</div>`
+      :`<div class="hang" style="margin-top:10px"><span>Các lớp trong phạm vi</span><b>đủ tiết theo phân công</b></div>`}`;
+  }
+  const g=gvId(v.gvId), l=lopId(c.lop), tt=tinhTrangGV(v.gvId), r=aiRanh(c.khoa);
+  let tuDo=0, cham=0;
+  oTuanLop(c.lop).forEach(o=>{
+    if(o.khoa===c.khoa) return;
+    if(bxVoiLop(c.lop, ()=>kiemTraChuyen(c.khoa, o.khoa))) return;
+    chamGVKhac(c.lop, o.khoa) ? cham++ : tuDo++;
+  });
+  const t=c.khoa.split('-');
+  const tenRanh=x=>esc(x?.hoTen || gvId(x?.id||x)?.hoTen || '');
+  return `<h2 style="font-size:14px;margin-bottom:8px">Đang cầm: ${esc(v.mon)} · lớp ${esc(l?.ten||'')}</h2>
+    <div class="hang"><span>Giờ</span><b>${TAT_THU[+t[0]]||''} ${t[1]==='S'?'sáng':'chiều'} tiết ${+t[2]+1}</b></div>
+    <div class="hang"><span>Người dạy</span><b>${esc(g?tenGVIn(g):'—')}</b></div>
+    ${tt?`<div class="hang"><span>Lịch thầy cô ấy</span><b>${tt.daXep}/${tt.tongCan} tiết · ${tt.soBuoi} buổi</b></div>`:''}
+    <div class="hang"><span>Chỗ đặt trong lớp</span><b>${tuDo} ô tự do · ${cham} ô chạm GV liên lớp</b></div>
+    ${(r.ranh||[]).length?`<div style="margin-top:10px"><b style="font-size:13px">Ai rảnh giờ này</b>
+      <div style="margin-top:6px">${r.ranh.slice(0,6).map(x=>`<span class="tag">${tenRanh(x)}</span>`).join(' ')}${r.ranh.length>6?` <span class="gy">+${r.ranh.length-6}</span>`:''}</div></div>`:''}
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      ${duocSuaLop(c.lop)?`<button class="b b-vien b-nho" id="btDoiMonBX">Đổi môn ô này</button>
+      <button class="b b-vien b-nho" id="btXoaOBX">Xoá tiết này</button>`:''}
+      <button class="b b-vien b-nho" id="btBoChonBX">Bỏ chọn (Esc)</button>
+    </div>`;
+}
+
+function mBanXep(){
+  const q=quyen();
+  const ds=xepTheoKhoi(lopChoLuoi());
+  const luuDuoc=coMayChu() && KHO.nguon==='may-chu' && q.laQuanLy;
+  return dauTrang('Bàn xếp',
+    'Một màn hình làm hết: bấm vào tiết để cầm lên, bấm ô đích để đặt xuống. Cùng bộ luật kiểm với màn Theo lớp.', false)
+  +`<div class="bx-thanh">
+    ${duocXep()?`<button class="b b-vang" id="btXep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>Xếp nhanh</button>
+    <button class="b b-vien" id="btSuaIt">Sửa ít nhất</button>`:''}
+    ${q.laQuanLy&&coLui()?`<button class="b b-vien" id="btHoanTac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Hoàn tác</button>`:''}
+    ${luuDuoc?`<button class="b b-ch" id="btLuu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg>Lưu lên máy chủ</button>`:''}
+    ${daiDiemLuoi()}${daiCoLuoi()}
+  </div>
+  ${q.laQuanLy?'':`<div style="margin-bottom:12px">${nhanChiXem('chỉnh thời khóa biểu')}</div>`}
+  <div class="bx-bo">
+    <div class="${lopCoLuoi().trim()}">${luoiRongHTML(ds, true, 'calc(100dvh - 230px)', null, q.laQuanLy)}</div>
+    <div class="the" id="bxKhe"><div class="the-t">${bxKheHTML()}</div></div>
+  </div>`;
 }
 
 /* ---------- Thanh SOI MỘT GIÁO VIÊN trên lưới (30/8/2026) ----------
@@ -15080,6 +15214,15 @@ function noiSuKien(){
   $('#btXoaLopNay')&&($('#btXoaLopNay').onclick=()=>hopXoaTKB(S.lopXem));
   $('#btHoanTac')&&($('#btHoanTac').onclick=hoanTac);
 
+  /* Bàn xếp — bấm ô cầm/đặt tiết; ba nút khe gợi ý */
+  $$('[data-bxo]').forEach(el=>el.onclick=()=>bxCham(el.dataset.bxo));
+  $('#btBoChonBX')&&($('#btBoChonBX').onclick=()=>{ S.bxChon=null; ve(); });
+  $('#btDoiMonBX')&&($('#btDoiMonBX').onclick=()=>{ const c=S.bxChon; if(c) hopGhimO(c.lop, c.khoa); });
+  $('#btXoaOBX')&&($('#btXoaOBX').onclick=()=>{
+    const c=S.bxChon; if(!c) return;
+    S.bxChon=null; xoaTietO(c.lop, c.khoa);
+  });
+
   $('#btXep')&&($('#btXep').onclick=()=>{
     /* Nói trước khi bấm, đừng để máy chạy 0 giây rồi trả về một bảng kết quả
        rỗng — người dùng không đoán được mình còn thiếu bước nào. */
@@ -15928,14 +16071,14 @@ $('#btMenu') && ($('#btMenu').onclick = () => document.body.classList.toggle('mo
 $('#manMenu') && ($('#manMenu').onclick = dongMenu);
 
 function chuyen(t){
-  S.trangHienTai=t; S.oChon=null;
+  S.trangHienTai=t; S.oChon=null; S.bxChon=null;
   dongMenu();
   $$('.mi').forEach(m=>m.classList.toggle('on',m.dataset.t===t));
   ve(); window.scrollTo({top:0,behavior:'smooth'});
   /* Giáo viên mở app chỉ tải lịch của chính mình (24 KB thay vì 428 KB).
      Sang màn xem theo lớp hay theo giáo viên thì mới cần lưới cả trường —
      tải lúc ấy, và chỉ tải một lần cho cả phiên làm việc. */
-  if(!KHO.luoiDayDu && (t==='tkblop' || t==='tkbgv' || t==='toantruong' || t==='tkbkhoi'))
+  if(!KHO.luoiDayDu && (t==='tkblop' || t==='tkbgv' || t==='toantruong' || t==='tkbkhoi' || t==='banxep'))
     taiLuoiDayDu().then(k=>{ if(k.ok) ve(); else bao(k.thongBao,true); });
 }
 $$('.mi').forEach(m=>m.onclick=()=>chuyen(m.dataset.t));
@@ -16008,7 +16151,8 @@ document.addEventListener('keydown',e=>{
     /* Thoát toàn màn hình trước đã — đó là thứ người dùng vừa bật, và cũng
        là phản xạ quen: Esc là "trả tôi về màn hình bình thường". */
     if(document.body.classList.contains('toan-mh')) return batToanManHinh(false);
-    dong(); dongMenu(); dongTim(); if(S.oChon){ S.oChon=null; ve(); } return;
+    dong(); dongMenu(); dongTim();
+    if(S.oChon || S.bxChon){ S.oChon=null; S.bxChon=null; ve(); } return;
   }
   /* Ctrl+Z quen tay như Excel — thứ đầu tiên người dùng thử khi lỡ tay */
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z' && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){
@@ -16019,6 +16163,11 @@ document.addEventListener('keydown',e=>{
   if((e.key==='Delete'||e.key==='Backspace') && S.oChon && S.trangHienTai==='tkblop'
      && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){
     e.preventDefault(); xoaTietO(S.lopXem, S.oChon);
+  }
+  /* Delete trên Bàn xếp xoá tiết đang cầm — cùng phản xạ với màn Theo lớp */
+  if((e.key==='Delete'||e.key==='Backspace') && S.bxChon && S.trangHienTai==='banxep'
+     && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){
+    e.preventDefault(); const c=S.bxChon; S.bxChon=null; xoaTietO(c.lop, c.khoa);
   }
 });
 

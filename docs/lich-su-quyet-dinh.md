@@ -3075,3 +3075,38 @@ Phép thử: ~25 phép mới ở `kiem-thu.mjs` (docLuoiSS/khopLuoiSS/napLuoiSS,
 soSanhLuoi, demTietRoi, tenGVIn, hai cờ, cauHinhXep đi–về, suaItNhat) và
 `soi-giao-dien.mjs` (hộp hỏi trước khi gỡ tiết ở 17z, mục 17ac màn Xếp).
 `NUT_GHI` của phép thử chỉ-xem 17k thêm `Sửa ít nhất`.
+
+## 5/9/2026 (tiếp) — Màn "Bàn xếp": một màn hình làm hết
+
+Chủ dự án nhận xét *"giao diện bên phần mềm [SmartScheduler] có vẻ trực quan
+dễ thao tác hơn"*, hỏi kỹ thì chốt ba thứ: **một màn hình làm hết · bấm thẳng
+vào ô · thanh công cụ rõ ràng** (không chọn "nhiều bảng cạnh nhau").
+
+Màn `banxep` (nhóm ĐIỀU HÀNH, cạnh Xếp thời khóa biểu):
+- Lưới rộng cả trường thao tác trực tiếp — `luoiRongHTML` thêm tham số `bx`,
+  ô mang `data-bxo="<lớp>|<khoá>"`; bấm tiết để cầm (`S.bxChon={lop,khoa}`),
+  bấm ô đích để đặt, bấm ô trống khi tay không là mở `hopGhimO`.
+- **HAI LỐI VÀO, MỘT BỘ LUẬT**: mọi kiểm/chuyển đi qua đúng hàm của màn Theo
+  lớp nhờ `bxVoiLop()` đặt tạm `S.lopXem` — tôn trọng lời dặn "hai nơi cùng
+  sửa một thứ thì sớm muộn lệch hành vi" (đã ghi bổ sung vào giao-dien.md).
+- **Tiết chỉ chuyển trong CÙNG một lớp** (một cột) — tiết thuộc về lớp; bấm
+  tiết cột khác là đổi sang cầm tiết ấy, bấm ô trống cột khác thì nói lý do.
+- Thanh công cụ dính `.bx-thanh`: Xếp nhanh · Sửa ít nhất · Hoàn tác · Lưu —
+  **dùng lại nguyên id nút cũ** (`btXep`/`btSuaIt`/`btHoanTac`/`btLuu`) nên
+  không thêm một dòng xử lý nào; gác quyền y như màn Xếp.
+- Khe gợi ý `#bxKhe`: đang cầm gì, lịch người dạy, ĐẾM sẵn "N ô tự do · M ô
+  chạm GV liên lớp", ai rảnh giờ này, nút Đổi môn/Xoá/Bỏ chọn. Chưa cầm thì
+  hướng dẫn + danh sách lớp còn thiếu tiết. Có `id` để giữ chỗ cuộn.
+- Esc bỏ cầm, Delete xoá tiết đang cầm (thêm nhánh `banxep` vào hai phím).
+
+Ba bẫy gặp ngay trong buổi:
+- ⚠️ Khối `@media(max-width:900px)` MỚI chen trước khối gốc làm phép thử 15g
+  (tìm `indexOf` khối media đầu tiên) đỏ oan → phần responsive của Bàn xếp
+  phải nằm TRONG khối media chính, đừng mở khối mới phía trên.
+- ⚠️ Bộ soi chạy ngoại tuyến nên `#btLuu` PHẢI vắng (cùng điều kiện `luuDuoc`
+  màn Xếp) — phép thử đòi nút Lưu là sai đề.
+- ⚠️ Lưới lọc theo phân hiệu (`lopChoLuoi`), phép thử đừng ghim cứng
+  `lop_1A` — lấy ô nguồn từ chính lưới đang bày.
+
+Phép thử: 17ad (5 phép — dựng màn, khe sạch màu khi chưa cầm, cầm + đếm chỗ,
+viền ô cầm + xanh đúng cột, dời tiết có ghim); `MAN` của 17k thêm `banxep`.

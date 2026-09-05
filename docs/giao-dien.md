@@ -443,6 +443,18 @@ Lưới trong Bảng điều hành **CHỈ ĐỌC**: không kéo thả, không c
 hành vi. Hai hàm dựng lưới tuần dùng chung: `luoiTuanLop(id)` · `luoiTuanGV(id)`,
 cùng khung `luoiTuanKhung(oNoi)`.
 
+**Bàn xếp (5/9/2026) là lối chỉnh tay THỨ HAI — nhưng vẫn MỘT bộ luật.** Chủ
+dự án so với SmartScheduler và chọn "một màn hình làm hết · bấm thẳng vào ô ·
+thanh công cụ rõ ràng". Màn `banxep` bày lưới rộng cả trường thao tác được
+(`luoiRongHTML(..., bx=true)` sinh `data-bxo`), nhưng mọi phép kiểm và phép
+chuyển đi qua ĐÚNG các hàm của màn Theo lớp — `kiemTraChuyen` · `chuyenTiet` ·
+`xoaTietO` · `hopGhimO` · `luuLui` — nhờ `bxVoiLop()` đặt tạm `S.lopXem` quanh
+lời gọi. Không được chép luật ra bản thứ hai. Tiết chỉ chuyển trong **cùng một
+lớp** (một cột); bấm tiết cột khác là đổi sang cầm tiết ấy. Ba mức tín hiệu
+dùng lớp `o-hop2/o-cham2/o-cam2` (hậu tố 2 vì ô là `td`), chỉ bày khi ĐANG cầm
+tiết. Khe gợi ý `#bxKhe` có `id` để `dsKhungCuon()` giữ chỗ cuộn; trên điện
+thoại nó lên trên lưới với `min-height` chốt cứng — đúng bài học `.khu-chon`.
+
 **Ba thứ đã chuyển khỏi Bảng điều hành** — nó là chỗ NHÌN thời khóa biểu,
 không phải bảng nút bấm: cụm sáu nút thao tác nhanh về màn *Xếp thời khóa
 biểu*, bốn thẻ số liệu `.ts` thu thành dải `.dai-so` trên lưới, ô tìm kiếm

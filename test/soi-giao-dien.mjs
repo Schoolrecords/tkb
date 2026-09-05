@@ -2921,7 +2921,7 @@ console.log('\n17k. Chủ hệ thống mở dữ liệu trường khác — CH�
      không còn một nút ghi nào. Cùng khuôn phép thử "không màn hình nào lọt
      chữ Bước 1". Sót một nút thì cái sót ấy ghi đè dữ liệu trường khác. */
   const MAN = ['dieuhanh','thongtin','diemtruong','khunggio','lop','giaovien',
-               'monhoc','phonghoc','phancong','buoiban','xep','tkblop'];
+               'monhoc','phonghoc','phancong','buoiban','xep','tkblop','banxep'];
   const NUT_GHI = /^(Lưu|Lưu ngay|Xếp|Xếp nhanh|Xếp kỹ|Thêm|Tạo|Xoá|Đặt lại|Công bố|Nhập từ Excel|Khôi phục|Sửa ít nhất)/;
   const lot = [];
   for (const t of MAN) {
@@ -4346,6 +4346,58 @@ console.log('\n17z. Khung giờ học — bảng theo LỚP');
   w.eval("S.lopTiet = {}; chuanKhungGio();");
   S.phanCong.length = 0; pcGoc.forEach(x => S.phanCong.push(x));
   w.eval("S.khoiKG = ''");
+}
+
+console.log('\n17ad. Bàn xếp — lưới cả trường thao tác trực tiếp');
+/* Chủ dự án 5/9/2026 so với SmartScheduler: "một màn hình làm hết · bấm
+   thẳng vào ô · thanh công cụ rõ ràng". Luật kiểm DÙNG CHUNG với Theo lớp. */
+{
+  w.chuyen('banxep');
+  /* Không đòi #btLuu: bộ soi chạy ngoại tuyến (KHO.nguon='nhung') nên nút
+     Lưu đúng ra PHẢI vắng — cùng điều kiện luuDuoc của màn Xếp. */
+  kt('Màn Bàn xếp: thanh công cụ đủ nút và lưới bấm được',
+     [!!w.document.querySelector('#btXep') && !!w.document.querySelector('#btSuaIt')
+       && !w.document.querySelector('#btLuu')
+       && w.document.querySelectorAll('[data-bxo]').length > 400,
+      `${w.document.querySelectorAll('[data-bxo]').length} ô bấm được`]);
+  kt('Chưa cầm tiết thì khe gợi ý hướng dẫn, KHÔNG bày dải ba màu',
+     [/Chưa cầm tiết nào/.test(w.document.querySelector('#bxKhe').textContent)
+       && w.document.querySelectorAll('.o-hop2,.o-cham2,.o-cam2').length === 0,
+      'khe sạch màu']);
+
+  /* Ô nguồn lấy TỪ LƯỚI ĐANG BÀY (lưới lọc theo phân hiệu, đừng ghim cứng
+     tên lớp), chừa tiết chào cờ 2-S-0. */
+  const oNguon = [...w.document.querySelectorAll('[data-bxo]')]
+    .find(td => td.querySelector('b') && !td.dataset.bxo.endsWith('|2-S-0'));
+  const [lopS, src] = oNguon.dataset.bxo.split('|');
+  const goc = JSON.parse(JSON.stringify(S.tkb[lopS]));
+  oNguon.click();
+  kt('Bấm một tiết là cầm lên: khe nói đang cầm gì và ĐẾM sẵn chỗ đặt được',
+     [S.bxChon?.lop === lopS && S.bxChon?.khoa === src
+       && /Đang cầm/.test(w.document.querySelector('#bxKhe').textContent)
+       && /ô tự do/.test(w.document.querySelector('#bxKhe').textContent),
+      w.document.querySelector('#bxKhe').textContent.trim().slice(0, 60)]);
+  kt('Ô đang cầm nổi viền, cột lớp khác không được tô xanh đặt được',
+     [w.document.querySelectorAll('.o-bx-on').length === 1
+       && ![...w.document.querySelectorAll('.o-hop2')].some(td => !td.dataset.bxo?.startsWith(lopS + '|')),
+      `${w.document.querySelectorAll('.o-hop2').length} ô xanh, đều của ${lopS}`]);
+
+  const dich = w.eval(`(() => { const c = S.bxChon;
+    return oTuanLop(${JSON.stringify(lopS)}).map(o => o.khoa).find(k => k !== c.khoa
+      && !S.tkb[${JSON.stringify(lopS)}][k]
+      && !bxVoiLop(${JSON.stringify(lopS)}, () => kiemTraChuyen(c.khoa, k))); })()`);
+  if (dich) {
+    const mon = S.tkb[lopS][src].mon;
+    w.document.querySelector(`[data-bxo="${lopS}|${dich}"]`).click();
+    kt('Bấm ô đích là tiết dời sang và GHIM tay — đúng luật màn Theo lớp',
+       [!S.tkb[lopS][src] && S.tkb[lopS][dich]?.mon === mon
+         && S.tkb[lopS][dich]?.ghim === true && !S.bxChon,
+        `${lopS}: ${src} → ${dich}`]);
+  } else kt('Bấm ô đích là tiết dời sang và GHIM tay — đúng luật màn Theo lớp',
+            true, `${lopS} không còn ô trống hợp lệ trong lượt này — bỏ qua phép dời`);
+  S.tkb[lopS] = goc;
+  w.eval('S.bxChon = null');
+  w.chuyen('dieuhanh');
 }
 
 console.log('\n17ac. Lựa chọn xếp mới trên màn Xếp');
