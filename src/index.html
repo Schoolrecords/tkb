@@ -978,8 +978,14 @@ table.tt td.o-nghi-t{text-align:center;font-size:9.5px;color:#AFCBE0;letter-spac
 /* ---------- Bàn xếp: lưới rộng thao tác trực tiếp ---------- */
 /* Ba mức tín hiệu KHI ĐANG CẦM tiết — cùng ngữ nghĩa màn Theo lớp (xanh đặt
    được · vàng nhắc · mờ vướng); hậu tố 2 vì ô ở đây là td, không phải div. */
-.bx-thanh{position:sticky;top:0;z-index:8;display:flex;gap:8px;flex-wrap:wrap;
-  align-items:center;background:var(--nen);padding:8px 0 10px;margin-bottom:4px}
+/* Thanh công cụ xếp thành HAI HÀNG thẳng: hàng lệnh, rồi hàng phân hiệu +
+   cỡ hiển thị. Trộn chung một hàng gấp khúc thì .dai-dt mang lề đáy 13px
+   riêng làm các nút lệch đáy nhau — ảnh chụp của chủ dự án 5/9/2026. */
+.bx-thanh{position:sticky;top:0;z-index:8;display:flex;flex-direction:column;
+  gap:8px;background:var(--nen);padding:8px 0 10px;margin-bottom:4px}
+.bx-hang{display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-width:0}
+.bx-hang .dai-dt,.bx-hang .co-luoi{margin:0}
+.bx-cach{margin-left:auto}
 .bx-bo{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:14px;align-items:start}
 #bxKhe{position:sticky;top:58px;max-height:calc(100dvh - 240px);overflow:auto}
 table.tt td.o-bam{cursor:pointer}
@@ -1402,7 +1408,10 @@ body.toan-mh .tt-boc{max-height:calc(100dvh - 62px)!important}
   /* Bàn xếp trên điện thoại: khe gợi ý lên TRÊN lưới và chốt chiều cao tối
      thiểu — hai trạng thái (chưa cầm / đang cầm) cao khác nhau mà nhảy là ô
      định chạm trượt khỏi ngón tay, đúng bài học .khu-chon của màn Theo lớp. */
-  .bx-bo{grid-template-columns:1fr}
+  /* ⚠️ PHẢI là minmax(0,1fr): rãnh 1fr trơn thì min-width:auto của lưới rộng
+     kéo cả rãnh ra ~1900px, khe gợi ý giãn theo và giá trị .hang b văng khỏi
+     màn hình — đo bằng Chrome thật, x≈1841px trên khổ 390px. */
+  .bx-bo{grid-template-columns:minmax(0,1fr)}
   #bxKhe{order:-1;position:static;max-height:none;min-height:118px}
   .the-so{grid-template-columns:1fr}
   .dau-trang{flex-wrap:wrap;gap:10px}
@@ -12001,11 +12010,13 @@ function mBanXep(){
   return dauTrang('Bàn xếp',
     'Một màn hình làm hết: bấm vào tiết để cầm lên, bấm ô đích để đặt xuống. Cùng bộ luật kiểm với màn Theo lớp.', false)
   +`<div class="bx-thanh">
-    ${duocXep()?`<button class="b b-vang" id="btXep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>Xếp nhanh</button>
-    <button class="b b-vien" id="btSuaIt">Sửa ít nhất</button>`:''}
-    ${q.laQuanLy&&coLui()?`<button class="b b-vien" id="btHoanTac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Hoàn tác</button>`:''}
-    ${luuDuoc?`<button class="b b-ch" id="btLuu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg>Lưu lên máy chủ</button>`:''}
-    ${daiDiemLuoi()}${daiCoLuoi()}
+    <div class="bx-hang">
+      ${duocXep()?`<button class="b b-vang" id="btXep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>Xếp nhanh</button>
+      <button class="b b-vien" id="btSuaIt">Sửa ít nhất</button>`:''}
+      ${q.laQuanLy&&coLui()?`<button class="b b-vien" id="btHoanTac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Hoàn tác</button>`:''}
+      ${luuDuoc?`<button class="b b-ch" id="btLuu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg>Lưu lên máy chủ</button>`:''}
+    </div>
+    <div class="bx-hang">${daiDiemLuoi()}<div class="bx-cach"></div>${daiCoLuoi()}</div>
   </div>
   ${q.laQuanLy?'':`<div style="margin-bottom:12px">${nhanChiXem('chỉnh thời khóa biểu')}</div>`}
   <div class="bx-bo">

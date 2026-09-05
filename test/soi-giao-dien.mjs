@@ -4364,6 +4364,17 @@ console.log('\n17ad. Bàn xếp — lưới cả trường thao tác trực ti�
      [/Chưa cầm tiết nào/.test(w.document.querySelector('#bxKhe').textContent)
        && w.document.querySelectorAll('.o-hop2,.o-cham2,.o-cam2').length === 0,
       'khe sạch màu']);
+  /* ⚠️ Rãnh lưới trên điện thoại PHẢI là minmax(0,1fr): 1fr trơn thì
+     min-width:auto của bảng rộng kéo rãnh ra ~1900px, khe gợi ý giãn theo
+     và giá trị .hang b văng khỏi màn (đo Chrome thật: x≈1841 trên khổ 390).
+     jsdom không đo bố cục nên soi thẳng chuỗi CSS — cùng khuôn phép thử
+     .man-menu{display:block ở mục 15g. */
+  kt('Khổ điện thoại: rãnh lưới Bàn xếp khai minmax(0,1fr), không phải 1fr trơn', (() => {
+    const css = w.document.documentElement.innerHTML;
+    const i = css.indexOf('.bx-bo{grid-template-columns:minmax(0,1fr)}');
+    return [i > -1 && css.lastIndexOf('@media', i) > css.indexOf('.bx-bo{display:grid'),
+            'đúng minmax trong khối media'];
+  })());
 
   /* Ô nguồn lấy TỪ LƯỚI ĐANG BÀY (lưới lọc theo phân hiệu, đừng ghim cứng
      tên lớp), chừa tiết chào cờ 2-S-0. */

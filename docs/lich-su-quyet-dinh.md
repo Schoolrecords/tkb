@@ -3110,3 +3110,19 @@ Ba bẫy gặp ngay trong buổi:
 
 Phép thử: 17ad (5 phép — dựng màn, khe sạch màu khi chưa cầm, cầm + đếm chỗ,
 viền ô cầm + xanh đúng cột, dời tiết có ghim); `MAN` của 17k thêm `banxep`.
+
+## 5/9/2026 (tối) — Căn lại thanh công cụ Bàn xếp, vá khe gợi ý văng trên điện thoại
+
+Chủ dự án gửi ảnh chụp bản thật: *"các menu nhìn lệch không cân đối"*.
+
+- **Thanh công cụ tách HAI HÀNG thẳng** (`.bx-hang`): hàng lệnh (Xếp nhanh ·
+  Sửa ít nhất · Hoàn tác · Lưu), rồi hàng phân hiệu + cỡ hiển thị (đẩy phải
+  bằng `.bx-cach`). Trộn một hàng gấp khúc thì `.dai-dt` mang lề đáy 13px
+  riêng làm nút lệch đáy nhau. Trong `.bx-hang` triệt lề của `.dai-dt`/`.co-luoi`.
+- ⚠️ **Rãnh lưới trên điện thoại phải `minmax(0,1fr)`**: bản đầu ghi `1fr`
+  trơn — `min-width:auto` của bảng rộng kéo rãnh ra ~1900px, khe `#bxKhe`
+  giãn theo, giá trị `.hang b` nằm ở x≈1841 trên khổ 390 — **mất sạch phần
+  giá trị** mà jsdom vẫn xanh. Chỉ Chrome thật đo ra (script chụp + đo toạ
+  độ `getBoundingClientRect`). Đúng bài học "kiểm bằng mắt ở cỡ thật".
+- Phép thử mới trong 17ad soi thẳng chuỗi CSS `minmax(0,1fr)` trong khối
+  media — cùng khuôn phép `.man-menu{display:block` của mục 15g.
