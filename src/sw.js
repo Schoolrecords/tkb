@@ -14,7 +14,7 @@
    · KHÔNG BAO GIỜ đụng vào Supabase: dữ liệu nhà trường phải luôn tươi,
      trả dữ liệu cũ từ kho còn tệ hơn là báo mất mạng.
    ================================================================== */
-const KHO = 'tkb-v1';
+const KHO = 'tkb-v2';   /* v2 23/9/2026: logo mới — dọn kho cũ còn giữ biểu tượng cũ */
 
 /* Những yêu cầu không bao giờ được cache */
 function boQua(q) {
