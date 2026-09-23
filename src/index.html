@@ -1804,6 +1804,14 @@ table.xn-b td.do{color:#b3261e;font-weight:700}
 .xn-h{margin-top:12px}
 @media(max-width:760px){ .tc{grid-template-columns:1fr} .ghd-xt{grid-template-columns:1fr} }
 
+/* --- Hộp nạp --- */
+.hop-nut{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hop-ds{margin-top:4px}
+.hop-ds tr.hop-moi td{background:#fff8e1}
+.hop-nhan{color:#b26a00}
+.mc-hop{margin-left:10px;border:1px solid #f0b429;background:#fff8e1;color:#8a5300;border-radius:12px;
+  padding:2px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+
 /* --- Sổ nguyên tắc --- */
 .snt .the{margin-bottom:14px}
 .snt-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -12448,7 +12456,7 @@ function blvXemNhanh(){
        số buổi nghỉ tối thiểu, buổi 1 tiết, ghép môn, môn nặng/nhẹ, phòng
    Đọc Excel bằng SheetJS (có sẵn trong bản cài, không cần mạng).
    ================================================================== */
-const XUONG = {tep:[], kq:null, dang:false};
+const XUONG = {tep:[], kq:null, dang:false, tuHop:[]};
 
 /* ⚠️ Không dùng khongDau() ở đây: hàm ấy thay KHOẢNG TRẮNG bằng dấu gạch
    ("Họ và tên" → "Ho-va-ten") — so với "ho va ten" là trượt hết. */
@@ -13015,6 +13023,7 @@ async function xnTaoHoSo(){
   const w = cuaSo();
   if(cheDoMay() && w.tkbMay.moiHoSo){ if(!await w.tkbMay.moiHoSo()) return; }
   const nt = xnApVaoS(k);
+  hopGhiDaNap();     /* tệp lấy từ Hộp nạp: ghi "đã nạp" để không báo lại */
   S.trangHienTai = cheDoMay() ? 'banlamviec' : 'kiemtra';
   ve();
   bao(`Đã tạo hồ sơ ${S.tenTruong}: ${S.lop.length} lớp, ${S.giaoVien.length} giáo viên`
@@ -13163,6 +13172,7 @@ function mXuongNap(){
   return dauTrang('Xưởng nạp dữ liệu',
     'Kéo thả các tệp Excel trường đang có — xưởng tự nhận diện, ghép nối, soát lỗi và tạo hồ sơ. Không phải gõ lại.', false) + `
   <div class="xn-buoc">
+    ${theHopNap()}
     <div class="the"><div class="the-d"><h2>1 · Chọn tệp</h2><span class="meta">Excel .xlsx / .xls — chọn được nhiều tệp một lúc</span>
       <button class="b b-vien b-nho" id="xnMau">⬇ Tải mẫu chuẩn 4 trang</button></div>
       <div class="the-t">
@@ -13210,6 +13220,198 @@ function mXuongNap(){
   </div>`;
 }
 
+/* ==================================================================
+   HỘP NẠP — giai đoạn 3 của Xưởng nạp  (23/9/2026)
+   ------------------------------------------------------------------
+   Một thư mục (nên đặt trong Google Drive) mà ai cũng thả tệp Excel vào
+   được — từ điện thoại, máy văn phòng, máy tổ trưởng. Phần mềm tự thấy tệp
+   mới, báo lên, bấm một nút là tệp vào Xưởng; tạo hồ sơ xong tệp được ghi
+   "đã nạp" để lần sau không báo lại.
+
+   · Bản cài: tiến trình chính canh thư mục (fs.watch + quét 30 giây), báo
+     qua `tkbMay.khiHopMoi`. Xem chinh.js mục 6b.
+   · Bản web: Chrome/Edge trên máy tính có File System Access — chọn thư mục
+     một lần, cán cầm thư mục cất trong IndexedDB; mở Xưởng là quét, đang ở
+     Xưởng thì quét lại mỗi 20 giây. Điện thoại không có API này → không hiện
+     mục Hộp nạp, vẫn chọn tệp từ Drive qua ô chọn tệp như cũ.
+
+   ⚠️ CHỈ ĐỌC ở cả hai bản: không xoá, không chuyển, không đổi tên tệp nào.
+   "Đã nạp" nhớ theo tên + giờ sửa + cỡ tệp: sửa lại tệp và thả đè thì nó lại
+   là tệp MỚI — đúng ý người thả. */
+const HOPN = {thuMuc:'', tep:[], loi:'', goiY:[], canQuyen:false, webHandle:null,
+  daQuet:false, dangQuet:false, chon:new Set(), daThay:new Set(), henWeb:null};
+const hopMay = () => cheDoMay() && !!cuaSo()?.tkbMay?.hopDs;
+const hopWeb = () => !cheDoMay() && typeof window.showDirectoryPicker === 'function';
+const DUOI_HOP_NAP = /\.(xlsx|xlsm|xls)$/i;
+
+function hopIDB(lam, gt){
+  return new Promise((ok, hong)=>{
+    const r = indexedDB.open('tkb-hop-nap', 1);
+    r.onupgradeneeded = ()=>r.result.createObjectStore('kv');
+    r.onerror = ()=>hong(r.error);
+    r.onsuccess = ()=>{
+      const tx = r.result.transaction('kv', lam==='doc' ? 'readonly' : 'readwrite'), st = tx.objectStore('kv');
+      const q = lam==='doc' ? st.get('thuMuc') : st.put(gt, 'thuMuc');
+      q.onsuccess = ()=>ok(q.result); q.onerror = ()=>hong(q.error);
+    };
+  });
+}
+function hopDaNapWeb(){ try{ return JSON.parse(localStorage.getItem('tkb-hop-da-nap')||'{}'); }catch(e){ return {}; } }
+
+async function hopQuet(){
+  if(HOPN.dangQuet) return false;
+  HOPN.dangQuet = true; HOPN.daQuet = true;
+  const truoc = HOPN.tep.map(t=>t.khoa+(t.moi?'*':'')).join('/');
+  try{
+    HOPN.loi = '';
+    if(hopMay()){
+      const m = cuaSo().tkbMay;
+      const kq = await m.hopDs();
+      HOPN.thuMuc = kq.thuMuc; HOPN.tep = kq.tep||[]; HOPN.loi = kq.loi||'';
+      if(!HOPN.goiY.length) HOPN.goiY = await m.hopGoiY();
+    }else if(hopWeb()){
+      if(!HOPN.webHandle) HOPN.webHandle = await hopIDB('doc').catch(()=>null) || null;
+      const h = HOPN.webHandle;
+      if(!h){ HOPN.thuMuc = ''; HOPN.tep = []; }
+      else{
+        HOPN.thuMuc = h.name;
+        HOPN.canQuyen = (await h.queryPermission({mode:'read'})) !== 'granted';
+        if(HOPN.canQuyen) HOPN.tep = [];
+        else{
+          const daNap = hopDaNapWeb(), tep = [];
+          for await (const [ten, e] of h.entries()){
+            if(e.kind!=='file' || !DUOI_HOP_NAP.test(ten) || ten.startsWith('~$')) continue;
+            const f = await e.getFile();
+            const t = {ten, kichThuoc:f.size, sua:f.lastModified};
+            t.khoa = `${ten}|${Math.round(t.sua)}|${t.kichThuoc}`; t.moi = !daNap[t.khoa]; t.ngayNap = daNap[t.khoa]||'';
+            tep.push(t);
+          }
+          HOPN.tep = tep.sort((a,b)=>b.sua-a.sua);
+        }
+      }
+    }
+    /* Tệp mới thấy lần đầu thì đánh dấu chọn sẵn; tệp người dùng đã bỏ chọn thì để yên */
+    HOPN.tep.forEach(t=>{ if(!HOPN.daThay.has(t.khoa)){ HOPN.daThay.add(t.khoa); if(t.moi) HOPN.chon.add(t.khoa); } });
+    const con = new Set(HOPN.tep.map(t=>t.khoa));
+    [...HOPN.chon].forEach(k=>{ if(!con.has(k)) HOPN.chon.delete(k); });
+  }catch(e){ HOPN.loi = 'Không đọc được hộp nạp: '+e.message; }
+  finally{ HOPN.dangQuet = false; }
+  return truoc !== HOPN.tep.map(t=>t.khoa+(t.moi?'*':'')).join('/');
+}
+
+async function hopDocTep(t){
+  if(hopMay()) return new File([await cuaSo().tkbMay.hopDoc(t.ten)], t.ten);
+  const fh = await HOPN.webHandle.getFileHandle(t.ten);
+  return fh.getFile();
+}
+/* Đưa các tệp đã chọn vào xưởng (bước 1) — nhớ khoá để tạo hồ sơ xong ghi "đã nạp" */
+async function hopNapVaoXuong(){
+  const ds = HOPN.tep.filter(t=>HOPN.chon.has(t.khoa));
+  if(!ds.length) return bao('Chưa chọn tệp nào trong hộp nạp.', true);
+  const files = [];
+  for(const t of ds){
+    if(XUONG.tep.some(x=>x.ten===t.ten)) continue;   /* đã có trong danh sách */
+    try{ files.push(await hopDocTep(t)); XUONG.tuHop = [...new Set([...(XUONG.tuHop||[]), t.khoa])]; }
+    catch(e){ bao(`${t.ten}: không đọc được — ${e.message}`, true); }
+  }
+  if(files.length) await xnThemTep(files);
+  else bao('Các tệp đã chọn đều đã có trong danh sách bên dưới.');
+}
+/* Gọi sau khi tạo hồ sơ thành công */
+async function hopGhiDaNap(){
+  const ds = XUONG.tuHop||[]; if(!ds.length) return;
+  XUONG.tuHop = [];
+  if(hopMay()) await cuaSo().tkbMay.hopDanhDau(ds).catch(()=>{});
+  else{ const d = hopDaNapWeb(), nay = new Date().toISOString(); ds.forEach(k=>d[k]=nay);
+    try{ localStorage.setItem('tkb-hop-da-nap', JSON.stringify(d)); }catch(e){} }
+  ds.forEach(k=>HOPN.chon.delete(k));
+  await hopQuet();
+}
+async function hopChonThuMuc(taoTrong){
+  try{
+    if(hopMay()){
+      const thu = await cuaSo().tkbMay.hopChon(taoTrong||null);
+      if(!thu) return;
+      bao(taoTrong ? `Đã tạo hộp nạp: ${thu}` : `Hộp nạp: ${thu}`);
+    }else{
+      const h = await window.showDirectoryPicker({id:'tkb-hop-nap', mode:'read'});
+      HOPN.webHandle = h; await hopIDB('ghi', h).catch(()=>{});
+      bao(`Hộp nạp: thư mục ${h.name}`);
+    }
+    HOPN.daThay = new Set(); HOPN.chon = new Set();
+    await hopQuet(); ve();
+  }catch(e){ if(e?.name!=='AbortError') bao('Không đặt được hộp nạp: '+e.message, true); }
+}
+
+const ngayGio = ms => { const d = new Date(ms); const h = n=>String(n).padStart(2,'0');
+  return `${h(d.getHours())}:${h(d.getMinutes())} ${h(d.getDate())}/${h(d.getMonth()+1)}/${d.getFullYear()}`; };
+
+function theHopNap(){
+  if(!hopMay() && !hopWeb()) return '';
+  const moi = HOPN.tep.filter(t=>t.moi).length;
+  const nut = (id, chu, lop='b-vien') => `<button class="b ${lop} b-nho" id="${id}">${chu}</button>`;
+  let than;
+  if(!HOPN.daQuet) than = '<div class="gy">Đang xem hộp nạp…</div>';
+  else if(!HOPN.thuMuc) than = `
+    <p class="gy" style="margin-bottom:10px">Hộp nạp là <b>một thư mục</b> — nên đặt trong Google Drive — ai thả tệp Excel
+      của trường vào đó (từ điện thoại, máy văn phòng…), phần mềm tự thấy và báo. Phần mềm chỉ đọc, không xoá hay chuyển tệp.</p>
+    <div class="hop-nut">${hopMay()
+      ? HOPN.goiY.map((g,i)=>`<button class="b ${i?'b-vien':'b-ch'} b-nho" data-hoptao="${esc(g)}">Tạo "Hộp nạp TKB" trong ${esc(g)}</button>`).join('')
+        + nut('hopChon','Chọn thư mục có sẵn…')
+      : nut('hopChon','Chọn thư mục hộp nạp…','b-ch') + '<span class="gy">Chọn thư mục Google Drive trên máy (vd: G:\\My Drive\\Hộp nạp TKB).</span>'}</div>`;
+  else than = `
+    ${HOPN.loi ? `<div class="canhbao do"><div class="cb-ic">!</div><div class="cb-t">${esc(HOPN.loi)}</div></div>` : ''}
+    ${HOPN.canQuyen ? `<div class="hop-nut">${nut('hopQuyen',`Cho phép đọc thư mục "${esc(HOPN.thuMuc)}"`,'b-ch')}
+        <span class="gy">Trình duyệt hỏi lại quyền đọc mỗi lần mở trang.</span></div>`
+    : HOPN.tep.length ? `<table class="dl gon hop-ds"><thead><tr><th></th><th>Tệp</th><th>Sửa lúc</th><th>Trạng thái</th></tr></thead><tbody>
+        ${HOPN.tep.map(t=>`<tr class="${t.moi?'hop-moi':''}"><td><input type="checkbox" data-hopchon="${esc(t.khoa)}" ${HOPN.chon.has(t.khoa)?'checked':''}></td>
+          <td>${esc(t.ten)}</td><td>${ngayGio(t.sua)}</td>
+          <td>${t.moi ? '<b class="hop-nhan">Mới</b>' : `Đã nạp ${t.ngayNap ? ngayGio(Date.parse(t.ngayNap)) : ''}`}</td></tr>`).join('')}
+        </tbody></table>`
+    : '<div class="gy">Thư mục chưa có tệp Excel nào. Thả mẫu chuẩn 4 trang, bản xuất SmartScheduler hoặc sổ giáo viên vào đó.</div>'}
+    <div class="hop-nut" style="margin-top:10px">
+      ${HOPN.tep.length ? nut('hopNap', `Nạp ${HOPN.chon.size} tệp đã chọn vào xưởng`, 'b-ch').replace('<button', `<button ${HOPN.chon.size?'':'disabled'}`) : ''}
+      ${nut('hopLamMoi','Làm mới')}${hopMay() ? nut('hopMo','Mở thư mục') : ''}${nut('hopChon','Đổi thư mục…')}
+    </div>`;
+  return `<div class="the"><div class="the-d"><h2>Hộp nạp</h2>
+      <span class="meta">${HOPN.thuMuc ? esc(HOPN.thuMuc) + (moi ? ` · <b class="hop-nhan">${moi} tệp mới</b>` : '') : 'chưa đặt'}</span></div>
+    <div class="the-t">${than}</div></div>`;
+}
+function hopNoiSuKien(){
+  if(S.trangHienTai!=='xuongnap' || (!hopMay() && !hopWeb())) return;
+  if(!HOPN.daQuet){ hopQuet().then(()=>{ if(S.trangHienTai==='xuongnap') ve(); }); return; }
+  $$('[data-hoptao]').forEach(b=>b.onclick = ()=>hopChonThuMuc(b.dataset.hoptao));
+  $('#hopChon') && ($('#hopChon').onclick = ()=>hopChonThuMuc());
+  $('#hopLamMoi') && ($('#hopLamMoi').onclick = async ()=>{ await hopQuet(); ve(); bao('Đã xem lại hộp nạp.'); });
+  $('#hopMo') && ($('#hopMo').onclick = ()=>cuaSo().tkbMay.hopMo());
+  $('#hopNap') && ($('#hopNap').onclick = hopNapVaoXuong);
+  $('#hopQuyen') && ($('#hopQuyen').onclick = async ()=>{
+    try{ if((await HOPN.webHandle.requestPermission({mode:'read'}))==='granted'){ await hopQuet(); ve(); } }
+    catch(e){ bao('Không xin được quyền đọc: '+e.message, true); } });
+  $$('[data-hopchon]').forEach(c=>c.onchange = ()=>{
+    c.checked ? HOPN.chon.add(c.dataset.hopchon) : HOPN.chon.delete(c.dataset.hopchon);
+    const n = $('#hopNap'); if(n){ n.textContent = `Nạp ${HOPN.chon.size} tệp đã chọn vào xưởng`; n.disabled = !HOPN.chon.size; } });
+  /* Web: đang ở Xưởng thì quét lại mỗi 20 giây; chỉ vẽ lại khi danh sách đổi
+     (vẽ lại xoá chữ đang gõ ở ô phân hiệu) */
+  if(hopWeb() && !HOPN.henWeb) HOPN.henWeb = setInterval(async ()=>{
+    if(S.trangHienTai!=='xuongnap' || document.hidden || !HOPN.webHandle || HOPN.canQuyen) return;
+    const doi = await hopQuet();
+    if(doi && S.trangHienTai==='xuongnap' && !document.activeElement?.matches?.('input,select,textarea')){
+      ve(); const n = HOPN.tep.filter(t=>t.moi).length; if(n) bao(`Hộp nạp có ${n} tệp mới.`); }
+  }, 20000);
+}
+/* Bản cài: vỏ báo có tệp mới đã đứng yên trong hộp nạp */
+function hopNgheMay(){
+  if(!hopMay() || !cuaSo().tkbMay.khiHopMoi) return;
+  cuaSo().tkbMay.khiHopMoi(async ds=>{
+    await hopQuet();
+    bao(`Hộp nạp có ${ds.length} tệp mới: ${ds.slice(0,3).map(t=>t.ten).join(', ')}${ds.length>3?'…':''} — mở Dữ liệu → Xưởng nạp.`);
+    if(S.trangHienTai==='xuongnap' && !document.activeElement?.matches?.('input,select,textarea')) ve();
+    else capNhatThanhCong();
+  });
+  hopQuet().then(()=>capNhatThanhCong());
+}
+
 async function xnThemTep(files){
   if(XUONG.dang) return; XUONG.dang = true;
   bao('Đang đọc tệp…');
@@ -13235,6 +13437,7 @@ async function xnThemTep(files){
 
 function xnNoiSuKien(){
   if(S.trangHienTai!=='xuongnap') return;
+  hopNoiSuKien();
   const tha = $('#xnTha'), inp = $('#xnTep');
   if(tha){
     tha.ondragover = e=>{ e.preventDefault(); tha.classList.add('on'); };
@@ -22155,6 +22358,12 @@ function capNhatThanhCong(){
     t.textContent = S.lop.length
       ? `${S.lop.length} lớp · ${S.giaoVien.length} giáo viên · đã xếp ${daXep}/${can} tiết`
       : 'Chưa khai dữ liệu — vào Dữ liệu → Lớp học để bắt đầu';
+    /* Hộp nạp có tệp mới → nút nhỏ cạnh dòng trạng thái, bấm là tới Xưởng */
+    let h = $('#mcHop');
+    if(!h){ h = document.createElement('button'); h.id = 'mcHop'; h.className = 'mc-hop';
+      h.onclick = ()=>{ S.trangHienTai = 'xuongnap'; ve(); }; t.after(h); }
+    const n = HOPN.tep.filter(x=>x.moi).length;
+    h.hidden = !n; h.textContent = `Hộp nạp: ${n} tệp mới`;
   }
 }
 
@@ -22208,6 +22417,7 @@ function dungCheDoMay(){
 
   w.tkbMay.khiDaLuu(()=>{ nhoDaLuuMay(); capNhatDauMay(); bao('Đã lưu hồ sơ.'); });
   w.tkbMay.khiHoanTac(()=>{ if(typeof hoanTac === 'function') hoanTac(); });
+  hopNgheMay();
 
   dungThanhMay();
 

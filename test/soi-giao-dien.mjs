@@ -656,12 +656,17 @@ kt('Bản in một lớp và một giáo viên dùng khổ A4 dọc',
 kt('Bản in theo khối dùng A4 ngang, toàn trường dùng A3 ngang',
    khoCua(w.trangInKhoi(1)) === 'ngang' && khoCua(w.trangInToanTruong()) === 'rong',
    `khối → ${KHO_TEN[khoCua(w.trangInKhoi(1))]} · toàn trường → ${KHO_TEN[khoCua(w.trangInToanTruong())]}`);
-kt('Mọi bản in đủ thể thức: tên đơn vị, tiêu đề, ngày tháng, hai chỗ ký',
+/* Thể thức theo Nghị định 30/2020 (23/9/2026, chủ dự án yêu cầu "file tải phải
+   đúng chuẩn"): Quốc hiệu, cơ quan chủ quản trên tên trường, Nơi nhận bên trái,
+   chức danh người ký bên phải — thay mẫu cũ "Người lập biểu / Hiệu trưởng". */
+kt('Mọi bản in đủ thể thức NĐ 30: đơn vị, Quốc hiệu, ngày tháng, Nơi nhận, người ký',
    [w.trangInLop(lop0), w.trangInGV(gv0), w.trangInKhoi(1), w.trangInToanTruong()]
      .every(h => /in-dv/.test(h) && /in-d2/.test(h) && /in-ngay/.test(h) &&
-                 /NGƯỜI LẬP BIỂU/.test(h) && /HIỆU TRƯỞNG/.test(h)));
-kt('Bản in không ghi cơ quan chủ quản',
-   !/Phòng GD|Sở GD|UBND|chủ quản/i.test(w.trangInLop(lop0) + w.trangInToanTruong()));
+                 /CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM/.test(h) && /Nơi nhận/.test(h) && /HIỆU TRƯỞNG/.test(h)));
+/* Cơ quan chủ quản theo mô hình chính quyền hai cấp: UBND xã — KHÔNG được quay
+   về cơ cấu cũ đã giải thể sau sáp nhập. */
+kt('Cơ quan chủ quản theo mô hình mới, không còn Phòng GD&ĐT / UBND huyện',
+   (h => /UBND XÃ/i.test(h) && !/Phòng GD|UBND huyện|UBND HUYỆN/i.test(h))(w.trangInLop(lop0) + w.trangInToanTruong()));
 kt('Đầu bản in ghi đúng tên đơn vị đang khai',
    w.trangInLop(lop0).includes(S.tenTruong.toUpperCase()), S.tenTruong);
 kt('Khổ giấy khai bằng trang có tên, đủ cả ba khổ', (() => {
