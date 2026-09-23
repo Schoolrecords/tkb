@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "npx --yes serve src -l 5173",
-    "test": "node test/kiem-thu.mjs",
+    "cu-phap": "node test/soi-cu-phap.mjs",
+    "test": "node test/soi-cu-phap.mjs && node test/kiem-thu.mjs",
     "kiemdinh": "node test/kiem-dinh-thuat-toan.mjs",
     "soi": "node test/soi-giao-dien.mjs",
     "soi-mau": "node test/soi-mau-excel.mjs",
