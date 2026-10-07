@@ -61,6 +61,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#005391">
 <link rel="apple-touch-icon" href="bieu-tuong-apple.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TKB">
@@ -99,7 +100,7 @@
      trắng nằm trên nó gần như không tách ra khỏi nền, cả trang thành một
      mảng trắng phẳng. Đo trên ảnh mẫu thì nền là xám ngả xanh rõ rệt. */
   --nen:#F4F9FC; --the:#FFFFFF; --ke:#DCEBF6; --ke-2:#C9E2F0;
-  --chu:#0B2A42; --chu-mo:#5B7C97;
+  --chu:#0B2A42; --chu-mo:#4F6F89;  /* đậm hơn #5B7C97 cho đủ tương phản 4,5:1 trên cả nền --nen (7/10/2026) */
   --vang:#FFD93E; --cam:#D97A29; --luc:#2E9E63; --lam:#3B82F6; --tim:#7C4DDC;
   --do:#DC3545; --do-nen:#FDECEC; --canh:#C77D0A; --canh-nen:#FEF6E4; --xanh:#15803D; --xanh-nen:#E7F6EC;
   --r:14px; --r2:10px; --r3:7px;
@@ -6490,9 +6491,14 @@ function docTKB(blob){
 /* ---------- Dữ liệu mẫu khi chưa có máy chủ ---------- */
 async function taiDuLieuMau(){
   /* Ưu tiên đọc thẳng data/truong-dien-lien.json để sửa tệp là thấy ngay.
-     Mở tệp bằng file:// thì trình duyệt chặn — dùng bản nhúng trong trang. */
+     Mở tệp bằng file:// thì trình duyệt chặn — dùng bản nhúng trong trang.
+     Trang đã có cauhinh.js (bản phát hành) thì không có thư mục data/ — thử
+     là hai lỗi 404 đỏ console mỗi lần mở (7/10/2026). Chỉ thử khi chạy trên
+     máy người sửa mã, hoặc khi chưa có cấu hình máy chủ. */
   const w = cuaSo();
-  if(w && String(w.location?.protocol||'').startsWith('http')){
+  const tenMay = String(w?.location?.hostname||'');
+  const mayCucBo = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(tenMay) || tenMay.endsWith('.localhost');
+  if(w && String(w.location?.protocol||'').startsWith('http') && (mayCucBo || !KHO.cauHinh)){
     for(const d of ['../data/truong-dien-lien.json','data/truong-dien-lien.json']){
       try{
         const p = await fetch(d, {cache:'no-store'});
@@ -10588,10 +10594,10 @@ function mChao(){
 
   <div style="max-width:560px;margin:16px auto 0;text-align:center">
     <div class="gy">Muốn xem phần mềm làm được gì?
-      <a href="#" id="btChaoDemo" style="color:var(--lam);font-weight:600">Khám phá bản demo</a>
+      <a href="#" id="btChaoDemo" style="color:var(--nav);font-weight:600">Khám phá bản demo</a>
       — trường mẫu 25 lớp, không cần tài khoản.</div>
     <div class="gy" style="margin-top:6px">Trường chưa có trong hệ thống?
-      <a href="#" id="btChaoTruongMoi" style="color:var(--lam);font-weight:600">Đăng ký trường mới</a>
+      <a href="#" id="btChaoTruongMoi" style="color:var(--nav);font-weight:600">Đăng ký trường mới</a>
       — chỉ dùng một lần khi mở tài khoản cho một trường.</div>
   </div>`;
 }
@@ -22011,7 +22017,11 @@ async function khoiDong(){
   else if(gg && !gg.ok) bao(gg.loi, true);
   else if(vaoLai==='khach')
     bao(`Chào ${KHO.khach?.email||'quý thầy cô'} — tài khoản chưa thuộc trường nào.`);
-  else if(kq?.thongBao) bao(kq.thongBao, kq.ok===false);
+  /* Đang ở màn mời đăng nhập mà dữ liệu mẫu nạp êm thì im lặng (7/10/2026):
+     câu "Đang chạy bằng dữ liệu mẫu" là chuyện kỹ thuật, thầy cô chưa vào
+     không cần biết — và trên điện thoại nó che đúng hai lối Demo · Đăng ký.
+     Có lỗi thật thì vẫn báo; màn chào cũng tự bày lỗi ấy. */
+  else if(kq?.thongBao && !(canDangNhap() && kq.ok!==false)) bao(kq.thongBao, kq.ok===false);
 }
 
 /* ==================================================================
