@@ -848,7 +848,10 @@ kt('Màn Theo giáo viên cũng có nút Báo nghỉ hộ, điền sẵn đúng 
 w.eval(`(() => {
   const lop = Object.keys(S.tkb).find(l => S.tkb[l]['2-S-0']);
   const co = S.tkb[lop]['2-S-0'];
-  S.baoNghi = [{id:'bn1', gvId:co.gvId, ngay:'2026-09-07', buoi:'S',
+  /* Thứ Hai SẮP TỚI, không ghi cứng (vá 29/9/2026): màn Dạy thay chỉ bày
+     việc từ HÔM NAY trở đi, nên ngày cố định 7/9 qua rồi là phép thử tự đỏ. */
+  const d = new Date(); d.setDate(d.getDate() + (8 - d.getDay()) % 7);
+  S.baoNghi = [{id:'bn1', gvId:co.gvId, ngay:ngayISO(d), buoi:'S',
     lyDo:'Nghỉ ốm', ghiChu:'', trangThai:'cho'}];
 })()`);
 w.chuyen('daythay');
@@ -1007,8 +1010,10 @@ w.eval(`(() => {
 w.chuyen('daythay');
 kt('Bản in có đủ tiêu đề, ngày áp dụng và hai chỗ ký', (() => {
   const t = w.eval('trangInDayThay()');
+  /* Thể thức NĐ 30/2020 (đổi 23/9/2026): trái là "Nơi nhận", phải là chức
+     vụ người ký — ô NGƯỜI LẬP BIỂU đã bỏ. */
   return /LỊCH PHÂN CÔNG DẠY THAY/.test(t) && /Ngày áp dụng/.test(t)
-    && /NGƯỜI LẬP BIỂU/.test(t) && /HIỆU TRƯỞNG/.test(t);
+    && /Nơi nhận/.test(t) && /HIỆU TRƯỞNG/.test(t);
 })());
 kt('Bản in ghi HỌ TÊN ĐẦY ĐỦ, không rút gọn — hai cô Dung phải phân biệt được', (() => {
   const t = w.eval('trangInDayThay()');
@@ -1035,7 +1040,11 @@ kt('Cột Tình trạng nói rõ đã xem hay chưa, bằng CHỮ',
 console.log('\n15d4. Bảng ngày công theo tháng');
 /* Bảng nộp báo cáo hằng tháng, suy hết từ bao_nghi (logic thuần có phép thử
    riêng ở npm test — mục 18b). Ở đây chỉ soi phần màn hình và bản in. */
-w.eval('S.ncThang = "2026-09"');
+/* Tháng lấy theo NGÀY BÁO NGHỈ đã dựng ở 15d (thứ Hai sắp tới) — ghi cứng
+   "2026-09" thì sang tháng khác là bảng trống và ba phép thử tự đỏ. */
+const thangNC = w.eval('S.baoNghi[0].ngay.slice(0, 7)');
+const tieuNC = `NGÀY CÔNG THÁNG ${+thangNC.slice(5)}/${thangNC.slice(0, 4)}`;
+w.eval(`S.ncThang = "${thangNC}"`);
 w.chuyen('ngaycong');
 kt('Mục Ngày công có mặt trên thanh bên, trong nhóm Quản lý và kết quả', (() => {
   const mi = w.document.querySelector('.mi[data-t="ngaycong"]');
@@ -1051,11 +1060,11 @@ kt('Ba lối ra In · Word · Excel đều có mặt khi có dòng',
    && !!w.document.querySelector('#btExcelNC'));
 kt('Bản in ngày công khổ A4 dọc, đủ thể thức và chỗ ký', (() => {
   const h = w.eval('trangInNgayCong()');
-  return /tr-in doc/.test(h) && /NGÀY CÔNG THÁNG 9\/2026/.test(h)
-    && /NGƯỜI LẬP BIỂU/.test(h) && /HIỆU TRƯỞNG/.test(h);
+  return /tr-in doc/.test(h) && h.includes(tieuNC)
+    && /Nơi nhận/.test(h) && /HIỆU TRƯỞNG/.test(h);
 })());
 kt('Tháng không ai nghỉ thì nói "cả trường đủ công", không bày bảng trống', (() => {
-  w.eval('S.ncThang = "2026-11"'); w.chuyen('ngaycong');
+  w.eval('S.ncThang = "2020-11"'); w.chuyen('ngaycong');
   const t = w.document.querySelector('#noiDung').textContent;
   return /chưa có ai báo nghỉ/.test(t) && /đủ công/.test(t)
     && !w.document.querySelector('#btInNC');
@@ -1212,7 +1221,8 @@ kt('Có người báo nghỉ thì hiện dải đỏ một dòng ở ĐẦU tran
      việc gấp vẫn phải đập vào mắt ngay đầu trang. */
   w.eval(`(() => {
     const lop = Object.keys(S.tkb).find(l => S.tkb[l]['2-S-0']);
-    S.baoNghi = [{id:'bnX', gvId:S.tkb[lop]['2-S-0'].gvId, ngay:'2026-09-07',
+    const d = new Date(); d.setDate(d.getDate() + (8 - d.getDay()) % 7);
+    S.baoNghi = [{id:'bnX', gvId:S.tkb[lop]['2-S-0'].gvId, ngay:ngayISO(d),
       buoi:'S', lyDo:'Nghỉ ốm', ghiChu:'', trangThai:'cho'}];
     ve();
   })()`);
@@ -2072,7 +2082,12 @@ kt('Thông tin trường nằm trong DỮ LIỆU NHÀ TRƯỜNG, không phải H
      nên đứng đầu nhóm. */
   const m = w.document.querySelector('.mi[data-t="thongtin"]');
   const dl = [...w.document.querySelectorAll('.nh[data-nh="dl"] .mi')].map(x => x.dataset.t);
-  return [m.dataset.nh === 'dl' && dl[0] === 'thongtin', dl.join(' · ')];
+  /* Từ 23/9/2026 hai CÔNG CỤ đứng trên cùng nhóm — Xưởng nạp dữ liệu và Sổ
+     nguyên tắc; chúng không phải màn khai báo. Luật giữ nguyên: Thông tin
+     trường đứng trước MỌI màn khai báo (phân hiệu, lớp, giáo viên…). */
+  const CONG_CU = ['xuongnap', 'nguyentac'];
+  const khai = dl.filter(t => !CONG_CU.includes(t));
+  return [m.dataset.nh === 'dl' && khai[0] === 'thongtin', dl.join(' · ')];
 })()));
 kt('Nhãn nhóm NỔI KHỐI, mục con giảm nhẹ — thứ bậc không bị lộn ngược', (() => {
   /* Canh THỨ BẬC, không canh một cách trình bày cụ thể. Vùng này đã đổi bốn
@@ -3542,13 +3557,13 @@ console.log('\n17q. Số hiệu và ngày thực hiện của văn bản thời 
   w.eval('KHO.vanBan = null');
   const nhap = w.eval('khungIn("THỜI KHÓA BIỂU", ["Lớp 1A"], "<table></table>", "doc")');
   kt('Chưa ban hành bản nào thì KHÔNG bịa số hiệu — đó là bản nháp',
-     !/Số \d+\/TKB/.test(nhap) && !/Thực hiện từ/.test(nhap));
+     !/Số:? \d+\/TKB/.test(nhap) && !/Thực hiện từ/.test(nhap));
 
   w.eval(`KHO.vanBan = {soHieu:3, ngayThucHien:'2026-09-07', hocKy:'Học kỳ 1',
                         banHanhLuc:'2026-08-30T02:00:00Z'}`);
   const in3 = w.eval('khungIn("THỜI KHÓA BIỂU", ["Lớp 1A"], "<table></table>", "doc")');
   kt('Bản in mang số hiệu hai chữ số, đúng thể thức văn bản',
-     /Số 03\/TKB/.test(in3), (in3.match(/Số \d+\/TKB/) || [''])[0]);
+     /Số:? 03\/TKB/.test(in3), (in3.match(/Số:? \d+\/TKB/) || [''])[0]);
   kt('Và mang mốc pháp lý "Thực hiện từ ngày…"',
      /Thực hiện từ ngày 07 tháng 9 năm 2026/.test(in3),
      (in3.match(/\(Thực hiện từ[^)]*\)/) || [''])[0]);

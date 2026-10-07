@@ -40,6 +40,14 @@ const catHam = ten => {
   return html.slice(d, h + 3);
 };
 
+/* Cắt một khai báo MỘT DÒNG (`const TEN = …`) — hằng thể thức văn bản
+   (quốc hiệu, tiêu ngữ, chức vụ ký) mà các hàm Excel dùng từ 23/9/2026. */
+const catDong = ten => {
+  const d = html.indexOf(`\nconst ${ten} `);
+  if (d < 0) { console.error(`Không tìm thấy hằng ${ten}`); process.exit(1); }
+  return html.slice(d, html.indexOf('\n', d + 1) + 1);
+};
+
 const oGia = () => ({ textContent: '', className: '', value: '', style: {},
   classList: { add() {}, remove() {}, toggle() {} }, appendChild() {}, click() {} });
 const documentGia = { querySelector: oGia, querySelectorAll: () => [],
@@ -47,9 +55,10 @@ const documentGia = { querySelector: oGia, querySelectorAll: () => [],
 
 let TEP = null, TEP_MT = null;
 const NGUON = `${vung('LOGIC')}\n${vung('DULIEU')}\n${vung('QUYEN')}\n${vung('XUAT')}
-${catHam('trangXL')}${catHam('tieuDeXL')}${catHam('dauCotXL')}${catHam('thanBangXL')}
+${catHam('trangXL')}${catHam('cotTraiXL')}${catHam('dauVanBanXL')}${catHam('kyXL')}${catHam('trangTrongXL')}${catHam('ngayVanBan')}${catHam('coQuanChuQuan')}${catHam('tieuDeXL')}${catHam('dauCotXL')}${catHam('thanBangXL')}
 ${catHam('apKhoaXL')}${catHam('danhMucCuaMuc')}${catHam('taiMauMuc')}${catHam('xuatExcel')}
 ${catHam('taiMauMaTran')}
+${catDong('dongChucVu')}${catDong('DIA_DANH')}${catDong('QUOC_HIEU')}${catDong('TIEU_NGU')}
 async function ghiTepXL(wb, ten){ ghiRa(wb, ten); }
 async function sanSangExcelJS(){ return true; }
 function bao(){}
@@ -350,11 +359,22 @@ const tt = wbX.getWorksheet('TOAN_TRUONG');
      xau.length === 0, xau.slice(0, 3).join(' | '));
 }
 
+/* Dòng tên cột ("Thứ · Buổi · Tiết · 1A…") và dòng "Nơi nhận" — DÒ theo nội
+   dung, không ghi cứng số dòng. Từ 23/9/2026 đầu trang có quốc hiệu theo
+   thể thức NĐ 30 nên lưới dời xuống; cuối trang có khối "Nơi nhận" nằm
+   trong ô GỘP bốn cột. Ghi cứng "dòng 3", "từ dòng 5" là phép thử đỏ oan. */
+let dongTenCot = 0, dongNoiNhan = tt.rowCount + 1;
+tt.eachRow((row, i) => {
+  const a = String(row.getCell(1).value || '');
+  if (!dongTenCot && a === 'Thứ') dongTenCot = i;
+  if (/^Nơi nhận/.test(a) && dongNoiNhan > tt.rowCount) dongNoiNhan = i;
+});
+
 /* --- Bề ngang cột phải đủ cho dòng chữ dài nhất --- */
 {
   let daiNhat = 0, viDu = '';
   tt.eachRow((row, i) => {
-    if (i <= 4) return;
+    if (i <= dongTenCot || i >= dongNoiNhan) return;
     row.eachCell((o, j) => {
       if (j <= 3) return;
       String(o.value || '').split('\n').forEach(x => {
@@ -372,9 +392,10 @@ const tt = wbX.getWorksheet('TOAN_TRUONG');
 
 /* --- Dải khối gộp ô, không lặp "Khối 1" năm lần --- */
 {
-  /* Chỉ đếm vùng gộp NẰM TRÊN dòng 3 — dòng tiêu đề cũng gộp ô, cộng chung
-     vào là con số nói dối. */
-  const gop = (tt.model.merges || []).filter(m => /^[A-Z]+3:[A-Z]+3$/.test(m));
+  /* Chỉ đếm vùng gộp NẰM TRÊN dải khối (ngay trên dòng tên cột) — dòng tiêu
+     đề cũng gộp ô, cộng chung vào là con số nói dối. */
+  const dk = dongTenCot - 1;
+  const gop = (tt.model.merges || []).filter(m => new RegExp(`^[A-Z]+${dk}:[A-Z]+${dk}$`).test(m));
   const soKhoi = new Set(app.S.lop.map(l => l.khoi)).size;
   kt('Dải khối GỘP Ô — mỗi khối một vùng, không lặp "Khối 1" ở từng cột',
      gop.length === soKhoi, `${gop.length} vùng gộp / ${soKhoi} khối · ${gop.join(' ')}`);

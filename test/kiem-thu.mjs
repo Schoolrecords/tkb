@@ -2675,6 +2675,15 @@ console.log('\n18. Báo nghỉ và phương án dạy thay');
   const T2 = '2026-09-07';                       /* thứ Hai */
   const T3 = '2026-09-08';                       /* thứ Ba */
   const CN = '2026-09-13';                       /* Chủ nhật */
+  /* Thứ Hai SẮP TỚI (hôm nay nếu hôm nay là thứ Hai) — cho các phép thử
+     "việc cần làm" (vá 29/9/2026). vieccanXuLy() và thông báo chỉ đếm việc
+     từ HÔM NAY trở đi, nên ghi cứng 7/9/2026 thì qua ngày ấy năm phép thử tự
+     đỏ dù phần mềm không hỏng gì — đỏ thường trực thì che mất lỗi thật.
+     Các phép thử CÂU CHỮ bên dưới vẫn dùng ngày cố định vì chúng so chuỗi. */
+  const T2Toi = (() => {
+    const d = new Date(); d.setDate(d.getDate() + (8 - d.getDay()) % 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   kt('Ngày 7/9/2026 đúng là thứ Hai, 13/9 là Chủ nhật',
      u.thuTuISO(T2) === 2 && u.thuTuISO(CN) === 1);
@@ -2851,8 +2860,8 @@ console.log('\n18. Báo nghỉ và phương án dạy thay');
   const gv2 = u.S.giaoVien.find(g => g.id !== gvCoTiet.id
     && Object.keys(u.lichTraGV()[g.id] || {}).some(k => k.startsWith('2-S-')));
   u.S.baoNghi = [
-    {id: 'a', gvId: gvCoTiet.id, ngay: T2, buoi: 'S', lyDo: 'Nghỉ ốm', ghiChu: '', trangThai: 'cho'},
-    {id: 'b', gvId: gv2.id, ngay: T2, buoi: 'S', lyDo: 'Đi công tác', ghiChu: '', trangThai: 'cho'}];
+    {id: 'a', gvId: gvCoTiet.id, ngay: T2Toi, buoi: 'S', lyDo: 'Nghỉ ốm', ghiChu: '', trangThai: 'cho'},
+    {id: 'b', gvId: gv2.id, ngay: T2Toi, buoi: 'S', lyDo: 'Đi công tác', ghiChu: '', trangThai: 'cho'}];
   const vc = u.vieccanXuLy();
   kt('Hai giáo viên nghỉ cùng buổi thì đếm đủ cả hai, cộng đúng tổng số tiết',
      vc.soNghi === 2
@@ -2882,7 +2891,7 @@ console.log('\n18. Báo nghỉ và phương án dạy thay');
   })());
 
   /* ----- 16 · 17: thông báo của giáo viên và huy hiệu ----- */
-  u.S.dayThay = pa.tiet.map((o, i) => ({id: 'n' + i, ngay: T2, buoi: o.buoi,
+  u.S.dayThay = pa.tiet.map((o, i) => ({id: 'n' + i, ngay: T2Toi, buoi: o.buoi,
     tiet: o.i, lopId: o.lopId, mon: o.mon, gvVangId: gvCoTiet.id,
     gvThayId: nan, ghiChu: '', daXem: false}));
   kt('Người được phân dạy thay thấy đủ số tiết trong thông báo của mình',
